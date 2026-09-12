@@ -23,6 +23,8 @@ generation_inputs: <角色/场景/道具参考图；上一段尾帧图；可选�
 
 这些衔接说明不放进六字段代码块，避免破坏 MiniMax H3 官方字段结构。
 
+交付时必须明确复制边界：六字段代码块标记为“模型 Prompt，可直接复制”；衔接说明标记为“生成设置，不复制到 H3 Prompt”。`continuity_in`、`continuity_out`、`state_diff`、`handoff_frame`、`generation_inputs`、`continuity_mode`、时长和音频交接字段只用于选素材、配置平台和后期剪辑。
+
 ## 每个分段的六段固定结构
 
 每个分段 H3 Prompt 必须严格按以下顺序，不能增删或改名：
@@ -51,17 +53,19 @@ non_diegetic_music:
 
 `subject_definitions`：逐项定义后文需要独立追踪的主体、图片、视频或音频标签及其参考作用。`<Subject N>` 是可复用的可见内容；`<Picture N>` 是具体帧或构图锚点；`<Video N>` 是整段视频的剪辑/续写/时序来源；`<Audio N>` 是被复制或参考的音频信号。
 
-`summary`：一个英文短段，开头使用与输入素材匹配的官方任务类型前缀，如 `[reference generation]`、`[reference generation + image reference]`、`[video editing + audio reuse]`。只引用已定义标签；同时写清本段在全片中的时间范围和与相邻单元的动作衔接；不得把自动估算的时长写成用户明确指定。
+`summary`：一个英文短段，开头使用与输入素材匹配的官方任务类型前缀，如 `[reference generation]`、`[reference generation + keyframe completion]`、`[video editing + audio reuse]`。`keyframe completion` 仅在具体关键帧作为构图/首帧/尾帧锚点时使用；不要使用未定义的 `image reference` 作为任务类型。只引用已定义标签；同时写清本段在全片中的时间范围和与相邻单元的动作衔接；不得把自动估算的时长写成用户明确指定。
 
 `retention_analysis`：逐项列出每个引用标签出现的镜头和关系。可见内容使用 `fully_preserved`、`partially_preserved`、`attribute_transfer`、`weak_reference`；音频使用 `fully_copy`、`partially_copy`、`reference`、`weak_reference`。
 
-`detailed_description`：按播放顺序详细描述视觉、主体外观与位置、动作状态变化、镜头运动、台词和同步声音。第一镜必须从 `continuity_in` 指定的首帧状态开始；后续镜头写单元内递增时间码；结尾必须落到 `continuity_out` 指定的稳定尾帧。每个镜头独立成英文自然段，不添加 `Visual:`、`Action:`、`Camera:` 等自定义字段。单元文字量以 15 秒内可执行为准，不为凑长度扩写无关动作。
+`detailed_description`：按播放顺序详细描述视觉、主体外观与位置、动作状态变化、镜头运动、台词和同步声音。第一镜必须从 `continuity_in` 指定的首帧状态开始；后续镜头写单元内递增时间码；结尾必须落到 `continuity_out` 指定的稳定尾帧。每个镜头独立成英文自然段，不添加 `Visual:`、`Action:`、`Camera:` 等自定义字段。发生闪回时，在镜头自然段中明确 `memory/flashback`、全片时间码与单元局部时间码、色调变化、声音桥和返回主时间线的切点；闪回内部时间码仍按当前生成单元递增，不能把回忆时间误当作主时间线时间。单元文字量以 15 秒内可执行为准，不为凑长度扩写无关动作。
+
+复杂动作或追逐的段前生成设置可按镜头重复三行：`shot_handoff_in`（镜头首帧状态）、`shot_handoff_out`（镜头尾帧状态）、`shot_transition`（具体可执行的摇移、跟拍、切镜或中性桥接）。这些行属于生成设置，不复制进 H3 六字段；镜头自然段仍需用英文把同一交接动作写出来。
 
 `overall_soundscape`：1—4句英文，概括全片环境声、物理动作声和非语言人声；不重复对白。无环境声才写 `N/A`。
 
 `non_diegetic_music`：1—3句英文，只描述角色听不到、观众听到的配乐；无配乐写 `N/A`。角色能听见的音乐写在 `detailed_description`。
 
-每个生成单元时长不得超过 15 秒（建议 13.5—15 秒，复杂动作可使用 8—12 秒），并沿用同一标签和参考资产。单元必须在代码块前写明 `continuity_in`、`continuity_out` 和 `generation_inputs`；六字段中的第一镜复现首帧，最后一镜落到尾帧。独立投喂块可使用单元内局部时间码，但标题或 `summary` 必须标明全片时间范围及与相邻单元的对应关系。
+每个生成单元时长不得超过 15 秒（建议 13.5—15 秒，复杂动作可使用 8—12 秒），并沿用同一标签和参考资产。单元必须在代码块前写明 `continuity_in`、`continuity_out` 和 `generation_inputs`；六字段中的第一镜复现首帧，最后一镜落到尾帧。独立投喂块可使用单元内局部时间码，但标题或 `summary` 必须标明全片时间范围及与相邻单元的对应关系。官方建议的 350—500 词按“单个模型生成单元”计算，不按整部影片累计；超长剧本必须拆分后分别控制每个单元的可执行词量。
 
 ## 台词、标签与引用
 

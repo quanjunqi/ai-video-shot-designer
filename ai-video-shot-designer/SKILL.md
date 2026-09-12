@@ -11,17 +11,20 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 
 1. 解析剧本，提取场次、角色、场景、时间/内外、服装、道具、特效、动作、台词、字幕、闪回、目标时长、画幅和声音。
 2. 在内部建立文本站位地图：为每个场景登记固定锚点、主动作轴线、摄影机所在侧、人物当前区域、朝向、层次、相对距离、遮挡关系、高低/容纳关系和可通行路径。地图使用 `N/S/E/W` 作为内部坐标，但不把缩写直接投喂模型。
-3. 在内部完成导演级规划：判断类型与视觉基调，基于站位地图设计景别/角度/焦距/运镜/节奏，并让每个动作镜头明确起点、终点、方向、道具持有者和落点。该规划用于生成 Prompt，不默认输出为表格。
-4. 根据目标时长和节奏估算镜头数量与镜头时长，并强制按不超过 15 秒划分生成单元（建议 13.5—15 秒；复杂动作可使用 8—12 秒）。每个单元必须是完整、独立、可直接复制的 H3 六字段 Prompt；不再生成完整长视频 H3 Prompt。切点优先放在动作停顿、台词结束或情绪落点，不能把一个不可恢复的关键动作拆在切点上。
+3. 在内部完成导演级规划：判断类型与视觉基调，基于站位地图设计景别/角度/焦距/运镜/节奏，并让每个动作镜头明确起点、终点、方向、道具持有者和落点。连续动作、追逐、对话或时空转换时，读取 [references/director-continuity.md](references/director-continuity.md)，额外检查景别递进、视线/轴线、构图/透视/光线交接和资产基准。该规划用于生成 Prompt，不默认输出为表格。
+4. 根据目标时长和节奏估算镜头数量与镜头时长，并强制按不超过 15 秒划分生成单元（建议 13.5—15 秒；复杂动作可使用 8—12 秒）。每个单元必须是完整、独立、可直接复制的 H3 六字段 Prompt；不再生成完整长视频 H3 Prompt。官方建议的 350—500 词按单个生成单元控制，不按全片累计；切点优先放在动作停顿、台词结束或情绪落点，不能把一个不可恢复的关键动作拆在切点上。
 5. 为每个生成单元保存空间状态快照：首帧状态、尾帧状态、人物位置和朝向、道具持有者、摄影机侧、主光方向、运动方向以及下一单元必须继承的视觉元素。下一单元的首帧必须与上一单元尾帧逐项匹配，除非剧本明确发生时空转换。
 6. 为每个单元建立连续性合同：`continuity_in` 写明本段必须复现的上一段尾帧，`continuity_out` 写明本段必须交给下一段的稳定尾帧，`generation_inputs` 指定角色/场景/道具参考图、上一段尾帧图和可选上一段视频的使用方式。先锁定状态，再描述动作；不得只依赖抽象的“保持一致”。
+   对复杂动作或平台连续生成，按 [references/segment-state-schema.md](references/segment-state-schema.md) 维护 `state_diff`、`handoff_frame`、`continuity_mode`、`generation_duration`、`overlap_duration`、`usable_duration` 和 `audio_handoff`；这些是段前生成设置，不放入 H3 六字段。
 7. 判断哪些内容需要稳定视觉资产。为重要角色、场景、道具、风格或具体关键帧生成图片 Prompt，并写明用途与对应标签；图片只定义身份/场景时作为 `<Subject N>` 的来源，图片作为具体帧或构图锚点时才建立 `<Picture N>`。
 8. 为所有实际使用的资产分配稳定标签。仅当用户明确提供或要求复用整段视频/音频时，才创建 `<Video N>` 或 `<Audio N>`；不能因文件存在而自动创建。上一段生成视频若作为运动参考，应在当前单元的 `subject_definitions` 或 `summary` 中明确其用途，不把它误写成角色身份。
 9. 固定为每个生成单元使用 MiniMax H3 六字段：`subject_definitions`、`summary`、`retention_analysis`、`detailed_description`、`overall_soundscape`、`non_diegetic_music`。六字段必须在每个单元内自洽，不跨单元依赖用户手动拼接。
 10. `subject_definitions` 只定义本单元及其衔接所需的主体和参考作用；`summary` 以 `[reference generation]` 或与实际输入匹配的官方前缀开头，并标明全片时间范围和本单元时间范围；`retention_analysis` 说明本单元与前后单元的保留、迁移或复用关系。
-11. `detailed_description` 用英文按本单元播放顺序逐镜叙述。每个 `[Shot N]` 独立成段，不添加 Visual/Action/Camera 等自定义字段；每个单元的第一镜从其首帧状态开始，后续镜头用单元内递增 `At MM:SS.mmm`，并在标题或 `summary` 中标明全片时间码。
+11. `detailed_description` 用英文按本单元播放顺序逐镜叙述。每个 `[Shot N]` 独立成段，不添加 Visual/Action/Camera 等自定义字段；每个单元的第一镜从其首帧状态开始，后续镜头用单元内递增 `At MM:SS.mmm`，并在标题或 `summary` 中标明全片时间码。若出现闪回，必须同时标注其 memory/flashback 身份、主时间线全片时间码、单元局部时间码、色调、声音桥和回切点；回忆内部时间码不得覆盖主时间线时间。
 12. 说话人、台词、画面文字和声音严格遵循参考指南。先输出一次全局图片资产 Prompt，再按时间顺序输出多个可直接复制的分段 H3 Prompt；不输出完整长视频 H3 Prompt。
 13. 静默检查镜号与单元时间码、每段不超过 15 秒、标签一致性、台词完整性、动作链、站位快照、轴线、空间与光源连续性、输入参考关系和音频分类后交付。
+
+复杂动作或镜头衔接测试时，按 [references/director-continuity.md](references/director-continuity.md) 增加镜头级 `shot_handoff_in`、`shot_handoff_out` 和 `shot_transition`；这些字段只作为代码块前的生成说明，不能插入 MiniMax H3 六字段。
 
 ## 不可违背的约束
 
@@ -44,6 +47,7 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 - N/S/E/W 仅作内部规划，最终使用 camera left/right、foreground/background 等自然语言。
 - 复杂场景可按 [references/position-map-schema.md](references/position-map-schema.md) 生成纯文字站位地图。该地图是规划/复核附件，不嵌入六字段 H3 Prompt；用户未要求时不额外输出。
 - 每个分段 H3 Prompt 必须作为一个完整、独立、可复制的文本块交付；用户无需自行拼接字段。图片资产 Prompt 另行逐项交付，同样可直接复制。不得默认交付超过 15 秒的完整长视频 H3 Prompt。
+- Subject 编号（`<Subject N>`）与说话人编号（`S1`、`S2`）是两套独立命名空间；同一主体可在不同镜头保持同一 `S` 编号，且不要求数字相同。首次发声时在 `subject_definitions` 或 `summary` 中明确对应关系。
 - 每个单元时长不得超过 15 秒，必须注明全片时间范围、单元时间范围、首帧输入、尾帧输出和与前后单元的衔接。每个单元沿用同一标签、角色外观、服装、光源、空间轴线和道具状态；不得在切点重置人物、场景或道具。
 - 第一镜从初始构图开始，后续镜头用三位小数秒数的切镜时间（如 `At 00:03.500`）写入同一时间线。
 - 运镜写明类型、幅度和速度，例如 `The camera pushes in with small amplitude at slow speed`。
