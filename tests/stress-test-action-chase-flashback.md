@@ -1,6 +1,6 @@
 # 暴力压力测试：连续打斗 + 多人追逐 + 闪回 + 多场景转换
 
-- 被测对象：`ai-video-shot-designer`（SKILL.md 18:14 版 / output-schema.md 当前版）
+- 被测对象：`ai-video-shot-designer`（当前测试分支版本）
 - 压力要素：2 场连续打斗、3 追 1 多人追逐、插入式短闪回 + 独立场次长闪回（冷暖色调切换）、5 个场景（内/外、夜/黄昏/雨）、道具两次易手、OS 内心独白、未出场 VO、【字幕】【空镜】、中文台词口型规避、估算时长约 64.8s（强制触发 ≤15s 分段）。
 - 剧本格式：遵循《剧本格式规范.md》（场次/时间地点内外/△动作/角色台词/(语气)/OS·VO/闪回·闪回结束/【字幕】【空镜】）。
 
@@ -97,16 +97,18 @@
 
 [Subject 13 · prop] A rusty iron four-wheel utility cart, worn push bar, heavy metal frame, neutral prop reference, light-grey backdrop, no text, no watermark.
 
-[Picture 1 · keyframe anchor, maps to the disarm beat] Cinematic keyframe, medium-close shot in the cold garage: Lu Zheng's left hand clamps A-Gui's knife-wrist while his right hand seizes the folding knife mid-thrust; Zhou Yan lunges in from camera right; strong diagonal tension, sodium rim light, storyboard composition, no text, no watermark.
+[Picture 1｜故事板参考图｜第3镜头夺刀动作] Cinematic storyboard reference panel, medium-close shot in the cold garage: Lu Zheng's left hand clamps A-Gui's knife-wrist while his right hand seizes the folding knife mid-thrust; Zhou Yan lunges in from 画面右侧; strong diagonal tension, sodium rim light, storyboard composition, no text, no watermark.
 
-[Picture 2 · insert keyframe, maps to the short memory insert] Extreme close-up insert of a woman's hand pressing the worn USB drive into a man's open palm, warm golden light, very shallow depth of field, soft film grain, a single isolated memory frame, no text, no watermark.
+[Picture 2｜故事板参考图｜记忆插入] Extreme close-up storyboard reference panel of a woman's hand pressing the worn USB drive into a man's open palm, warm golden light, very shallow depth of field, soft film grain, a single isolated memory frame, no text, no watermark.
 
-[Picture 3 · keyframe anchor, maps to the long rooftop flashback] Golden-hour rooftop two-shot: backlit Su Wan in profile handing the USB drive to Lu Zheng facing her, wind lifting her hair, warm amber grade and film grain, storyboard composition anchor, no text, no watermark.
+[Picture 3｜故事板参考图｜天台闪回] Golden-hour rooftop storyboard reference panel: backlit Su Wan in profile handing the USB drive to Lu Zheng facing her, wind lifting her hair, warm amber grade and film grain, storyboard composition anchor, no text, no watermark.
 ```
 
 ---
 
-## 三、完整 H3 全能参考 Prompt（一条连续时间线，21 镜，估算 64.8s）
+## 三、历史长 Prompt 基线（仅用于回归比对，不属于当前交付）
+
+以下长 Prompt 保留作为修改前基线，用于确认当前 Skill 已改为只交付不超过 15 秒的独立生成单元；不得将本节复制到模型。
 
 ```text
 subject_definitions:
@@ -123,12 +125,12 @@ subject_definitions:
 <Subject 11> is the small worn dark-metal USB drive, the through-line object, kept in <Subject 1>'s grip except during the rooftop hand-off memory.
 <Subject 12> is the black folding knife: held by <Subject 3>, seized by <Subject 1> in the disarm, then thrown away and never held again.
 <Subject 13> is the rusty iron wheeled cart in <Subject 8>, swept sideways and tipped over to block the alley.
-<Picture 1> is the disarm keyframe for the garage fight, fixing the wrist-clamp/seize composition and the camera-right lunge of <Subject 2>.
-<Picture 2> is the warm insert keyframe of a woman's hand pressing <Subject 11> into a man's palm.
-<Picture 3> is the golden rooftop two-shot keyframe that anchors the long flashback blocking and warm grade.
+<Picture 1> is the garage disarm storyboard reference panel, fixing the wrist-clamp/seize composition and the camera-right lunge of <Subject 2>.
+<Picture 2> is the warm insert storyboard reference panel of a woman's hand pressing <Subject 11> into a man's palm.
+<Picture 3> is the golden rooftop storyboard reference panel that anchors the long flashback blocking and warm grade.
 
 summary:
-[reference generation + keyframe completion] An estimated 64.8-second (unconfirmed, inferred from dialogue and action density) cold-toned live-action chase thriller. In <Subject 6>, <Subject 1>, clutching <Subject 11>, is cornered by <Subject 2>, <Subject 3> and <Subject 4>, disarms <Subject 3> of <Subject 12> at the beat fixed by <Picture 1>, discards the knife and breaks into <Subject 7>, where a vertical pincer is shaken off. The chase pours into the rainy <Subject 8>, a second close-quarters scuffle ends with <Subject 13> tipped over as a barrier, and two flashbacks (the warm insert <Picture 2> and the long rooftop memory <Picture 3> in <Subject 9>) interrupt the present before <Subject 1> vanishes into the dark <Subject 10>. Identity and environment references guide generation, while <Picture 1>, <Picture 2> and <Picture 3> act as concrete frame/composition anchors.
+[reference generation + image reference] An estimated 64.8-second (unconfirmed, inferred from dialogue and action density) cold-toned live-action chase thriller. In <Subject 6>, <Subject 1>, clutching <Subject 11>, is cornered by <Subject 2>, <Subject 3> and <Subject 4>, disarms <Subject 3> of <Subject 12> at the beat fixed by storyboard panel <Picture 1>, discards the knife and breaks into <Subject 7>, where a vertical pincer is shaken off. The chase pours into the rainy <Subject 8>, a second close-quarters scuffle ends with <Subject 13> tipped over as a barrier, and two flashbacks (the warm insert <Picture 2> and the long rooftop memory <Picture 3> in <Subject 9>) interrupt the present before <Subject 1> vanishes into the dark <Subject 10>. Identity and environment references guide generation, while the three storyboard panels guide planned composition and action beats.
 
 retention_analysis:
 <Subject 1> (appears in [Shot 1]-[Shot 4], [Shot 6], [Shot 8]-[Shot 14], [Shot 15]-[Shot 16] in memory, [Shot 18]-[Shot 21]): fully_preserved - face, scar, dark-grey jacket and athletic movement stay identical across every present scene and the warm flashback.
@@ -144,22 +146,22 @@ retention_analysis:
 <Subject 11> (through-line, [Shot 1], [Shot 5], [Shot 15]-[Shot 16], [Shot 18]): fully_preserved - same worn USB drive; holder is <Subject 1> in the present and <Subject 5> only inside the hand-off memory.
 <Subject 12> ([Shot 2]-[Shot 4]): partially_preserved - the same knife changes holder from <Subject 3> to <Subject 1> during the disarm and is then thrown off-screen in [Shot 4], after which it never reappears.
 <Subject 13> ([Shot 13]-[Shot 14]): partially_preserved - the same cart is first swept sideways then tipped onto its side as a barrier and stays down.
-<Picture 1> ([Shot 3] disarm keyframe): fully_preserved - the shot converges on this exact wrist-clamp/seize composition and camera-right lunge.
-<Picture 2> ([Shot 5] insert): fully_preserved - the insert opens from this exact warm hand-off frame.
-<Picture 3> ([Shot 15]-[Shot 16]): fully_preserved - the rooftop flashback blocking and warm grade match this anchor.
+<Picture 1> ([Shot 3] disarm storyboard panel): fully_preserved - the shot converges on this planned wrist-clamp/seize composition and camera-right lunge.
+<Picture 2> ([Shot 5] insert storyboard panel): fully_preserved - the insert follows this planned warm hand-off composition.
+<Picture 3> ([Shot 15]-[Shot 16] rooftop storyboard panel): fully_preserved - the rooftop flashback blocking and warm grade match this planned reference.
 
 detailed_description:
-The target video is a handheld, cinematic live-action chase thriller in a cold desaturated green-cyan grade with hard practical sodium and neon sources; only the flashbacks shift to a warm amber, grainy memory grade. The chase keeps one consistent screen-direction axis: <Subject 1> always flees toward camera right / deeper background, <Subject 2> tracks the right side and <Subject 3> the left side, and any axis crossing is bridged by a neutral overhead or motion transition.
-[Shot 1] A wide cold establishing shot inside <Subject 6>, the camera dollies forward with small amplitude at slow speed. <Subject 1> presses his back against the black sedan, his right hand closed around <Subject 11>. <Subject 2> stands at the car nose on camera right, <Subject 3> idles by a column on camera left flipping <Subject 12>, and <Subject 4> blocks the rear exit in the background, completing a three-point enclosure. <Subject 2> (S1) says in a low, controlled voice, <d>[Chinese] 把东西放下，你跑不出去。</d> He closes his lips and keeps stepping in.
-[Shot 2] At 00:03.200, the shot cuts to a medium-close view as <Subject 3> suddenly lunges from camera left, <Subject 12> thrusting forward in a short diagonal stab. <Subject 1> pivots his torso off the line and, with a sharp exhale, <Subject 1> (S2) says, <d>[Chinese] 滚开！</d> His left hand begins to rise toward the knife wrist to set up the next beat.
-[Shot 3] At 00:05.800, the shot cuts to the disarm keyframe matching <Picture 1>, tight medium-close, the camera handheld with small amplitude at medium speed. Picking up from the raised left hand, <Subject 1> clamps <Subject 3>'s knife-wrist and twists it outward while his right hand seizes <Subject 12>; holder of the knife passes from <Subject 3> to <Subject 1>. <Subject 2> lunges in from camera right, preserving the axis.
-[Shot 4] At 00:08.400, the shot cuts to a medium shot continuing the same motion: <Subject 1> uses the flat of <Subject 12> to block <Subject 2>'s incoming arm, back-pedals two steps toward camera right, then throws the knife overhand toward the far drainage gutter; <Subject 12> leaves frame and is no longer held by anyone. <Subject 1> turns and drives his shoulder toward the stairwell door. <Subject 2> (S1) shouts, <d>[Chinese] 别让他进楼梯！阿鬼，跟上！</d>
+The target video is a handheld, cinematic live-action chase thriller in a cold desaturated green-cyan grade with hard practical sodium and neon sources; only the flashbacks shift to a warm amber, grainy memory grade. The chase keeps one consistent screen-direction axis: <Subject 1> always flees toward 画面右侧 / deeper background, <Subject 2> tracks the right side and <Subject 3> the left side, and any axis crossing is bridged by a neutral overhead or motion transition.
+[Shot 1] A wide cold establishing shot inside <Subject 6>, the camera dollies forward with small amplitude at slow speed. <Subject 1> presses his back against the black sedan, his right hand closed around <Subject 11>. <Subject 2> stands at the car nose on 画面右侧, <Subject 3> idles by a column on 画面左侧 flipping <Subject 12>, and <Subject 4> blocks the rear exit in the background, completing a three-point enclosure. <Subject 2> (S1) says in a low, controlled voice, <d>[Chinese] 把东西放下，你跑不出去。</d> He closes his lips and keeps stepping in.
+[Shot 2] At 00:03.200, the shot cuts to a medium-close view as <Subject 3> suddenly lunges from 画面左侧, <Subject 12> thrusting forward in a short diagonal stab. <Subject 1> pivots his torso off the line and, with a sharp exhale, <Subject 1> (S2) says, <d>[Chinese] 滚开！</d> His left hand begins to rise toward the knife wrist to set up the next beat.
+[Shot 3] At 00:05.800, the shot cuts to the disarm keyframe matching <Picture 1>, tight medium-close, the camera handheld with small amplitude at medium speed. Picking up from the raised left hand, <Subject 1> clamps <Subject 3>'s knife-wrist and twists it outward while his right hand seizes <Subject 12>; holder of the knife passes from <Subject 3> to <Subject 1>. <Subject 2> lunges in from 画面右侧, preserving the axis.
+[Shot 4] At 00:08.400, the shot cuts to a medium shot continuing the same motion: <Subject 1> uses the flat of <Subject 12> to block <Subject 2>'s incoming arm, back-pedals two steps toward 画面右侧, then throws the knife overhand toward the far drainage gutter; <Subject 12> leaves frame and is no longer held by anyone. <Subject 1> turns and drives his shoulder toward the stairwell door. <Subject 2> (S1) shouts, <d>[Chinese] 别让他进楼梯！阿鬼，跟上！</d>
 [Shot 5] At 00:10.800, the image jumps into a roughly two-second warm insert matching <Picture 2>, an extreme close-up with shallow focus and gentle film grain: a woman's hand presses <Subject 11> into a man's palm. <Subject 5> (S3) says in an off-screen voiceover, barely above a whisper, her lips not visible, <d>[Chinese] 记住，别信穿制服的。</d> The warm frame flickers out.
 [Shot 6] At 00:13.000, the shot cuts hard back to cold cyan as the stairwell door slams open and <Subject 1> bursts into <Subject 7>. The camera tilts upward with medium amplitude at medium speed, following him sprinting up the stairs while sensor lamps ignite section by section and die behind him; he keeps <Subject 11> clenched in his right hand.
 [Shot 7] At 00:15.600, the shot cuts to a lower landing where <Subject 2> and <Subject 3> rush in from the bottom, still right/left of the axis, while <Subject 4> peels off toward the opposite stair to loop above, establishing a vertical pincer. <Subject 3> (S4) pants between breaths, <d>[Chinese] 他往上跑了！</d>
 [Shot 8] At 00:18.800, at the second-floor turn <Subject 1> collides head-on with <Subject 4> descending from above and they grapple at close quarters; <Subject 4> grabs his shoulder. A brief neutral overhead shot bridges the axis crossing, then <Subject 1> vaults the handrail and drops through the gap to the next landing down, breaking the hold, and immediately resumes climbing. <Subject 4> (S5) roars, <d>[Chinese] 拦住他——！</d>
 [Shot 9] At 00:22.400, the shot cuts to <Subject 1> slamming the top fire door open, light flaring as he crosses from interior toward exterior, the camera pushing through behind him with small amplitude at fast speed.
-[Shot 10] At 00:25.800, the shot cuts outside to <Subject 8> for a short atmospheric beat: cold-blue rain, neon trembling on the standing water; <Subject 1> staggers into frame from camera left and runs toward the deeper right end of the alley, rain soaking his jacket.
+[Shot 10] At 00:25.800, the shot cuts outside to <Subject 8> for a short atmospheric beat: cold-blue rain, neon trembling on the standing water; <Subject 1> staggers into frame from 画面左侧 and runs toward the deeper right end of the alley, rain soaking his jacket.
 [Shot 11] At 00:28.200, the shot cuts to a longer backward-tracking shot, medium amplitude at medium speed, as <Subject 2>, <Subject 3> and then <Subject 4> spill out in pursuit; <Subject 2> hugs the right wall and <Subject 3> the left while <Subject 1> holds his rightward/deeper escape line, all runners moving in consistent screen direction.
 [Shot 12] At 00:31.600, the shot cuts to the alley mouth where <Subject 4> steps squarely across the path, creating a front-and-back trap with the pursuers closing from behind. <Subject 1> checks for half a beat, eyes locking on <Subject 13> against the wall.
 [Shot 13] At 00:33.800, the shot cuts into the second close fight, handheld at fast speed with small amplitude. <Subject 1> grabs <Subject 13> and sweeps it horizontally to force <Subject 4> back, then shoves the cart onto its side to barricade the narrow lane; <Subject 13> stays tipped on the ground. Using the block, <Subject 1> leaps for the low left wall.
@@ -181,9 +183,41 @@ A restrained low-frequency tension pulse with a slow ticking motif drives the pr
 
 ---
 
-## 四、独立生成单元（最新版强制：每段 ≤15s，本套各 13.0s；沿用同一标签/外观/光源/轴线/道具状态）
+## 四、独立生成单元（导演级复测版：每段 ≤15s；生成设置与模型 Prompt 分离）
 
-### Unit 1 ｜全片 00:00.000–00:13.000（local 0:00–13:0）车库围堵→夺刀→掷刀→插入闪回
+### Unit 1 ｜全片 00:00.000–00:13.000（局部 0:00–13:0）车库围堵→夺刀→掷刀→插入闪回
+
+【生成设置（中文，不复制到模型 Prompt）】
+```text
+生成单元： 1
+全片时间线： 00:00.000–01:04.800
+本段时间线： 00:00.000–00:13.000
+生成时长： 13.0s
+可用时长： 13.0s
+重叠时长： 0.0s
+连续性模式：画面引导（rgb_guide）
+连续性输入： 初始车库宽景；陆铮背靠黑色轿车，右手握 U 盘；周砚在 画面右侧，阿鬼在 画面左侧 持刀，陈默堵后方出口；冷白钠灯从画面上方偏右频闪。
+连续性输出： 陆铮右手仍握 U 盘，肩部撞向消防楼梯门，门缝露出冷青楼梯光；追兵落后约一拍；刀已落入远处排水沟。
+状态变化： 折叠刀持有者 阿鬼→陆铮→无人；陆铮从轿车前退到楼梯门；插入一段暖色记忆但主时间线位置不变。
+交接帧： 00:12.7–00:13.0，陆铮肩撞门、右手 U 盘清晰、刀不在画面、冷青门缝可见的稳定帧。
+生成素材： Subject 1–6, 11–12 角色与场景参考图;  Picture 1 夺刀关键帧; Picture 2 记忆插入关键帧; 无需上一段视频.
+声音交接： 车库脚步/钠灯嗡鸣持续；刀落地声完整；苏晚 VO 完整结束；门撞击声落在本段尾部，不截断。
+镜头1衔接输入：镜头从轿车后方围堵构图开始，陆铮右手和U盘清晰可见。
+镜头1衔接输出：阿鬼的持刀手臂蓄势扑刺，三名追兵仍在各自固定侧。
+镜头1镜头过渡：摄影机沿车库动作轴缓慢前推，进入持刀扑刺准备。
+镜头2衔接输入：从抬起的刀腕和陆铮转身开始。
+镜头2衔接输出：陆铮左手触及持刀腕，尚未完成扣握。
+镜头2过渡：沿动作切镜，保持同一轴线和屏幕方向。
+镜头3衔接输入：从扣腕接触开始，匹配Picture 1的对角构图。
+镜头3衔接输出：刀完全转到陆铮右手，周砚从画面右侧冲入。
+镜头3过渡：小幅度手持跟随对角动作朝排水沟方向移动。
+镜头4衔接输入：陆铮以刀背挡在自己与周砚之间。
+镜头4衔接输出：刀离开画面，陆铮肩膀对准楼梯门。
+镜头4过渡：摄影机向右摇移，直到楼梯门边缘填入出口侧画面。
+镜头5衔接输入：从Picture 2的暖色交接插入帧开始。
+镜头5衔接输出：冷色楼梯门撞击，门缝清晰可见。
+镜头5过渡：从暖色记忆硬切到门缝，与下一段首帧匹配。
+```
 
 ```text
 subject_definitions:
@@ -198,18 +232,18 @@ subject_definitions:
 <Picture 1> disarm keyframe; <Picture 2> warm hand-off insert keyframe.
 
 summary:
-[reference generation + keyframe completion] Unit 1 of 5, global 00:00.000-00:13.000 (local 13.0s). Opens the cold garage three-point enclosure, the lunge and disarm at <Picture 1>, the knife discarded, and a 2s warm insert <Picture 2>; ends on <Subject 1> driving into the stairwell door. Hand-off to Unit 2: the door slams open into the cyan stairwell while he is still mid-charge, <Subject 11> in his right hand, pursuers 1 beat behind.
+[reference generation + keyframe completion] Unit 1 of 5, 全片 00:00.000-00:13.000 (局部 13.0s). Opens the cold garage three-point enclosure, the lunge and disarm at <Picture 1>, the knife discarded, and a 2s warm insert <Picture 2>; ends on <Subject 1> driving into the stairwell door. Hand-off to Unit 2: the door slams open into the cyan stairwell while he is still mid-charge, <Subject 11> in his right hand, pursuers 1 beat behind.
 
 retention_analysis:
 <Subject 1>-<Subject 4>, <Subject 6>, <Subject 11>: fully_preserved. <Subject 12>: partially_preserved (holder changes, then discarded at the end). <Picture 1>, <Picture 2>: fully_preserved frame anchors.
 
 detailed_description:
-Cold green-cyan grade, hard sodium sources; <Subject 1> flees toward camera right, <Subject 2> right / <Subject 3> left of the axis.
+Cold green-cyan grade, hard sodium sources; <Subject 1> flees toward 画面右侧, <Subject 2> right / <Subject 3> left of the axis.
 [Shot 1] Wide slow dolly into <Subject 6>: <Subject 1> backs against the black sedan gripping <Subject 11>; <Subject 2> at the right car nose, <Subject 3> at the left column flipping <Subject 12>, <Subject 4> blocking the rear. <Subject 2> (S1), <d>[Chinese] 把东西放下，你跑不出去。</d>
-[Shot 2] At 00:03.200, medium-close: <Subject 3> lunges from camera left with a diagonal stab; <Subject 1> pivots off-line. <Subject 1> (S2), <d>[Chinese] 滚开！</d>
-[Shot 3] At 00:05.800, tight disarm matching <Picture 1>: left hand clamps the knife wrist, right hand seizes <Subject 12> (holder passes to <Subject 1>); <Subject 2> lunges from camera right.
+[Shot 2] At 00:03.200, medium-close: <Subject 3> lunges from 画面左侧 with a diagonal stab; <Subject 1> pivots off-line. <Subject 1> (S2), <d>[Chinese] 滚开！</d>
+[Shot 3] At 00:05.800, tight disarm matching <Picture 1>: left hand clamps the knife wrist, right hand seizes <Subject 12> (holder passes to <Subject 1>); <Subject 2> lunges from 画面右侧.
 [Shot 4] At 00:08.400, medium: <Subject 1> blocks with the knife flat, back-pedals right, throws <Subject 12> to the far gutter (no longer held), turns for the door. <Subject 2> (S1), <d>[Chinese] 别让他进楼梯！阿鬼，跟上！</d>
-[Shot 5] At 00:10.800, warm grain insert matching <Picture 2>: a hand presses <Subject 11> into a palm. <Subject 5> (S3) off-screen whisper, lips unseen, <d>[Chinese] 记住，别信穿制服的。</d> Warm frame flickers out as the shoulder hits the stairwell door at local 00:13.000.
+[Shot 5] At 00:10.800, a memory/flashback insert in warm grain matching <Picture 2>: a hand presses <Subject 11> into a palm. <Subject 5> (S3) off-screen whisper, lips unseen, <d>[Chinese] 记住，别信穿制服的。</d> Warm frame flickers out as the shoulder hits the stairwell door at 局部 00:13.000.
 
 overall_soundscape:
 Echoing concrete footsteps, faint sodium hum, a short scuffle and fabric strain, one thrown knife clatter; the brief insert is wrapped in soft warm room tone.
@@ -217,7 +251,36 @@ non_diegetic_music:
 Low-frequency tension pulse with a slow tick; it thins to a single warm piano note only inside the insert and snaps back cold at the door hit.
 ```
 
-### Unit 2 ｜全片 00:13.000–00:25.800（local 0:0–12.8）消防楼梯垂直钳形→翻越→冲出内外门
+### Unit 2 ｜全片 00:13.000–00:25.800（局部 0:0–12.8）消防楼梯垂直钳形→翻越→冲出内外门
+
+【生成设置（中文，不复制到模型 Prompt）】
+```text
+生成单元： 2
+全片时间线： 00:00.000–01:04.800
+本段时间线： 00:13.000–00:25.800
+生成时长： 12.8s
+可用时长： 12.8s
+重叠时长： 0.0s
+连续性模式：运动上下文（motion_context）
+连续性输入： 复现第1段尾帧：陆铮肩撞开消防楼梯门，右手 U 盘，冷青门缝和门框位置不变。
+连续性输出： 陆铮穿过顶层防火门，脚已落到雨巷入口，身体仍向 画面右侧及纵深；门在身后打开，追兵尚未完全出门。
+状态变化： 场景由停车场转为消防楼梯；陆铮从门口上行至顶层；陈默由后方改为上层反向包抄；U 盘持有者不变。
+交接帧： 00:25.4–00:25.8，陆铮在外门阈值、雨光打在右肩、楼梯门框仍占画面左侧的清晰帧。
+生成素材： Subject 1–4, 7, 11 角色与场景参考图; 第1段交接帧; 第1段尾部视频 仅在平台支持时作为运动参考.
+声音交接： 门撞击、金属扶手摩擦和陈默喊声完整；脚步由楼梯混响自然转为雨巷湿地脚步；雨声在门开时提前进入。
+镜头6衔接输入：从上一段继承的冷色楼梯门撞击和门槛开始。
+镜头6衔接输出：陆铮上到一层楼，U盘仍在右手，身后感应灯依次亮起。
+镜头6过渡：摄影机中速上仰，保持机位侧和垂直轴线。
+镜头7衔接输入：周砚在画面右侧、阿鬼在画面左侧进入下层平台。
+镜头7衔接输出：陈默转入相反楼梯，形成上方夹击。
+镜头7过渡：向上跟拍，不反转屏幕方向。
+镜头8衔接输入：二层转角处，陈默下行进入陆铮路线。
+镜头8衔接输出：翻越并下落后，陆铮双脚落在下层平台，抓握解除。
+镜头8过渡：翻越前插入中性俯拍，桥接越轴。
+镜头9衔接输入：从下层平台落地继续上行逃跑。
+镜头9衔接输出：陆铮穿过顶层防火门，门外雨蓝环境清晰可见。
+镜头9过渡：摄影机跟随穿门，显露下一段雨巷光线。
+```
 
 ```text
 subject_definitions:
@@ -227,17 +290,17 @@ subject_definitions:
 <Subject 11> worn USB drive kept in <Subject 1>'s right hand.
 
 summary:
-[reference generation] Unit 2 of 5, global 00:13.000-00:25.800 (local 12.8s). Picks up exactly as Unit 1 ends: the door slams open into <Subject 7>, a vertical pincer forms, a neutral overhead bridges the axis during the grapple, and <Subject 1> vaults the rail and breaks the top fire door. Hand-off to Unit 3: he staggers from interior into cold-blue rainy alley at the same rightward/deeper line.
+[reference generation] Unit 2 of 5, 全片 00:13.000-00:25.800 (局部 12.8s). Picks up exactly as Unit 1 ends: the door slams open into <Subject 7>, a vertical pincer forms, a neutral overhead bridges the axis during the grapple, and <Subject 1> vaults the rail and breaks the top fire door. Hand-off to Unit 3: he staggers from interior into cold-blue rainy alley at the same rightward/deeper line.
 
 retention_analysis:
 <Subject 1>-<Subject 4>, <Subject 7>, <Subject 11>: fully_preserved; costumes, builds and the right/left chase relationship are unchanged from Unit 1.
 
 detailed_description:
-Same cold cyan grade; escape direction stays toward camera right / upward-and-deeper; axis crossing during the grapple uses a neutral overhead.
-[Shot 6] [Shot opens on local 00:00.000 = global 00:13.000] The door slams into <Subject 7>; camera tilts up at medium speed following <Subject 1> sprinting upstairs, sensor lamps lighting and dying section by section, <Subject 11> in his right fist.
+Same cold cyan grade; escape direction stays toward 画面右侧 / upward-and-deeper; axis crossing during the grapple uses a neutral overhead.
+[Shot 6] [Shot opens on 局部 00:00.000 = 全片 00:13.000] The door slams into <Subject 7>; camera tilts up at medium speed following <Subject 1> sprinting upstairs, sensor lamps lighting and dying section by section, <Subject 11> in his right fist.
 [Shot 7] At 00:02.600, lower landing: <Subject 2> and <Subject 3> rush in from the bottom on their fixed right/left sides while <Subject 4> peels to the opposite stair to loop above. <Subject 3> (S4), <d>[Chinese] 他往上跑了！</d>
 [Shot 8] At 00:05.800, second-floor turn: <Subject 1> collides with descending <Subject 4> and they grapple; a neutral overhead bridges the axis; <Subject 1> vaults the handrail, drops through to the next landing, breaks the grip and keeps climbing. <Subject 4> (S5), <d>[Chinese] 拦住他——！</d>
-[Shot 9] At 00:09.400, <Subject 1> slams the top fire door, light flaring interior-to-exterior, camera pushes through behind him at fast speed; he reaches the rainy threshold by local 00:12.800.
+[Shot 9] At 00:09.400, <Subject 1> slams the top fire door, light flaring interior-to-exterior, camera pushes through behind him at fast speed; he reaches the rainy threshold by 局部 00:12.800.
 
 overall_soundscape:
 Hollow stairwell reverb, footsteps on concrete and metal, sensor-lamp clicks, a brief grapple thud and the fire-door crash.
@@ -245,7 +308,39 @@ non_diegetic_music:
 Tension pulse continues, tightening with a rising riser through the vault and releasing at the door flare.
 ```
 
-### Unit 3 ｜全片 00:25.800–00:38.800（local 0:0–13.0）雨夜追逐→巷口夹击→二次打斗→翻墙
+### Unit 3 ｜全片 00:25.800–00:38.800（局部 0:0–13.0）雨夜追逐→巷口夹击→二次打斗→翻墙
+
+【生成设置（中文，不复制到模型 Prompt）】
+```text
+生成单元： 3
+全片时间线： 00:00.000–01:04.800
+本段时间线： 00:25.800–00:38.800
+生成时长： 13.0s
+可用时长： 12.3s
+重叠时长： 0.7s
+连续性模式：运动上下文 + 画面引导（motion_context + rgb_guide）
+连续性输入： 复现第2段尾帧：陆铮从消防门冲入冷蓝雨巷，右手 U 盘，身体向 画面右侧及纵深；门框在画面左后方。
+连续性输出： 铁艺推车已倒地横挡巷道；陆铮翻过左侧矮墙并落到墙后，追兵在墙前刹停；雨夜冷蓝光和运动方向保持。
+状态变化： 由门口奔跑变为雨巷追逐；陈默从追兵队列变为巷口阻挡者；推车由靠墙直立→横扫→倒地；陆铮越过矮墙。
+交接帧： 00:38.3–00:38.8，陆铮落地后背部/右肩仍可见，墙顶和倒地推车清晰，追兵被墙隔开。
+生成素材： Subject 1–4, 8, 11, 13 角色与场景参考图; 第2段尾帧图和尾部视频; 重复0.7秒翻墙动作，后期剪掉重复部分.
+声音交接： 雨声、霓虹电流声和奔跑呼吸连续；推车刮擦/撞击完整；周砚喊声完整；陆铮 OS 结束后再进入暖色记忆声音桥。
+镜头10衔接输入：从防火门门槛开始，先保留一个可辨识停顿。
+镜头10衔接输出：陆铮建立向画面右侧及纵深逃跑的路线。
+镜头10过渡：门槛停顿后开始后退跟拍，保持外景轴线。
+镜头11衔接输入：三名追兵从陆铮身后冲出。
+镜头11衔接输出：周砚贴右墙，阿鬼贴左墙。
+镜头11过渡：后退跟拍并保持固定左右追逐轴线。
+镜头12衔接输入：陈默正面横挡巷口。
+镜头12衔接输出：陆铮视线落到墙边直立推车。
+镜头12过渡：焦点从陈默移到推车，明确可执行的逃生目标。
+镜头13衔接输入：推车直立并处于陆铮可触及范围。
+镜头13衔接输出：推车侧翻横挡巷道，陆铮开始翻墙。
+镜头13过渡：小幅度快速手持跟随横向推撞，推车保持倒地。
+镜头14衔接输入：从翻墙起跳开始。
+镜头14衔接输出：陆铮落到墙后，追兵停在近侧。
+镜头14过渡：在本段交接处重复0.7秒翻墙动作，后期剪掉重复部分。
+```
 
 ```text
 subject_definitions:
@@ -256,18 +351,18 @@ subject_definitions:
 <Subject 11> USB drive kept by <Subject 1>.
 
 summary:
-[reference generation] Unit 3 of 5, global 00:25.800-00:38.800 (local 13.0s). Continues Unit 2's exterior threshold into the rainy alley: backward-track pursuit, a front-back trap at the mouth, a second close fight using <Subject 13> as a swept then toppled barrier, and a wall escape with an inner-monologue line. Hand-off to Unit 4: as <Subject 1> drops beyond the wall, the image melts into the warm rooftop flashback.
+[reference generation] Unit 3 of 5, 全片 00:25.800-00:38.800 (局部 13.0s). Continues Unit 2's exterior threshold into the rainy alley: backward-track pursuit, a front-back trap at the mouth, a second close fight using <Subject 13> as a swept then toppled barrier, and a wall escape with an inner-monologue line. Hand-off to Unit 4: as <Subject 1> drops beyond the wall, the image melts into the warm rooftop flashback.
 
 retention_analysis:
 <Subject 1>-<Subject 4>, <Subject 8>, <Subject 11>: fully_preserved; <Subject 13>: partially_preserved (swept then tipped and left down). Right/left chase axis unchanged across Units 1-3.
 
 detailed_description:
 Cold-blue rainy grade, neon practical reflection; <Subject 1> keeps running right/deeper, <Subject 2> right, <Subject 3> left.
-[Shot 10] [local 00:00.000 = global 00:25.800] Short atmospheric plate of <Subject 8>, then <Subject 1> staggers in from camera left into the rain toward the deeper right end.
+[Shot 10] [局部 00:00.000 = 全片 00:25.800] Short atmospheric plate of <Subject 8>, then <Subject 1> staggers in from 画面左侧 into the rain toward the deeper right end.
 [Shot 11] At 00:02.400, backward-tracking medium shot: the three pursuers spill out, <Subject 2> hugging the right wall, <Subject 3> the left, all moving in consistent screen direction.
 [Shot 12] At 00:05.800, alley mouth: <Subject 4> steps across the path to form a front-back trap; <Subject 1> checks half a beat and eyes <Subject 13>.
 [Shot 13] At 00:08.000, handheld fast close fight: he sweeps <Subject 13> horizontally to force <Subject 4> back, shoves it onto its side as a barrier (it stays down), and leaps for the low left wall.
-[Shot 14] At 00:10.800, he clambers over the wall as pursuers lunge late into empty space. <Subject 2> (S1), <d>[Chinese] 他往桥底去了，两边包，别跟丢！</d> In profile against his raised collar, <Subject 1> (S2) inner-monologue voiceover, lips closed, <d>[Chinese] 苏晚……你到底卷进了什么。</d> He drops beyond the wall by local 00:13.000.
+[Shot 14] At 00:10.800, he clambers over the wall as pursuers lunge late into empty space. <Subject 2> (S1), <d>[Chinese] 他往桥底去了，两边包，别跟丢！</d> In profile against his raised collar, <Subject 1> (S2) inner-monologue voiceover, lips closed, <d>[Chinese] 苏晚……你到底卷进了什么。</d> He drops beyond the wall by 局部 00:13.000.
 
 overall_soundscape:
 Steady rain and neon buzz, splashing footsteps in puddles, the cart's metallic scrape and clang as it tips, heavy pursuit breathing.
@@ -275,7 +370,33 @@ non_diegetic_music:
 Tension pulse drives the chase and spikes in the brief fight, then dims to make room for the inward line before the warm transition.
 ```
 
-### Unit 4 ｜全片 00:38.800–00:51.800（local 0:0–13.0）暖金天台长闪回（独立回忆场次）→硬切回冷现实
+### Unit 4 ｜全片 00:38.800–00:51.800（局部 0:0–13.0）暖金天台长闪回（独立回忆场次）→硬切回冷现实
+
+【生成设置（中文，不复制到模型 Prompt）】
+```text
+生成单元： 4
+全片时间线： 00:00.000–01:04.800
+本段时间线： 00:38.800–00:51.800
+生成时长： 13.0s
+可用时长： 13.0s
+重叠时长： 0.0s
+连续性模式：画面引导（rgb_guide）
+连续性输入： 明确进入记忆/闪回（memory/flashback）；不复现上一段雨巷几何。以暖金天台 Picture 3 作为独立回忆首帧，字幕“ 三天前 · 城西天台 ”后期叠加。
+连续性输出： 回忆结束时陆铮手指收紧握住 U 盘、苏晚仍为逆光侧脸；在 局部 00:13.0 硬切回冷青现实，雨声先于画面进入第5段。
+状态变化： 时态由现在切到三天前；色调由冷蓝变暖金并带胶片颗粒；U 盘持有者苏晚→陆铮；不把回忆时间码当作主时间线时间。
+交接帧： 局部 00:12.5–00:13.0，陆铮握紧 U 盘的稳定暖色帧；回切点独立标记，不把暖帧作为 第5段首帧。
+生成素材： Subject 1, 5, 9, 11 角色与场景参考图; Picture 3 天台关键帧; 无需上一段视频; 可选 第3段尾部视频，仅用于剪辑时序，不用于画面条件.
+声音交接： 天台风和对白完整；雨声在最后 0.3s 做声音桥；配乐在硬切点停止，不截断对白。
+镜头15衔接输入：从Picture 3的天台交接构图开始。
+镜头15衔接输出：U盘进入陆铮张开的手掌，两人侧脸清晰。
+镜头15过渡：暖色逆光中轻微停留后进入双人对白。
+镜头16衔接输入：同一侧脸逆光双人构图，U盘在陆铮掌中。
+镜头16衔接输出：陆铮手指收紧握住U盘并保持点头。
+镜头16过渡：保持两人侧脸逆光，降低口型漂移。
+镜头17衔接输入：从保持的点头和天台风声开始。
+镜头17衔接输出：本段局部00:13.0结束，紧接冷色现实切回。
+镜头17过渡：0.3秒雨声桥后硬切下一段，不做画面溶解。
+```
 
 ```text
 subject_definitions:
@@ -286,16 +407,16 @@ subject_definitions:
 <Picture 3> golden rooftop two-shot keyframe.
 
 summary:
-[reference generation + keyframe completion] Unit 4 of 5, global 00:38.800-00:51.800 (local 13.0s). A self-contained long flashback matching <Picture 3>, warm grade throughout, in which <Subject 5> hands <Subject 11> to <Subject 1> with two dialogue exchanges; it hard-cuts back to cold cyan at the end. Hand-off to Unit 5: rain sound bridges in just before the picture, returning to <Subject 1> under the viaduct with <Subject 11> back in his own hand.
+[reference generation + keyframe completion] Unit 4 of 5, 全片 00:38.800-00:51.800 (局部 13.0s). A self-contained long flashback matching <Picture 3>, warm grade throughout, in which <Subject 5> hands <Subject 11> to <Subject 1> with two dialogue exchanges; it hard-cuts back to cold cyan at the end. Hand-off to Unit 5: rain sound bridges in just before the picture, returning to <Subject 1> under the viaduct with <Subject 11> back in his own hand.
 
 retention_analysis:
 <Subject 1>, <Subject 5>, <Subject 9>, <Subject 11>: fully_preserved inside the memory; <Picture 3>: fully_preserved. Warm grade must not leak into adjacent cold units. <Subject 5> is the same person as the insert voice in Unit 1 and keeps speaker ID (S3).
 
 detailed_description:
 Warm amber grade, gentle film grain, rooftop wind; this whole unit is a memory and visually differs from the cold present timeline.
-[Shot 15] [local 00:00.000 = global 00:38.800] Matching <Picture 3>, backlit profile <Subject 5> places <Subject 11> into <Subject 1>'s palm, wind in her hair; post caption "三天前 · 城西天台".
+[Shot 15] [局部 00:00.000 = 全片 00:38.800] Matching <Picture 3>, backlit profile <Subject 5> places <Subject 11> into <Subject 1>'s palm, wind in her hair; post caption "三天前 · 城西天台".
 [Shot 16] At 00:05.400, hold the warm two-shot: profile <Subject 5> (S3), <d>[Chinese] 这里面是全部账。我要是出事，只有你能送出去。</d> <Subject 1> (S2), <d>[Chinese] 为什么是我？</d> Face turned from a frontal read, <Subject 5> (S3), <d>[Chinese] 因为你不穿那身皮，也不站任何一边。</d> He closes his fingers on <Subject 11> and nods.
-[Shot 17] At 00:10.800, hold the nod and wind for a beat, then at local 00:13.000 hard-cut to cold cyan as rain sound bridges in first; the rooftop and warm grade vanish.
+[Shot 17] At 00:10.800, hold the nod and wind for a beat, then at 局部 00:13.000 hard-cut to cold cyan as rain sound bridges in first; the rooftop and warm grade vanish.
 
 overall_soundscape:
 Open rooftop wind and distant city air, soft clothing movement; no rain until the final bridge where present rain fades in.
@@ -303,7 +424,36 @@ non_diegetic_music:
 Sparse warm solo piano with sustained soft strings for the whole memory, cut abruptly on the hard cut back to reality.
 ```
 
-### Unit 5 ｜全片 00:51.800–01:04.800（local 0:0–13.0）桥底暗场躲避→广播VO→手电搜索→沉入黑暗
+### Unit 5 ｜全片 00:51.800–01:04.800（局部 0:0–13.0）桥底暗场躲避→广播VO→手电搜索→沉入黑暗
+
+【生成设置（中文，不复制到模型 Prompt）】
+```text
+生成单元： 5
+全片时间线： 00:00.000–01:04.800
+本段时间线： 00:51.800–01:04.800
+生成时长： 13.0s
+可用时长： 13.0s
+重叠时长： 0.0s
+连续性模式：画面引导（rgb_guide）
+连续性输入： 复现第4段硬切后的冷青桥底，不复现暖色天台画面；陆铮靠水泥桥柱喘息，右手 U 盘，唯一固定光源为远处路灯缝和移动手电。
+连续性输出： 陆铮完全隐入排水通道深处；手电光柱离开，脚步远去，仅滴水/雨声持续；最后稳定空镜沉入黑场。
+状态变化： 场景由天台记忆回到高架桥底；陆铮由墙后落地状态变为桥柱后躲藏；广播 VO 和寻人启事信息出现；U 盘持有者不变。
+交接帧： 本段无下一单元；使用 局部 00:10.4–00:13.0 的静态空镜作为结尾，不用运动模糊帧。
+生成素材： Subject 1, 10, 11 角色与场景参考图; 第4段声音桥时序; 追兵不需参考图，因为始终不出镜.
+声音交接： 雨声和滴水贯穿；广播 VO 完整；手电扫过时保留脚步和布料摩擦；末尾不切断环境底噪。
+镜头18衔接输入：冷色切回，陆铮靠在高架桥柱上。
+镜头18衔接输出：陆铮打开右手露出U盘，视线转向通道。
+镜头18过渡：先保留一个可辨识的喘息停顿，再拉开景别。
+镜头19衔接输入：同一冷光下承接U盘展示和桥柱启事。
+镜头19衔接输出：陆铮蹲下并朝向通道入口。
+镜头19过渡：沿启事视线向右摇至通道口，同时保留广播回响。
+镜头20衔接输入：第一束手电光扫过湿墙。
+镜头20衔接输出：陆铮完全贴入最深阴影，仅保留轮廓光。
+镜头20过渡：曝光跟随移动手电，不加入均匀补光。
+镜头21衔接输入：手电光束从墙面撤离。
+镜头21衔接输出：静止高架桥底空镜并完全黑场。
+镜头21过渡：保持空镜，脚步远去后缓慢沉入黑场，无下一镜依赖。
+```
 
 ```text
 subject_definitions:
@@ -313,17 +463,17 @@ subject_definitions:
 Pursuers are heard off-screen but not framed; no new subjects are introduced.
 
 summary:
-[reference generation] Unit 5 of 5, global 00:51.800-01:04.800 (local 13.0s), the finale. Resumes on the cold cut-back from Unit 4: <Subject 1> hides in <Subject 10>, an unseen PA voice echoes, flashlight search sweeps a legitimately dark space, and an empty final plate with a post caption sinks to black. No follow-up unit; this resolves the sequence.
+[reference generation] Unit 5 of 5, 全片 00:51.800-01:04.800 (局部 13.0s), the finale. Resumes on the cold cut-back from Unit 4: <Subject 1> hides in <Subject 10>, an unseen PA voice echoes, flashlight search sweeps a legitimately dark space, and an empty final plate with a post caption sinks to black. No follow-up unit; this resolves the sequence.
 
 retention_analysis:
 <Subject 1>, <Subject 10>, <Subject 11>: fully_preserved, matching the cold present look of Units 1-3; <Subject 11> holder remains <Subject 1>. Do not reveal the manhunt's mastermind or the ledger's meaning.
 
 detailed_description:
 Cold cyan near-dark; the only legitimate light is moving flashlight beams and one distant street-lamp slit, with no flat fill.
-[Shot 18] [local 00:00.000 = global 00:51.800] <Subject 1> sags against a viaduct pillar, breathing hard, opens his palm to show <Subject 11>; distant footsteps and a faint siren underlay.
+[Shot 18] [局部 00:00.000 = 全片 00:51.800] <Subject 1> sags against a viaduct pillar, breathing hard, opens his palm to show <Subject 11>; distant footsteps and a faint siren underlay.
 [Shot 19] At 00:03.200, wider underpass: an unseen public-address voice (S6) says in an off-screen echoing voiceover with no speaker on screen, <d>[Chinese] 七号区域正在排查，无关人员立即撤离。</d> He glances at the faded pillar notice (visible characters handled in post), then the black tunnel mouth, and crouches toward it.
 [Shot 20] At 00:06.800, flashlight beams sweep the wet wall; <Subject 1> holds his breath and presses into the tunnel's deepest dark, only rim-lit by the moving beams.
-[Shot 21] At 00:10.400, static empty plate of <Subject 10>, post caption "追缉 · 第七小时"; beams withdraw, footsteps recede, only drips and rain remain, and the frame slowly sinks to black by local 00:13.000.
+[Shot 21] At 00:10.400, static empty plate of <Subject 10>, post caption "追缉 · 第七小时"; beams withdraw, footsteps recede, only drips and rain remain, and the frame slowly sinks to black by 局部 00:13.000.
 
 overall_soundscape:
 Underpass drips, distant siren, echoing PA reverberation, sweeping flashlight static and receding footsteps; rain bed continues to the end.
@@ -333,30 +483,24 @@ The tension pulse thins to a single low drone and then fades out completely as t
 
 ---
 
-## 五、压测结果（约束 × 表现）
+## 五、压测结果（文字验收报告）
 
-| # | 压力点 / Skill 约束 | 结果 | 说明 |
-|---|---|---|---|
-| 1 | 六字段顺序、不得增删/重复字段 | 通过 | 完整版与 5 单元均严格六字段；防漂移项没有单开第 7 字段，而是写成 detailed_description 收束的 continuity lock（规则内化解法）。 |
-| 2 | summary 官方任务前缀枚举 | **暴露缺陷** | 真实需要的是 `[reference generation + keyframe completion]`（Subject=参考生成，Picture=具体关键帧）；而 output-schema.md 第 35 行写的 `[reference generation + image reference]` 中 `image reference` **不是官方任务类型**，本次实测复现该笔误。 |
-| 3 | 动作链（上镜终点=下镜起点/方向/道具持有者/落点） | 通过且高价值 | 夺刀 S2→S3→S4、翻墙 S13→S14、门内 S9→门外 S10 均显式衔接；刀与推车的持有者/状态全程可追踪。 |
-| 4 | 轴线与越轴过渡 | 通过 | 固定"陆向右/深、周右、阿鬼左"；S8 翻越用中性俯拍做越轴桥接，符合约束。 |
-| 5 | 道具易手与防漂移 | 通过 | 刀 Sub12 持有者 Sub3→Sub1→掷出消失；U盘 Sub11 现实在陆、闪回在苏；推车 Sub13 扫动→推倒，retention 用 partially_preserved 准确表达状态变化。 |
-| 6 | 闪回（插入式 + 独立长场次 + 冷暖切换） | **基本通过，规则留白** | Skill 只在解析层提到"闪回"，**没有规定闪回的时间码口径、时态写法、与主时间线/配乐的关系**。本次自行采用"时间线连续递增 + 文字标 memory + 用 Sub9 锚定暖调 + 声音桥"，建议把这套写进 SKILL 补洞。 |
-| 7 | 多人追逐（3 追 1、垂直钳形、内外切换） | 通过 | 固定左右关系 + 陈默反向包抄 + 内→外转场，未出现方向漂移。 |
-| 8 | 中文台词 `<d>[Chinese]原文</d>` 逐字、说话人稳定编号 | 通过且被强压 | 说话人按"实际发声顺序"：S1 周砚（先开口）、S2 陆铮、S3 苏晚、S4 阿鬼、S5 陈默、S6 广播；苏晚在 S5 插入闪回与 S15-16 长闪回**跨场次复用 S3**，验证了编号稳定性，但"Subject 编号≠Speaker 编号"两套体系极易混，建议加显式示例。 |
-| 9 | 中文口型规避 / OS / 未出场 VO | 通过 | 苏晚全程侧脸/逆光/背影；陆 OS 用侧脸+collar 遮嘴并标 lips closed；广播 VO 标 no visible speaker；均符合。 |
-| 10 | 屏幕文字后期合成、可见文字双引号 | 通过 | 两处【字幕】与寻人启事均标 added/handled in post，未把对白变字幕。 |
-| 11 | 暗场合法光源 | 通过 | S20 仅手电光束+远处路灯缝，明确 no flat fill。 |
-| 12 | 时长估算不伪装成用户指定 | 通过 | summary 写明 "estimated 64.8-second (unconfirmed, inferred…)"。 |
-| 13 | 超时长强制分段（≤15s，建议13.5–15） | 通过但**成本高** | 64.8s 切 5×13.0s，切点都落在转场/动作停顿/台词结束；每单元自洽并标 global range 与首尾衔接。代价：完整 Prompt 约 1100 词 + 5 单元，**远超官方"350–500 词"生成区间**，schema 未说明超长多单元时该区间如何适用，存在口径冲突。 |
-| 14 | `<scenetrans>` / `<cutoff>` 使用纪律 | 通过（克制） | 本例无"跨切镜被切断的连续台词"、也无"被结尾硬截断的台词"，故**不滥用**这两个标签；说明规则边界可被正确识别。 |
-| 15 | 不新增剧情/人物/道具 | 通过 | 铁艺推车、寻人启事、排水沟均在原剧本先出现，Prompt 未发明新事实；只补呼吸/视线/走位。 |
+本次压力测试使用约 64.8 秒、21 镜、5 个场景、5 个生成单元的动作追逐剧本。验收以当前 Skill 的交付边界为准，结果如下。
 
-### 结论
-- **扛得住的**：动作链、轴线、多人方向、道具易手、口型/OS/VO、字幕后期、暗场光源、说话人跨场次稳定编号、强制分段——这些"导演连续性"硬规则在 65 秒 21 镜 5 场景下仍能自洽，是该 Skill 最扎实的部分。
-- **暴露的 3 个真实缺口**：
-  1. **任务前缀笔误未修**：`image reference` 应为 `keyframe completion`（本次实测复现）。
-  2. **闪回无成文规则**：时间码口径、时态、色调/声音桥处理全靠模型自由发挥，复杂闪回是最大不确定区。
-  3. **词数口径与强制分段冲突**：官方 350–500 词针对单生成段，多单元长片应明确"以每单元为口径"，否则模型会在"写全"和"控词数"间摇摆。
-- **次要建议**：补一个"Subject 编号 vs Speaker 编号"对照小例；把 continuity lock（防漂移项融入 detailed_description 收束句、而非新增字段）固化为推荐写法。
+六字段结构通过。5 个生成单元均按 `subject_definitions`、`summary`、`retention_analysis`、`detailed_description`、`overall_soundscape`、`non_diegetic_music` 顺序输出，连续性字段只出现在代码块前的生成设置中，没有混入 H3 Prompt。
+
+分段约束通过。5 个单元分别为 13.0、12.8、13.0、13.0、13.0 秒，均不超过 15 秒；词量按单元控制，不再把整片长 Prompt 当作一次生成输入。
+
+动作链和状态交接通过。夺刀、掷刀、翻越、推车倒地、门内到门外等关键动作都写明起点、终点、运动方向、道具持有者和稳定尾帧；Unit 3 使用 0.7 秒重叠并注明后期裁剪。
+
+镜头语言通过。每个 Unit 的生成设置记录了首尾状态、摄影机侧、景别变化、构图/透视、主光方向和 `shot_handoff_in/out/transition`；消防楼梯的越轴使用中性俯拍桥接，追逐维持陆铮向 画面右侧及纵深 的主方向。
+
+闪回规则通过。插入式短闪回和独立长闪回均显式标记 `memory/flashback`，局部时间码与全片时间码分开，暖色/胶片颗粒只在回忆中出现，雨声在回切前作为声音桥进入；回忆时间没有覆盖主时间线。
+
+参考资产通过。角色、场景、U 盘、折叠刀和推车均有固定标签；后续单元重复引用相同资产，并将上一单元尾帧图作为状态锚点、尾部视频作为可选运动参考，未用视频替代尾帧图。
+
+声音与文字通过。对白逐字保留在 `<d>[Chinese]... </d>` 中，OS/VO 标明嘴唇不可见或无出场说话人；广播、字幕和寻人启事均按后期文字处理；环境声、动作声和配乐在段间有明确交接。
+
+任务前缀和编号空间已修正。具体关键帧统一使用 `[reference generation + keyframe completion]`；`<Subject N>` 与 `S1/S2` 独立编号，苏晚在插入闪回和长闪回中稳定复用 `S3`。
+
+结论：当前 Skill 通过本次暴力测试。保留的运行风险是不同平台对视频续写、首尾帧和参考强度的支持不同，实际生成时仍需按平台能力把 `continuity_mode` 降级为最接近的首帧或视频续写选项；这不改变 Prompt 结构和状态台账。
