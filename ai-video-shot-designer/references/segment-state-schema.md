@@ -2,7 +2,7 @@
 
 本文件定义生成设置与 H3 Prompt 的边界。它是内部规划和段前说明，不是 MiniMax H3 六字段的一部分。
 
-## 状态对象
+## 状态对象（内部字段与用户显示名称）
 
 ```text
 continuity_in: 本段第一帧必须复现的状态；第一段写剧本初始状态
@@ -17,6 +17,8 @@ usable_duration: 后期保留时长，等于 generation_duration - overlap_durat
 audio_handoff: 台词、动作音、环境声和配乐的边界策略
 ```
 
+以上是内部字段名。面向用户的生成设置必须改用以下中文名称：连续性输入、连续性输出、状态变化、交接帧、生成素材、连续性模式、生成时长、重叠时长、可用时长、声音交接。不要把英文内部字段名作为可见标题或解释文字输出；`<Subject N>`、`<Picture N>` 等官方标签以及平台要求的模式代码除外。
+
 ## 模式选择
 
 ```text
@@ -26,7 +28,7 @@ soft_av_prefix: 连续对白、歌唱或需要柔和音画交接
 hard_av_prefix: 必须严格保留音画重叠前缀
 ```
 
-模式名称只作为生成设置；`motion_context + rgb_guide` 这类组合表示同时传递运动趋势和 RGB 状态锚点。若目标平台不支持某个模式或组合，选择其最接近的首帧/尾帧、视频续写或参考视频能力，并在 `generation_inputs` 中说明降级方案。
+模式名称只作为内部标识。面向用户时写成中文释义，例如“运动上下文（motion_context）”“画面引导（rgb_guide）”；组合模式写成“运动上下文 + 画面引导”。若目标平台不支持某个模式或组合，选择其最接近的首帧/尾帧、视频续写或参考视频能力，并在“生成素材”中用中文说明降级方案。
 
 ## 交接不变量
 
@@ -46,9 +48,9 @@ hard_av_prefix: 必须严格保留音画重叠前缀
 subject_definitions / summary / retention_analysis /
 detailed_description / overall_soundscape / non_diegetic_music
 
-【生成设置，不复制到 H3 Prompt】
-continuity_in / continuity_out / state_diff / handoff_frame /
-generation_inputs / continuity_mode / duration / audio_handoff
+【生成设置（中文，不复制到 H3 Prompt）】
+连续性输入 / 连续性输出 / 状态变化 / 交接帧 /
+生成素材 / 连续性模式 / 生成时长 / 重叠时长 / 可用时长 / 声音交接
 ```
 
 只有第一块进入 MiniMax H3 Prompt 框；第二块用于选择输入素材、平台模式和后期裁剪。

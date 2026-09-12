@@ -14,8 +14,8 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 3. 在内部完成导演级规划：判断类型与视觉基调，基于站位地图设计景别/角度/焦距/运镜/节奏，并让每个动作镜头明确起点、终点、方向、道具持有者和落点。连续动作、追逐、对话或时空转换时，读取 [references/director-continuity.md](references/director-continuity.md)，额外检查景别递进、视线/轴线、构图/透视/光线交接和资产基准。该规划用于生成 Prompt，不默认输出为表格。
 4. 根据目标时长和节奏估算镜头数量与镜头时长，并强制按不超过 15 秒划分生成单元（建议 13.5—15 秒；复杂动作可使用 8—12 秒）。每个单元必须是完整、独立、可直接复制的 H3 六字段 Prompt；不再生成完整长视频 H3 Prompt。官方建议的 350—500 词按单个生成单元控制，不按全片累计；切点优先放在动作停顿、台词结束或情绪落点，不能把一个不可恢复的关键动作拆在切点上。
 5. 为每个生成单元保存空间状态快照：首帧状态、尾帧状态、人物位置和朝向、道具持有者、摄影机侧、主光方向、运动方向以及下一单元必须继承的视觉元素。下一单元的首帧必须与上一单元尾帧逐项匹配，除非剧本明确发生时空转换。
-6. 为每个单元建立连续性合同：`continuity_in` 写明本段必须复现的上一段尾帧，`continuity_out` 写明本段必须交给下一段的稳定尾帧，`generation_inputs` 指定角色/场景/道具参考图、上一段尾帧图和可选上一段视频的使用方式。先锁定状态，再描述动作；不得只依赖抽象的“保持一致”。
-   对复杂动作或平台连续生成，按 [references/segment-state-schema.md](references/segment-state-schema.md) 维护 `state_diff`、`handoff_frame`、`continuity_mode`、`generation_duration`、`overlap_duration`、`usable_duration` 和 `audio_handoff`；这些是段前生成设置，不放入 H3 六字段。
+6. 为每个单元建立连续性合同：连续性输入写明本段必须复现的上一段尾帧，连续性输出写明本段必须交给下一段的稳定尾帧，生成素材写明角色/场景/道具参考图、上一段尾帧图和可选上一段视频的使用方式。先锁定状态，再描述动作；不得只依赖抽象的“保持一致”。
+   对复杂动作或平台连续生成，按 [references/segment-state-schema.md](references/segment-state-schema.md) 维护状态变化、交接帧、连续性模式、生成时长、重叠时长、可用时长和声音交接；这些是段前生成设置，不放入 H3 六字段。生成设置面向用户，标题、字段名、字段值和衔接描述必须全部使用中文；仅保留官方资产标签和平台必要的模式代码作为不可翻译标识。
 7. 判断哪些内容需要稳定视觉资产。为重要角色、场景、道具、风格或具体关键帧生成图片 Prompt，并写明用途与对应标签；图片只定义身份/场景时作为 `<Subject N>` 的来源，图片作为具体帧或构图锚点时才建立 `<Picture N>`。
 8. 为所有实际使用的资产分配稳定标签。仅当用户明确提供或要求复用整段视频/音频时，才创建 `<Video N>` 或 `<Audio N>`；不能因文件存在而自动创建。上一段生成视频若作为运动参考，应在当前单元的 `subject_definitions` 或 `summary` 中明确其用途，不把它误写成角色身份。
 9. 固定为每个生成单元使用 MiniMax H3 六字段：`subject_definitions`、`summary`、`retention_analysis`、`detailed_description`、`overall_soundscape`、`non_diegetic_music`。六字段必须在每个单元内自洽，不跨单元依赖用户手动拼接。
@@ -24,7 +24,7 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 12. 说话人、台词、画面文字和声音严格遵循参考指南。先输出一次全局图片资产 Prompt，再按时间顺序输出多个可直接复制的分段 H3 Prompt；不输出完整长视频 H3 Prompt。
 13. 静默检查镜号与单元时间码、每段不超过 15 秒、标签一致性、台词完整性、动作链、站位快照、轴线、空间与光源连续性、输入参考关系和音频分类后交付。
 
-复杂动作或镜头衔接测试时，按 [references/director-continuity.md](references/director-continuity.md) 增加镜头级 `shot_handoff_in`、`shot_handoff_out` 和 `shot_transition`；这些字段只作为代码块前的生成说明，不能插入 MiniMax H3 六字段。
+复杂动作或镜头衔接测试时，按 [references/director-continuity.md](references/director-continuity.md) 增加镜头级“镜头衔接输入”“镜头衔接输出”和“镜头过渡”；这些字段只作为代码块前的中文生成设置，不能插入 MiniMax H3 六字段。
 
 ## 不可违背的约束
 
@@ -53,12 +53,12 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 - 运镜写明类型、幅度和速度，例如 `The camera pushes in with small amplitude at slow speed`。
 - 说话人跨镜头使用稳定编号 `(S1)`、`(S2)`；实际台词放在 `<d>` 内，逐字保留原文与标点，不翻译、不改写；画外音明确 `off-screen voiceover` 并说明嘴唇闭合。
 - 画面中实际可见文字用英文双引号包住，逐字保留原文；不要把对白自动变成字幕。
-- 每个分段全能参考 Prompt 只使用官方标签 `<Subject N>`、`<Picture N>`、`<Video N>`、`<Audio N>`，并且严格按 `subject_definitions`、`summary`、`retention_analysis`、`detailed_description`、`overall_soundscape`、`non_diegetic_music` 六字段顺序输出；不得把 `continuity_in`、`continuity_out` 或 `generation_inputs` 插入六字段代码块。它们应写在代码块前的复制说明中。
+- 每个分段全能参考 Prompt 只使用官方标签 `<Subject N>`、`<Picture N>`、`<Video N>`、`<Audio N>`，并且严格按 `subject_definitions`、`summary`、`retention_analysis`、`detailed_description`、`overall_soundscape`、`non_diegetic_music` 六字段顺序输出；不得把连续性输入、连续性输出或生成素材插入六字段代码块。它们应写在代码块前的中文生成设置中。
 - 说话人跨镜头沿用 `(S1)` 等编号；台词放在 `<d>[Language]... </d>` 中。跨切镜连续台词使用 `<scenetrans>`，视频结尾截断使用 `<cutoff>`。
 - 当用户未提供目标时长，依据剧本台词密度、动作复杂度和场次信息估算，并在 `summary` 或 `detailed_description` 中保持同一时长假设；不把估算值伪装成用户明确要求。
 
 ## 输出
 
-Skill 被调用生成内容时，只交付用户请求的成品，不输出推理过程、专业分析、建议或自我评价。先输出一次由剧本推导的图片资产 Prompt，再按时间顺序输出多个不超过 15 秒、可独立复制的分段 H3 Prompt。每段代码块前写明本段的 `continuity_in`、`continuity_out` 和 `generation_inputs`；若用户要求双语，在每段英文成品后紧跟对应中文翻译。不要输出无法直接投喂模型的完整长视频 H3 Prompt。具体格式见 [references/output-schema.md](references/output-schema.md) 和 [references/continuity-workflow.md](references/continuity-workflow.md)。
+Skill 被调用生成内容时，只交付用户请求的成品，不输出推理过程、专业分析、建议或自我评价。先输出一次由剧本推导的图片资产 Prompt，再按时间顺序输出多个不超过 15 秒、可独立复制的分段 H3 Prompt。每段代码块前用全中文写明本段生成设置（连续性输入、连续性输出、生成素材及其他衔接字段）；若用户要求双语，在每段英文成品后紧跟对应中文翻译。不要输出无法直接投喂模型的完整长视频 H3 Prompt。具体格式见 [references/output-schema.md](references/output-schema.md) 和 [references/continuity-workflow.md](references/continuity-workflow.md)。
 
 若只有格式规范而没有创作内容，先请求创作内容；若用户要求测试，生成严格符合官方格式的测试 Prompt。
