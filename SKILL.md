@@ -12,7 +12,7 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 1. 解析剧本，提取场次、角色、场景、时间/内外、服装、道具、特效、动作、台词、字幕、闪回、目标时长、画幅和声音。
 2. 在内部建立文本站位地图：为每个场景登记固定锚点、主动作轴线、摄影机所在侧、人物当前区域、朝向、层次、相对距离、遮挡关系、高低/容纳关系和可通行路径。地图使用 `N/S/E/W` 作为内部坐标，但不把缩写直接投喂模型。
 3. 在内部完成导演级规划：判断类型与视觉基调，基于站位地图设计景别/角度/焦距/运镜/节奏，并让每个动作镜头明确起点、终点、方向、道具持有者和落点。连续动作、追逐、对话或时空转换时，读取 [references/director-continuity.md](references/director-continuity.md)，额外检查景别递进、视线/轴线、构图/透视/光线交接和资产基准。该规划用于生成 Prompt，不默认输出为表格。
-4. 根据目标时长和节奏估算镜头数量与镜头时长，并强制按不超过 15 秒划分生成单元（常规/复杂动作的建议区间见 [references/platform-spec.md](references/platform-spec.md) §1）。默认只交付当前批次的少量生成单元、不一次展开整部剧本（批次数见 §2）；长剧本在用户确认上一批次素材后继续下一批次，短剧本也同样只先给当前批次。每个单元必须是完整、独立、可直接复制的 H3 六字段 Prompt；不再生成完整长视频 H3 Prompt。官方建议词量按单个生成单元控制、不按全片累计（见 §2）；切点优先放在动作停顿、台词结束或情绪落点，不能把一个不可恢复的关键动作拆在切点上。
+4. 根据目标时长和节奏估算镜头数量与镜头时长，并强制按不超过 15 秒划分生成单元（常规/复杂动作的建议区间见 [references/platform-spec.md](references/platform-spec.md) §1）。默认只交付当前批次的少量生成单元、不一次展开整部剧本（批次数见 §2）；长剧本在用户确认上一批次素材后继续下一批次（跨批次状态台账与素材命名按 [references/batch-ledger-schema.md](references/batch-ledger-schema.md) 维护），短剧本也同样只先给当前批次。每个单元必须是完整、独立、可直接复制的 H3 六字段 Prompt；不再生成完整长视频 H3 Prompt。官方建议词量按单个生成单元控制、不按全片累计（见 §2）；切点优先放在动作停顿、台词结束或情绪落点，不能把一个不可恢复的关键动作拆在切点上。
 5. 为每个生成单元保存空间状态快照：首帧状态、尾帧状态、人物位置和朝向、道具持有者、摄影机侧、主光方向、运动方向以及下一单元必须继承的视觉元素。下一单元的首帧必须与上一单元尾帧逐项匹配，除非剧本明确发生时空转换。
 6. 为每个单元建立连续性合同：连续性输入写明本段必须复现的上一段尾帧，连续性输出写明本段必须交给下一段的稳定尾帧，生成素材写明角色/场景/道具参考图、上一段尾帧图和可选上一段视频的使用方式。先锁定状态，再描述动作；不得只依赖抽象的“保持一致”。
    对复杂动作或平台连续生成，按 [references/segment-state-schema.md](references/segment-state-schema.md) 维护状态变化、交接帧、连续性模式、生成时长、重叠时长、可用时长和声音交接；这些是段前生成设置，不放入 H3 六字段。生成设置面向用户，标题、字段名、字段值和衔接描述必须全部使用中文；仅保留官方资产标签和平台必要的模式代码作为不可翻译标识。
@@ -22,7 +22,7 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 10. `subject_definitions` 只定义本单元及其衔接所需的主体和参考作用；`summary` 以 `[reference generation]` 或与实际输入匹配的官方前缀开头，并标明全片时间范围和本单元时间范围；`retention_analysis` 说明本单元与前后单元的保留、迁移或复用关系。
 11. `detailed_description` 用英文按本单元播放顺序逐镜叙述。每个 `[Shot N]` 独立成段，不添加 Visual/Action/Camera 等自定义字段；每个单元的第一镜从其首帧状态开始，后续镜头用单元内递增 `At MM:SS.mmm`，并在标题或 `summary` 中标明全片时间码。若出现闪回，必须同时标注其 memory/flashback 身份、主时间线全片时间码、单元局部时间码、色调、声音桥和回切点；回忆内部时间码不得覆盖主时间线时间。
 12. 说话人、台词、画面文字和声音严格遵循参考指南。先输出一次当前批次真正需要的全局图片资产 Prompt 和故事板参考图 Prompt，再按时间顺序输出当前批次可直接复制的分段 H3 Prompt；不输出完整长视频 H3 Prompt。除非用户明确要求“全部生成单元”，否则不要展开后续批次。
-13. 静默检查镜号与单元时间码、每段不超过 15 秒、标签一致性、台词完整性、动作链、站位快照、轴线、空间与光源连续性、输入参考关系和音频分类后交付。
+13. 按 [references/pre-delivery-checklist.md](references/pre-delivery-checklist.md) 完成交付前两层自检：机械项运行 `scripts/validate_h3_prompt.py` 直到 ERROR=0，语义项逐项确认镜号与单元时间码、每段不超过 15 秒、标签一致性、台词完整性、动作链、站位快照、轴线、空间与光源连续性、输入参考关系和音频分类后再交付。
 
 复杂动作或镜头衔接测试时，按 [references/director-continuity.md](references/director-continuity.md) 增加镜头级“镜头衔接输入”“镜头衔接输出”和“镜头过渡”；这些字段只作为代码块前的中文生成设置，不能插入 MiniMax H3 六字段。
 
@@ -61,6 +61,6 @@ description: 解析中文或英文剧本，自动规划角色、场景、道具�
 
 ## 输出
 
-Skill 被调用生成内容时，只交付用户请求的成品，不输出推理过程、专业分析、建议或自我评价。默认先输出当前批次真正需要的角色/场景/道具资产 Prompt 与故事板参考图 Prompt，再按时间顺序输出不超过 15 秒、可独立复制的分段 H3 Prompt（批次数见 [platform-spec](references/platform-spec.md) §2）；用户明确要求全部单元时才展开整部剧本。每段代码块前用全中文写明本段生成设置（包括参考图选择、故事板参考图、连续性输入、连续性输出、生成素材及其他衔接字段）；若用户要求双语，在每段英文成品后紧跟对应中文翻译。不要输出无法直接投喂模型的完整长视频 H3 Prompt。具体格式见 [references/output-schema.md](references/output-schema.md)、[references/reference-selection-rules.md](references/reference-selection-rules.md) 和 [references/continuity-workflow.md](references/continuity-workflow.md)；平台硬参数与默认值统一以 [references/platform-spec.md](references/platform-spec.md) 为单一事实源；完整端到端范例见 [references/worked-example.md](references/worked-example.md)。
+Skill 被调用生成内容时，只交付用户请求的成品，不输出推理过程、专业分析、建议或自我评价。默认先输出当前批次真正需要的角色/场景/道具资产 Prompt 与故事板参考图 Prompt，再按时间顺序输出不超过 15 秒、可独立复制的分段 H3 Prompt（批次数见 [platform-spec](references/platform-spec.md) §2）；用户明确要求全部单元时才展开整部剧本。每段代码块前用全中文写明本段生成设置（包括参考图选择、故事板参考图、连续性输入、连续性输出、生成素材及其他衔接字段）；若用户要求双语，在每段英文成品后紧跟对应中文翻译。不要输出无法直接投喂模型的完整长视频 H3 Prompt。具体格式见 [references/output-schema.md](references/output-schema.md)、[references/reference-selection-rules.md](references/reference-selection-rules.md) 和 [references/continuity-workflow.md](references/continuity-workflow.md)；平台硬参数与默认值统一以 [references/platform-spec.md](references/platform-spec.md) 为单一事实源；完整端到端范例见 [references/worked-example.md](references/worked-example.md)；交付前自检见 [references/pre-delivery-checklist.md](references/pre-delivery-checklist.md)；跨批次台账与素材命名见 [references/batch-ledger-schema.md](references/batch-ledger-schema.md)；字段英中权威对照见 [references/terminology-map.md](references/terminology-map.md)。
 
 若只有格式规范而没有创作内容，先请求创作内容；若用户要求测试，生成严格符合官方格式的测试 Prompt。

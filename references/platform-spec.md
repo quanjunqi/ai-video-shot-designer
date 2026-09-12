@@ -105,7 +105,7 @@ non_diegetic_music
 ## 11. 内部规划与最终投喂的边界
 
 - `N/S/E/W`、`continuity_in/out`、`shot_handoff_in/out`、`state_diff` 等仅为内部规划字段；最终投喂一律改用 `camera left/right`、`foreground/background` 等自然语言，内部英文字段名不直接面向用户（官方标签与平台模式代码除外）。
-- 面向用户的生成设置统一用中文名（连续性输入、连续性输出、生成素材、参考图选择、交接帧等），完整英中对照见 [segment-state-schema.md](segment-state-schema.md)。
+- 面向用户的生成设置统一用中文名（连续性输入、连续性输出、生成素材、参考图选择、交接帧等）；英中字段对照与“是否进入六字段”的归属以 [terminology-map.md](terminology-map.md) 为权威表，字段展开细则另见 [segment-state-schema.md](segment-state-schema.md)。
 
 ## 12. 一致性优先级（固定顺序）
 
