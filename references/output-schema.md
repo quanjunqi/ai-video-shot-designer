@@ -1,0 +1,72 @@
+# MiniMax H3 全能参考模式输出规范
+
+## 资产图片 Prompt
+
+先根据剧本判断必要的角色、场景、道具、风格和关键帧图片。每项单独输出可复制的英文图片 Prompt，并在标题或括注中写明用途及对应标签。仅定义身份/场景的图片在后续作为 `<Subject N>` 的来源；作为具体帧或构图锚点的图片才建立独立 `<Picture N>`。
+
+用户明确要求站位地图、机位图或空间预演时，先按 [position-map-schema.md](position-map-schema.md) 输出纯文字站位地图，再输出图片资产 Prompt和 H3 Prompt。站位地图不嵌入六字段代码块。
+
+## 分段优先交付
+
+不要默认生成一个覆盖全片的长 H3 Prompt。先输出一次全局图片资产 Prompt，再把剧本按时间拆成多个独立生成单元；每个单元时长不得超过 15 秒，每个单元各自包含完整六字段结构并可直接复制投喂。
+
+每个单元的六字段代码块之前，用纯文字写明：
+
+```text
+Generation Unit: <N>
+Full timeline: <全片起止时间>
+Unit timeline: <本段起止时间，<= 15s>
+continuity_in: <本段首帧必须复现的上一段尾帧或初始状态>
+continuity_out: <本段尾帧必须交给下一段的稳定状态>
+generation_inputs: <角色/场景/道具参考图；上一段尾帧图；可选上一段视频及其用途>
+```
+
+这些衔接说明不放进六字段代码块，避免破坏 MiniMax H3 官方字段结构。
+
+## 每个分段的六段固定结构
+
+每个分段 H3 Prompt 必须严格按以下顺序，不能增删或改名：
+
+```text
+subject_definitions:
+...
+
+summary:
+[reference generation] ...
+
+retention_analysis:
+...
+
+detailed_description:
+...
+
+overall_soundscape:
+...
+
+non_diegetic_music:
+...
+```
+
+## 字段语义
+
+`subject_definitions`：逐项定义后文需要独立追踪的主体、图片、视频或音频标签及其参考作用。`<Subject N>` 是可复用的可见内容；`<Picture N>` 是具体帧或构图锚点；`<Video N>` 是整段视频的剪辑/续写/时序来源；`<Audio N>` 是被复制或参考的音频信号。
+
+`summary`：一个英文短段，开头使用与输入素材匹配的官方任务类型前缀，如 `[reference generation]`、`[reference generation + image reference]`、`[video editing + audio reuse]`。只引用已定义标签；同时写清本段在全片中的时间范围和与相邻单元的动作衔接；不得把自动估算的时长写成用户明确指定。
+
+`retention_analysis`：逐项列出每个引用标签出现的镜头和关系。可见内容使用 `fully_preserved`、`partially_preserved`、`attribute_transfer`、`weak_reference`；音频使用 `fully_copy`、`partially_copy`、`reference`、`weak_reference`。
+
+`detailed_description`：按播放顺序详细描述视觉、主体外观与位置、动作状态变化、镜头运动、台词和同步声音。第一镜必须从 `continuity_in` 指定的首帧状态开始；后续镜头写单元内递增时间码；结尾必须落到 `continuity_out` 指定的稳定尾帧。每个镜头独立成英文自然段，不添加 `Visual:`、`Action:`、`Camera:` 等自定义字段。单元文字量以 15 秒内可执行为准，不为凑长度扩写无关动作。
+
+`overall_soundscape`：1—4句英文，概括全片环境声、物理动作声和非语言人声；不重复对白。无环境声才写 `N/A`。
+
+`non_diegetic_music`：1—3句英文，只描述角色听不到、观众听到的配乐；无配乐写 `N/A`。角色能听见的音乐写在 `detailed_description`。
+
+每个生成单元时长不得超过 15 秒（建议 13.5—15 秒，复杂动作可使用 8—12 秒），并沿用同一标签和参考资产。单元必须在代码块前写明 `continuity_in`、`continuity_out` 和 `generation_inputs`；六字段中的第一镜复现首帧，最后一镜落到尾帧。独立投喂块可使用单元内局部时间码，但标题或 `summary` 必须标明全片时间范围及与相邻单元的对应关系。
+
+## 台词、标签与引用
+
+结构描述统一使用英文；台词和歌词在 `<d>[Language]原文</d>` 中保留原语言、原词和基础标点，不翻译改写。说话人按目标视频实际发声顺序分配稳定 `(S1)`、`(S2)`；主体本人发声写 `<Subject N> (Sx)`。画外音使用 `says in an off-screen voiceover`，并说明画面人物嘴唇闭合。跨切镜连续台词使用 `<scenetrans>`，视频结束截断使用 `<cutoff>`。实际可见文字用英文双引号逐字保留。
+
+## 最终交付
+
+先给出一次图片资产 Prompt，再按时间顺序给出多个不超过 15 秒的独立六字段 H3 Prompt。每个 Prompt 前提供衔接说明；用户要求时，在每个英文 Prompt 后提供对应中文翻译。不要输出覆盖全片的长 Prompt、分镜表、导演分析或手动拼接说明。
