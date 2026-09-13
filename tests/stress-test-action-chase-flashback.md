@@ -110,6 +110,7 @@
 
 以下长 Prompt 保留作为修改前基线，用于确认当前 Skill 已改为只交付不超过 15 秒的独立生成单元；不得将本节复制到模型。
 
+<!-- h3-validator: ignore -->
 ```text
 subject_definitions:
 <Subject 1> is Lu Zheng, a lean Chinese man in his early 30s with short black hair, a faint scar on his left brow, a dark-grey zip-up jacket over a black T-shirt, black trousers and scuffed leather shoes; he holds <Subject 11> and is the single person being chased.
@@ -229,7 +230,8 @@ subject_definitions:
 <Subject 6> cold-green flickering-sodium parking garage.
 <Subject 11> worn dark-metal USB drive held by <Subject 1>.
 <Subject 12> black folding knife, holder passes <Subject 3>→<Subject 1>, then thrown away.
-<Picture 1> disarm storyboard reference panel; <Picture 2> warm hand-off insert storyboard reference panel.
+<Picture 1> disarm storyboard reference panel.
+<Picture 2> warm hand-off insert storyboard reference panel.
 
 summary:
 [reference generation + image reference] Unit 1 of 5, 全片 00:00.000-00:13.000 (局部 13.0s). Opens the cold garage three-point enclosure, the lunge and disarm at storyboard panel <Picture 1>, the knife discarded, and a 2s warm insert <Picture 2>; ends on <Subject 1> driving into the stairwell door. Hand-off to Unit 2: the door slams open into the cyan stairwell while he is still mid-charge, <Subject 11> in his right hand, pursuers 1 beat behind.
@@ -239,7 +241,7 @@ retention_analysis:
 
 detailed_description:
 Cold green-cyan grade, hard sodium sources; <Subject 1> flees toward 画面右侧, <Subject 2> right / <Subject 3> left of the axis.
-[Shot 1] Wide slow dolly into <Subject 6>: <Subject 1> backs against the black sedan gripping <Subject 11>; <Subject 2> at the right car nose, <Subject 3> at the left column flipping <Subject 12>, <Subject 4> blocking the rear. <Subject 2> (S1), <d>[Chinese] 把东西放下，你跑不出去。</d>
+[Shot 1] At 00:00.000, wide slow dolly into <Subject 6>: <Subject 1> backs against the black sedan gripping <Subject 11>; <Subject 2> at the right car nose, <Subject 3> at the left column flipping <Subject 12>, <Subject 4> blocking the rear. <Subject 2> (S1), <d>[Chinese] 把东西放下，你跑不出去。</d>
 [Shot 2] At 00:03.200, medium-close: <Subject 3> lunges from 画面左侧 with a diagonal stab; <Subject 1> pivots off-line. <Subject 1> (S2), <d>[Chinese] 滚开！</d>
 [Shot 3] At 00:05.800, tight disarm matching <Picture 1>: left hand clamps the knife wrist, right hand seizes <Subject 12> (holder passes to <Subject 1>); <Subject 2> lunges from 画面右侧.
 [Shot 4] At 00:08.400, medium: <Subject 1> blocks with the knife flat, back-pedals right, throws <Subject 12> to the far gutter (no longer held), turns for the door. <Subject 2> (S1), <d>[Chinese] 别让他进楼梯！阿鬼，跟上！</d>
@@ -285,7 +287,9 @@ Low-frequency tension pulse with a slow tick; it thins to a single warm piano no
 ```text
 subject_definitions:
 <Subject 1> Lu Zheng (same face/scar/dark-grey jacket), still holding <Subject 11>.
-<Subject 2> Zhou Yan (camera-right), <Subject 3> A-Gui (camera-left), <Subject 4> Chen Mo (loops above to block).
+<Subject 2> Zhou Yan (camera-right).
+<Subject 3> A-Gui (camera-left).
+<Subject 4> Chen Mo (loops above to block).
 <Subject 7> cold cyan concrete fire-escape stairwell, section sensor lamps, metal handrail.
 <Subject 11> worn USB drive kept in <Subject 1>'s right hand.
 
@@ -297,7 +301,7 @@ retention_analysis:
 
 detailed_description:
 Same cold cyan grade; escape direction stays toward 画面右侧 / upward-and-deeper; axis crossing during the grapple uses a neutral overhead.
-[Shot 6] [Shot opens on 局部 00:00.000 = 全片 00:13.000] The door slams into <Subject 7>; camera tilts up at medium speed following <Subject 1> sprinting upstairs, sensor lamps lighting and dying section by section, <Subject 11> in his right fist.
+[Shot 6] At 00:00.000, [Shot opens on 局部 00:00.000 = 全片 00:13.000] The door slams into <Subject 7>; camera tilts up at medium speed following <Subject 1> sprinting upstairs, sensor lamps lighting and dying section by section, <Subject 11> in his right fist.
 [Shot 7] At 00:02.600, lower landing: <Subject 2> and <Subject 3> rush in from the bottom on their fixed right/left sides while <Subject 4> peels to the opposite stair to loop above. <Subject 3> (S4), <d>[Chinese] 他往上跑了！</d>
 [Shot 8] At 00:05.800, second-floor turn: <Subject 1> collides with descending <Subject 4> and they grapple; a neutral overhead bridges the axis; <Subject 1> vaults the handrail, drops through to the next landing, breaks the grip and keeps climbing. <Subject 4> (S5), <d>[Chinese] 拦住他——！</d>
 [Shot 9] At 00:09.400, <Subject 1> slams the top fire door, light flaring interior-to-exterior, camera pushes through behind him at fast speed; he reaches the rainy threshold by 局部 00:12.800.
@@ -345,7 +349,9 @@ Tension pulse continues, tightening with a rising riser through the vault and re
 ```text
 subject_definitions:
 <Subject 1> Lu Zheng (now rain-soaked same outfit), holding <Subject 11>.
-<Subject 2> Zhou Yan right wall, <Subject 3> A-Gui left wall, <Subject 4> Chen Mo blocks the alley mouth.
+<Subject 2> Zhou Yan right wall.
+<Subject 3> A-Gui left wall.
+<Subject 4> Chen Mo blocks the alley mouth.
 <Subject 8> cold-blue rainy back alley, neon on wet ground, low left wall.
 <Subject 13> rusty iron wheeled cart, swept then tipped as a barrier.
 <Subject 11> USB drive kept by <Subject 1>.
@@ -358,7 +364,7 @@ retention_analysis:
 
 detailed_description:
 Cold-blue rainy grade, neon practical reflection; <Subject 1> keeps running right/deeper, <Subject 2> right, <Subject 3> left.
-[Shot 10] [局部 00:00.000 = 全片 00:25.800] Short atmospheric plate of <Subject 8>, then <Subject 1> staggers in from 画面左侧 into the rain toward the deeper right end.
+[Shot 10] At 00:00.000, [局部 00:00.000 = 全片 00:25.800] Short atmospheric plate of <Subject 8>, then <Subject 1> staggers in from 画面左侧 into the rain toward the deeper right end.
 [Shot 11] At 00:02.400, backward-tracking medium shot: the three pursuers spill out, <Subject 2> hugging the right wall, <Subject 3> the left, all moving in consistent screen direction.
 [Shot 12] At 00:05.800, alley mouth: <Subject 4> steps across the path to form a front-back trap; <Subject 1> checks half a beat and eyes <Subject 13>.
 [Shot 13] At 00:08.000, handheld fast close fight: he sweeps <Subject 13> horizontally to force <Subject 4> back, shoves it onto its side as a barrier (it stays down), and leaps for the low left wall.
@@ -414,7 +420,7 @@ retention_analysis:
 
 detailed_description:
 Warm amber grade, gentle film grain, rooftop wind; this whole unit is a memory and visually differs from the cold present timeline.
-[Shot 15] [局部 00:00.000 = 全片 00:38.800] Matching <Picture 3>, backlit profile <Subject 5> places <Subject 11> into <Subject 1>'s palm, wind in her hair; post caption "三天前 · 城西天台".
+[Shot 15] At 00:00.000, [局部 00:00.000 = 全片 00:38.800] Matching <Picture 3>, backlit profile <Subject 5> places <Subject 11> into <Subject 1>'s palm, wind in her hair; post caption "三天前 · 城西天台".
 [Shot 16] At 00:05.400, hold the warm two-shot: profile <Subject 5> (S3), <d>[Chinese] 这里面是全部账。我要是出事，只有你能送出去。</d> <Subject 1> (S2), <d>[Chinese] 为什么是我？</d> Face turned from a frontal read, <Subject 5> (S3), <d>[Chinese] 因为你不穿那身皮，也不站任何一边。</d> He closes his fingers on <Subject 11> and nods.
 [Shot 17] At 00:10.800, hold the nod and wind for a beat, then at 局部 00:13.000 hard-cut to cold cyan as rain sound bridges in first; the rooftop and warm grade vanish.
 
@@ -470,7 +476,7 @@ retention_analysis:
 
 detailed_description:
 Cold cyan near-dark; the only legitimate light is moving flashlight beams and one distant street-lamp slit, with no flat fill.
-[Shot 18] [局部 00:00.000 = 全片 00:51.800] <Subject 1> sags against a viaduct pillar, breathing hard, opens his palm to show <Subject 11>; distant footsteps and a faint siren underlay.
+[Shot 18] At 00:00.000, [局部 00:00.000 = 全片 00:51.800] <Subject 1> sags against a viaduct pillar, breathing hard, opens his palm to show <Subject 11>; distant footsteps and a faint siren underlay.
 [Shot 19] At 00:03.200, wider underpass: an unseen public-address voice (S6) says in an off-screen echoing voiceover with no speaker on screen, <d>[Chinese] 七号区域正在排查，无关人员立即撤离。</d> He glances at the faded pillar notice (visible characters handled in post), then the black tunnel mouth, and crouches toward it.
 [Shot 20] At 00:06.800, flashlight beams sweep the wet wall; <Subject 1> holds his breath and presses into the tunnel's deepest dark, only rim-lit by the moving beams.
 [Shot 21] At 00:10.400, static empty plate of <Subject 10>, post caption "追缉 · 第七小时"; beams withdraw, footsteps recede, only drips and rain remain, and the frame slowly sinks to black by 局部 00:13.000.

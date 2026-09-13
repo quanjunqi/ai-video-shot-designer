@@ -10,6 +10,8 @@ validate_h3_prompt.py — ai-video-shot-designer 的 MiniMax H3 分段 Prompt �
   - detailed_description 的 At MM:SS.mmm 是否单调递增、是否超过单段时长上限；
   - 台词是否包在 <d>[Language] ... </d>；是否混入 Visual:/Action:/Camera: 等自定义字段；
   - 六字段块内是否误塞 continuity_in/generation_inputs 等内部字段；
+  - 是否存在未知字段、空字段、重复标签或未定义标签；
+  - 文档中显式标记为历史基线的代码块可跳过，避免回归样例污染结果。
   - 中文生成设置里“本段时间线”的时长是否超限；声音字段句数是否在建议范围。
 
 数值口径与 references/platform-spec.md 保持一致；单段硬上限默认 15s，可用 --max-duration 覆盖。
@@ -46,13 +48,29 @@ VIS_ENUMS = {"fully_preserved", "partially_preserved", "attribute_transfer", "we
 AUD_ENUMS = {"fully_copy", "partially_copy", "reference", "weak_reference"}
 ALL_ENUMS = VIS_ENUMS | AUD_ENUMS
 
-FENCE_RE = re.compile(r"```[A-Za-z]*\n(.*?)```", re.S)
-TAG_RE = re.compile(r"<(Subject|Picture|Video|Audio)\s*(\d+)>")
+# A baseline/example block can be preceded by this marker. Capture the marker
+# with the fence so validate_text can omit it without changing normal drafts.
+FENCE_RE = re.compile(
+    r"(?P<ignore><!--\s*h3-validator\s*:\s*ignore\s*-->\s*)?"
+    r"```[A-Za-z0-9_-]*\r?\n(?P<body>.*?)```",
+    re.S | re.I,
+)
+TAG_RE = re.compile(r"<(Subject|Picture|Video|Audio)\s+(\d+)>")
+MALFORMED_TAG_RE = re.compile(r"</?(Subject|Picture|Video|Audio)(\d+)>")
+# Definitions are line-oriented; references to a tag inside its description
+# must not be mistaken for a second definition. H3 examples in the wild use
+# both "<Subject 1> is ..." and the concise "<Subject 1> ..." form, so both
+# are accepted as long as a non-empty description follows the tag.
+DEFINITION_RE = re.compile(
+    r"(?m)^\s*<(Subject|Picture|Video|Audio)\s+(\d+)>\s*"
+    r"(?:(?:is|=)\s*)?(.+\S)\s*$"
+)
 ILLEGAL_TAG_RE = re.compile(r"</?\s*([A-Za-z]+)\s*\d*\s*>")
 TIME_RE = re.compile(r"At\s+(\d{1,2}):(\d{2}\.\d{3})")
 SHOT_RE = re.compile(r"\[Shot\s+\d+\]")
 D_RE = re.compile(r"<d>(.*?)</d>", re.S)
 D_RAW_RE = re.compile(r"<d>")
+D_CLOSE_RE = re.compile(r"</d>")
 TIMELINE_RE = re.compile(r"本段时间线：\s*(\d{1,2}):(\d{2}(?:\.\d+)?)\s*[—\-–]\s*(\d{1,2}):(\d{2}(?:\.\d+)?)")
 FORBIDDEN_CUSTOM_RE = re.compile(r"(?im)^\s*(visual|action|camera|motion|lighting|sound)\s*:")
 FORBIDDEN_INTERNAL_RE = re.compile(
@@ -86,13 +104,44 @@ def count_sentences(text):
     return len(parts)
 
 
+def shot_numbers(text):
+    """Return the ordered [Shot N] numbers found in a detailed description."""
+    return [int(n) for n in re.findall(r"\[Shot\s+(\d+)\]", text)]
+
+
+def validate_shot_structure(dd, err, warn):
+    """Validate lightweight shot/timecode alignment without over-constraining prose."""
+    numbers = shot_numbers(dd)
+    if numbers:
+        # Some production ledgers number shots globally across the film while
+        # others restart at 1 for each unit. Both are valid; reject only
+        # duplicate or backwards numbering, which is unambiguously broken.
+        if any(b <= a for a, b in zip(numbers, numbers[1:])):
+            err("shot-order", f"[Shot N] 必须严格递增，当前为: {', '.join(map(str, numbers))}")
+
+        # Every explicit shot section should have at least one local timecode.
+        sections = re.split(r"(?=\[Shot\s+\d+\])", dd)
+        missing_time = []
+        for section in sections:
+            match = re.match(r"\[Shot\s+(\d+)\]", section.strip())
+            if match and not TIME_RE.search(section):
+                missing_time.append(match.group(1))
+        if missing_time:
+            warn("shot-time-missing", f"[Shot {', '.join(missing_time)}] 未找到 At MM:SS.mmm 局部时间码")
+
+
 def validate_block(block, idx, max_duration):
     """校验一个含 subject_definitions 的六字段块。"""
     issues = []
     err = lambda code, msg: issues.append(("ERROR", f"block#{idx} {code}: {msg}"))
     warn = lambda code, msg: issues.append(("WARNING", f"block#{idx} {code}: {msg}"))
 
-    # 1. 字段齐全性 + 顺序 + 重复
+    # 1. 字段齐全性 + 顺序 + 重复 + 未知字段
+    all_headers = re.findall(r"(?m)^\s*([a-z][a-z0-9_]*)\s*:\s*", block)
+    unknown_headers = sorted(set(all_headers) - set(FIELDS))
+    if unknown_headers:
+        err("unknown-field", f"出现未知字段: {', '.join(unknown_headers)}；六字段块只能包含官方字段")
+
     present_order = []
     for f in FIELDS:
         occ = [m.start() for m in re.finditer(r"(?m)^" + re.escape(f) + r"\s*:", block)]
@@ -113,10 +162,20 @@ def validate_block(block, idx, max_duration):
     def content(f):
         return block[spans[f][1]:spans[f][2]].strip() if f in spans else ""
 
+    empty = [f for f in FIELDS if f in spans and not content(f)]
+    if empty:
+        err("empty-field", f"字段不能为空: {', '.join(empty)}")
+
     # 2. 标签合法性 + 先定义后使用
     defined, used = {}, {}
     subj_text = content("subject_definitions")
-    for kind, num in TAG_RE.findall(subj_text):
+    definitions = DEFINITION_RE.findall(subj_text)
+    if not definitions:
+        err("subject-definitions-empty", "subject_definitions 至少要定义一个官方标签")
+    for kind, num, _description in definitions:
+        key = (kind, int(num))
+        if key in defined:
+            err("duplicate-tag-definition", f"{kind} {num} 在 subject_definitions 中重复定义")
         defined[(kind, int(num))] = True
     body_after_def = block[spans["summary"][1]:] if "summary" in spans else block
     for kind, num in TAG_RE.findall(body_after_def):
@@ -125,6 +184,9 @@ def validate_block(block, idx, max_duration):
         kind = m.group(1)
         if kind not in LEGAL_TAG_KINDS and kind not in ("d", "scenetrans", "cutoff"):
             err("illegal-tag", f"出现非官方标签 <{kind}>；只允许 Subject/Picture/Video/Audio 与 d/scenetrans/cutoff")
+    malformed = sorted({f"<{kind}{num}>" for kind, num in MALFORMED_TAG_RE.findall(block)})
+    if malformed:
+        err("malformed-tag", f"官方标签必须在类别与编号之间保留空格: {', '.join(malformed)}")
     for tag in sorted(used):
         if tag not in defined:
             err("tag-undefined", f"<{tag[0]} {tag[1]}> 在 subject_definitions 之后被使用，但未在其中定义")
@@ -159,9 +221,13 @@ def validate_block(block, idx, max_duration):
     if dd:
         if not SHOT_RE.search(dd):
             warn("shot-missing", "detailed_description 中没有 [Shot N] 分段")
+        else:
+            validate_shot_structure(dd, err, warn)
         if FORBIDDEN_CUSTOM_RE.search(dd):
             err("custom-field", "detailed_description 不允许 Visual:/Action:/Camera: 等自定义字段，请改为自然段落")
         secs = [to_sec(mn, ss) for mn, ss in TIME_RE.findall(dd)]
+        if secs and secs[0] > 1e-6:
+            warn("time-start", f"第一个显式镜头时间码为 {secs[0]:.3f}s；若前文未明确描述首帧，建议补充 At 00:00.000")
         if any(b < a for a, b in zip(secs, secs[1:])):
             err("time-order", "At MM:SS.mmm 时间码不是单调递增")
         if secs and max(secs) > max_duration + 1e-6:
@@ -172,8 +238,8 @@ def validate_block(block, idx, max_duration):
             if not inner.lstrip().startswith("["):
                 err("dialogue-language", "<d> 后必须以 [Language] 标注语言，如 <d>[Chinese]... </d>")
         # 检测写了 <d> 但没闭合
-        if len(D_RAW_RE.findall(dd)) != len(D_RE.findall(dd)):
-            err("dialogue-unclosed", "存在未用 </d> 闭合的台词标签")
+        if len(D_RAW_RE.findall(dd)) != len(D_RE.findall(dd)) or len(D_CLOSE_RE.findall(dd)) != len(D_RE.findall(dd)):
+            err("dialogue-unbalanced", "<d> 与 </d> 数量不匹配，台词标签未正确闭合")
 
     # 6. 六字段块内不得出现内部字段
     bad_internal = sorted(set(m.group(1) for m in FORBIDDEN_INTERNAL_RE.finditer(block)))
@@ -197,7 +263,13 @@ def validate_block(block, idx, max_duration):
 
 def validate_text(text, max_duration):
     issues = []
-    blocks = [b for b in FENCE_RE.findall(text) if re.search(r"(?m)^subject_definitions\s*:", b)]
+    blocks = []
+    for match in FENCE_RE.finditer(text):
+        if match.group("ignore"):
+            continue
+        body = match.group("body")
+        if re.search(r"(?m)^subject_definitions\s*:", body):
+            blocks.append(body)
     if not blocks:
         issues.append(("WARNING", "未发现任何含 subject_definitions 的六字段块"))
     for i, b in enumerate(blocks, 1):

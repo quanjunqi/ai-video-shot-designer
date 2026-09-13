@@ -1,6 +1,6 @@
 # 暴力压力测试：《雨港夺证》
 
-本测试验证：故事板参考图与实际尾帧图的职责分离、15 秒以内分段、多人追逐、近身打斗、道具交接、场景转换、越轴桥接和声音连续性。全片约 48 秒，拆为 4 个生成单元，每段 12 秒；第 2—4 段使用上一段实际生成的稳定尾帧图，不把故事板参考图冒充尾帧。
+本测试验证：生成单元分镜手稿、镜头构图参考图与实际尾帧图的职责分离、15 秒以内分段、多人追逐、近身打斗、道具交接、场景转换、越轴桥接和声音连续性。全片约 48 秒，拆为 4 个生成单元，每段 12 秒；第 2—4 段使用上一段实际生成的稳定尾帧图，不把镜头构图参考图冒充尾帧。
 
 ## 一、测试剧本
 
@@ -56,13 +56,13 @@
 
 [Subject 6｜道具参考图] Short steel baton with a rubber grip and chipped black paint, closed prop reference, neutral grey background, no text, no watermark.
 
-[Picture 1｜故事板参考图｜码头追逐与第一次交手] Storyboard reference panel, wide-to-medium dynamic composition on a rain-soaked pier: Shen Yan runs toward camera right holding the silver evidence box in his right hand, Lin Lan follows three meters behind, the scar-faced pursuer cuts out from between containers with a baton, wet railings form strong diagonal leading lines, sodium lamp from upper left, cold blue sea in deep background, no text, no watermark.
+[Picture 1｜镜头构图参考图｜对应镜头 1—3：码头追逐与第一次交手] Storyboard reference panel, wide-to-medium dynamic composition on a rain-soaked pier: Shen Yan runs toward camera right holding the silver evidence box in his right hand, Lin Lan follows three meters behind, the scar-faced pursuer cuts out from between containers with a baton, wet railings form strong diagonal leading lines, sodium lamp from upper left, cold blue sea in deep background, no text, no watermark.
 
-[Picture 2｜故事板参考图｜仓库道具交接] Storyboard reference panel, medium shot inside the warehouse: Shen Yan on camera left passes the silver evidence box into Lin Lan's left hand while turning his torso toward two incoming pursuers on camera right; red safety door centered in background, wooden crate foreground, overhead fluorescent strip, clear hand and prop visibility, no text, no watermark.
+[Picture 2｜镜头构图参考图｜对应镜头 2：仓库道具交接] Storyboard reference panel, medium shot inside the warehouse: Shen Yan on camera left passes the silver evidence box into Lin Lan's left hand while turning his torso toward two incoming pursuers on camera right; red safety door centered in background, wooden crate foreground, overhead fluorescent strip, clear hand and prop visibility, no text, no watermark.
 
-[Picture 3｜故事板参考图｜楼梯越轴桥接] Storyboard reference panel, neutral high-angle view of the red fire stairwell landing: Lin Lan above reaches down with her right hand, Shen Yan rises from the lower platform after vaulting the rail, scar-faced pursuer remains one level below; vertical railings and landing edges clearly map the new axis, cold green fluorescent light, no text, no watermark.
+[Picture 3｜镜头构图参考图｜对应镜头 3—4：楼梯越轴桥接] Storyboard reference panel, neutral high-angle view of the red fire stairwell landing: Lin Lan above reaches down with her right hand, Shen Yan rises from the lower platform after vaulting the rail, scar-faced pursuer remains one level below; vertical railings and landing edges clearly map the new axis, cold green fluorescent light, no text, no watermark.
 
-[Picture 4｜故事板参考图｜天台收束] Storyboard reference panel, medium-wide rooftop composition after rain: Shen Yan and Lin Lan stand beside a ventilation unit, Shen Yan holds the silver evidence box in his right hand, both face the city at camera right, yellow warning line and escape-ladder entrance at the right edge, soft blue moonlight with distant warm windows, no text, no watermark.
+[Picture 4｜镜头构图参考图｜对应镜头 2—4：天台收束] Storyboard reference panel, medium-wide rooftop composition after rain: Shen Yan and Lin Lan stand beside a ventilation unit, Shen Yan holds the silver evidence box in his right hand, both face the city at camera right, yellow warning line and escape-ladder entrance at the right edge, soft blue moonlight with distant warm windows, no text, no watermark.
 ```
 
 ## 三、生成单元 1（00:00.000—00:12.000）
@@ -89,6 +89,25 @@
 镜头衔接输入：广角码头，沈砚向画面右侧逃跑，摄影机位于追逐轴线左侧，主光来自左上方钠灯。
 镜头衔接输出：卷帘门从上方落下形成垂直遮挡，摄影机停在仓库内侧，人物左右关系不改变。
 镜头过渡：跟拍沈砚撞入仓库，镜头在卷帘门落下时短暂被遮挡，切入下一段仓库内侧的同方向构图。
+
+### 本单元分镜手稿
+
+生成单元 1 的导演手稿（文字规划，不复制到 H3）：本单元以“雨夜码头追逐并进入仓库”为叙事目的，共 4 个镜头。镜头 1（00:00.000—00:02.800，2.8 秒）：广角跟拍，沈砚位于画面左前景向 camera right 奔跑，林岚在后方三米，证物盒在沈砚右手；起点为码头入口，终点为集装箱斜线尽头，雨夜钠灯从左上方打出反光。镜头 2（00:02.800—00:04.600，1.8 秒）：中景侧角度，刀疤男从画面左侧集装箱间切出并挥棍，沈砚急停侧身闪过，短棍终点掠过胸前但未接触；视线和运动方向继续向右。镜头 3（00:04.600—00:07.200，2.6 秒）：中近景，沈砚踢开刀疤男并抓住林岚伸来的手，证物盒仍在右手，二人重新形成向右的逃跑队形；林岚说出原台词，镜头轻微后退承接奔跑。镜头 4（00:07.200—00:12.000，4.8 秒）：中广角跟拍至仓库，追兵封住出口，沈砚拖林岚钻入卷帘门，卷帘门落下形成垂直遮挡；尾帧为仓库内侧左前景的沈砚、后方林岚和门外被隔开的追兵。参考图选择：镜头 1—3 使用 `Picture 1`；镜头 4 无需新增构图图。镜头衔接：卷帘门遮挡作为下一单元仓库内侧的切入桥接。
+
+### 单元级导演分镜板 Prompt（图片模型使用，仅供规划复核）
+
+分镜板参考资产：
+人物参考：Subject 1 沈砚、Subject 2 林岚、Subject 3 刀疤男、Subject 4 追兵——锁定四格中的身份、服装、轮廓和追逐关系
+场景参考：Subject 7 码头/仓库入口——锁定集装箱、湿金属步道、卷帘门、透视和钠灯方向
+道具参考：Subject 5 证物盒、Subject 6 短棍——锁定证物盒在沈砚右手、短棍在刀疤男手中的形状和手别
+跨段状态参考：不适用（首段）
+未使用资产：Picture 2、Picture 3、Picture 4——属于后续仓库、楼梯和天台构图，会与本单元空间冲突
+
+```text
+[Storyboard Sheet U1｜4 panels｜director planning only]
+Create one clearly segmented four-panel director storyboard sheet for the complete 12-second generation unit of a rain-soaked pier chase. Panel 1: Shen Yan runs from camera left toward camera right with the silver evidence box in his right hand, Lin Lan three meters behind, containers forming diagonal depth. Panel 2: the scar-faced pursuer cuts out between containers and swings a short baton, Shen Yan brakes and slips past without contact. Panel 3: Shen Yan kicks the pursuer away and grabs Lin Lan's extended hand, both resume running toward camera right. Panel 4: the pair ducks under the warehouse rolling shutter while pursuers remain outside, ending with the interior-side blocking for the next unit. Use rough hand-drawn grayscale line art, consistent character silhouettes and prop positions across panels, arrows for movement direction, clear camera side and screen direction, panel numbers 1-4 only, no dialogue text, no photorealistic single-frame composition, no merged action, no watermark.
+Use the attached character references for <Subject 1> Shen Yan, <Subject 2> Lin Lan, <Subject 3> the scar-faced pursuer and <Subject 4> the pursuer group to keep identity, costume and silhouettes consistent across all four panels. Use the attached environment reference for <Subject 7>, the pier and warehouse entrance, to preserve containers, wet walkway, perspective and sodium-light direction. Use the attached prop references for <Subject 5> the evidence box and <Subject 6> the baton to preserve shape, visible faces, holders and hand sides. No previous-unit last-frame reference is applicable because this is the first unit.
+```
 
 ### 模型 Prompt，可直接复制
 
@@ -117,7 +136,7 @@ retention_analysis:
 <Picture 1> ([Shot 1]-[Shot 3]): fully_preserved - planned wide-to-medium diagonal chase composition guides the action.
 
 detailed_description:
-The target video is a realistic live-action chase in cold blue rain with sodium practical lights and controlled handheld movement. The screen direction is locked toward camera right and deeper background. At 00:00.000, a wide shot follows <Subject 1> sprinting from camera left across the wet pier of <Subject 7>, <Subject 5> clearly visible in his right hand. <Subject 2> runs three meters behind him. Rusted containers create diagonal depth matching storyboard panel <Picture 1>; rain strikes the lens lightly and the camera tracks forward at medium speed. At 00:02.800, the camera cuts to a medium side angle as <Subject 3> steps from between containers on camera left and swings <Subject 6> toward <Subject 1>. <Subject 1> brakes, pivots around the wet railing and lets the baton pass in front of his chest. At 00:04.600, <Subject 1> kicks the pursuer's knee, grabs <Subject 2>'s extended right hand and pulls her into the escape line; <Subject 5> stays locked in his right hand. <Subject 2> (S1) says in a breathless urgent voice, <d>[Chinese] 沈砚，别让他们拿到盒子！</d> At 00:07.200, two black-clad pursuers appear at the far warehouse exit, forcing the pair toward the center. <Subject 1> shoulder-checks a metal post, rebounds toward camera right and reaches the rolling shutter. At 00:10.000, he drags <Subject 2> under the shutter; <Subject 3> strikes the metal as it descends. The final 1.2 seconds hold a clear interior-side view: <Subject 1> stands left foreground with <Subject 5> still in his right hand, <Subject 2> just behind him, the shutter fully lowered between them and the pursuers. The camera settles without motion blur for the handoff frame.
+The target video is a realistic live-action chase in cold blue rain with sodium practical lights and controlled handheld movement. The screen direction is locked toward camera right and deeper background. [Shot 1] At 00:00.000, a wide shot follows <Subject 1> sprinting from camera left across the wet pier of <Subject 7>, <Subject 5> clearly visible in his right hand. <Subject 2> runs three meters behind him. Rusted containers create diagonal depth matching storyboard panel <Picture 1>; rain strikes the lens lightly and the camera tracks forward at medium speed. [Shot 2] At 00:02.800, the camera cuts to a medium side angle as <Subject 3> steps from between containers on camera left and swings <Subject 6> toward <Subject 1>. <Subject 1> brakes, pivots around the wet railing and lets the baton pass in front of his chest. [Shot 3] At 00:04.600, <Subject 1> kicks the pursuer's knee, grabs <Subject 2>'s extended right hand and pulls her into the escape line; <Subject 5> stays locked in his right hand. <Subject 2> (S1) says in a breathless urgent voice, <d>[Chinese] 沈砚，别让他们拿到盒子！</d> [Shot 4] At 00:07.200, two black-clad pursuers appear at the far warehouse exit, forcing the pair toward the center. <Subject 1> shoulder-checks a metal post, rebounds toward camera right and reaches the rolling shutter. At 00:10.000, he drags <Subject 2> under the shutter; <Subject 3> strikes the metal as it descends. The final 1.2 seconds hold a clear interior-side view: <Subject 1> stands left foreground with <Subject 5> still in his right hand, <Subject 2> just behind him, the shutter fully lowered between them and the pursuers. The camera settles without motion blur for the handoff frame.
 
 overall_soundscape:
 Heavy rain, hollow footsteps on wet metal, baton whooshes, a shoe scraping the railing, metal impact and the rolling shutter rumble continue as realistic diegetic sounds. The warehouse side ends with muffled rain behind the closed shutter.
@@ -155,6 +174,25 @@ A restrained low percussion pulse enters after the first baton swing and holds u
 镜头衔接输出：林岚位于安全门内侧，沈砚在门外中央，追兵从画面右侧进入。
 镜头过渡：先复现卷帘门尾帧并向红色安全门推进，木箱被推入前景后短暂俯拍，俯拍作为轴线桥接，再切回正面中景。
 
+### 本单元分镜手稿
+
+生成单元 2 的导演手稿（文字规划，不复制到 H3）：本单元以“仓库内完成证物盒交接并让林岚撤离”为叙事目的，共 4 个镜头。镜头 1（00:00.000—00:02.800，2.8 秒）：复现第 1 段实际尾帧的仓库内侧构图，沈砚在左前景右手持盒，林岚在后方，卷帘门位于背后；镜头向红色安全门缓慢推进。镜头 2（00:02.800—00:05.200，2.4 秒）：中景交接构图，沈砚把证物盒从右手送入林岚左手，双方手和蓝色封条清晰可见，林岚位于 camera right，木箱在前景；使用 `Picture 2`。镜头 3（00:05.200—00:08.800，3.6 秒）：中景转防守动作，沈砚转身把木箱推到自己与追兵之间并连续后退三步，林岚抱盒向安全门移动；主轴保持由仓库入口指向安全门。镜头 4（00:08.800—00:12.000，3.2 秒）：短暂高角度俯拍作为中性桥接，再回到正面中景；林岚穿过红色安全门，沈砚留在门外，木箱隔开追兵，尾帧稳定保持门内外关系。参考图选择：镜头 2 使用 `Picture 2`，镜头 4 复用该构图逻辑；必选第 1 段实际尾帧图，禁止使用码头 `Picture 1`。镜头衔接：俯拍建立新轴线，红门开启声延续到下一单元楼梯。
+
+### 单元级导演分镜板 Prompt（图片模型使用，仅供规划复核）
+
+分镜板参考资产：
+人物参考：Subject 1 沈砚、Subject 2 林岚、Subject 3 刀疤男、Subject 4 追兵——锁定仓库内四格的身份、服装和阻挡关系
+场景参考：Subject 7 仓库内部——锁定卷帘门、木箱、红色安全门、荧光灯和轴线
+道具参考：Subject 5 证物盒、Subject 6 短棍——锁定证物盒从沈砚右手到林岚左手的交接、短棍持有者和手别
+跨段状态参考：第1段实际稳定尾帧图——锁定第一格卷帘门内侧、沈砚左前景、林岚后方的真实起始状态
+未使用资产：Picture 1——码头构图与仓库空间冲突；Picture 3、Picture 4——后续空间尚未发生
+
+```text
+[Storyboard Sheet U2｜4 panels｜director planning only]
+Create one clearly segmented four-panel director storyboard sheet for the complete 12-second warehouse handoff unit. Panel 1: reproduce the previous unit's interior last-frame blocking, Shen Yan left foreground with the box in his right hand, Lin Lan behind him, red safety door ahead. Panel 2: Shen Yan passes the box into Lin Lan's left hand, both hands and the blue seal visible, wooden crate in foreground. Panel 3: Shen Yan pushes the crate between himself and the pursuers while Lin Lan retreats toward the red door. Panel 4: a neutral high-angle bridge shows Lin Lan inside the red door, Shen Yan outside behind the crate, pursuers beyond. Use rough hand-drawn grayscale line art, fixed screen direction, arrows, consistent silhouettes and prop handoff, panel numbers 1-4 only, no dialogue text, no photorealistic single image, no watermark.
+Use the attached character references for <Subject 1> Shen Yan, <Subject 2> Lin Lan, <Subject 3> the scar-faced pursuer and <Subject 4> the pursuer group to keep identity, costume and blocking consistent across all four panels. Use the attached warehouse environment reference for <Subject 7> to preserve the closed shutter, crate, red safety door, perspective and fluorescent-light direction. Use the attached prop references for <Subject 5> the evidence box and <Subject 6> the baton to preserve the transfer from Shen Yan's right hand to Lin Lan's left hand and the pursuer's baton hand. Use the supplied previous-unit actual last-frame image as the highest-priority starting-state reference for Panel 1; do not replace that state with the planned storyboard image from Unit 1.
+```
+
 ### 模型 Prompt，可直接复制
 
 ```text
@@ -182,7 +220,7 @@ retention_analysis:
 <Picture 2> ([Shot 2]-[Shot 3]): fully_preserved - planned handoff composition and prop visibility guide the exchange.
 
 detailed_description:
-At 00:00.000, begin by exactly reproducing the supplied Unit 1 last-frame image: the rolling shutter is closed behind, <Subject 1> stands in the warehouse left foreground holding no box yet, <Subject 2> is behind him, and the red safety door lies ahead to camera right. The camera pushes forward with small amplitude. At 00:01.200, <Subject 1> turns toward <Subject 2>, draws <Subject 5> from his right side and places it into her left hand, matching storyboard panel <Picture 2>; the blue seal faces camera and both hands remain visible. <Subject 1> (S1) says in a low urgent voice, <d>[Chinese] 你先走，楼梯口汇合！</d> At 00:04.000, two pursuers rush from the shutter side. <Subject 1> pivots camera-left, shoves a wooden crate across the floor and uses it as a waist-high barrier. <Subject 2> clutches <Subject 5> against her chest and runs toward the red safety door. At 00:06.800, insert a neutral high-angle shot over the crate: <Subject 2> is ahead near the door, <Subject 1> occupies the center, and the pursuers fan out behind him; this overhead bridge establishes the new axis without changing the story direction. At 00:08.400, return to a medium frontal shot as <Subject 3> enters from camera right and swings <Subject 6> over the crate. <Subject 1> catches the baton wrist with both hands, releases it and shoves the attacker backward. At 00:10.300, <Subject 2> reaches the red safety door, pushes it open and crosses into the stairwell with <Subject 5> in her left hand. The final 1.1 seconds hold on the clear handoff state: <Subject 2> is just inside the red doorway, <Subject 1> remains outside with the crate between him and the pursuers, and the fluorescent warehouse light is stable for the next last-frame extraction.
+[Shot 1] At 00:00.000, begin by exactly reproducing the supplied Unit 1 last-frame image: the rolling shutter is closed behind, <Subject 1> stands in the warehouse left foreground holding no box yet, <Subject 2> is behind him, and the red safety door lies ahead to camera right. The camera pushes forward with small amplitude. [Shot 2] At 00:01.200, <Subject 1> turns toward <Subject 2>, draws <Subject 5> from his right side and places it into her left hand, matching storyboard panel <Picture 2>; the blue seal faces camera and both hands remain visible. <Subject 1> (S1) says in a low urgent voice, <d>[Chinese] 你先走，楼梯口汇合！</d> [Shot 3] At 00:04.000, two pursuers rush from the shutter side. <Subject 1> pivots camera-left, shoves a wooden crate across the floor and uses it as a waist-high barrier. <Subject 2> clutches <Subject 5> against her chest and runs toward the red safety door. [Shot 4] At 00:06.800, insert a neutral high-angle shot over the crate: <Subject 2> is ahead near the door, <Subject 1> occupies the center, and the pursuers fan out behind him; this overhead bridge establishes the new axis without changing the story direction. At 00:08.400, return to a medium frontal shot as <Subject 3> enters from camera right and swings <Subject 6> over the crate. <Subject 1> catches the baton wrist with both hands, releases it and shoves the attacker backward. At 00:10.300, <Subject 2> reaches the red safety door, pushes it open and crosses into the stairwell with <Subject 5> in her left hand. The final 1.1 seconds hold on the clear handoff state: <Subject 2> is just inside the red doorway, <Subject 1> remains outside with the crate between him and the pursuers, and the fluorescent warehouse light is stable for the next last-frame extraction.
 
 overall_soundscape:
 The closed shutter vibrates, rain is muffled outside, crate wheels scrape concrete, the evidence box latch clicks, shoes pound the warehouse floor and the baton strikes wood. The stairwell door hinge squeaks at the end.
@@ -220,6 +258,25 @@ The low percussion pulse continues with a restrained metallic rhythm during the 
 镜头衔接输出：二层平台，林岚在上方右侧，沈砚居中，刀疤男位于下层中央，三人关系清楚。
 镜头过渡：跟随上楼后在扶手处切入中性高角度，完成越轴，再以向上摇镜接天台门。
 
+### 本单元分镜手稿
+
+生成单元 3 的导演手稿（文字规划，不复制到 H3）：本单元以“消防楼梯追赶、翻越扶手并完成抓手救援”为叙事目的，共 4 个镜头。镜头 1（00:00.000—00:02.000，2.0 秒）：复现第 2 段实际尾帧，林岚领先上楼，沈砚紧随其后，刀疤男从下层进入；摄影机沿楼梯向上倾斜。镜头 2（00:02.000—00:06.000，4.0 秒）：中景沿楼梯转角，刀疤男抓住沈砚衣领，沈砚压低重心肘击脱身；人物运动仍向上，短棍保持在刀疤男手中。镜头 3（00:06.000—00:09.500，3.5 秒）：高角度中广角桥接，完整显示上下两个平台和三人相对高度；沈砚翻过半高扶手落到上层，按 `Picture 3` 固定新轴线。镜头 4（00:09.500—00:12.000，2.5 秒）：近中景，林岚在上方伸右手，沈砚抓住并起身与她并肩冲向天台门，刀疤男停在下层；尾帧锁定两人靠近右前方天台门的站位。参考图选择：镜头 3—4 使用 `Picture 3`，必选第 2 段实际尾帧图；不得使用仓库 `Picture 2`。镜头衔接：高角度桥接消除越轴，天台门方向交给下一单元。
+
+### 单元级导演分镜板 Prompt（图片模型使用，仅供规划复核）
+
+分镜板参考资产：
+人物参考：Subject 1 沈砚、Subject 2 林岚、Subject 3 刀疤男——锁定楼梯四格中的身份、服装、轮廓和上下层关系
+场景参考：Subject 8 消防楼梯——锁定红色安全门、扶手、上下平台、绿色灯光和垂直透视
+道具参考：Subject 5 证物盒、Subject 6 短棍——锁定证物盒在林岚左手、短棍在刀疤男手中的连续状态
+跨段状态参考：第2段实际稳定尾帧图——锁定林岚已进楼梯、沈砚在门外侧、追兵在下方的真实起始状态
+未使用资产：Subject 9、Picture 1、Picture 2、Picture 4 以及其他未出镜道具——未出镜或属于其他空间
+
+```text
+[Storyboard Sheet U3｜4 panels｜director planning only]
+Create one clearly segmented four-panel director storyboard sheet for the complete 12-second fire-stair chase unit. Panel 1: Lin Lan leads upward with the evidence box, Shen Yan follows, the scar-faced pursuer enters from the lower flight. Panel 2: the pursuer grabs Shen Yan's collar at the turn, Shen Yan lowers his center and breaks free with an elbow strike. Panel 3: neutral high-angle view maps both landings as Shen Yan vaults the half-height rail to the upper platform. Panel 4: Lin Lan reaches down with her right hand, Shen Yan takes it and rises beside her, roof door ahead, pursuer one level below. Use rough hand-drawn grayscale line art, visible stairs and railings, arrows for upward movement, consistent characters and prop state, panel numbers 1-4 only, no dialogue text, no photorealistic single image, no watermark.
+Use the attached character references for <Subject 1> Shen Yan, <Subject 2> Lin Lan and <Subject 3> the scar-faced pursuer to keep faces, costumes, silhouettes and vertical positions consistent across all four panels. Use the attached fire-stair environment reference for <Subject 8> to preserve the red door, rails, landings, vertical perspective and green fluorescent direction. Use the attached prop references for <Subject 5> the evidence box and <Subject 6> the baton to preserve the box in Lin Lan's left hand and the baton in the pursuer's hand. Use the supplied previous-unit actual last-frame image as the highest-priority starting-state reference for Panel 1. Do not use the warehouse or rooftop composition references.
+```
+
 ### 模型 Prompt，可直接复制
 
 ```text
@@ -245,7 +302,7 @@ retention_analysis:
 <Picture 3> ([Shot 2]-[Shot 4]): fully_preserved - planned high-angle bridge, rail vault and upper-platform blocking guide the sequence.
 
 detailed_description:
-At 00:00.000, reproduce the supplied Unit 2 last frame: <Subject 2> has just crossed the red safety door with <Subject 5> in her left hand, <Subject 1> is immediately behind her, and the warehouse remains visible below. The camera follows them up the concrete stairs with a controlled upward tilt. At 00:02.000, the red door swings shut behind <Subject 1> as <Subject 3> reaches the landing below; his baton and diagonal scar are clearly visible but he remains separated by one flight. At 00:04.500, <Subject 2> climbs quickly, the blue seal on <Subject 5> catching the green fluorescent light. <Subject 2> (S1) shouts upward, <d>[Chinese] 快！</d> At 00:06.000, <Subject 3> catches <Subject 1>'s jacket at the second-floor turn. They grapple for one beat without changing the stair direction. At 00:07.200, cut to the neutral high-angle composition planned by <Picture 3>: the railings, two landings and all three positions are readable; this neutral view bridges the axis. <Subject 1> ducks under the grip, vaults the half-height handrail and drops onto the upper platform. At 00:09.500, <Subject 2> turns back from the roof door and reaches down with her right hand while keeping <Subject 5> in her left. <Subject 1> catches her hand and rises beside her. At 00:11.000, the camera tilts toward the roof door as both allies move to camera right; <Subject 3> remains one level below, looking upward with <Subject 6> lowered. The final second holds a stable platform frame with <Subject 1> holding <Subject 2>'s right wrist, <Subject 2> holding <Subject 5> in her left hand, and the roof door ahead.
+[Shot 1] At 00:00.000, reproduce the supplied Unit 2 last frame: <Subject 2> has just crossed the red safety door with <Subject 5> in her left hand, <Subject 1> is immediately behind her, and the warehouse remains visible below. The camera follows them up the concrete stairs with a controlled upward tilt. [Shot 2] At 00:02.000, the red door swings shut behind <Subject 1> as <Subject 3> reaches the landing below; his baton and diagonal scar are clearly visible but he remains separated by one flight. At 00:04.500, <Subject 2> climbs quickly, the blue seal on <Subject 5> catching the green fluorescent light. <Subject 2> (S1) shouts upward, <d>[Chinese] 快！</d> [Shot 3] At 00:06.000, <Subject 3> catches <Subject 1>'s jacket at the second-floor turn. They grapple for one beat without changing the stair direction. [Shot 4] At 00:07.200, cut to the neutral high-angle composition planned by <Picture 3>: the railings, two landings and all three positions are readable; this neutral view bridges the axis. <Subject 1> ducks under the grip, vaults the half-height handrail and drops onto the upper platform. At 00:09.500, <Subject 2> turns back from the roof door and reaches down with her right hand while keeping <Subject 5> in her left. <Subject 1> catches her hand and rises beside her. At 00:11.000, the camera tilts toward the roof door as both allies move to camera right; <Subject 3> remains one level below, looking upward with <Subject 6> lowered. The final second holds a stable platform frame with <Subject 1> holding <Subject 2>'s right wrist, <Subject 2> holding <Subject 5> in her left hand, and the roof door ahead.
 
 overall_soundscape:
 Concrete footsteps, breath, handrail rattles, the red door thump and stairwell reverberation continue. The baton scrapes the railing once, while the allies' voices echo upward.
@@ -283,6 +340,25 @@ The percussion pulse narrows into a tense sustained bass tone during the vault, 
 镜头衔接输出：天台中景，沈砚右手持盒，林岚位于左后方，逃生梯入口固定在画面右边缘。
 镜头过渡：镜头跟随推门穿过门框，利用门框遮挡完成室内外转换；出门后缓慢右摇，停在黄色警示线。
 
+### 本单元分镜手稿
+
+生成单元 4 的导演手稿（文字规划，不复制到 H3）：本单元以“到达天台、交还证物盒并建立收束尾帧”为叙事目的，共 4 个镜头。镜头 1（00:00.000—00:02.000，2.0 秒）：复现第 3 段实际尾帧，两人从楼梯门推入雨停天台，雨声骤低，摄影机跟随向前。镜头 2（00:02.000—00:05.000，3.0 秒）：中景，林岚把证物盒交回沈砚右手，双方手和盒体清楚可见，通风机位于前景左侧；使用 `Picture 4` 的收束构图。镜头 3（00:05.000—00:08.500，3.5 秒）：中广角，两人背靠通风机面向 camera right 的城市方向，林岚完成原台词，楼梯门外只保留刀疤男脚步声，不提前露出人物。镜头 4（00:08.500—00:12.000，3.5 秒）：摄影机缓慢右摇，跟随沈砚带林岚移动到逃生梯入口，最终停在黄色警示线和湿润水洼，形成稳定空镜尾帧；不得把空镜当作新场景。参考图选择：镜头 2—4 使用 `Picture 4`，必选第 3 段实际尾帧图；禁止使用仓库或楼梯构图图。镜头衔接：右摇结束在黄色警示线，作为本场次结束的稳定交接。
+
+### 单元级导演分镜板 Prompt（图片模型使用，仅供规划复核）
+
+分镜板参考资产：
+人物参考：Subject 1 沈砚、Subject 2 林岚、Subject 3 刀疤男——锁定天台四格中的身份、服装和门内外关系
+场景参考：Subject 9 雨后台面——锁定通风机、黄色警示线、逃生梯入口、城市方向和月光
+道具参考：Subject 5 证物盒——锁定从林岚左手交回沈砚右手的形状、封条和持有者变化
+跨段状态参考：第3段实际稳定尾帧图——锁定两人到达二层平台、天台门前的真实起始状态
+未使用资产：Subject 6、Subject 8、Picture 1、Picture 2、Picture 3——不在天台当前构图中或属于前段空间
+
+```text
+[Storyboard Sheet U4｜4 panels｜director planning only]
+Create one clearly segmented four-panel director storyboard sheet for the complete 12-second rooftop ending unit. Panel 1: the pair pushes through the stair door onto a rooftop after rain, sound and atmosphere shift. Panel 2: Lin Lan returns the silver evidence box to Shen Yan's right hand beside a ventilation unit. Panel 3: both crouch or stand beside the unit facing the city at camera right while the pursuer remains off-screen beyond the stair door. Panel 4: the camera pans right with them toward the yellow warning line and escape-ladder entrance, ending on a stable wet rooftop detail. Use rough hand-drawn grayscale line art, arrows for the rightward pan, fixed character and prop continuity, panel numbers 1-4 only, no dialogue text, no photorealistic single image, no watermark.
+Use the attached character references for <Subject 1> Shen Yan, <Subject 2> Lin Lan and <Subject 3> the scar-faced pursuer to keep identity and costume consistent; keep <Subject 3> off-screen except for permitted shadow or sound cues. Use the attached rooftop environment reference for <Subject 9> to preserve the ventilation unit, yellow warning line, escape-ladder entrance, city direction and moonlight. Use the attached prop reference for <Subject 5> the evidence box to preserve the transfer from Lin Lan's left hand to Shen Yan's right hand, including the blue seal. Use the supplied previous-unit actual last-frame image as the highest-priority starting-state reference for Panel 1. Do not use the warehouse or stairwell environment references.
+```
+
 ### 模型 Prompt，可直接复制
 
 ```text
@@ -308,7 +384,7 @@ retention_analysis:
 <Picture 4> ([Shot 2]-[Shot 4]): fully_preserved - planned rooftop arrival and final composition guide the camera settle.
 
 detailed_description:
-At 00:00.000, reproduce the supplied Unit 3 last frame: <Subject 1> is on the upper platform holding <Subject 2>'s right wrist, <Subject 2> holds <Subject 5> in her left hand, the roof door is camera right and <Subject 3> is below. The camera follows their final steps toward the door. At 00:01.800, <Subject 2> pushes the roof door open; the door frame briefly fills the image and bridges the indoor stairwell to the wet rooftop. Footsteps from <Subject 3> stop on the other side. At 00:03.000, emerge into <Subject 9>, where rain has stopped and distant city lights shimmer in puddles. <Subject 2> places <Subject 5> back into <Subject 1>'s right hand, blue seal facing camera. <Subject 1> (S1) closes his fingers around it and says in a controlled but breathless voice, <d>[Chinese] 盒子里是能洗清你的证据。</d> At 00:06.800, both move beside a low ventilation unit; <Subject 1> stands slightly forward on camera left, <Subject 2> behind and left, both facing camera right toward the city. <Subject 2> (S2) replies, <d>[Chinese] 那就别再回头。</d> At 00:09.000, a shadow and one gloved hand appear behind the roof door but <Subject 3> remains off-screen; the allies turn toward the escape-ladder entrance. The camera slowly pans right following their eyeline, revealing the yellow warning line and ladder at the right edge. The final 2.0 seconds hold a stable medium-wide frame: <Subject 1> grips <Subject 5> in his right hand, <Subject 2> stays at his left rear, the roof door is behind them, and the yellow line and ladder form the next visual anchor. Add the post-production caption “凌晨一点四十七分” and the empty rooftop beat without generated text.
+[Shot 1] At 00:00.000, reproduce the supplied Unit 3 last frame: <Subject 1> is on the upper platform holding <Subject 2>'s right wrist, <Subject 2> holds <Subject 5> in her left hand, the roof door is camera right and <Subject 3> is below. The camera follows their final steps toward the door. [Shot 2] At 00:01.800, <Subject 2> pushes the roof door open; the door frame briefly fills the image and bridges the indoor stairwell to the wet rooftop. Footsteps from <Subject 3> stop on the other side. At 00:03.000, emerge into <Subject 9>, where rain has stopped and distant city lights shimmer in puddles. <Subject 2> places <Subject 5> back into <Subject 1>'s right hand, blue seal facing camera. <Subject 1> (S1) closes his fingers around it and says in a controlled but breathless voice, <d>[Chinese] 盒子里是能洗清你的证据。</d> [Shot 3] At 00:06.800, both move beside a low ventilation unit; <Subject 1> stands slightly forward on camera left, <Subject 2> behind and left, both facing camera right toward the city. <Subject 2> (S2) replies, <d>[Chinese] 那就别再回头。</d> [Shot 4] At 00:09.000, a shadow and one gloved hand appear behind the roof door but <Subject 3> remains off-screen; the allies turn toward the escape-ladder entrance. The camera slowly pans right following their eyeline, revealing the yellow warning line and ladder at the right edge. The final 2.0 seconds hold a stable medium-wide frame: <Subject 1> grips <Subject 5> in his right hand, <Subject 2> stays at his left rear, the roof door is behind them, and the yellow line and ladder form the next visual anchor. Add the post-production caption “凌晨一点四十七分” and the empty rooftop beat without generated text.
 
 overall_soundscape:
 Stairwell footsteps and the roof door hinge resolve into soft rooftop wind, distant harbor machinery, wet shoe taps and a faint city hum. The rain drops to a light residual drip; the pursuer's footsteps stop behind the door.
@@ -324,7 +400,7 @@ The tense bass releases into a restrained low string pad after the prop returns 
 ## 七、文字版验收报告
 
 1. 分段限制通过：4 个生成单元均为 12.0 秒，未超过 15 秒；第 2—4 段各有 0.6 秒动作重叠，可在剪辑时裁掉重复部分。
-2. 故事板职责通过：Picture 1—4 只描述计划中的构图、站位和动作面板；没有把任何 Picture 写成上一段实际尾帧。
+2. 分镜与构图图职责通过：每个单元先有多镜头文字分镜手稿；Picture 1—4 只描述其中必要镜头的计划构图、站位和动作面板；没有把任何 Picture 写成上一段实际尾帧。
 3. 尾帧交接通过：第 2—4 段的连续性输入明确要求使用上一段实际生成的稳定尾帧图，并逐项继承人物位置、道具持有者、摄影机方向和场景锚点。
 4. 资产复用通过：角色、场景和证物盒使用固定 Subject 标签；证物盒在第 2 段和第 4 段分别完成两次明确的持有者交接。
 5. 轴线与站位通过：仓库俯拍和楼梯高角度镜头承担中性桥接；追逐主方向保持向画面右侧/纵深，不在切点无理由反转。
@@ -333,3 +409,4 @@ The tense bass releases into a restrained low string pad after the prop returns 
 8. 语言边界通过：生成设置、状态和衔接说明为中文；模型 Prompt 为英文；中文翻译单独放在模型代码块之外，不应复制进 H3。
 9. 声音连续性通过：雨声、脚步、金属声和配乐均写明段间交接，台词没有在切点截断。
 10. 失败诊断建议：若第 2 段道具交接失败，优先重新截取第 1 段卷帘门落下后的清晰尾帧；若第 3 段人物站位混乱，优先提高 Picture 3 的高角度空间参考强度，而不是新增角色描述。
+11. 分镜板资产绑定通过：四个单元均明确列出当前出镜角色、构图场景、动作道具和跨段实际尾帧（首段标记不适用），并在英文 Prompt 中写明各类参考图的具体职责；未出镜或冲突资产列入禁止混用。
