@@ -457,6 +457,34 @@ export interface GenerateRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface AuditLog {
+  id: number;
+  request_id: string;
+  workspace_id: string;
+  project_id?: string;
+  episode_id?: string;
+  asset_id?: string;
+  user_id?: string;
+  product: string;
+  model_id: string;
+  channel_id?: string;
+  provider_model?: string;
+  mode: string;
+  request_payload: Record<string, unknown>;
+  response_payload?: Record<string, unknown>;
+  error_message?: string;
+  status: string;
+  latency_ms: number;
+  token_input: number;
+  token_output: number;
+  token_cached: number;
+  cost_amount: number;
+  cost_currency: string;
+  job_id?: string;
+  provider_task_id?: string;
+  created_at: string;
+}
+
 export interface GenerateResponse {
   ok?: boolean;
   task_id?: string;
@@ -620,6 +648,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     }),
+  // Gateway audit logs
+  listAuditLogs: (params?: { limit?: number; offset?: number }) =>
+    request<{ items: AuditLog[]; total: number; limit: number; offset: number }>(
+      `/api/v1/audit/logs${params ? `?limit=${params.limit ?? 50}&offset=${params.offset ?? 0}` : ''}`,
+    ),
   // Episodes
   listEpisodes: (projectId: string) =>
     request<{ items: ServerEpisode[] }>(`/api/v1/comic-projects/${encodeURIComponent(projectId)}/episodes`),

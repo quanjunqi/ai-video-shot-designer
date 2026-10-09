@@ -41,6 +41,7 @@ func main() {
 	mux.HandleFunc("/api/v1/assets/", s.assets)
 	mux.HandleFunc("/api/v1/tasks", s.tasks)
 	mux.HandleFunc("/api/v1/tasks/", s.tasks)
+	mux.HandleFunc("/api/v1/audit/logs", s.auditLogs)
 	mux.HandleFunc("/api/v1/generate", s.generate)
 	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
 	mux.HandleFunc("/api/v1/catalog", s.catalogProxy)
@@ -568,6 +569,46 @@ func (s *server) generate(w http.ResponseWriter, r *http.Request) {
 			req.Header.Set(key, value)
 		}
 	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// auditLogs forwards audit log queries to execution /internal/v1/audit/logs.
+func (s *server) auditLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, 503, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	upstreamPath := "/internal/v1/audit/logs"
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.executionURL+upstreamPath, nil)
+	if err != nil {
+		writeError(w, 500, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")

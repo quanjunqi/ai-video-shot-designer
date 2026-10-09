@@ -17,6 +17,7 @@ import SettingsLayout from '@/features/settings/SettingsLayout';
 import SettingsChannelsPage from '@/pages/SettingsChannels';
 import SettingsModelsPage from '@/pages/SettingsModels';
 import SettingsProtocolsPage from '@/pages/SettingsProtocols';
+import SettingsAuditPage from '@/pages/SettingsAudit';
 import SettingsPreferencesPage from '@/pages/SettingsPreferences';
 import NotFoundPage from '@/pages/NotFoundPage/NotFoundPage';
 
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="channels" element={<SettingsChannelsPage />} />
           <Route path="protocols" element={<SettingsProtocolsPage />} />
           <Route path="models" element={<SettingsModelsPage />} />
+          <Route path="audit" element={<SettingsAuditPage />} />
           <Route path="preferences" element={<SettingsPreferencesPage />} />
         </Route>
 

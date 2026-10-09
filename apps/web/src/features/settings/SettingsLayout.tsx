@@ -1,13 +1,14 @@
 // EXPORTS: default SettingsLayout
 // 设置台二级导航布局（3.4）
 import { NavLink, Outlet } from 'react-router-dom';
-import { Cable, Boxes, SlidersHorizontal, Layers } from 'lucide-react';
+import { Cable, Boxes, SlidersHorizontal, Layers, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { key: 'channels', label: '渠道配置', path: '/settings/channels', icon: Cable },
   { key: 'protocols', label: '协议配置', path: '/settings/protocols', icon: Layers },
   { key: 'models', label: '模型配置', path: '/settings/models', icon: Boxes },
+  { key: 'audit', label: '调用审计', path: '/settings/audit', icon: ScrollText },
   { key: 'preferences', label: '通用设置', path: '/settings/preferences', icon: SlidersHorizontal },
 ];
 
