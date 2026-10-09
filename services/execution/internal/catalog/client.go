@@ -58,6 +58,7 @@ type Template struct {
 	Params         []engine.Param  `json:"params"`
 	ResponseParams []engine.Param  `json:"responseParams"`
 	Async          json.RawMessage `json:"async"`
+	Capabilities   json.RawMessage `json:"capabilities"`
 }
 
 // Get fetches the directory for a tenant context.

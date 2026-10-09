@@ -2,20 +2,25 @@ package httpapi
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/engine"
 	"shotdesigner/services/execution/internal/job"
+	"shotdesigner/services/execution/internal/mapping"
 )
 
 type Handler struct {
@@ -25,6 +30,7 @@ type Handler struct {
 	Catalog      *catalog.Client
 	Creds        *creds.Client
 	EngineClient *http.Client
+	AuditStore   *audit.Store
 }
 
 type Store interface {
@@ -53,6 +59,7 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/tasks/{id}/retry", h.retry)
 	mux.HandleFunc("POST /internal/v1/tasks/run", h.runModel)
 	mux.HandleFunc("POST /v1/generate", h.generate)
+	mux.HandleFunc("GET /internal/v1/audit/logs", h.listAuditLogs)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 同步测试端点 /tasks/run 会真实等待上游生成（文本 ~5s、图片 30-120s、视频异步不在此同步执行），
 		// 超时按上游长任务放宽，避免图片/视频生成被掐断。
@@ -375,6 +382,58 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 422, "INVALID_GENERATE", "modelId is required")
 		return
 	}
+	// Generate request ID for audit tracing
+	requestID := genRequestID()
+	startTime := time.Now()
+	// Extract product context from metadata
+	product := ""
+	projectID := ""
+	episodeID := ""
+	assetID := ""
+	if in.Metadata != nil {
+		if v, ok := in.Metadata["product"].(string); ok {
+			product = v
+		}
+		if v, ok := in.Metadata["project_id"].(string); ok {
+			projectID = v
+		}
+		if v, ok := in.Metadata["episode_id"].(string); ok {
+			episodeID = v
+		}
+		if v, ok := in.Metadata["asset_id"].(string); ok {
+			assetID = v
+		}
+	}
+	// Helper to write audit log (audit failure should not block main flow)
+	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
+		if h.AuditStore == nil {
+			return
+		}
+		reqBytes, _ := json.Marshal(map[string]any{
+			"input":      in.Input,
+			"parameters": in.Parameters,
+		})
+		auditLog := audit.Log{
+			RequestID:       requestID,
+			WorkspaceID:     ws,
+			ProjectID:       projectID,
+			EpisodeID:       episodeID,
+			AssetID:         assetID,
+			UserID:          actor,
+			Product:         product,
+			ModelID:         in.ModelID,
+			Mode:            in.Mode,
+			RequestPayload:  reqBytes,
+			ResponsePayload: respPayload,
+			ErrorMessage:    errMsg,
+			Status:          status,
+			LatencyMs:       int(time.Since(startTime).Milliseconds()),
+			JobID:           jobID,
+			ProviderTaskID:  providerTaskID,
+			CostCurrency:    "CNY",
+		}
+		_ = h.AuditStore.Insert(r.Context(), auditLog)
+	}
 	// Resolve model + template from catalog
 	dir, err := h.Catalog.Get(r.Context(), ws, actor)
 	if err != nil {
@@ -429,49 +488,77 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// Build runtime: input fields become runtime params, parameters become __passthrough
-	runtime := map[string]any{}
-	passthrough := map[string]any{}
-	requestPathOverride := ""
+
+	// Build runtime using dynamic parameter mapping engine (template-driven, no hardcoding)
+	mappingEngine, err := mapping.NewEngine(tmpl.Capabilities)
+	if err != nil {
+		writeError(w, 500, "MAPPING_ENGINE_ERROR", fmt.Sprintf("failed to create mapping engine: %v", err))
+		return
+	}
+
+	// Merge input and parameters for mapping
+	mergeInput := make(map[string]any)
 	if in.Input != nil {
 		for k, v := range in.Input {
-			if k == "reference_images" {
-				// Image-to-image: extract first reference image URL as "image" param
-				// (PearAPI/GPT-Image uses "image" not "image_url", and requires /v1/images/edits endpoint)
-				if refs, ok := v.([]any); ok && len(refs) > 0 {
-					if ref, ok := refs[0].(map[string]any); ok {
-						if url, ok := ref["url"].(string); ok && url != "" {
-							passthrough["image"] = url
-							// Switch to image edit endpoint for image-to-image mode
-							requestPathOverride = "/v1/images/edits"
-						}
-					}
-				}
-			} else {
-				runtime[k] = v
-			}
+			mergeInput[k] = v
 		}
 	}
 	if in.Parameters != nil {
 		for k, v := range in.Parameters {
-			passthrough[k] = v
+			mergeInput[k] = v
 		}
 	}
-	// Note: do NOT pass "mode" to upstream API — endpoint path distinguishes
-	// text-to-image (/v1/images/generations) from image-to-image (/v1/images/edits)
+
+	// Validate required parameters (if template has capability config)
+	if mappingEngine.HasCapability(in.Mode) {
+		if err := mappingEngine.ValidateRequired(in.Mode, mergeInput); err != nil {
+			writeError(w, 422, "MISSING_PARAM", err.Error())
+			return
+		}
+	}
+
+	// Apply parameter mapping: unified API params -> model-specific params
+	mappedParams, err := mappingEngine.ApplyMapping(mergeInput, in.Mode)
+	if err != nil {
+		writeError(w, 500, "MAPPING_ERROR", fmt.Sprintf("failed to apply parameter mapping: %v", err))
+		return
+	}
+
+	// Build runtime: non-mapped input fields become runtime, mapped params become __passthrough
+	runtime := map[string]any{}
+	passthrough := map[string]any{}
+
+	// Input fields that are not reference_images go to runtime (for template params)
+	if in.Input != nil {
+		for k, v := range in.Input {
+			if k != "reference_images" {
+				runtime[k] = v
+			}
+		}
+	}
+
+	// Mapped parameters go to __passthrough (dynamic injection)
+	for k, v := range mappedParams {
+		passthrough[k] = v
+	}
+
 	if len(passthrough) > 0 {
 		runtime["__passthrough"] = passthrough
 	}
+
 	creds, err := h.Creds.Reveal(r.Context(), ws, model.ChannelID)
 	if err != nil {
 		writeError(w, 422, "CREDENTIALS_MISSING", err.Error())
 		return
 	}
-	// Determine final request path: model override > mode override > template default
+
+	// Determine final request path: model override > capability config > template default
 	finalRequestPath := model.RequestPath
-	if requestPathOverride != "" {
-		finalRequestPath = requestPathOverride
+	if capabilityPath := mappingEngine.GetRequestPath(in.Mode, ""); capabilityPath != "" {
+		finalRequestPath = capabilityPath
 	}
+	// Embed final request path into runtime for worker (avoids hardcoded path switching in worker)
+	runtime["__request_path"] = finalRequestPath
 	engineReq := engine.RunRequest{
 		ChannelID:        model.ChannelID,
 		ProviderModel:    model.ProviderModel,
@@ -509,9 +596,12 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		jobInput.IntentPayload = payloadBytes
 		j, _, err := h.Store.Create(r.Context(), ws, actor, jobInput)
 		if err != nil {
+			writeAudit("failed", nil, err.Error(), "", "")
 			writeError(w, 500, "JOB_CREATE_FAILED", err.Error())
 			return
 		}
+		// Write audit log for async job submission
+		writeAudit("queued", nil, "", j.ID, "")
 		writeJSON(w, 202, map[string]any{
 			"task_id":  j.ID,
 			"status":   j.Status,
@@ -522,10 +612,61 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Sync execution
 	out, err := engine.Run(r.Context(), creds, engineReq, h.EngineClient)
 	if err != nil {
+		respBytes, _ := json.Marshal(out)
+		writeAudit("failed", respBytes, out.Error, "", "")
 		writeJSON(w, 200, map[string]any{"ok": false, "status": "failed", "error": out.Error, "run": out})
 		return
 	}
+	respBytes, _ := json.Marshal(out)
+	writeAudit("success", respBytes, "", "", "")
 	writeJSON(w, 200, map[string]any{"ok": true, "status": "succeeded", "output": out.Extracted, "run": out})
+}
+
+// genRequestID generates a unique request ID for audit tracing
+func genRequestID() string {
+	b := make([]byte, 12)
+	_, _ = rand.Read(b)
+	return "req_" + hex.EncodeToString(b)
+}
+
+// listAuditLogs returns gateway audit logs with filtering
+func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
+		return
+	}
+	ws, _, ok := ctxOf(r)
+	if !ok {
+		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
+		return
+	}
+	if h.AuditStore == nil {
+		writeError(w, 503, "AUDIT_UNAVAILABLE", "audit store not configured")
+		return
+	}
+	// Parse query parameters
+	limit := 50
+	offset := 0
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+			limit = n
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+	logs, err := h.AuditStore.ListByWorkspace(r.Context(), ws, limit, offset)
+	if err != nil {
+		writeError(w, 500, "AUDIT_QUERY_FAILED", err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{
+		"items": logs,
+		"total": len(logs),
+		"limit": limit,
+		"offset": offset,
+	})
 }
 func writeError(w http.ResponseWriter, status int, code, msg string) {
 	writeJSON(w, status, map[string]string{"code": code, "message": msg})

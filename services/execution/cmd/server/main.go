@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/engine"
@@ -47,6 +48,7 @@ func main() {
 		log.Fatal(err)
 	}
 	store := job.Store{Pool: pool}
+	auditStore := &audit.Store{Pool: pool}
 	addr := os.Getenv("EXECUTION_LISTEN_ADDR")
 	if addr == "" {
 		addr = "0.0.0.0:8085"
@@ -65,7 +67,7 @@ func main() {
 	engineClient := &http.Client{Timeout: 600 * time.Second}
 	go runWorker(store, catalogClient, credsClient, engineClient)
 	log.Printf("execution service listening on %s", addr)
-	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.
@@ -194,14 +196,11 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		}
 	}
 
-	// Determine request path: if runtime contains "image" param (image-to-image),
-	// switch to /v1/images/edits endpoint (PearAPI/GPT-Image convention)
+	// Determine request path from runtime (set by generate handler via mapping engine)
+	// This avoids hardcoded path switching — the mapping engine decides the path based on mode
 	finalRequestPath := model.RequestPath
-	if pt, ok := payload.Runtime["__passthrough"].(map[string]any); ok {
-		if _, hasImage := pt["image"]; hasImage {
-			finalRequestPath = "/v1/images/edits"
-			log.Printf("execution worker: image-to-image detected, switching to /v1/images/edits")
-		}
+	if rp, ok := payload.Runtime["__request_path"].(string); ok && rp != "" {
+		finalRequestPath = rp
 	}
 
 	req := engine.RunRequest{
