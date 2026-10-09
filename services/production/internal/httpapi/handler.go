@@ -139,6 +139,7 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/generation-intents", h.createIntent)
 	mux.HandleFunc("GET /internal/v1/generation-intents/{id}", h.getIntent)
 	mux.HandleFunc("GET /internal/v1/catalog", h.getCatalog)
+	mux.HandleFunc("GET /internal/v1/catalog/models/{id}/capabilities", h.getModelCapabilities)
 	mux.HandleFunc("POST /internal/v1/catalog/models", h.createCatalogModel)
 	mux.HandleFunc("PUT /internal/v1/catalog/models/{id}", h.updateCatalogModel)
 	mux.HandleFunc("PUT /internal/v1/catalog/channels/{id}", h.updateCatalogChannel)
@@ -418,6 +419,71 @@ func (h Handler) getCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, dir)
+}
+
+// getModelCapabilities returns the capability declaration for a model.
+// It merges the model's own capability field with the protocol template's capabilities.
+func (h Handler) getModelCapabilities(w http.ResponseWriter, r *http.Request) {
+	_, _, ok := h.identity(w, r)
+	if !ok {
+		return
+	}
+	if h.CatalogStore == nil {
+		writeError(w, http.StatusServiceUnavailable, "CATALOG_UNAVAILABLE", "model catalog is unavailable")
+		return
+	}
+	modelID := r.PathValue("id")
+	dir, err := h.CatalogStore.Directory(r.Context())
+	if err != nil {
+		slog.Error("get model capabilities", "error", err)
+		writeError(w, http.StatusServiceUnavailable, "CATALOG_UNAVAILABLE", "model catalog could not be loaded")
+		return
+	}
+	var model *catalog.Model
+	for i := range dir.Models {
+		if dir.Models[i].ID == modelID {
+			model = &dir.Models[i]
+			break
+		}
+	}
+	if model == nil {
+		writeError(w, http.StatusNotFound, "MODEL_NOT_FOUND", "model not found in directory")
+		return
+	}
+	// Find associated protocol template
+	var tmpl *catalog.ProtocolTemplate
+	if model.ProtocolTemplateID != "" {
+		for i := range dir.Templates {
+			if dir.Templates[i].ID == model.ProtocolTemplateID {
+				tmpl = &dir.Templates[i]
+				break
+			}
+		}
+	}
+	// Build capability response
+	response := map[string]any{
+		"model_id":   model.ID,
+		"model_name": model.Name,
+		"model_type": model.Type,
+		"capability": model.Capability,
+	}
+	if tmpl != nil {
+		response["protocol_template_id"] = tmpl.ID
+		response["protocol_template_label"] = tmpl.Label
+		response["capabilities"] = tmpl.Capabilities
+		// Extract supported modes from capabilities
+		if len(tmpl.Capabilities) > 0 {
+			var caps map[string]any
+			if err := json.Unmarshal(tmpl.Capabilities, &caps); err == nil {
+				modes := make([]string, 0, len(caps))
+				for mode := range caps {
+					modes = append(modes, mode)
+				}
+				response["supported_modes"] = modes
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 func (h Handler) createCatalogModel(w http.ResponseWriter, r *http.Request) {
