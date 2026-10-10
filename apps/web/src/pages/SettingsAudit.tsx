@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, Search, Download } from 'lucide-react';
 import { api, type AuditLog } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
@@ -48,10 +48,12 @@ export default function SettingsAuditPage() {
   const [filter, setFilter] = useState('');
   // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
   const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number } | null>(null);
+  // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
+  const [status, setStatus] = useState('');
 
   const loadLogs = async () => {
     try {
-      const res = await api.listAuditLogs({ limit: 100 });
+      const res = await api.listAuditLogs({ limit: 100, status: status || undefined });
       setLogs(res.items || []);
       setStats(statsFrom(res));
     } catch (e) {
@@ -64,12 +66,12 @@ export default function SettingsAuditPage() {
   useEffect(() => {
     let cancelled = false;
     // 初始加载：setState 全部落在异步回调中，避免 effect 内同步 setState 触发级联渲染
-    api.listAuditLogs({ limit: 100 })
+    api.listAuditLogs({ limit: 100, status: status || undefined })
       .then((res) => { if (!cancelled) { setLogs(res.items || []); setStats(statsFrom(res)); } })
       .catch((e) => console.error('Failed to load audit logs', e))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [status]);
 
   const filteredLogs = logs.filter((log) => {
     if (!filter) return true;
@@ -99,14 +101,37 @@ export default function SettingsAuditPage() {
           <h1 className="text-lg font-semibold text-foreground">调用审计日志</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">记录所有AI模型调用的完整审计信息，可追溯、可排查</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); loadLogs(); }}
-          disabled={loading}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-        >
-          <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          刷新
-        </button>
+        <div className="flex items-center gap-2">
+          {/* D8c：状态筛选 —— 与 stats、导出【同一口径】 */}
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            aria-label="按状态筛选"
+            className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          >
+            <option value="">全部状态</option>
+            <option value="success">成功</option>
+            <option value="failed">失败</option>
+            <option value="queued">排队中</option>
+          </select>
+          {/* D8c：导出用原生链接交给浏览器下载 —— 才能用上服务端的 Content-Disposition
+              文件名（D8b 修的那个头）。筛选条件与页面【一致】。 */}
+          <a
+            href={api.auditExportUrl({ status: status || undefined })}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            <Download className="h-3.5 w-3.5" />
+            导出 CSV
+          </a>
+          <button
+            onClick={() => { setLoading(true); loadLogs(); }}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+            刷新
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

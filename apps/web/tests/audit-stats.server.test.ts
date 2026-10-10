@@ -38,3 +38,25 @@ test('client 的 listAuditLogs 支持服务端筛选参数与 stats 类型', () 
   }
   assert.match(client, /aggregateOn/, 'listAuditLogs 的响应类型应含 stats.aggregateOn');
 });
+
+// D8c 的回归护栏：导出入口必须存在，且筛选条件与页面【同一口径】。
+// 为什么钉住：导出若不带筛选，用户会以为"导出的就是看到的那批" —— 这种偏差不会报错，
+// 只会让导出的数据与页面不一致，事后极难解释。
+test('审计页提供导出入口，且status筛选同时作用于列表/统计/导出', () => {
+  assert.match(SRC, /auditExportUrl\(/, '账目页必须通过 api.auditExportUrl 提供导出入口');
+  assert.match(SRC, /setStatus/, '账目页必须有状态筛选');
+  // 列表取数必须带 status
+  assert.match(
+    SRC,
+    /listAuditLogs\(\{ limit: 100, status: status \|\| undefined \}\)/,
+    '列表取数必须带上 status，否则"看到的是筛选后、导出的是全部"',
+  );
+  // effect 必须依赖 status，否则切换筛选不会重新取数
+  assert.match(SRC, /\}, \[status\]\)/, 'effect 必须依赖 status');
+
+  const client = readFileSync(
+    join(import.meta.dirname, '..', 'src', 'lib', 'api', 'client.ts'),
+    'utf8',
+  );
+  assert.match(client, /\/api\/v1\/audit\/export/, 'client 必须指向 BFF 的导出端点');
+});
