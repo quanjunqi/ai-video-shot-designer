@@ -7,5 +7,5 @@ workspace      30
 production      17
 execution      48
 asset          23
-web-bff        23
+web-bff        40
 outbox-relay   28
