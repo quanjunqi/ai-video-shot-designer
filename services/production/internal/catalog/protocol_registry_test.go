@@ -159,8 +159,8 @@ func TestProtocolDefinitionsMatchMigrations(t *testing.T) {
 			responseParams: `[{"key":"task_id","type":"string","value":"任务 ID（轮询查询进度）"},` +
 				`{"key":"status","type":"string","value":"任务状态（轮询判断完成/失败）"},` +
 				`{"key":"data.0.url","type":"string","value":"视频地址"}]`,
-			// 008 原样：注意没有 pollPath（已知缺陷，见异步一致性测试台账）。
-			async:        `{"enabled":true,"taskIdField":"task_id","statusField":"status","doneValue":"SUCCESS","failValue":"FAILED"}`,
+			// 008 原样 + 029 补 pollPath（GET /v1/video/generations/<id> 实测 401 ⇒ 路径存在）。
+			async:        `{"enabled":true,"taskIdField":"task_id","statusField":"status","doneValue":"SUCCESS","failValue":"FAILED","pollPath":"/v1/video/generations/{task_id}"}`,
 			capabilities: `{}`,
 			version:      1,
 		},
@@ -186,8 +186,10 @@ func TestProtocolDefinitionsMatchMigrations(t *testing.T) {
 			responseParams: `[{"key":"task_id","type":"string","value":"任务 ID（轮询查询进度）"},` +
 				`{"key":"status","type":"string","value":"任务状态（轮询判断完成/失败）"},` +
 				`{"key":"file_id","type":"string","value":"成品文件 ID"}]`,
-			// 008 原样：注意没有 pollPath（已知缺陷，见异步一致性测试台账）。
-			async:        `{"enabled":true,"taskIdField":"task_id","statusField":"status","doneValue":"Success","failValue":"Failed"}`,
+			// 008 原样 + 029 补 pollPath（GET /v1/query/video_generation?task_id=<id>
+			// 实测 200+base_resp.status_code=1004 鉴权失败签名，同前缀近邻路径 404 ⇒ 路由存在）。
+			// 注意 doneValue/failValue 与即梦不同（Success/Failed），不得统一。
+			async:        `{"enabled":true,"taskIdField":"task_id","statusField":"status","doneValue":"Success","failValue":"Failed","pollPath":"/v1/query/video_generation?task_id={task_id}"}`,
 			capabilities: `{}`,
 			version:      1,
 		},
@@ -296,12 +298,12 @@ func TestProtocolDefinitionsMatchMigrations(t *testing.T) {
 // 因此始终是「有记录的」而不是「悄悄存在的」。
 func TestProtocolDefinitionsAsyncConsistency(t *testing.T) {
 	// 台账（唯一允许的违规集合）。修复数据后请同步缩减本表；新增违规则必须显式加行。
-	wantViolations := []string{
-		"pt_builtin_jimeng_video: pollPath 为空（执行器退化到硬编码 /v1/images/tasks/{task_id}）",
-		"pt_builtin_minimax_video: pollPath 为空（执行器退化到硬编码 /v1/images/tasks/{task_id}）",
-	}
+	// 2026-10-10 / 迁移 029：即梦视频与 MiniMax 视频的 pollPath 均已按探测证据补齐，
+	// 台账由 2 条清空为 0 条。空切片而非 nil：与「零违规」时 got 的形态保持一致
+	// （reflect.DeepEqual(nil, []string{}) == false，用 nil 会让零违规反而判失败）。
+	wantViolations := []string{}
 
-	var got []string
+	got := []string{}
 	for _, def := range ProtocolDefinitions() {
 		if !def.Async.Enabled {
 			continue
@@ -326,6 +328,41 @@ func TestProtocolDefinitionsAsyncConsistency(t *testing.T) {
 	sort.Strings(got)
 	if !reflect.DeepEqual(got, wantViolations) {
 		t.Fatalf("异步声明违规集合发生变化，请同步更新台账：\n got: %v\nwant: %v", got, wantViolations)
+	}
+}
+
+// TestProtocolDefinitionsPollPathShape 校验已填 pollPath 的形状满足执行器拼 URL 的硬要求。
+//
+// execution/internal/engine/engine.go 的异步轮询是
+//
+//	pollURL := strings.TrimRight(creds.BaseURL, "/") + strings.ReplaceAll(async.PollPath, "{task_id}", taskID)
+//
+// 因此 pollPath 非空时：① 必须以 "/" 开头（否则与 BaseURL 拼成 "...aisome/path" 这种坏 URL）；
+// ② 必须含 "{task_id}" 占位符（否则 ReplaceAll 无目标，所有任务轮询同一个 URL）。
+// 空值不在此处判违规 —— 那属于上面的缺陷台账管辖，本测试只保证「一旦填了就不能填坏」。
+func TestProtocolDefinitionsPollPathShape(t *testing.T) {
+	checked := 0
+	for _, def := range ProtocolDefinitions() {
+		if !def.Async.Enabled {
+			continue
+		}
+		pollPath := strings.TrimSpace(def.Async.PollPath)
+		if pollPath == "" {
+			continue
+		}
+		checked++
+		if !strings.HasPrefix(pollPath, "/") {
+			t.Errorf("%s: pollPath %q 必须以 \"/\" 开头（执行器按 BaseURL+pollPath 直接拼接）",
+				def.ID, pollPath)
+		}
+		if !strings.Contains(pollPath, "{task_id}") {
+			t.Errorf("%s: pollPath %q 必须包含 {task_id} 占位符（执行器用 ReplaceAll 替换）",
+				def.ID, pollPath)
+		}
+	}
+	// 防止断言变成空转：至少要有异步定义确实填了 pollPath 才谈得上校验。
+	if checked == 0 {
+		t.Fatal("没有任何 async 定义带非空 pollPath，本断言形同虚设")
 	}
 }
 

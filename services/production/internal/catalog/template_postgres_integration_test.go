@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -107,5 +108,99 @@ func TestPostgresProtocolTemplateRequestTemplateRoundTrip(t *testing.T) {
 	}
 	if got := findTemplate(t, dir, "pt_int_request_template"); got.RequestTemplate != "" {
 		t.Fatalf("directory requestTemplate after clear = %q, want empty", got.RequestTemplate)
+	}
+}
+
+// TestPostgresProtocolTemplateAsyncPollPath 锁定迁移 029 的数据契约。
+//
+// 全量迁移应用到一个全新库后断言：
+//  1. pt_builtin_jimeng_video 的 async->>'pollPath' = /v1/video/generations/{task_id}
+//  2. 该行 async 的其它字段一个都没丢（整个 ProtocolAsync 逐字段 DeepEqual，
+//     与迁移 008 写入的值完全一致；二者 doneValue/failValue 本就不同，不得被统一）
+//  3. MiniMax 的 pollPath 亦已按探测证据补齐，且全表带 pollPath 的行**恰好只有**这两个
+//     —— 即「只改了该改的」，没有波及其它模板。
+//
+// 未设置 PRODUCTION_TEST_DATABASE_URL 时跳过（与既有集成测试一致）。
+func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
+	store := testPostgresStore(t)
+	ctx := context.Background()
+
+	// loadAsync 读回 async 原文，既解成 ProtocolAsync（键名与执行器 engine.go 的匿名
+	// 结构同形），也用 map 探针单独判断 pollPath 这个键**是否存在** —— PollPath 是
+	// string，缺键与空串解出来都是 ""，只有看原始键集才分得清「没写」和「写了空串」。
+	loadAsync := func(t *testing.T, id string) (ProtocolAsync, bool) {
+		t.Helper()
+		var raw []byte
+		if err := store.Pool.QueryRow(ctx,
+			`SELECT async FROM protocol_templates WHERE id = $1`, id).Scan(&raw); err != nil {
+			t.Fatalf("load %s async: %v", id, err)
+		}
+		var probe map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &probe); err != nil {
+			t.Fatalf("%s async is not a json object: %v (%s)", id, err, raw)
+		}
+		_, hasPollPath := probe["pollPath"]
+		var async ProtocolAsync
+		if err := json.Unmarshal(raw, &async); err != nil {
+			t.Fatalf("%s async decode: %v (%s)", id, err, raw)
+		}
+		return async, hasPollPath
+	}
+
+	// 断言 ①②：即梦视频 —— pollPath 补齐，其余字段逐字段不变（值取自迁移 008）。
+	jimeng, ok := loadAsync(t, "pt_builtin_jimeng_video")
+	if !ok {
+		t.Error("pt_builtin_jimeng_video: async 仍缺 pollPath（迁移 029 未生效）")
+	}
+	wantJimeng := ProtocolAsync{
+		Enabled:     true,
+		TaskIDField: "task_id",
+		StatusField: "status",
+		DoneValue:   "SUCCESS",
+		FailValue:   "FAILED",
+		PollPath:    "/v1/video/generations/{task_id}",
+	}
+	if !reflect.DeepEqual(jimeng, wantJimeng) {
+		t.Errorf("pt_builtin_jimeng_video async:\n got: %+v\nwant: %+v", jimeng, wantJimeng)
+	}
+
+	// 断言 ③：MiniMax 视频 —— 同样只增 pollPath，doneValue/failValue 保持 Success/Failed。
+	minimax, ok := loadAsync(t, "pt_builtin_minimax_video")
+	if !ok {
+		t.Error("pt_builtin_minimax_video: async 缺 pollPath（迁移 029 未生效）")
+	}
+	wantMinimax := ProtocolAsync{
+		Enabled:     true,
+		TaskIDField: "task_id",
+		StatusField: "status",
+		DoneValue:   "Success",
+		FailValue:   "Failed",
+		PollPath:    "/v1/query/video_generation?task_id={task_id}",
+	}
+	if !reflect.DeepEqual(minimax, wantMinimax) {
+		t.Errorf("pt_builtin_minimax_video async:\n got: %+v\nwant: %+v", minimax, wantMinimax)
+	}
+
+	// 断言 ③ 的后半：全表带 pollPath 的行恰好是这两个 —— 029 只动了该动的行。
+	rows, err := store.Pool.Query(ctx,
+		`SELECT id FROM protocol_templates WHERE jsonb_exists(async, 'pollPath') ORDER BY id`)
+	if err != nil {
+		t.Fatalf("query rows with pollPath: %v", err)
+	}
+	defer rows.Close()
+	var withPollPath []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("scan id: %v", err)
+		}
+		withPollPath = append(withPollPath, id)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate rows: %v", err)
+	}
+	wantWithPollPath := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video"}
+	if !reflect.DeepEqual(withPollPath, wantWithPollPath) {
+		t.Errorf("带 pollPath 的模板集合:\n got: %v\nwant: %v", withPollPath, wantWithPollPath)
 	}
 }

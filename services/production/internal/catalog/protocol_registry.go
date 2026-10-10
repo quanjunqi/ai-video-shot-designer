@@ -151,9 +151,10 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Enabled:      true,
 			Version:      1,
 		},
-		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）。
-		// 已知缺陷（本切片不改数据）：async 缺 pollPath，执行器会退化到硬编码
-		// /v1/images/tasks/{task_id}；见 TestProtocolDefinitionsAsyncConsistency 台账。
+		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）+ 029 补 pollPath。
+		// pollPath 证据：无鉴权 GET https://api.pearapi.ai/v1/video/generations/<id> → HTTP 401
+		// （路径存在）。此前 async 缺 pollPath，执行器退化到硬编码 /v1/images/tasks/{task_id}，
+		// 视频异步任务必然失败；029 已补齐。
 		{
 			ID:          "pt_builtin_jimeng_video",
 			Label:       "即梦视频（异步任务）",
@@ -173,6 +174,7 @@ func ProtocolDefinitions() []ProtocolDefinition {
 				StatusField: "status",
 				DoneValue:   "SUCCESS",
 				FailValue:   "FAILED",
+				PollPath:    "/v1/video/generations/{task_id}",
 			},
 			Capabilities: nil, // DB 默认 '{}'
 			Builtin:      true,
@@ -212,8 +214,12 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Version:         1,
 			RequestTemplate: `{"stream":{{stream}},"task_type":"sync"}`,
 		},
-		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）。
-		// 已知缺陷（本切片不改数据）：async 缺 pollPath；见测试台账。
+		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）+ 029 补 pollPath。
+		// pollPath 证据：GET https://api.minimax.chat/v1/query/video_generation?task_id=<id>
+		// 无鉴权返回 HTTP 200 + base_resp.status_code=1004（"login fail: Please carry the API
+		// secret key in the 'Authorization' field"）；同前缀近邻路径 404，且平台注册的提交路径
+		// POST /v1/video_generation 返回同一 200+1004 签名 ⇒ 路由存在、仅缺鉴权。
+		// 与官方 OpenAPI 一致（GET /v1/query/video_generation，task_id 为 query 参数）。
 		{
 			ID:          "pt_builtin_minimax_video",
 			Label:       "MiniMax 视频（异步任务）",
@@ -233,6 +239,7 @@ func ProtocolDefinitions() []ProtocolDefinition {
 				StatusField: "status",
 				DoneValue:   "Success",
 				FailValue:   "Failed",
+				PollPath:    "/v1/query/video_generation?task_id={task_id}",
 			},
 			Capabilities: nil, // DB 默认 '{}'
 			Builtin:      true,
