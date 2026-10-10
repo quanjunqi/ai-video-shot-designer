@@ -16,21 +16,28 @@ cd "$ROOT"
 
 branch="${1:-$(git rev-parse --abbrev-ref HEAD)}"
 if [ "$branch" = "HEAD" ]; then echo "❌ detached HEAD，请显式指定分支名"; exit 1; fi
+if ! git show-ref --verify --quiet "refs/heads/${branch}"; then
+  echo "❌ 本地无此分支: ${branch}"; exit 1
+fi
 
-# 注意：必须取【指定分支】的 SHA，不能用 HEAD —— 否则从主库
-# 推送别的分支时会拿当前分支（如 develop）去比对，判据失效（真实缺陷 5）。
-base_sha=$(git rev-parse "refs/heads/${branch}")   # 推送前基线：验证「确实前进了」
-echo "   推送 ${branch}（推送前基线 ${base_sha:0:7}）"
+# 基线必须取【推送前的远端】：
+#   取本地 ref 是错的 —— 提交在 push 之前就已存在，本地 ref 永远已含新提交，
+#   于是判据② 会永远误报「没有新提交」（真实缺陷 6）。
+remote_before=$(git ls-remote --heads origin "$branch" | awk '{print $1}')
+printf "   推送 %s（推送前远端 %s）\n" "$branch" "${remote_before:-<不存在>}"
+
 git push -u origin "$branch"
 
 local_sha=$(git rev-parse "refs/heads/${branch}")
-remote_sha=$(git ls-remote --heads origin "$branch" | awk '{print $1}')
-printf "   本地=%s 远端=%s\n" "${local_sha:0:7}" "${remote_sha:0:7}"
+remote_after=$(git ls-remote --heads origin "$branch" | awk '{print $1}')
+printf "   本地=%s 远端=%s\n" "${local_sha:0:7}" "${remote_after:0:7}"
 
-[ -n "$remote_sha" ] || { echo "❌ 判据①失败：远端无此分支 —— 推送未生效"; exit 1; }
-[ "$local_sha" = "$remote_sha" ] || { echo "❌ 判据①失败：本地 HEAD ≠ 远端 SHA"; exit 1; }
-if [ "$local_sha" = "$base_sha" ]; then
-  echo "⚠️  判据②：本次没有新提交（HEAD 与推送前相同）—— 若你期望有新提交，这就是假成功"
+[ -n "$remote_after" ] || { echo "❌ 判据①失败：远端无此分支 —— 推送未生效"; exit 1; }
+[ "$local_sha" = "$remote_after" ] || { echo "❌ 判据①失败：本地 SHA ≠ 远端 SHA"; exit 1; }
+
+if [ "$remote_after" = "$remote_before" ]; then
+  echo "⚠️  判据②：远端未发生变化（${local_sha:0:7}）—— 本次推送没有产生任何变化；"
+  echo "    若你期望有新提交被推上去，这就是假成功。"
 else
-  echo "✅ 推送已校验：$branch @ ${local_sha:0:7}（本地==远端，且相对基线已前进）"
+  echo "✅ 推送已校验：${branch} @ ${local_sha:0:7}（判据① 本地==远端；判据② 远端已前进 ${remote_before:0:7} → ${remote_after:0:7}）"
 fi
