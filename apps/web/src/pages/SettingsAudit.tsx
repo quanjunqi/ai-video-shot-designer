@@ -28,16 +28,32 @@ function formatLatency(ms: number) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+/**
+ * D7b：把服务端返回的 stats 归一化为界面计数。
+ * 缺失时回退 0 —— 【不假装有数据】：与服务端未聚合时的行为一致（stats 为 undefined）。
+ */
+function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number } }) {
+  return {
+    total: res.total,
+    success: res.stats?.byStatus?.success ?? 0,
+    failed: res.stats?.byStatus?.failed ?? 0,
+    avgLatencyMs: res.stats?.avgLatencyMs ?? 0,
+  };
+}
+
 export default function SettingsAuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
+  // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
+  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number } | null>(null);
 
   const loadLogs = async () => {
     try {
       const res = await api.listAuditLogs({ limit: 100 });
       setLogs(res.items || []);
+      setStats(statsFrom(res));
     } catch (e) {
       console.error('Failed to load audit logs', e);
     } finally {
@@ -49,7 +65,7 @@ export default function SettingsAuditPage() {
     let cancelled = false;
     // 初始加载：setState 全部落在异步回调中，避免 effect 内同步 setState 触发级联渲染
     api.listAuditLogs({ limit: 100 })
-      .then((res) => { if (!cancelled) setLogs(res.items || []); })
+      .then((res) => { if (!cancelled) { setLogs(res.items || []); setStats(statsFrom(res)); } })
       .catch((e) => console.error('Failed to load audit logs', e))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -67,11 +83,13 @@ export default function SettingsAuditPage() {
     );
   });
 
-  // Stats
-  const totalCalls = logs.length;
-  const successCount = logs.filter((l) => l.status === 'success').length;
-  const failedCount = logs.filter((l) => l.status === 'failed').length;
-  const avgLatency = logs.length > 0 ? Math.round(logs.reduce((s, l) => s + l.latency_ms, 0) / logs.length) : 0;
+  // Stats —— D7b：一律用【服务端】在【筛选后全集】上的结果。
+  // 此前这里是 logs.filter(...) / reduce(...)，而 logs 是"当前页"(limit:100)
+  // ⇒ 翻页或筛选后"统计"会变，是【假统计】。回退值只用于 stats 尚未返回的首次渲染。
+  const totalCalls = stats?.total ?? logs.length;
+  const successCount = stats?.success ?? 0;
+  const failedCount = stats?.failed ?? 0;
+  const avgLatency = stats?.avgLatencyMs ?? 0;
 
   return (
     <div className="space-y-5">
