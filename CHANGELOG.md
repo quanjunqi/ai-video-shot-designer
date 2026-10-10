@@ -15,6 +15,12 @@
 
 ### Added
 
+- **联合并行开发规范**（`docs/PARALLEL_DEVELOPMENT.md` + `AGENTS.md` §12.7）：面向多条开发线
+  同时改同一仓库的操作规范。核心为四条硬规则 —— ①一条线一个 worktree（禁止共用 checkout）
+  ②编号资源（迁移号段/ADR/任务卡）先认领后使用，撞号即刻让号 ③禁止用 `&&`/`-q`/`2>/dev/null`/
+  管道推断 git 成功，push 后必须**比对本地 HEAD 与远端 SHA** ④禁止 `git add -A`，按路径提交。
+  每条规则都附**真实事故台账**（10 项）。
+
 - **协议定义迁到代码注册表（ADR-007 D1 后端）**：新增 `catalog/protocol_registry.go`，
   把 8 个内置接入方式（`pt_builtin_*`）从迁移 SQL **等价搬迁**到 Go 代码，作为内置默认值的
   权威来源；`PostgresStore.Directory()` 读出后经 `MergeTemplates` 合并 ——
