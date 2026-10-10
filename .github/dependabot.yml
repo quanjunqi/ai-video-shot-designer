@@ -1,0 +1,65 @@
+# 依赖自动更新 —— 每周检查，分组以减少 PR 噪音
+version: 2
+updates:
+  # 前端依赖
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+      production-dependencies:
+        dependency-type: production
+    labels:
+      - dependencies
+      - frontend
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Go 依赖（每个服务一个模块）
+  - package-ecosystem: gomod
+    directory: /services/workspace
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, backend]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: gomod
+    directory: /services/production
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, backend]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: gomod
+    directory: /services/execution
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, backend]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: gomod
+    directory: /services/asset
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, backend]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: gomod
+    directory: /services/web-bff
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, backend]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: gomod
+    directory: /services/outbox-relay
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, backend]
+    commit-message: { prefix: "chore(deps)" }
+
+  # GitHub Actions 自身
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    labels: [dependencies, ci]
+    commit-message: { prefix: "chore(ci)" }

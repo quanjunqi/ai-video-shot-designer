@@ -26,6 +26,13 @@
 - **统一 Executor 接口与 API Connector**（TASK-P2-001）：`Submit/Poll/Cancel/GetResult`
   抽象 + 把既有 `Run`/`RunAsync` 适配为 `APIConnector`，含 11 个测试。
 - 各服务 `.dockerignore`（此前仅 production 有）。
+- **BFF 接口契约**（`openapi/`）：OpenAPI 3.1，38 path / 57 operation，
+  覆盖前端 53 个 API 方法 100%、BFF 21 个路由模式 100%；含离线校验脚本与破坏性变更规则。
+- **CI 增强**：`gofmt` 格式门禁；覆盖率**棘轮**门禁（`.github/coverage-baseline.txt`
+  + `.github/scripts/check-coverage.sh`，覆盖率不得低于基线）；Dependabot
+  （npm + 6 个 Go 模块 + GitHub Actions）；CI 校验 OpenAPI 契约可解析性；
+  文档存在性检查扩展到全部关键文档。
+- **`npm audit` 分级门禁**：生产依赖高危/严重**阻断**，全量（含 dev）先报告不阻断。
 
 ### Changed
 
@@ -64,6 +71,12 @@
 
 > 以下为已确认、**尚未修复**的缺陷，均需人类决策后以新增迁移/新任务处理。
 
+- **依赖漏洞门禁曾长期空转，存量漏洞待修**：`apps/web/.npmrc` 指向 npmmirror，
+  该镜像未实现 audit 端点（`NOT_IMPLEMENTED`），叠加 CI 的 `continue-on-error: true`，
+  导致依赖漏洞检查**从未真正生效**。改用官方 registry 实测：
+  **生产依赖 4 个 moderate（0 high / 0 critical）**；
+  **开发构建链 2 critical + 20 high**（`concurrently`→`shell-quote` 命令注入、
+  eslint 工具链、vite、`@tailwindcss/node`）。生产依赖已改为阻断门禁，dev 链存量待修。
 - **`project_characters` 表无建表迁移**：迁移 `020` 向该表 `INSERT`，但全仓库无
   `CREATE TABLE`。迁移执行器为 `psql -v ON_ERROR_STOP=1` + `sh -e`，**首个错误即中止**
   → 全新数据库上 `deploy/local` 的 `app` profile 无法启动，且 `021` 永不执行。

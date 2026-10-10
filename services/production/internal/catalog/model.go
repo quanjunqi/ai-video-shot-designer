@@ -118,26 +118,26 @@ func (t *ProtocolTemplatePatch) Validate() error {
 }
 
 type Directory struct {
-	Channels  []Channel           `json:"channels"`
-	Models    []Model             `json:"models"`
+	Channels  []Channel          `json:"channels"`
+	Models    []Model            `json:"models"`
 	Templates []ProtocolTemplate `json:"templates"`
 }
 
 type ModelPatch struct {
-	ChannelID     string          `json:"channelId,omitempty"`
-	Family        string          `json:"family,omitempty"`
-	Name          string          `json:"name,omitempty"`
-	ProviderModel string          `json:"providerModel,omitempty"`
-	Type          string          `json:"type,omitempty"`
-	Status        string          `json:"status,omitempty"`
-	Sort          *int            `json:"sort,omitempty"`
-	Note          string          `json:"note,omitempty"`
-	ProtocolTemplateID string     `json:"protocolTemplateId,omitempty"`
-	RequestPath   string          `json:"requestPath,omitempty"`
-	Method        string          `json:"method,omitempty"`
-	Params        json.RawMessage `json:"params,omitempty"`
-	ResponseParams json.RawMessage `json:"responseParams,omitempty"`
-	Capability    json.RawMessage `json:"capability,omitempty"`
+	ChannelID          string          `json:"channelId,omitempty"`
+	Family             string          `json:"family,omitempty"`
+	Name               string          `json:"name,omitempty"`
+	ProviderModel      string          `json:"providerModel,omitempty"`
+	Type               string          `json:"type,omitempty"`
+	Status             string          `json:"status,omitempty"`
+	Sort               *int            `json:"sort,omitempty"`
+	Note               string          `json:"note,omitempty"`
+	ProtocolTemplateID string          `json:"protocolTemplateId,omitempty"`
+	RequestPath        string          `json:"requestPath,omitempty"`
+	Method             string          `json:"method,omitempty"`
+	Params             json.RawMessage `json:"params,omitempty"`
+	ResponseParams     json.RawMessage `json:"responseParams,omitempty"`
+	Capability         json.RawMessage `json:"capability,omitempty"`
 }
 
 type ChannelPatch struct {

@@ -2,9 +2,10 @@
 // directory contract (channel + model + protocol template).
 //
 // Assembly rule (source three-way classification):
-//   static  -> template default value (overridden by model-level params)
-//   model   -> providerModel injected by the executor
-//   runtime -> constructed by the executor from business input (messages/tools…)
+//
+//	static  -> template default value (overridden by model-level params)
+//	model   -> providerModel injected by the executor
+//	runtime -> constructed by the executor from business input (messages/tools…)
 //
 // The engine never fakes a dispatch: missing channel, credentials or protocol
 // produces a clear error. Async-task protocols (video) are rejected here with
@@ -38,13 +39,13 @@ type Param struct {
 
 // Template is the minimal protocol-template projection the engine needs.
 type Template struct {
-	ID           string
-	Label        string
-	Method       string
-	RequestPath  string
-	Params       []Param
+	ID             string
+	Label          string
+	Method         string
+	RequestPath    string
+	Params         []Param
 	ResponseParams []Param
-	Async        json.RawMessage
+	Async          json.RawMessage
 }
 
 // Credentials are the decrypted tenant channel material, only ever materialized
@@ -57,22 +58,22 @@ type Credentials struct {
 
 // RunRequest is a sync text execution against a configured model+protocol.
 type RunRequest struct {
-	ChannelID         string
-	ProviderModel     string
-	ProtocolTemplate  Template
-	ModelParams       []Param  // model-level overrides (only static keys take effect)
-	ModelRequestPath  string   // model-level path override
-	Runtime           map[string]any // business values for role=runtime fields
+	ChannelID        string
+	ProviderModel    string
+	ProtocolTemplate Template
+	ModelParams      []Param        // model-level overrides (only static keys take effect)
+	ModelRequestPath string         // model-level path override
+	Runtime          map[string]any // business values for role=runtime fields
 }
 
 // RunResult is the safe projection of a real call: HTTP status, extracted
 // fields by response mapping, and raw body for diagnosis (never credentials).
 type RunResult struct {
-	Status    int               `json:"status"`
-	Extracted map[string]any    `json:"extracted"`
-	RawBody   string            `json:"rawBody,omitempty"`
-	Duration  string            `json:"duration"`
-	Error     string            `json:"error,omitempty"`
+	Status    int            `json:"status"`
+	Extracted map[string]any `json:"extracted"`
+	RawBody   string         `json:"rawBody,omitempty"`
+	Duration  string         `json:"duration"`
+	Error     string         `json:"error,omitempty"`
 	// ProviderTaskID 是异步协议在提交响应中返回的任务 ID（同步协议为空）。
 	// 提交响应与最终轮询响应是两个不同的文档，任务 ID 只在提交响应中出现，
 	// 故单独透出供统一 Executor 层与审计追溯使用。

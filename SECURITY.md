@@ -67,8 +67,8 @@
 | 无速率限制 / 配额 | 网关无并发闸门，可能被刷爆上游配额 | 未实现（Phase 3） |
 | 无 CDN/WAF/TLS 终止说明 | 生产边界尚未落地 | 未交付 |
 | 无备份与恢复流程 | 数据损坏无法回滚 | 未交付 |
-| `npm audit` 不阻断 | CI 中为 `continue-on-error: true`，高危依赖不会挡住合并 | 待改 |
-| 无安全响应自动化 | 无 Dependabot / 无 SAST 之外的检测 | 待补 |
+| **依赖漏洞门禁曾长期空转** | `apps/web/.npmrc` 指向 npmmirror，该镜像**未实现 audit 端点**（`NOT_IMPLEMENTED`）；CI 中该步骤又是 `continue-on-error: true`。两者叠加导致**依赖漏洞检查从未真正生效**。改用官方 registry 后实测：生产依赖 4 个 moderate（0 high / 0 critical），**开发构建链 2 critical + 20 high**（集中在 `concurrently`→`shell-quote`、eslint、vite、`@tailwindcss/node`） | 生产依赖已改为**阻断**；dev 链存量待修（见 `CHANGELOG.md` Known Issues） |
+| 无安全响应自动化 | 已补 Dependabot（npm + 6 个 Go 模块 + GitHub Actions，每周）；仍无 SAST 之外的检测 | 部分完成 |
 
 > **结论**：当前安全基线**仅适用于本地开发与单机验证**，不可直接对外提供服务。
 > 生产化必须先补齐 OIDC + 短期凭证或 mTLS、速率限制、审计可靠性。

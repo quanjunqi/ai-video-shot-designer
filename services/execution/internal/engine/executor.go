@@ -88,9 +88,9 @@ type ExecutorRequest struct {
 // ExecutorResult is the unified output from all executor types.
 type ExecutorResult struct {
 	// Task identification
-	TaskID       string
+	TaskID         string
 	ProviderTaskID string
-	Status       TaskStatus
+	Status         TaskStatus
 
 	// Extracted output fields (mapped by protocol template)
 	Extracted map[string]any
@@ -105,7 +105,7 @@ type ExecutorResult struct {
 	Error string
 
 	// Timing
-	Duration   time.Duration
+	Duration    time.Duration
 	SubmittedAt time.Time
 	CompletedAt *time.Time
 
