@@ -95,14 +95,46 @@ func main() {
 	maxConcurrent := envInt("EXECUTION_MAX_CONCURRENT_JOBS", 8)
 	gate := job.NewSemaphore(maxConcurrent)
 	log.Printf("execution: worker 并发上限 = %d", gate.Cap())
-	go runWorker(store, catalogClient, credsClient, engineClient, gate)
+	go runWorker(store, catalogClient, credsClient, engineClient, gate, auditStore)
 	log.Printf("execution service listening on %s", addr)
 	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.
 // It flips queued -> running, then executes each running job via engine.Run/RunAsync.
-func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore) {
+
+// auditTerminal 把任务的【确定终态】写回审计（D2）。
+//
+// 背景（判据 = SQL）：改动前 worker 不持有 auditStore ⇒ 异步链【零审计】；
+// 且提交时的审计行永远停在 queued（UpdateResult 零调用者）。异步任务主要是
+// 视频类长任务，即主要付费路径 —— 所以这条链路的审计缺失最严重。
+//
+// 覆盖范围：executeJob 内 s.Complete(...) 的全部 11 处调用点（含 defer 里的 panic）。
+// 【本片明确未覆盖】failOrRetry 触发的终态（重试耗尽 / 死信）：那两处是否终态只有
+// failOrRetry 自己知道，需要它回报终态性 —— 属 D2b。
+func auditTerminal(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte) {
+	if as == nil {
+		return
+	}
+	status := "failed"
+	if ok {
+		status = "succeeded"
+	}
+	var payload json.RawMessage
+	if len(result) > 0 {
+		payload = json.RawMessage(result)
+	}
+	n, err := as.UpdateResultByJobID(ctx, jobID, status, payload, errMsg, 0, 0, 0, 0, 0, "")
+	if err != nil {
+		log.Printf("execution worker: audit update failed for job %s: %v", jobID, err)
+		return
+	}
+	if n == 0 {
+		log.Printf("execution worker: job %s has NO submit-time audit row (status=%s) —— 该任务提交路径不写审计（D2 说明：经 /internal/v1/tasks 提交的任务属此列）", jobID, status)
+	}
+}
+
+func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	// Track jobs currently being executed to avoid duplicate dispatch
@@ -144,22 +176,24 @@ func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *htt
 				defer gate.Release()
 				defer executing.Delete(job.ID)
 				log.Printf("execution worker: goroutine finished for job %s", job.ID)
-				executeJob(ctx, s, cat, cred, client, job)
+				executeJob(ctx, s, cat, cred, client, job, as)
 			}(j, jobCtx, jobCancel)
 		}
 	}
 }
 
 // executeJob runs a single job through the engine and updates its status.
-func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job) {
+func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("execution worker: panic in job %s: %v", j.ID, r)
+			auditTerminal(ctx, as, j.ID, false, fmt.Sprintf("internal panic: %v", r), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, fmt.Sprintf("internal panic: %v", r))
 		}
 	}()
 
 	if cat == nil || cred == nil {
+		auditTerminal(ctx, as, j.ID, false, "execution engine not configured", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "execution engine not configured")
 		return
 	}
@@ -168,11 +202,13 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	var payload jobPayload
 	if len(j.IntentPayload) > 0 && string(j.IntentPayload) != "null" {
 		if err := json.Unmarshal(j.IntentPayload, &payload); err != nil {
+			auditTerminal(ctx, as, j.ID, false, "invalid job payload: "+err.Error(), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, "invalid job payload: "+err.Error())
 			return
 		}
 	}
 	if payload.ModelID == "" {
+		auditTerminal(ctx, as, j.ID, false, "missing modelId in payload", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "missing modelId in payload")
 		return
 	}
@@ -191,10 +227,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		}
 	}
 	if model == nil {
+		auditTerminal(ctx, as, j.ID, false, "model not found in directory", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model not found in directory")
 		return
 	}
 	if model.ProtocolTemplateID == "" {
+		auditTerminal(ctx, as, j.ID, false, "model has no protocol template", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model has no protocol template")
 		return
 	}
@@ -206,6 +244,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		}
 	}
 	if tmpl == nil {
+		auditTerminal(ctx, as, j.ID, false, "protocol template not found", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "protocol template not found")
 		return
 	}
@@ -213,6 +252,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// Get credentials
 	credentials, err := cred.Reveal(ctx, "ws_dev", model.ChannelID)
 	if err != nil {
+		auditTerminal(ctx, as, j.ID, false, "credentials missing: "+err.Error(), nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "credentials missing: "+err.Error())
 		return
 	}
@@ -275,6 +315,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	resultBytes, marshalErr := json.Marshal(payload)
 	if marshalErr != nil {
 		log.Printf("execution worker: job %s marshal payload error: %v", j.ID, marshalErr)
+		auditTerminal(ctx, as, j.ID, false, "marshal result error: "+marshalErr.Error(), nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "marshal result error: "+marshalErr.Error())
 		return
 	}
@@ -287,9 +328,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
+		auditTerminal(ctx, as, j.ID, false, "model returned no image URL", resultBytes)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
 	}
+
+	auditTerminal(ctx, as, j.ID, true, "", resultBytes)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
