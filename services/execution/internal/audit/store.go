@@ -82,6 +82,37 @@ func (s Store) UpdateResult(ctx context.Context, requestID string, status string
 	return err
 }
 
+// UpdateResultByJobID 按 job_id 把任务终态写回审计日志（D2）。
+//
+// 为什么按 job_id 而不是 request_id：
+//
+//	job.Job（job/store.go:36-58）与 jobs 表都【没有 request_id】，
+//	而 gateway_audit_logs 已有 job_id 列，且提交路径对异步任务已写入该列
+//	（httpapi/handler.go 的 writeAudit("queued", …, j.ID, "")）。
+//	⇒ 按 job_id 定位无需任何 schema 变更。
+//
+// 返回受影响行数：0 表示该 job【没有提交时的审计行】（例如经 /internal/v1/tasks 提交的任务）。
+// 调用方必须把这个 0 打出来 —— 静默的空更新会重现"审计看起来有、其实没更新"的问题。
+func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, providerTaskID string) (int64, error) {
+	tag, err := s.Pool.Exec(ctx, `
+		UPDATE gateway_audit_logs SET
+			status = $2,
+			response_payload = COALESCE($3, response_payload),
+			error_message = $4,
+			latency_ms = $5,
+			token_input = $6,
+			token_output = $7,
+			token_cached = $8,
+			cost_amount = $9,
+			provider_task_id = COALESCE(NULLIF($10, ''), provider_task_id)
+		WHERE job_id = $1
+	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, providerTaskID)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 // Spend 返回某 workspace 的**当日/当月**累计花费（用于成本上限判定）。
 // 依赖 (workspace_id, created_at) 索引（见迁移 009）。
 func (s Store) Spend(ctx context.Context, workspace string) (day float64, month float64, err error) {
