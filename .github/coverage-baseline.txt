@@ -8,4 +8,4 @@ production      17
 execution      47
 asset          23
 web-bff        23
-outbox-relay   14
+outbox-relay   28

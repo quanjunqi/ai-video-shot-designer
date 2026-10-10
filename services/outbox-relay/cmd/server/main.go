@@ -153,7 +153,12 @@ func (r *relay) ack(ctx context.Context, id int64, workspace, aggregate string) 
 	return tx.Commit(ctx)
 }
 
-func (r *relay) fail(ctx context.Context, id int64, attempts int, cause error) error {
+// backoffSeconds 计算重试退避：平方退避，夹在 [2, 300] 秒之间。
+//
+// 为什么抽成【纯函数】：这段夹取逻辑原先内联在 fail() 里，而 fail() 需要数据库
+// ⇒ 300 秒上限与 2 秒下限**从未被任何测试验证过**（该服务覆盖率仅 14.6%）。
+// 抽出来之后边界可被直接锁定，fail() 的行为不变。
+func backoffSeconds(attempts int) int {
 	backoff := attempts * attempts
 	if backoff < 2 {
 		backoff = 2
@@ -161,6 +166,11 @@ func (r *relay) fail(ctx context.Context, id int64, attempts int, cause error) e
 	if backoff > 300 {
 		backoff = 300
 	}
+	return backoff
+}
+
+func (r *relay) fail(ctx context.Context, id int64, attempts int, cause error) error {
+	backoff := backoffSeconds(attempts)
 	if attempts >= r.maxAttempts {
 		_, err := r.pool.Exec(ctx, `UPDATE outbox_events SET dead_lettered_at=now(),locked_at=NULL,locked_by='',last_error=$2 WHERE id=$1 AND locked_by=$3`, id, cause.Error(), r.workerID)
 		return err
