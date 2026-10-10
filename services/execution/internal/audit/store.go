@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -307,6 +308,70 @@ type AggregateResult struct {
 	P95LatencyMs int
 	// TopErrors：任务卡 §2.3 的「按错误文本聚类」。
 	TopErrors []ErrorCluster
+	// TokensByModel / TokensByChannel：任务卡 §2.2「成本归因」的 SUM 维度
+	// （按渠道/模型/项目/时间的 SUM）。见 TokenUsage 上关于"为什么先做 token 而不是金额"的说明。
+	TokensByModel   []TokenUsage
+	TokensByChannel []TokenUsage
+}
+
+// TokenUsage 是按某个维度聚合的 token 用量。
+//
+// **为什么先做 token、而不是金额 SUM**：`cost_amount` 目前**恒为 0** ——
+// 计费单位尚未确定（D4b），金额 SUM 现在做出来只会显示 0，**反而误导**；
+// 而 token 是 D4a/D4c 已经落地的**真实数据**（判据：开发库 mod_aaa… 有 in=35/out=38）。
+// 等 D4b 定下单位后，同一套按维度聚合的写法可直接加上金额列。
+type TokenUsage struct {
+	// Key 维度取值；未标注时统一显示为 (未标注)
+	Key    string `json:"key"`
+	Input  int64  `json:"input"`
+	Output int64  `json:"output"`
+	Cached int64  `json:"cached"`
+	Calls  int64  `json:"calls"`
+}
+
+// tokenDimensionWhitelist：维度名来自调用方，**绝不能**直接拼进 SQL。
+// 白名单是这里唯一的防线，所以它必须是显式的 map，而不是字符串前缀判断。
+var tokenDimensionWhitelist = map[string]string{
+	"model":   "model_id",
+	"channel": "channel_id",
+}
+
+// TokenUsageBy 按白名单维度聚合 token 用量（同一筛选口径与租户）。
+// 只统计**有 token 的行**：全 0 的行（校验失败等）没有用量可言，混进来只会稀释平均数。
+func (s Store) TokenUsageBy(ctx context.Context, workspaceID string, f Filter, dimension string, limit int) ([]TokenUsage, error) {
+	col, ok := tokenDimensionWhitelist[dimension]
+	if !ok {
+		return nil, fmt.Errorf("unsupported token dimension %q (allowed: model|channel)", dimension)
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 5
+	}
+	rows, err := s.Pool.Query(ctx, `
+		SELECT COALESCE(NULLIF(`+col+`, ''), '(未标注)') AS key,
+		       COALESCE(sum(token_input), 0)::bigint,
+		       COALESCE(sum(token_output), 0)::bigint,
+		       COALESCE(sum(token_cached), 0)::bigint,
+		       count(*)::bigint
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1 AND (token_input > 0 OR token_output > 0 OR token_cached > 0)`+f.whereClause()+`
+		GROUP BY key
+		ORDER BY (COALESCE(sum(token_input), 0) + COALESCE(sum(token_output), 0)) DESC,
+		         COALESCE(NULLIF(`+col+`, ''), '(未标注)') COLLATE "C" ASC
+		LIMIT $9`,
+		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]TokenUsage, 0, limit)
+	for rows.Next() {
+		var u TokenUsage
+		if err := rows.Scan(&u.Key, &u.Input, &u.Output, &u.Cached, &u.Calls); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
 }
 
 // ErrorCluster 是一簇错误文本。
@@ -322,10 +387,13 @@ type AggregateResult struct {
 // **不引入相似度算法**：那会让"同一簇"变成说不清的东西，而这里要的是**可解释**的归类。
 type ErrorCluster struct {
 	// Key 规范化后的簇键（小写、去变量尾部）——用于分组/去重
-	Key string
+	Key string `json:"key"`
 	// Sample 该簇里字典序最小的原始前缀（保留原大小写，供人阅读）
-	Sample string
-	Count  int
+	Sample string `json:"sample"`
+	Count  int    `json:"count"`
+	// ★ 这三个 tag 是必需的：没有它们，JSON 会发成 Key/Sample/Count（首字母大写），
+	//   而前端类型读的是 key/sample/count ⇒ 界面会显示 undefined。本项目真实踩到过
+	//   （错误分布那块界面），是靠"在真实实例上核对 wire 格式"发现的。
 }
 
 // topErrorsLimit：界面一屏能看几条。刻意取小 —— 聚合用来看"形状"，
@@ -422,6 +490,15 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 		out.TopErrors = append(out.TopErrors, c)
 	}
 	if err := errRows.Err(); err != nil {
+		return AggregateResult{}, err
+	}
+
+	// §2.2 成本归因的 SUM 维度（按模型 / 按渠道）。两个维度各一次聚合；
+	// 若将来维度变多，可换成单条 `GROUP BY GROUPING SETS` 查询（这里先保持可读）。
+	if out.TokensByModel, err = s.TokenUsageBy(ctx, workspaceID, f, "model", 5); err != nil {
+		return AggregateResult{}, err
+	}
+	if out.TokensByChannel, err = s.TokenUsageBy(ctx, workspaceID, f, "channel", 5); err != nil {
 		return AggregateResult{}, err
 	}
 	return out, nil

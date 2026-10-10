@@ -741,8 +741,11 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			"p50LatencyMs": agg.P50LatencyMs,
 			"p95LatencyMs": agg.P95LatencyMs,
 			// ④ §2.3「按错误文本聚类」：按"第一个冒号前的规范化前缀"分组
-			"topErrors":   agg.TopErrors,
-			"aggregateOn": "filtered_total",
+			"topErrors": agg.TopErrors,
+			// ④ §2.2「成本归因」的 SUM 维度（token；金额 SUM 等计费单位确定后再加）
+			"tokensByModel":   agg.TokensByModel,
+			"tokensByChannel": agg.TokensByChannel,
+			"aggregateOn":     "filtered_total",
 		},
 	})
 }

@@ -2706,7 +2706,7 @@ components:
           description: |
             在**筛选后全集**上的统计（D7a）。前端必须用它，不得在"当前页"上自行统计。
             聚合失败时 `byStatus` 为 null（`success`/`avgLatencyMs` 为 0）—— 契约如实反映这一点。
-          required: [byStatus, success, successRate, avgLatencyMs, p50LatencyMs, p95LatencyMs, topErrors, aggregateOn]
+          required: [byStatus, success, successRate, avgLatencyMs, p50LatencyMs, p95LatencyMs, topErrors, tokensByModel, tokensByChannel, aggregateOn]
           properties:
             byStatus:
               type: object
@@ -2739,6 +2739,12 @@ components:
                   key: {type: string, description: 规范化簇键（小写、无变量尾部）}
                   sample: {type: string, description: 代表性原始前缀（保留原大小写）}
                   count: {type: integer}
+
+            tokensByModel:
+              $ref: '#/components/schemas/TokenUsageList'
+            tokensByChannel:
+              $ref: '#/components/schemas/TokenUsageList'
+              description: 同上，按渠道聚合。
 
             aggregateOn: {type: string, description: '固定为 filtered_total'}
           additionalProperties: false
@@ -3004,6 +3010,23 @@ components:
           type: object
           additionalProperties: true
       additionalProperties: false
+
+    TokenUsageList:
+      type: array
+      description: >-
+        ④ §2.2「成本归因」的 SUM 维度：按维度聚合的 token 用量（前 5，按 input+output 降序）。
+        **只统计有用量的行**（全 0 的行没有用量可言，混进来只会稀释）。金额 SUM 待计费单位
+        确定（D4b）后再加 —— 现在做会恒定显示 0，反而误导。
+      items:
+        type: object
+        required: [key, input, output, cached, calls]
+        additionalProperties: false
+        properties:
+          key: {type: string, description: 维度取值；未标注时为「(未标注)」}
+          input: {type: integer}
+          output: {type: integer}
+          cached: {type: integer}
+          calls: {type: integer, description: 参与聚合的调用次数}
 
     ProtocolTemplate:
       type: object
