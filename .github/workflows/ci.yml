@@ -156,6 +156,7 @@ jobs:
           for f in \
             CHANGELOG.md \
             SECURITY.md \
+            CONTRIBUTING.md \
             .env.example \
             docs/architecture/README.md \
             docs/TESTING.md \
