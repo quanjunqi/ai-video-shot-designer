@@ -40,17 +40,21 @@ stateDiagram-v2
 **DB 强约束**：`CHECK (status IN ('queued','running','succeeded','failed','cancelled'))`
 （`jobs` 与 `job_attempts` 各一条相同约束）
 
-### ⚠️ 不一致 1：`timeout` 无法落库
+### ✅ 已修复 1：`timeout` 现可落库（`007_job_timeout_status.sql`）
 
 | 来源 | 取值 |
 |---|---|
-| DB `CHECK`（`jobs` / `job_attempts`） | queued, running, succeeded, failed, cancelled —— **5 个** |
-| Go `engine.TaskStatus` | queued, running, succeeded, failed, cancelled, **timeout** —— **6 个** |
+| DB `CHECK`（`jobs` / `job_attempts`） | queued, running, succeeded, failed, cancelled, **timeout** —— 6 个 |
+| Go `engine.TaskStatus` | queued, running, succeeded, failed, cancelled, **timeout** —— 6 个 |
 
-`services/execution/internal/engine/executor.go` 定义了 `TaskStatusTimeout`，但库表约束不允许写入该值。
-**后果**：当执行器把超时判定为 `timeout` 时，若按此值持久化会触发 `CHECK` 违反（写失败）；
-若映射为 `failed` 则丢失「超时」这一可诊断信息。
-**建议**：统一为「DB 与代码同一枚举」，推荐给 `jobs` / `job_attempts` 增加 `timeout`（新迁移，不修改已执行文件）。
+**曾经的缺陷**：`executor.go` 定义了 `TaskStatusTimeout` 且 `IsTerminal()` 视其为终态，
+但 DB `CHECK` 只允许 5 个值 —— 按 `timeout` 持久化会触发约束违反，映射为 `failed` 则丢失
+「超时」这一关键诊断信息（超时与业务失败的处理方式、告警阈值完全不同）。
+
+**修复**：新增 `services/execution/migrations/007_job_timeout_status.sql`，
+以 `DROP CONSTRAINT IF EXISTS` + `ADD CONSTRAINT` 放宽两个表的取值集合
+（未修改已执行文件；先 DROP 后 ADD 使其可重复执行）。
+实测：`jobs` 与 `job_attempts` 均可写入 `timeout`，非法取值仍被拒绝。
 
 ---
 
@@ -129,31 +133,49 @@ stateDiagram-v2
 
 ## 5 · 项目 / 剧集状态（经营状态）
 
-### 5.1 项目状态 —— ⚠️ 不一致 2：服务端实际被冻结
+### 5.1 项目状态 —— ✅ 约束已解冻（`022_projects_status_machine.sql`）
 
 | 来源 | 取值 |
 |---|---|
-| DB `CHECK`（`001_projects.sql:12`） | `status = 'pending_parse'` —— **仅此一个值** |
-| 前端 `ProjectStatus` | pending_parse, parsing, awaiting_confirm, in_production, review, archived —— 6 个 |
-| Go 写入路径 | `INSERT ... 'pending_parse'`（字面量）；`Update` 的 `sets` 只含 title/style/aspect_ratio/default_*_model，**不含 status** |
+| DB `CHECK`（已由 022 放宽） | pending_parse, parsing, awaiting_confirm, in_production, review, archived —— 6 个 |
+| 前端 `ProjectStatus` | 同上 6 个 —— **已与 DB 一致** |
+| Go 写入路径 | `INSERT ... 'pending_parse'`（字面量）；`Update` 的 `sets` 仍**不含 status** |
 
-**结论**：`projects.status` 目前是**写入后永不变更**的字段，且 DB 约束禁止任何其它值。
-前端的 6 态与 `docs/TECHNICAL_ARCHITECTURE.md` §6 描述的流转属**目标态，服务端尚未实现**。
-**建议**：实现状态机时新增迁移放宽 `CHECK`（不要修改已执行迁移），并在 `Update` 中暴露合法的状态跃迁。
+**曾经的缺陷**：`001_projects.sql:12` 的约束为 `CHECK (status = 'pending_parse')` —— **只允许一个取值**，
+使项目状态机在数据库层面被彻底冻结（任何推进都会违反约束）。
 
-### 5.2 剧集阶段与状态 —— ⚠️ 不一致 3：`draft` 只存在于 DB
+**修复**：新增 `services/production/migrations/022_projects_status_machine.sql` 放宽约束到前端的 6 态。
+实测：可推进到 `in_production` / `review` / `archived`，非法取值仍被拒绝。
+
+> ⚠️ **仍未实现（非约束问题，属功能缺口）**：`project.Update` 的 `sets` 里**没有 status**
+> （`postgres.go:104-137`），因此**服务端目前仍无法推进项目状态** —— 该列实际是「写入即冻结」。
+> 本迁移只解除约束层面的阻塞，状态机本身（合法跃迁、权限校验、审计）需另行实现。
+> `docs/TECHNICAL_ARCHITECTURE.md` §6 描述的流转仍属**目标态**。
+
+### 5.2 剧集阶段与状态 —— ✅ 取值已归一并补 CHECK（`023_episodes_state_checks.sql`）
 
 | 来源 | 取值 |
 |---|---|
-| DB `episodes.stage` | `text NOT NULL DEFAULT 'analyze'`（**无 CHECK**） |
-| DB `episodes.status` | `text NOT NULL DEFAULT 'draft'`（**无 CHECK**） |
+| DB `episodes.status` | `text NOT NULL DEFAULT 'pending'`（**已有 CHECK**，6 个取值与前端一致） |
+| DB `episodes.stage` | `text NOT NULL DEFAULT 'analyze'`（**已有 CHECK**，8 个取值与前端一致） |
 | 前端 `EpisodeStage` | analyze, characters, props, scenes, directing, units, production, done（8） |
-| 前端 `EpisodeStatus` | pending, analyzing, needs_review, in_work, blocked, done（6）——**不含 `draft`** |
+| 前端 `EpisodeStatus` | pending, analyzing, needs_review, in_work, blocked, done（6） |
 
-**后果**：新建剧集在库中为 `status='draft'`，而前端类型没有该取值 —— 类型与实际数据不一致
-（前端以 `as Episode['status']` 断言后可能渲染出未知状态）。此外 `stage` / `status`
-**缺少 DB 层 CHECK**，无法防止写入任意字符串。
-**建议**：二选一后统一 ——（a）DB 默认改为 `pending`；（b）前端补 `draft` 取值。并给两列加 `CHECK`。
+**曾经的缺陷（两处）**：
+1. DB 默认值是 `'draft'`，而前端 `EpisodeStatus` **没有该取值** —— 类型与实际数据对不上；
+2. `stage` / `status` **完全没有 CHECK**，而 `episode.Update` 会把请求里的 status 直接写库
+   （`postgres.go:107`），意味着任意字符串（含拼写错误）都能落库。
+
+**修复**：新增 `services/production/migrations/023_episodes_state_checks.sql` ——
+把历史 `'draft'` 归一为 `'pending'`、默认值改为 `'pending'`、为两列补 CHECK。
+**归一方向选择「DB 对齐代码」**（Go 与 TS 已统一使用 `pending`），
+只改一处 DB 默认值，无需改动前端类型/UI 分支/mock 数据，变更面最小。
+
+**未预期取值处理**：加约束前先用 `DO` 块做**可读的前置校验**，存在未预期取值时抛出
+可操作的错误信息（而非难以定位的 `violates check constraint`），且**刻意不静默改写**未知取值
+—— 静默改写会掩盖真实数据问题。实测该路径输出的错误信息包含具体非法取值与归一指引。
+
+实测：新建剧集默认 `pending`；`draft` 与非法 stage 被拒绝；6 个 status、8 个 stage 全部可写入。
 
 ---
 
@@ -198,15 +220,25 @@ stateDiagram-v2
 
 ---
 
-## 不一致汇总（本文档发现的 3 项，均需修复）
+## 一致性汇总（本文档曾发现的 3 项不一致，**均已修复**）
 
-| # | 问题 | 影响 | 建议 |
-|---|---|---|---|
-| 1 | `TaskStatus.timeout` 无法写入 DB（`CHECK` 仅 5 值） | 超时无法如实持久化，丢失诊断信息 | 新迁移为 `jobs`/`job_attempts` 增加 `timeout` |
-| 2 | `projects.status` 被 `CHECK` 冻结为 `pending_parse`，且无更新代码 | 项目状态机在服务端未实现 | 新迁移放宽 `CHECK` + 实现状态跃迁 |
-| 3 | `episodes.status` DB 默认 `draft`，前端枚举无此值；两列均无 `CHECK` | 类型与实际数据不一致，脏值可写入 | 统一取值并补 `CHECK` |
+| # | 问题 | 修复 |
+|---|---|---|
+| 1 | `TaskStatus.timeout` 无法写入 DB（`CHECK` 仅 5 值） | ✅ `execution/007_job_timeout_status.sql` —— 放宽为 6 值 |
+| 2 | `projects.status` 被 `CHECK` 冻结为 `pending_parse` | ✅ `production/022_projects_status_machine.sql` —— 放宽为前端 6 态 |
+| 3 | `episodes.status` 默认 `draft` 与前端枚举不符；`stage`/`status` 无 `CHECK` | ✅ `production/023_episodes_state_checks.sql` —— 归一为 `pending` + 两列补 `CHECK` |
 
-> 三项都涉及**已执行迁移**的 `CHECK` 约束，按 AGENTS.md §7 属禁区，需人类决策后以**新增迁移**方式修复（不修改已执行文件）。
+三项修复**全部以新增迁移实现，未修改任何已执行文件**（遵守 `AGENTS.md` §7）。
+每个迁移都保证可重复执行（执行器无版本跟踪，会重跑全部文件），
+并已用真实 PostgreSQL 16 验证**接受路径与拒绝路径**（不只是 happy path）。
+
+### 遗留的功能缺口（**不是**约束问题，需另行实现）
+
+| 缺口 | 说明 |
+|---|---|
+| 项目状态机未实现 | 约束已解冻，但 `project.Update` 的 `sets` 不含 `status`，服务端仍无法推进状态 |
+| 合法跃迁未校验 | 目前只保证取值合法，不保证跃迁合法（如 `archived` → `parsing` 会被允许） |
+| 迁移执行器无版本跟踪 | 每次 compose up 重跑全部迁移；且并非所有迁移都幂等（见 `CHANGELOG.md` Known Issues） |
 
 ---
 
