@@ -47,14 +47,13 @@ type SyncResult struct {
 //   - 不越界（§8.3）：绝不写 model_catalog
 //   - 可选描述字段（display_name/model_type/tags/vendor）：本次未提供时**保留旧值**
 //     （用 COALESCE），避免"上游某次没带这个字段"把已有信息抹掉
-func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upstream []UpstreamModel, endpoints json.RawMessage) (SyncResult, error) {
+func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upstream []UpstreamModel) (SyncResult, error) {
 	res := SyncResult{RawCount: len(upstream)}
 	if channelID == "" {
 		return res, errors.New("channel id is required")
 	}
-	if endpoints == nil {
-		endpoints = json.RawMessage(`[]`)
-	}
+	// 注：上游端点映射表属于【同步记录】（ADR-004 §3.2 的 channel_model_syncs.endpoints），
+	// 由 FinishSync 落库；本函数只负责供给池本身。
 
 	tx, err := store.Pool.Begin(ctx)
 	if err != nil {

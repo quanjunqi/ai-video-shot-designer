@@ -83,7 +83,7 @@ func TestIntegrationApplySyncIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	seedChannel(t, s, "ch_idem")
 
-	first, err := s.ApplySync(ctx, "ch_idem", upstream("m1", "模型一", "m2", "模型二"), nil)
+	first, err := s.ApplySync(ctx, "ch_idem", upstream("m1", "模型一", "m2", "模型二"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestIntegrationApplySyncIsIdempotent(t *testing.T) {
 	}
 	before := poolRows(t, s, "ch_idem")
 
-	second, err := s.ApplySync(ctx, "ch_idem", upstream("m1", "模型一", "m2", "模型二"), nil)
+	second, err := s.ApplySync(ctx, "ch_idem", upstream("m1", "模型一", "m2", "模型二"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,12 +123,12 @@ func TestIntegrationApplySyncMarksMissingWithoutDeleting(t *testing.T) {
 	ctx := context.Background()
 	seedChannel(t, s, "ch_miss")
 
-	if _, err := s.ApplySync(ctx, "ch_miss", upstream("m1", "一", "m2", "二"), nil); err != nil {
+	if _, err := s.ApplySync(ctx, "ch_miss", upstream("m1", "一", "m2", "二")); err != nil {
 		t.Fatal(err)
 	}
 	firstSeen := poolRows(t, s, "ch_miss")["m2"].FirstSeen
 
-	res, err := s.ApplySync(ctx, "ch_miss", upstream("m1", "一"), nil)
+	res, err := s.ApplySync(ctx, "ch_miss", upstream("m1", "一"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestIntegrationApplySyncMarksMissingWithoutDeleting(t *testing.T) {
 	missingAt := *rows["m2"].Missing
 
 	// 再次出现 ⇒ 置回 NULL，且 first_seen_at 不被刷新
-	if _, err := s.ApplySync(ctx, "ch_miss", upstream("m1", "一", "m2", "二"), nil); err != nil {
+	if _, err := s.ApplySync(ctx, "ch_miss", upstream("m1", "一", "m2", "二")); err != nil {
 		t.Fatal(err)
 	}
 	rows = poolRows(t, s, "ch_miss")
@@ -172,7 +172,7 @@ func TestIntegrationApplySyncNeverWritesModelCatalog(t *testing.T) {
 		return n
 	}
 	before := count()
-	if _, err := s.ApplySync(ctx, "ch_nocat", upstream("m1", "一", "m2", "二", "m3", "三"), nil); err != nil {
+	if _, err := s.ApplySync(ctx, "ch_nocat", upstream("m1", "一", "m2", "二", "m3", "三")); err != nil {
 		t.Fatal(err)
 	}
 	if after := count(); after != before {
@@ -186,7 +186,7 @@ func TestIntegrationApplySyncRollsBackOnFailure(t *testing.T) {
 	ctx := context.Background()
 	seedChannel(t, s, "ch_fail")
 
-	if _, err := s.ApplySync(ctx, "ch_fail", upstream("m1", "一", "m2", "二"), nil); err != nil {
+	if _, err := s.ApplySync(ctx, "ch_fail", upstream("m1", "一", "m2", "二")); err != nil {
 		t.Fatal(err)
 	}
 	before := poolRows(t, s, "ch_fail")
@@ -196,7 +196,7 @@ func TestIntegrationApplySyncRollsBackOnFailure(t *testing.T) {
 		{ProviderModel: "m3", DisplayName: "三", EndpointTypes: json.RawMessage(`["ok"]`)},
 		{ProviderModel: "m4", DisplayName: "四", EndpointTypes: json.RawMessage(`{not json`)},
 	}
-	if _, err := s.ApplySync(ctx, "ch_fail", bad, nil); err == nil {
+	if _, err := s.ApplySync(ctx, "ch_fail", bad); err == nil {
 		t.Fatal("非法 JSON 应导致失败")
 	}
 
@@ -220,11 +220,11 @@ func TestIntegrationApplySyncCountsPriceChanges(t *testing.T) {
 	ctx := context.Background()
 	seedChannel(t, s, "ch_price")
 
-	if _, err := s.ApplySync(ctx, "ch_price", upstream("m1", "一"), nil); err != nil {
+	if _, err := s.ApplySync(ctx, "ch_price", upstream("m1", "一")); err != nil {
 		t.Fatal(err)
 	}
 	// 价格未变 ⇒ 不计
-	res, err := s.ApplySync(ctx, "ch_price", upstream("m1", "一"), nil)
+	res, err := s.ApplySync(ctx, "ch_price", upstream("m1", "一"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestIntegrationApplySyncCountsPriceChanges(t *testing.T) {
 	}
 	// 价格变化 ⇒ 计 1，且落库
 	changed := []UpstreamModel{{ProviderModel: "m1", DisplayName: "一", Pricing: json.RawMessage(`{"per_call":0.2}`)}}
-	res, err = s.ApplySync(ctx, "ch_price", changed, nil)
+	res, err = s.ApplySync(ctx, "ch_price", changed)
 	if err != nil {
 		t.Fatal(err)
 	}
