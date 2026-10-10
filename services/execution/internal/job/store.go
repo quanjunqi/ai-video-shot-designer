@@ -195,7 +195,7 @@ func (s Store) Retry(ctx context.Context, workspace, id string) (Job, error) {
 
 // Advance is intentionally small and deterministic; a dedicated worker can replace it without changing the HTTP contract.
 func (s Store) Advance(ctx context.Context, batch int) error {
-	_, err := s.Pool.Exec(ctx, `WITH picked AS (SELECT workspace_id,id,attempt FROM jobs WHERE status='queued' ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT $1) UPDATE jobs j SET status='running',started_at=COALESCE(j.started_at,now()),updated_at=now() FROM picked p WHERE j.workspace_id=p.workspace_id AND j.id=p.id`, batch)
+	_, err := s.Pool.Exec(ctx, `WITH picked AS (SELECT workspace_id,id,attempt FROM jobs WHERE status='queued' AND next_attempt_at <= now() ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT $1) UPDATE jobs j SET status='running',started_at=COALESCE(j.started_at,now()),updated_at=now() FROM picked p WHERE j.workspace_id=p.workspace_id AND j.id=p.id`, batch)
 	if err != nil {
 		return err
 	}
@@ -230,6 +230,52 @@ func (s Store) Complete(ctx context.Context, id string, succeeded bool, resultPa
 		log.Printf("job store: Complete id=%s status=%s (no payload) rowsAffected=%d", id, status, tag.RowsAffected())
 	}
 	return err
+}
+
+// FailOrRetry 处理一次执行失败：未达 max_attempts 则**退避重排**（回到 queued），
+// 达到上限则进入**死信**（failed + dead_lettered_at）。
+//
+// 返回 retried=true 表示已排队等待重试。
+// 同时维护 job_attempts：把当前尝试标记 failed 并写入错误原因，
+// 若将重试则插入下一条 queued 尝试记录 —— 这样「第几次失败、错在哪」可查。
+func (s Store) FailOrRetry(ctx context.Context, id, errMsg string, backoffSeconds float64) (bool, error) {
+	var status string
+	var attempt int
+	err := s.Pool.QueryRow(ctx, `
+		WITH upd AS (
+			UPDATE jobs SET
+				attempt = CASE WHEN attempt < max_attempts THEN attempt + 1 ELSE attempt END,
+				status  = CASE WHEN attempt < max_attempts THEN 'queued' ELSE 'failed' END,
+				error   = $2,
+				progress = 0,
+				finished_at = CASE WHEN attempt < max_attempts THEN NULL ELSE now() END,
+				dead_lettered_at = CASE WHEN attempt < max_attempts THEN NULL ELSE now() END,
+				next_attempt_at = CASE WHEN attempt < max_attempts
+					THEN now() + make_interval(secs => $3::double precision)
+					ELSE next_attempt_at END,
+				updated_at = now()
+			WHERE id = $1 AND status = 'running'
+			RETURNING workspace_id, attempt, status
+		), att AS (
+			UPDATE job_attempts a SET status = 'failed', error = $2, finished_at = now()
+			FROM upd u
+			WHERE a.workspace_id = u.workspace_id AND a.job_id = $1 AND a.status IN ('queued','running')
+			RETURNING 1
+		), next_att AS (
+			INSERT INTO job_attempts (workspace_id, job_id, attempt, status)
+			SELECT workspace_id, $1, attempt, 'queued' FROM upd WHERE status = 'queued'
+			ON CONFLICT (workspace_id, job_id, attempt) DO NOTHING
+			RETURNING 1
+		)
+		SELECT status, attempt FROM upd
+	`, id, errMsg, backoffSeconds).Scan(&status, &attempt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, ErrNotRunning
+	}
+	if err != nil {
+		return false, err
+	}
+	return status == "queued", nil
 }
 
 // ListRunning returns jobs currently in running state, for worker dispatch.

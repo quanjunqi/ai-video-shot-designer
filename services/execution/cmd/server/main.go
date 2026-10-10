@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -73,14 +75,19 @@ func main() {
 	engineClient := upstreamPolicy.NewClient(600 * time.Second)
 	log.Printf("execution: upstream SSRF policy allow_private=%v allowed_hosts=%d",
 		upstreamPolicy.AllowPrivate, len(upstreamPolicy.AllowedHosts))
-	go runWorker(store, catalogClient, credsClient, engineClient)
+	// 并发闸门：原先每任务直接起 goroutine、**无上限**，一次批量提交就会同时
+	// 打满上游配额并耗尽本进程连接/内存。容量可配，默认 8。
+	maxConcurrent := envInt("EXECUTION_MAX_CONCURRENT_JOBS", 8)
+	gate := job.NewSemaphore(maxConcurrent)
+	log.Printf("execution: worker 并发上限 = %d", gate.Cap())
+	go runWorker(store, catalogClient, credsClient, engineClient, gate)
 	log.Printf("execution service listening on %s", addr)
 	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.
 // It flips queued -> running, then executes each running job via engine.Run/RunAsync.
-func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client) {
+func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	// Track jobs currently being executed to avoid duplicate dispatch
@@ -107,11 +114,19 @@ func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *htt
 				log.Printf("execution worker: job %s already executing, skipping", j.ID)
 				continue
 			}
+			// 闸门已满则本轮不派发：任务保持 running，下一轮 ticker 会再次列出
+			// （因此必须先撤销 executing 标记，否则它会被永久视为「已在执行」）
+			if !gate.TryAcquire() {
+				executing.Delete(j.ID)
+				log.Printf("execution worker: 并发已达上限 %d，本轮不派发 job %s", gate.Cap(), j.ID)
+				continue
+			}
 			log.Printf("execution worker: starting job %s", j.ID)
 			// Each job gets its own context with 10 min timeout
 			jobCtx, jobCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			go func(job job.Job, ctx context.Context, cancel context.CancelFunc) {
 				defer cancel()
+				defer gate.Release()
 				defer executing.Delete(job.ID)
 				log.Printf("execution worker: goroutine finished for job %s", job.ID)
 				executeJob(ctx, s, cat, cred, client, job)
@@ -150,7 +165,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// Get model directory (use dev workspace/actor)
 	dir, err := cat.Get(ctx, "ws_dev", "user_dev")
 	if err != nil {
-		_ = s.Complete(ctx, j.ID, false, nil, "catalog unavailable: "+err.Error())
+		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error())
 		return
 	}
 	var model *catalog.Model
@@ -234,7 +249,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 
 	if err != nil {
-		_ = s.Complete(ctx, j.ID, false, nil, err.Error())
+		failOrRetry(ctx, s, j, err.Error())
 		return
 	}
 
@@ -264,4 +279,33 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		log.Printf("execution worker: job %s complete error: %v", j.ID, completeErr)
 	}
 	log.Printf("execution worker: job %s completed (model=%s)", j.ID, payload.ModelID)
+}
+
+// envInt 读取整型环境变量，缺省或非法时返回 def。
+func envInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
+// failOrRetry 用于**瞬态**失败（上游错误、内部依赖临时不可用）：
+// 未达上限则退避重排，达到上限则进入死信。
+// 配置类/永久性错误不走这里，而是直接 Complete(false) —— 否则会白白消耗尝试次数
+// （例如「model not found」重试 3 次毫无意义）。
+func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string) {
+	cfg := job.DefaultRetryConfig()
+	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
+	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
+	switch {
+	case err != nil:
+		log.Printf("execution worker: FailOrRetry job=%s err=%v（回退为标记失败）", j.ID, err)
+		_ = s.Complete(ctx, j.ID, false, nil, msg)
+	case retried:
+		log.Printf("execution worker: job=%s 第 %d 次失败，%s 后重试: %s", j.ID, j.Attempt, backoff.Round(time.Second), msg)
+	default:
+		log.Printf("execution worker: job=%s 重试耗尽（attempt=%d），进入死信: %s", j.ID, j.Attempt, msg)
+	}
 }

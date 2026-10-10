@@ -58,6 +58,18 @@
 
 ### Fixed
 
+- **任务自动重试与死信（阶段 1 第 2 项 P0）**：原先 `executeJob` 遇到任何失败都直接
+  `Complete(false)` **进入终态**，`jobs.attempt` 字段存在却从不被写入 —— 上游抖动一次
+  即任务永久失败，且无法区分「待重试」与「已耗尽」。现新增
+  `008_job_retry.sql`（`next_attempt_at` / `max_attempts` / `dead_lettered_at` + 认领索引）
+  与 `Store.FailOrRetry`：未达上限则**指数退避**（5s 起、上限 5min、20% 抖动防惊群）
+  回到 `queued`，达到上限则进**死信**；`job_attempts` 逐次记录失败原因（可查）。
+  仅**瞬态**失败（上游错误、依赖临时不可用）重试，配置类永久错误仍直接终态。
+  同时新增**并发闸门**（`EXECUTION_MAX_CONCURRENT_JOBS`，默认 8），
+  修复原先「每任务一个 goroutine、无上限」的问题。
+  验证：退避与闸门单测 7 项 + **真库集成测试**（退避期内不被重复认领 → 达上限进死信 →
+  尝试历史留痕）。
+
 - **迁移执行器改为版本跟踪（`schema_migrations` + 校验和）**：原先 compose 的 migrate job
   每次 up 都重跑全部迁移，而迁移**并非全部幂等**（`006_catalog_response_params.sql` 与
   `workspace/004` 的 `ADD COLUMN` 缺 `IF NOT EXISTS`、`production/011` 的
