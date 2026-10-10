@@ -122,6 +122,28 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 > §3 说的是 **job 不得被 job 级 `if:` 跳过**；本节说的是 **job 内部不得用 SKIP 冒充通过**。
 > 新增的守卫是**步骤级** `if:`，符合 §3。
 
+### 7.1 这个守卫对哪些服务**真的有约束**（如实标注）
+
+守卫的判据是"提供了 DSN 就不许出现 `--- SKIP`"。因此**只有存在 DSN 门控测试的服务**
+才真正被它保护；对没有这类测试的服务，它**空转通过**（这本身不是缺陷，但读者不应误以为
+六个服务都受保护）。
+
+| 服务 | DSN 门控的集成测试 | 守卫 |
+|---|---|---|
+| `workspace` | 4 条（`TestPostgresCredential*` / `TestPostgresUserChannel*`） | ✅ **有效** |
+| `production` | 12 条（`TestPostgres*`） | ✅ **有效** |
+| `execution` | 3 条（`TestIntegration_*`） | ✅ **有效** |
+| `asset` | **0 条** | ⚠️ **空转**（该服务的 `Store` 尚无任何集成测试） |
+| `web-bff` | 0 条 | ⚠️ 空转 |
+| `outbox-relay` | 0 条 | ⚠️ 空转 |
+
+判据（`git grep -c TEST_DATABASE_URL` 与 `--- SKIP` 计数）：
+`workspace` 无 DSN 时 PASS 20→16、SKIP 0→**4**；`production`/`execution` 的 DSN 由
+`.env.local` 提供（本地默认即已开启），其集成测试条数分别为 12 / 3 —— 源码可数。
+
+> **已知缺口**：`asset` 的 `Store`（CreateUpload / Put / Commit / List）**没有任何测试证据**。
+> 在本次改动之前，即使补上集成测试也**不会在 CI 执行**（无测试库）；现在补上就会真的跑。
+
 ## 相关文档
 
 - 分支与必需检查：[docs/development/branch-protection.md](branch-protection.md)
