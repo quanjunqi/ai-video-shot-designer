@@ -49,6 +49,16 @@
 
 ### Fixed
 
+- **迁移执行器改为版本跟踪（`schema_migrations` + 校验和）**：原先 compose 的 migrate job
+  每次 up 都重跑全部迁移，而迁移**并非全部幂等**（`006_catalog_response_params.sql` 与
+  `workspace/004` 的 `ADD COLUMN` 缺 `IF NOT EXISTS`、`production/011` 的
+  `DROP CONSTRAINT` 无守卫）→ **实测第二次执行在 006 报
+  `column "response_params" of relation "model_catalog" already exists`**。
+  新增 `deploy/local/migrate.sh`：每个文件**只执行一次**（不再要求迁移幂等）、
+  逐文件独立事务、advisory lock 防并发、**校验和强制 `AGENTS.md` §7**
+  （改动已应用迁移会被拒绝执行 —— 把"约定"变成"机制"）；
+  对「已有表但无跟踪记录」的库采用**显式采纳**（`MIGRATE_ADOPT=[1]` /
+  `MIGRATE_ADOPT_UNTIL=<version>`）而非静默 baseline。
 - **状态模型三处不一致（约束层）**：全部以**新增迁移**修复，未修改任何已执行文件。
   - `execution/007_job_timeout_status.sql` —— `jobs`/`job_attempts` 的 `CHECK` 由 5 值放宽为 6 值，
     使 Go 的 `TaskStatusTimeout`（`IsTerminal()` 视其为终态）能如实落库。
@@ -101,11 +111,6 @@
   **生产依赖 4 个 moderate（0 high / 0 critical）**；
   **开发构建链 2 critical + 20 high**（`concurrently`→`shell-quote` 命令注入、
   eslint 工具链、vite、`@tailwindcss/node`）。生产依赖已改为阻断门禁，dev 链存量待修。
-- **迁移并非全部幂等 → compose 重复 up 会失败**：`006_catalog_response_params.sql` 与
-  `workspace/004` 的 `ADD COLUMN` 缺 `IF NOT EXISTS`、`production/011` 的 `DROP CONSTRAINT`
-  无守卫。compose 的 migrate job 每次 up 都重跑全部迁移（无版本跟踪），
-  **实测第二次执行在 006 报 `column "response_params" ... already exists`**。
-  根治办法是让执行器改为版本跟踪（`schema_migrations` 表）。见 `.github/tasks/TASK-FIX-001` 附表。
 - **审计写入失败被静默忽略**：`_ = h.AuditStore.Insert(...)` 与「审计日志不异步丢失」冲突。
 - **状态跃迁未校验**：`022`/`023` 只保证状态**取值**合法，不保证**跃迁**合法
   （如 `archived → parsing` 仍会被允许）；且 `project.Update` 的 `sets` 不含 `status`，
