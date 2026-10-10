@@ -1,0 +1,3016 @@
+openapi: 3.1.0
+info:
+  title: 漫剧导演工坊 BFF 对外契约（/api/v1/*）
+  version: 0.1.0
+  summary: web-bff 暴露给浏览器的 HTTP 契约（前端唯一入口）
+  description: |
+    # 范围
+
+    本文件描述 **web-bff 对外契约**，即浏览器/前端可以调用的 `/api/v1/*`（外加 BFF 自身的
+    `/live`、`/ready` 运维端点）。前端 `apps/web/src/lib/api/client.ts` 的所有方法都必须能在
+    本文件中找到对应 operation。
+
+    不在本文件范围内：
+
+    - `/internal/v1/*`、`/v1/generate`：**服务间契约**（BFF → 领域服务），当前未覆盖，见
+      `openapi/README.md`「后续任务」。
+    - 静态资源、前端路由、`/runtime/*` 等第三方 CDN 前缀。
+
+    # 结构来源（唯一事实源）
+
+    契约按以下代码逐条核对，不做推测性补充：
+
+    | 内容 | 来源 |
+    |---|---|
+    | 路由、方法、允许的方法集合、错误码、响应头 | `services/web-bff/cmd/server/main.go` |
+    | 请求/响应字段（TS 类型） | `apps/web/src/lib/api/client.ts` |
+    | 转发目标与上游响应结构 | `services/{workspace,production,execution,asset}/internal/httpapi/*.go` |
+    | 端口与令牌变量 | `.env.example` |
+    | 调用与鉴权叙述 | `docs/architecture/01-c4-context-container.md`、`docs/architecture/02-key-sequences.md` |
+
+    # 鉴权现状（如实描述，不要假设已有 OIDC）
+
+    - **浏览器 → BFF：当前没有任何鉴权。** 没有 OIDC、没有 JWT、没有会话 Cookie，浏览器也
+      **不需要**发送任何身份头。BFF 使用服务端环境变量 `BFF_DEV_WORKSPACE_ID`（默认 `ws_dev`）
+      与 `BFF_DEV_ACTOR_ID` 作为固定开发身份（见 `.env.example` 与 C4 文档「信任模型」）。
+      因此本规范根级 `security: []`：这些 operation 不要求调用方提供凭据。
+    - **BFF → 领域服务：静态内部令牌。** BFF 向每个领域服务注入
+      `Authorization: Bearer <SERVICE>_INTERNAL_TOKEN`，并把 `X-Workspace-Id` / `X-Actor-Id`
+      写为上述开发身份（`services/web-bff/cmd/server/main.go` 的 `projects`/`assets`/`tasks`/
+      `generate`/`catalogProxy`/`ruleTemplates`/`workspaceCredentials`/`workspaceChannels`）。
+      浏览器无法、也不应提供该令牌。
+    - `components.securitySchemes` 中列出的两个 scheme 仅用于描述 **BFF → 领域服务** 这一跳，
+      不是浏览器契约的一部分；不要据此在客户端实现鉴权。
+    - 生产化必须补 OIDC + 短期凭证（或 mTLS），届时根级 `security` 与各 operation 需要同步更新，
+      属**破坏性变更**（见 `openapi/README.md`）。
+
+    # 统一约定
+
+    - **响应包装**：没有全局 envelope。列表接口统一返回 `{ "items": [...] }`；错误统一返回
+      `{"code": "...", "message": "..."}`（`components.schemas.Error`）。个别接口有专用包装，
+      例如 `POST /api/v1/generate` 同步返回 `{ok, status, output, run}`、异步返回
+      `{task_id, status, poll_url}`；`POST /api/v1/tasks/run` 返回 `{ok, run}`；
+      `PUT /api/v1/workspace/credentials/{channelId}` 返回 `{channelId, stored}`；
+      `PUT /api/v1/workspace/channels/{channelId}` 返回 `{channel, ...}`。
+    - **缓存**：BFF 对所有响应强制
+      `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` + `Pragma: no-cache`
+      + `Expires: 0`（`withTimeout` 中间件），任务/生成/审计路径额外显式设置一次。前端轮询任务
+      状态时总是拿到最新数据。
+    - **幂等**：`POST /api/v1/comic-projects`、`POST /api/v1/generation-intents`、`POST /api/v1/tasks`
+      若调用方未带 `Idempotency-Key`，BFF 会自动生成（`bff_<32hex>`）后转发；重放时上游返回
+      `200` 而不是 `201`。
+    - **请求体上限**（BFF 读取限制，超出即 `INVALID_BODY`）：comic-projects / tasks / generate
+      `2MiB + 4096`；rule-templates `2MiB`；catalog / workspace 凭据 / workspace 渠道
+      `256KiB + 4096`；generation-intents `512KiB + 4096`；渠道探测 `/probe` 请求体 `16KiB`。
+    - **超时**：BFF 请求上下文 300s（`withTimeout`），内部 HTTP client 300s，
+      单个上游服务另有自己的超时（workspace 5s、asset 60s）。
+    - **字段不确定处**：凡是仅由 TS 类型声明的深层结构（`Record<string, unknown>` 等），
+      使用宽松 schema（`type: object` + `additionalProperties: true`）并在 description 注明
+      「字段以服务端为准，契约待补」。**不编造字段。**
+
+    # 已知不一致（待确认，见 openapi/README.md）
+
+    - `GET /api/v1/generation-intents` 会被 BFF 前缀处理器接受，但 production 没有集合 GET 路由，
+      实际返回 `405`（见该 path 的 description）。
+    - 异步生成返回的 `poll_url` 目前是上游内部路径 `/internal/v1/tasks/{id}`，**未**被 BFF 重写为
+      `/api/v1/tasks/{id}`；浏览器直接轮询该值会打到非 BFF 路径。
+servers:
+  - url: /
+    description: |
+      前端同源相对路径。开发期由 Vite dev server 代理 `/api` → `http://127.0.0.1:8080`
+      （`BFF_PROXY_TARGET` 可覆盖，见 `apps/web/vite.config.ts`）；正式部署由网关/Nginx 同源转发。
+      本地直接联调 BFF 也可用 `http://127.0.0.1:8080`（`BFF_LISTEN_ADDR` 默认 `0.0.0.0:8080`）。
+security: []
+tags:
+  - name: 运维
+    description: BFF 自身的存活/就绪探针，不属于 /api/v1 前端契约。
+  - name: 漫剧项目
+    description: 项目 CRUD。转发到 production `/internal/v1/comic-projects*`。
+  - name: 剧集
+    description: 剧集 CRUD。转发到 production `/internal/v1/comic-projects/{projectID}/episodes*`。
+  - name: 单集资产
+    description: 单集描述性资产（角色/道具/场景的 prompt 与版本历史）。转发到 production `.../assets*`。
+  - name: 项目角色库
+    description: 项目级角色库（全剧通用角色设定与标准立绘）。转发到 production `.../characters*`。
+  - name: 生成意图
+    description: 生成意图（提交后由 outbox/worker 派发）。转发到 production `/internal/v1/generation-intents*`。
+  - name: 资产上传
+    description: 二进制资产上传会话。转发到 asset `/internal/v1/assets*`。
+  - name: 任务
+    description: Job 查询与控制。转发到 execution `/internal/v1/tasks*`。
+  - name: 模型网关
+    description: 统一模型网关同步/异步生成。BFF 转发到 execution `/v1/generate`（注意不是 /internal/v1）。
+  - name: 审计日志
+    description: 网关审计日志查询。转发到 execution `/internal/v1/audit/logs`。
+  - name: 渠道探测
+    description: 渠道连通性探测，**由 BFF 在边缘自己实现**（编排 production 目录 + workspace 凭据 + 真实 HTTP 请求），不转发。
+  - name: 模型目录
+    description: 平台共享模型目录（渠道/模型/协议模板）CRUD。转发到 production `/internal/v1/catalog*`。
+  - name: 规则模板
+    description: 拆分/提示词规则模板 CRUD。转发到 production `/internal/v1/rule-templates*`。
+  - name: 工作区凭据
+    description: 租户渠道凭据（只写不读 key）。转发到 workspace `/internal/v1/workspaces/{workspace_id}/credentials*`。
+  - name: 工作区渠道
+    description: 租户自有渠道（非平台目录）。转发到 workspace `/internal/v1/workspaces/{workspace_id}/channels*`。
+
+paths:
+  /live:
+    get:
+      operationId: getLive
+      tags: [运维]
+      summary: 存活探针
+      description: 直接返回 `204 No Content`，不访问任何依赖。
+      security: []
+      responses:
+        '204':
+          description: 进程存活
+  /ready:
+    get:
+      operationId: getReady
+      tags: [运维]
+      summary: 就绪探针
+      description: |
+        依次对 workspace、production、asset、execution 的 `/ready` 发起带内部令牌的探测。
+        任一失败返回 `503`，且响应体是 `text/plain` 错误描述（**不是** JSON `Error`）。
+      security: []
+      responses:
+        '204':
+          description: 四个领域服务均就绪
+        '503':
+          description: 至少一个领域服务不可用（响应体为 text/plain，如 `workspace unavailable`）
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/comic-projects:
+    get:
+      operationId: listComicProjects
+      tags: [漫剧项目]
+      summary: 列出当前工作区的漫剧项目
+      description: BFF 以固定开发身份调用 production `GET /internal/v1/comic-projects`。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects'}
+      responses:
+        '200':
+          description: 项目列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProjectList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createComicProject
+      tags: [漫剧项目]
+      summary: 创建漫剧项目
+      description: |
+        转发到 production `POST /internal/v1/comic-projects`。BFF 对 POST 自动补
+        `Idempotency-Key`（若调用方未提供）。上游幂等重放时返回 `200`，新建返回 `201`
+        （`Location` 头被 BFF 透传）。请求体为 `title/style_id/style_version/aspect_ratio/
+        default_text_model/default_image_model/default_video_model/source_text`（缺任一必填项
+        上游返回 `422 INVALID_PROJECT`）。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/comic-projects'}
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateProjectRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '200':
+          description: 幂等重放，返回既有项目
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      operationId: getComicProject
+      tags: [漫剧项目]
+      summary: 获取项目详情
+      description: 详情响应包含 `source_text`（列表不返回）。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{id}'}
+      responses:
+        '200':
+          description: 项目详情
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    patch:
+      operationId: updateComicProject
+      tags: [漫剧项目]
+      summary: 局部更新项目
+      description: |
+        前端发送 `Partial<CreateProjectRequest>`。BFF 对 PATCH 强制 `Content-Type: application/json`
+        后转发；上游校验失败返回 `422 INVALID_INPUT`。
+      x-upstream: {service: production, method: PATCH, path: '/internal/v1/comic-projects/{id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProjectPatch'}
+      responses:
+        '200':
+          description: 更新后的项目
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteComicProject
+      tags: [漫剧项目]
+      summary: 删除项目
+      description: 成功返回 `204`（无响应体）。上游对 id 前缀/长度有校验，不匹配即 `404`。
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/comic-projects/{id}'}
+      responses:
+        '204':
+          description: 已删除
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}/episodes:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      operationId: listEpisodes
+      tags: [剧集]
+      summary: 列出项目下的剧集
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{projectID}/episodes'}
+      responses:
+        '200':
+          description: 剧集列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EpisodeList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createEpisode
+      tags: [剧集]
+      summary: 新建剧集
+      x-upstream: {service: production, method: POST, path: '/internal/v1/comic-projects/{projectID}/episodes'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateEpisodeRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Episode'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}/episodes/{episodeId}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/EpisodeId'
+    get:
+      operationId: getEpisode
+      tags: [剧集]
+      summary: 获取剧集详情
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}'}
+      responses:
+        '200':
+          description: 剧集详情
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Episode'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    patch:
+      operationId: updateEpisode
+      tags: [剧集]
+      summary: 局部更新剧集
+      description: 前端发送 `Partial<ServerEpisode>`；字段集合很大（stage/directing/executable_units 等），以服务端为准。
+      x-upstream: {service: production, method: PATCH, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/EpisodePatch'}
+      responses:
+        '200':
+          description: 更新后的剧集
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Episode'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteEpisode
+      tags: [剧集]
+      summary: 删除剧集
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}'}
+      responses:
+        '204':
+          description: 已删除
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}/episodes/{episodeId}/assets:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/EpisodeId'
+    get:
+      operationId: listEpisodeAssets
+      tags: [单集资产]
+      summary: 列出单集资产
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}/assets'}
+      responses:
+        '200':
+          description: 单集资产列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EpisodeAssetList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createEpisodeAsset
+      tags: [单集资产]
+      summary: 新建单集资产
+      x-upstream: {service: production, method: POST, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}/assets'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateEpisodeAssetRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EpisodeAsset'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}/episodes/{episodeId}/assets/{assetId}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/EpisodeId'
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      operationId: getEpisodeAsset
+      tags: [单集资产]
+      summary: 获取单集资产详情
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}/assets/{assetID}'}
+      responses:
+        '200':
+          description: 单集资产详情
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EpisodeAsset'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    patch:
+      operationId: updateEpisodeAsset
+      tags: [单集资产]
+      summary: 局部更新单集资产
+      description: 前端发送 `Partial<ServerEpisodeAsset>`（含 `versions` / `episode_variant` / 变体立绘字段）。
+      x-upstream: {service: production, method: PATCH, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}/assets/{assetID}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/EpisodeAssetPatch'}
+      responses:
+        '200':
+          description: 更新后的单集资产
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EpisodeAsset'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteEpisodeAsset
+      tags: [单集资产]
+      summary: 删除单集资产
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/comic-projects/{projectID}/episodes/{episodeID}/assets/{assetID}'}
+      responses:
+        '204':
+          description: 已删除
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}/characters:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      operationId: listProjectCharacters
+      tags: [项目角色库]
+      summary: 列出项目级角色
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{projectID}/characters'}
+      responses:
+        '200':
+          description: 角色列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProjectCharacterList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createProjectCharacter
+      tags: [项目角色库]
+      summary: 新建项目级角色
+      x-upstream: {service: production, method: POST, path: '/internal/v1/comic-projects/{projectID}/characters'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateProjectCharacterRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProjectCharacter'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/comic-projects/{projectId}/characters/{characterId}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+      - $ref: '#/components/parameters/CharacterId'
+    get:
+      operationId: getProjectCharacter
+      tags: [项目角色库]
+      summary: 获取项目级角色详情
+      x-upstream: {service: production, method: GET, path: '/internal/v1/comic-projects/{projectID}/characters/{characterID}'}
+      responses:
+        '200':
+          description: 角色详情
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProjectCharacter'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    patch:
+      operationId: updateProjectCharacter
+      tags: [项目角色库]
+      summary: 局部更新项目级角色
+      description: 前端发送 `Partial<ServerProjectCharacter>`，含立绘相关字段（`image_url`/`image_status`/`image_job_id` 等）。
+      x-upstream: {service: production, method: PATCH, path: '/internal/v1/comic-projects/{projectID}/characters/{characterID}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProjectCharacterPatch'}
+      responses:
+        '200':
+          description: 更新后的角色
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProjectCharacter'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteProjectCharacter
+      tags: [项目角色库]
+      summary: 删除项目级角色
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/comic-projects/{projectID}/characters/{characterID}'}
+      responses:
+        '204':
+          description: 已删除
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/generation-intents:
+    post:
+      operationId: createGenerationIntent
+      tags: [生成意图]
+      summary: 创建生成意图
+      description: |
+        转发到 production `POST /internal/v1/generation-intents`（请求路径 1:1 映射）。
+        服务端校验：`project_id`、`kind`、`label`、对象型 `payload` 必填，否则
+        `422 INVALID_INTENT`；`project_id` 不存在返回 `404 PROJECT_NOT_FOUND`。
+        重放（同 `Idempotency-Key`）返回 `200`，新建返回 `201`。
+
+        **注意**：BFF 的前缀处理器同时接受 `GET /api/v1/generation-intents`（集合），但 production
+        只有 `GET /internal/v1/generation-intents/{id}`，因此集合 GET 实际得到上游 `405`，
+        客户端不应调用（见 openapi/README.md「待确认清单」）。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/generation-intents'}
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateGenerationIntentRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GenerationIntent'}
+        '200':
+          description: 幂等重放，返回既有意图
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GenerationIntent'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/generation-intents/{intentId}:
+    parameters:
+      - $ref: '#/components/parameters/IntentId'
+    get:
+      operationId: getGenerationIntent
+      tags: [生成意图]
+      summary: 查询生成意图
+      description: |
+        BFF 暴露但**当前前端 client.ts 未使用**。转发到 production
+        `GET /internal/v1/generation-intents/{id}`；不存在返回 `404 NOT_FOUND`。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/generation-intents/{id}'}
+      responses:
+        '200':
+          description: 生成意图
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GenerationIntent'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/assets:
+    get:
+      operationId: listAssets
+      tags: [资产上传]
+      summary: 列出资产
+      description: 可选 `project_id` 过滤，BFF 原样转发查询串。
+      x-upstream: {service: asset, method: GET, path: '/internal/v1/assets'}
+      parameters:
+        - name: project_id
+          in: query
+          required: false
+          schema: {type: string}
+          description: 按项目过滤；省略则返回工作区全部资产。
+      responses:
+        '200':
+          description: 资产列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssetList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/assets/uploads:
+    post:
+      operationId: createAssetUpload
+      tags: [资产上传]
+      summary: 创建上传会话
+      description: |
+        转发到 asset `POST /internal/v1/assets/uploads`，成功返回 `201` 与上传会话
+        （`{id, project_id, object_key, status, created_at}`）。BFF 的 assets 处理器只允许
+        GET/POST/PUT，其它方法返回 `405 METHOD_NOT_ALLOWED`。
+      x-upstream: {service: asset, method: POST, path: '/internal/v1/assets/uploads'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateAssetUploadRequest'}
+      responses:
+        '201':
+          description: 上传会话已创建
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssetUploadSession'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/assets/uploads/{uploadId}/content:
+    parameters:
+      - $ref: '#/components/parameters/UploadId'
+    put:
+      operationId: uploadAssetContent
+      tags: [资产上传]
+      summary: 上传资产二进制内容
+      description: |
+        请求体是原始二进制（前端按 `file.type` 设置 `Content-Type`，BFF 原样透传，
+        因此实际媒体类型可以是 `image/png`、`video/mp4` 等）。上游成功返回 `204`。
+        上游错误码：`404 NOT_FOUND`（会话不存在）、`409 CONFLICT`、
+        `413 PAYLOAD_TOO_LARGE`、`400 SIZE_MISMATCH`、`500 UPLOAD_FAILED`。
+      x-upstream: {service: asset, method: PUT, path: '/internal/v1/assets/uploads/{id}/content'}
+      requestBody:
+        required: true
+        description: 文件二进制内容。
+        content:
+          '*/*':
+            schema:
+              type: string
+              format: binary
+      responses:
+        '204':
+          description: 上传完成
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/assets/uploads/{uploadId}/commit:
+    parameters:
+      - $ref: '#/components/parameters/UploadId'
+    post:
+      operationId: commitAssetUpload
+      tags: [资产上传]
+      summary: 提交上传会话
+      description: |
+        转发到 asset `POST /internal/v1/assets/uploads/{id}/commit`，成功返回 `201` 与资产记录。
+        上游错误码：`404 NOT_FOUND`、`409 CONFLICT`、`422 HASH_MISMATCH`、`500 COMMIT_FAILED`。
+      x-upstream: {service: asset, method: POST, path: '/internal/v1/assets/uploads/{id}/commit'}
+      responses:
+        '201':
+          description: 资产已落库
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Asset'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/tasks:
+    get:
+      operationId: listTasks
+      tags: [任务]
+      summary: 列出任务
+      description: |
+        转发到 execution `GET /internal/v1/tasks`；上游固定上限 50 条（`Store.List(..., 50)`），
+        并接受 `status`、`kind` 过滤。BFF 对任务响应强制关闭缓存。
+      x-upstream: {service: execution, method: GET, path: '/internal/v1/tasks'}
+      parameters:
+        - $ref: '#/components/parameters/TaskStatusQuery'
+        - $ref: '#/components/parameters/TaskKindQuery'
+      responses:
+        '200':
+          description: 任务列表（最多 50 条）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TaskList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createTask
+      tags: [任务]
+      summary: 创建任务
+      description: |
+        转发到 execution `POST /internal/v1/tasks`。BFF 对 POST 自动补 `Idempotency-Key`；
+        上游新建返回 `201`，幂等重放返回 `200` 并带 `X-Idempotent-Replay: true`。
+        上游错误：`409 IDEMPOTENCY_CONFLICT`、`422 INVALID_TASK`。
+      x-upstream: {service: execution, method: POST, path: '/internal/v1/tasks'}
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateTaskRequest'}
+      responses:
+        '201':
+          description: 任务已创建
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Task'}
+        '200':
+          description: 幂等重放，返回既有任务
+          headers:
+            X-Idempotent-Replay:
+              schema: {type: string, enum: ['true']}
+              description: 上游标记的重放响应。
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Task'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/tasks/run:
+    post:
+      operationId: runModelTest
+      tags: [任务]
+      summary: 同步模型连通性测试
+      description: |
+        前端 `runModelTest(modelId, runtime)` 专用入口。路径字面量 `run` 优先于
+        `/api/v1/tasks/{taskId}`，会转发到 execution `POST /internal/v1/tasks/run`。
+        该接口是**同步**执行：真实调用渠道 HTTP，成功返回 `{ok: true, run}`，
+        业务/网络失败仍返回 `200` 但 `ok: false`（错误在 `run.error`）；
+        配置类失败才用 HTTP 错误码（`404 MODEL_NOT_FOUND`、`404 TEMPLATE_NOT_FOUND`、
+        `422 MODEL_NO_PROTOCOL`、`422 CREDENTIALS_MISSING`、`422 INVALID_RUN`、
+        `503 CATALOG_UNAVAILABLE` / `EXECUTION_UNAVAILABLE`）。
+      x-upstream: {service: execution, method: POST, path: '/internal/v1/tasks/run'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RunModelTestRequest'}
+      responses:
+        '200':
+          description: 测试已执行（结果在 run 中；ok=false 表示上游调用失败）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RunModelTestResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      operationId: getTask
+      tags: [任务]
+      summary: 查询任务详情
+      description: |
+        转发到 execution `GET /internal/v1/tasks/{id}`。前端会附加 `_t=<timestamp>` 作为
+        缓存破坏参数（BFF 原样转发，上游忽略）。响应强制 `Cache-Control: no-store`。
+      x-upstream: {service: execution, method: GET, path: '/internal/v1/tasks/{id}'}
+      parameters:
+        - name: _t
+          in: query
+          required: false
+          schema: {type: integer}
+          description: 前端轮询用的缓存破坏时间戳，服务端不参与语义。
+      responses:
+        '200':
+          description: 任务详情
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Task'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/tasks/{taskId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    post:
+      operationId: cancelTask
+      tags: [任务]
+      summary: 取消任务
+      description: |
+        转发到 execution `POST /internal/v1/tasks/{id}/cancel`。该路径只允许 POST，
+        其它方法由 BFF 返回 `405 METHOD_NOT_ALLOWED`。状态不允许时上游返回 `409 INVALID_STATE`。
+      x-upstream: {service: execution, method: POST, path: '/internal/v1/tasks/{id}/cancel'}
+      responses:
+        '200':
+          description: 取消后的任务
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Task'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/tasks/{taskId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    post:
+      operationId: retryTask
+      tags: [任务]
+      summary: 重试任务
+      description: |
+        转发到 execution `POST /internal/v1/tasks/{id}/retry`。该路径只允许 POST。
+        状态不允许时上游返回 `409 INVALID_STATE`。
+      x-upstream: {service: execution, method: POST, path: '/internal/v1/tasks/{id}/retry'}
+      responses:
+        '200':
+          description: 重试后的任务
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Task'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/generate:
+    post:
+      operationId: generate
+      tags: [模型网关]
+      summary: 统一模型网关生成
+      description: |
+        仅允许 POST。BFF 转发到 execution `POST /v1/generate`（**不带** `/internal` 前缀，
+        与 `docs/architecture/02-key-sequences.md` 的文字描述有出入，以代码为准）。
+        同步协议模板返回 `200 {ok, status, output, run}`；异步模板返回
+        `202 {task_id, status, poll_url}`。
+
+        **已知问题**：异步 `poll_url` 由上游组装为 `/internal/v1/tasks/{id}`，BFF 未重写，
+        浏览器应改用 `/api/v1/tasks/{task_id}` 轮询（见 openapi/README.md）。
+
+        上游错误码：`422 INVALID_GENERATE`（缺 modelId）、`404 MODEL_NOT_FOUND`、
+        `422 MODEL_NO_PROTOCOL`、`404 TEMPLATE_NOT_FOUND`、`422 MISSING_REFERENCE`、
+        `422 MISSING_PARAM`、`422 CREDENTIALS_MISSING`、`500 MAPPING_ENGINE_ERROR` /
+        `MAPPING_ERROR` / `JOB_CREATE_FAILED`、`503 CATALOG_UNAVAILABLE` /
+        `EXECUTION_UNAVAILABLE`。
+      x-upstream: {service: execution, method: POST, path: '/v1/generate'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/GenerateRequest'}
+      responses:
+        '200':
+          description: 同步执行完成（失败时 HTTP 仍为 200，`ok=false` 且带 `error`）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GenerateResponse'}
+        '202':
+          description: 异步任务已入队
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GenerateAsyncAccepted'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/audit/logs:
+    get:
+      operationId: listAuditLogs
+      tags: [审计日志]
+      summary: 查询网关审计日志
+      description: |
+        仅允许 GET。转发到 execution `GET /internal/v1/audit/logs`，查询串原样透传。
+        上游 `limit` 有效范围 1–200（其它值回退 50），`offset` >= 0（其它值回退 0）。
+        响应中的 `total` 是**当前页条数**（`len(logs)`），不是全量总数。
+        上游错误：`500 AUDIT_QUERY_FAILED`、`503 AUDIT_UNAVAILABLE`。
+      x-upstream: {service: execution, method: GET, path: '/internal/v1/audit/logs'}
+      parameters:
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/OffsetQuery'
+      responses:
+        '200':
+          description: 审计日志分页
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuditLogList'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/channels/{channelId}/probe:
+    parameters:
+      - $ref: '#/components/parameters/ChannelId'
+    post:
+      operationId: probeChannel
+      tags: [渠道探测]
+      summary: 探测渠道连通性与鉴权
+      description: |
+        **在 BFF 边缘实现，不转发**（`channelProbe`）：先取请求体里的 `baseUrl`（自定义渠道），
+        否则从 production `GET /internal/v1/catalog` 的渠道目录里按 id 取 baseUrl
+        （内置渠道防篡改）；再读 workspace 凭据状态得到 `authType` / `hasKey`（**不回传 key**），
+        最后 BFF 自己发起真实 `GET <baseUrl>/` 并如实上报状态。
+
+        仅允许 POST，且路径必须以 `/probe` 结尾，否则 `404`。请求体可省略或为空。
+        网络不可达时仍返回 `200`，`reachable=false`、`detail` 写明原因。
+        未配置凭据时 `authConfigured=false` 且不发送鉴权头。
+        渠道无 baseUrl 时返回 `400 INVALID_CHANNEL`（文案：「渠道未配置 Base URL…」）。
+      requestBody:
+        required: false
+        description: 自定义渠道的 baseUrl / authType；内置渠道可传空对象或省略。
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProbeRequest'}
+      responses:
+        '200':
+          description: 探测结果（网络层失败也是 200）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProbeResult'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog:
+    get:
+      operationId: getCatalog
+      tags: [模型目录]
+      summary: 获取平台模型目录
+      description: |
+        转发到 production `GET /internal/v1/catalog`，返回
+        `{channels, models, templates}` 三张表（平台共享默认目录）。
+        上游错误：`503 CATALOG_UNAVAILABLE`。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/catalog'}
+      responses:
+        '200':
+          description: 目录快照
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CatalogDirectory'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog/models:
+    post:
+      operationId: createCatalogModel
+      tags: [模型目录]
+      summary: 新建模型
+      description: |
+        转发到 production `POST /internal/v1/catalog/models`。上游用
+        `DisallowUnknownFields` 解码 `catalog.Model`，**多传字段会被拒绝**（`400 INVALID_BODY`），
+        因此请求体字段必须与 `CreateCatalogModelRequest` 完全一致。
+        已存在同 id 时返回 `200`（幂等，`Location` 透传）；新建返回 `201`。
+        上游错误：`409 DUPLICATE_MODEL`、`422 INVALID_CHANNEL`、`422 INVALID_MODEL`、
+        `503 CATALOG_UNAVAILABLE`。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/catalog/models'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateCatalogModelRequest'}
+      responses:
+        '201':
+          description: 模型已创建
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CatalogModel'}
+        '200':
+          description: 同 id 已存在，返回既有模型
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CatalogModel'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog/models/{modelId}:
+    parameters:
+      - $ref: '#/components/parameters/ModelId'
+    put:
+      operationId: updateCatalogModel
+      tags: [模型目录]
+      summary: 更新模型
+      description: |
+        转发到 production `PUT /internal/v1/catalog/models/{id}`。上游同样
+        `DisallowUnknownFields`，patch 字段必须全部出现在 `CatalogModelPatch` 中。
+        上游错误：`404 NOT_FOUND`、`422 INVALID_CHANNEL`、`422 INVALID_MODEL`、
+        `400 INVALID_BODY`、`503 CATALOG_UNAVAILABLE`。
+      x-upstream: {service: production, method: PUT, path: '/internal/v1/catalog/models/{id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CatalogModelPatch'}
+      responses:
+        '200':
+          description: 更新后的模型
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CatalogModel'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog/models/{modelId}/capabilities:
+    parameters:
+      - $ref: '#/components/parameters/ModelId'
+    get:
+      operationId: getCatalogModelCapabilities
+      tags: [模型目录]
+      summary: 获取模型能力声明
+      description: |
+        BFF 暴露但**当前前端 client.ts 未使用**。转发到 production
+        `GET /internal/v1/catalog/models/{id}/capabilities`，返回模型 `capability`
+        与所挂协议模板的 `capabilities`、由此推导的 `supported_modes`。
+        上游错误：`404 MODEL_NOT_FOUND`、`503 CATALOG_UNAVAILABLE`。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/catalog/models/{id}/capabilities'}
+      responses:
+        '200':
+          description: 能力声明
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelCapabilities'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog/channels/{channelId}:
+    parameters:
+      - $ref: '#/components/parameters/ChannelId'
+    put:
+      operationId: updateCatalogChannel
+      tags: [模型目录]
+      summary: 更新平台渠道
+      description: |
+        转发到 production `PUT /internal/v1/catalog/channels/{id}`（`DisallowUnknownFields`）。
+        上游对 id 有白名单式前缀校验（`chan_` 或内置 `jimeng`/`minimax`/`grsai`/`google`/
+        `openai`/`comfy`），不匹配直接 `404 NOT_FOUND`。
+        上游错误：`422 INVALID_CHANNEL`、`400 INVALID_BODY`、`503 CATALOG_UNAVAILABLE`。
+      x-upstream: {service: production, method: PUT, path: '/internal/v1/catalog/channels/{id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CatalogChannelPatch'}
+      responses:
+        '200':
+          description: 更新后的渠道
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CatalogChannel'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog/protocol-templates:
+    post:
+      operationId: createProtocolTemplate
+      tags: [模型目录]
+      summary: 新建协议模板
+      description: |
+        转发到 production `POST /internal/v1/catalog/protocol-templates`，成功返回 `201`。
+        上游错误：`409 DUPLICATE`、`400 BAD_REQUEST`（类型/能力声明非法）、`500 INTERNAL`。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/catalog/protocol-templates'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateProtocolTemplateRequest'}
+      responses:
+        '201':
+          description: 模板已创建
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProtocolTemplate'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/catalog/protocol-templates/{templateId}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    put:
+      operationId: updateProtocolTemplate
+      tags: [模型目录]
+      summary: 更新协议模板
+      description: |
+        转发到 production `PUT /internal/v1/catalog/protocol-templates/{id}`。
+        上游错误：`404 NOT_FOUND`、`400 BUILTIN_PROTECTED`（内置模板受保护）、`400 BAD_REQUEST`。
+      x-upstream: {service: production, method: PUT, path: '/internal/v1/catalog/protocol-templates/{id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProtocolTemplatePatch'}
+      responses:
+        '200':
+          description: 更新后的模板
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProtocolTemplate'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteProtocolTemplate
+      tags: [模型目录]
+      summary: 删除协议模板
+      description: |
+        转发到 production `DELETE /internal/v1/catalog/protocol-templates/{id}`，成功 `204`。
+        上游错误：`404 NOT_FOUND`、`400 BUILTIN_PROTECTED`、`409 TEMPLATE_IN_USE`（被模型引用）。
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/catalog/protocol-templates/{id}'}
+      responses:
+        '204':
+          description: 已删除
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/rule-templates:
+    get:
+      operationId: listRuleTemplates
+      tags: [规则模板]
+      summary: 列出规则模板
+      description: 可选 `kind` 过滤（`split` | `prompt`），查询串原样转发。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/rule-templates'}
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema: {type: string, enum: [split, prompt]}
+          description: 按模板类型过滤；省略返回全部。
+      responses:
+        '200':
+          description: 规则模板列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RuleTemplateList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createRuleTemplate
+      tags: [规则模板]
+      summary: 新建规则模板
+      description: 转发到 production `POST /internal/v1/rule-templates`，成功返回 `201`。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/rule-templates'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateRuleTemplateRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RuleTemplate'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/rule-templates/{templateId}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    get:
+      operationId: getRuleTemplate
+      tags: [规则模板]
+      summary: 获取规则模板详情
+      x-upstream: {service: production, method: GET, path: '/internal/v1/rule-templates/{templateID}'}
+      responses:
+        '200':
+          description: 规则模板
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RuleTemplate'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    patch:
+      operationId: updateRuleTemplate
+      tags: [规则模板]
+      summary: 局部更新规则模板
+      description: 前端发送 `Partial<ServerRuleTemplate>`；BFF 的 rule-templates 处理器允许 PATCH。
+      x-upstream: {service: production, method: PATCH, path: '/internal/v1/rule-templates/{templateID}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RuleTemplatePatch'}
+      responses:
+        '200':
+          description: 更新后的模板
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RuleTemplate'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteRuleTemplate
+      tags: [规则模板]
+      summary: 删除规则模板
+      description: 成功返回 `204`。上游错误：`404 NOT_FOUND`、`500 INTERNAL`。
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/rule-templates/{templateID}'}
+      responses:
+        '204':
+          description: 已删除
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/workspace/credentials:
+    get:
+      operationId: listChannelCredentials
+      tags: [工作区凭据]
+      summary: 列出渠道凭据状态
+      description: |
+        转发到 workspace `GET /internal/v1/workspaces/{workspace_id}/credentials`，
+        返回 `{items: CredentialStatus[]}`。**只返回状态，永不返回明文 key**（`hasKey` 布尔）。
+      x-upstream: {service: workspace, method: GET, path: '/internal/v1/workspaces/{workspace_id}/credentials'}
+      responses:
+        '200':
+          description: 凭据状态列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CredentialStatusList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/workspace/credentials/{channelId}:
+    parameters:
+      - $ref: '#/components/parameters/ChannelId'
+    put:
+      operationId: putChannelCredential
+      tags: [工作区凭据]
+      summary: 写入/更新渠道凭据
+      description: |
+        转发到 workspace `PUT /internal/v1/workspaces/{workspace_id}/credentials/{channel_id}`。
+        请求体 `{channelId, baseUrl, authType, apiKey?}`；上游使用 `DisallowUnknownFields`，
+        且要求 **body 里的 `channelId` 与 URL 路径一致**（否则 `400 INVALID_BODY`）。
+        `apiKey` 只写不读：不落日志、不回显、不返回。
+        上游错误：`400 INVALID_BODY`、`503 CREDENTIAL_UNAVAILABLE`（如 `WORKSPACE_CRED_KEY` 未配置）。
+      x-upstream: {service: workspace, method: PUT, path: '/internal/v1/workspaces/{workspace_id}/credentials/{channel_id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CredentialUpsertRequest'}
+      responses:
+        '200':
+          description: 已写入
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CredentialStored'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteChannelCredential
+      tags: [工作区凭据]
+      summary: 删除渠道凭据
+      description: 转发到 workspace `DELETE .../credentials/{channel_id}`，成功返回 `204`。
+      x-upstream: {service: workspace, method: DELETE, path: '/internal/v1/workspaces/{workspace_id}/credentials/{channel_id}'}
+      responses:
+        '204':
+          description: 已删除
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/workspace/credentials/{channelId}/reveal:
+    parameters:
+      - $ref: '#/components/parameters/ChannelId'
+    get:
+      operationId: revealChannelCredential
+      tags: [工作区凭据]
+      summary: 读取渠道凭据明文
+      description: |
+        转发到 workspace `GET .../credentials/{channel_id}/reveal`，返回
+        `{channelId, baseUrl, authType, apiKey}` —— 这是**唯一**返回明文 key 的接口，
+        供显式的「显示密钥」动作使用；不要缓存、不要写日志。
+        上游错误：`404 NOT_FOUND`（未配置）、`503 CREDENTIAL_UNAVAILABLE`（解密失败，如
+        `WORKSPACE_CRED_KEY` 不匹配）。
+      x-upstream: {service: workspace, method: GET, path: '/internal/v1/workspaces/{workspace_id}/credentials/{channel_id}/reveal'}
+      responses:
+        '200':
+          description: 凭据明文
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CredentialReveal'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/workspace/channels:
+    get:
+      operationId: listUserChannels
+      tags: [工作区渠道]
+      summary: 列出工作区自有渠道
+      description: |
+        转发到 workspace `GET /internal/v1/workspaces/{workspace_id}/channels`，
+        返回 `{items: UserChannel[]}`。这是租户自有渠道，**不是**平台目录（`/api/v1/catalog`）。
+      x-upstream: {service: workspace, method: GET, path: '/internal/v1/workspaces/{workspace_id}/channels'}
+      responses:
+        '200':
+          description: 渠道列表
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserChannelList'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/workspace/channels/{channelId}:
+    parameters:
+      - $ref: '#/components/parameters/ChannelId'
+    put:
+      operationId: putUserChannel
+      tags: [工作区渠道]
+      summary: 新建/更新工作区渠道
+      description: |
+        转发到 workspace `PUT .../channels/{channel_id}`（`DisallowUnknownFields`）。
+        `channelId` 只来自 URL 路径（body 里没有 id 字段）。
+        上游字段约束：`name` 必填；`kind` ∈ `official|aggregator|local`；
+        `authType` ∈ `bearer|none`；`protocol` ∈ `api|local`（缺省 `api`）；
+        `enabled` 缺省 `true`；`sort` 缺省 `0`。
+        上游错误：`400 INVALID_CHANNEL` / `INVALID_KIND` / `INVALID_AUTH` / `INVALID_PROTOCOL` /
+        `INVALID_BODY`、`503 CHANNEL_UNAVAILABLE`。
+      x-upstream: {service: workspace, method: PUT, path: '/internal/v1/workspaces/{workspace_id}/channels/{channel_id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UserChannelUpsertRequest'}
+      responses:
+        '200':
+          description: 已保存（返回保存后的渠道）
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserChannelSaved'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    delete:
+      operationId: deleteUserChannel
+      tags: [工作区渠道]
+      summary: 删除工作区渠道
+      description: |
+        转发到 workspace `DELETE .../channels/{channel_id}`。服务端会**级联清理**该渠道的加密凭据，
+        成功返回 `204`。上游错误：`503 CHANNEL_UNAVAILABLE`。
+      x-upstream: {service: workspace, method: DELETE, path: '/internal/v1/workspaces/{workspace_id}/channels/{channel_id}'}
+      responses:
+        '204':
+          description: 已删除（含级联清除凭据）
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+components:
+  securitySchemes:
+    internalServiceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: static-internal-token
+      description: |
+        **服务间令牌，不是浏览器凭据。** BFF 在每个转发请求上设置
+        `Authorization: Bearer <SERVICE>_INTERNAL_TOKEN`，变量名见 `.env.example`：
+        `WORKSPACE_INTERNAL_TOKEN` / `PRODUCTION_INTERNAL_TOKEN` /
+        `EXECUTION_INTERNAL_TOKEN` / `ASSET_INTERNAL_TOKEN`（启动时四个都必须非空，
+        否则 BFF 直接 `log.Fatal`）。领域服务用常量时间比较校验，未通过返回
+        `401 UNAUTHENTICATED`。
+        把它写进本规范只为如实说明内部跳的鉴权方式；**浏览器不应实现它**。
+    workspaceTrustedContext:
+      type: apiKey
+      in: header
+      name: X-Workspace-Id
+      description: |
+        **BFF 注入的信任上下文，不是浏览器凭据。** BFF 把
+        `X-Workspace-Id: $BFF_DEV_WORKSPACE_ID`（默认 `ws_dev`）与
+        `X-Actor-Id: $BFF_DEV_ACTOR_ID`（默认 `user_dev`，`.env.example` 示例值为
+        `actor_local`）注入到所有领域服务请求；领域服务要求两者非空，否则
+        `400 INVALID_CONTEXT`。workspace 的路径参数 `{workspace_id}` 也直接使用该固定值。
+        当前浏览器侧**不发送任何身份头**：根级 `security: []` 即表示 `/api/v1/*`
+        不要求调用方凭据（详见 info.description「鉴权现状」）。
+    futureOidc:
+      type: openIdConnect
+      openIdConnectUrl: https://example.invalid/.well-known/openid-configuration
+      description: |
+        **占位：尚未接入。** `docker-compose` 提供了 Keycloak 容器，但代码中没有任何
+        JWT/OIDC 校验（见 `docs/architecture/01-c4-context-container.md`「信任模型」与
+        「能力矩阵」）。生产化目标态是浏览器携带 OIDC 会话、BFF 校验后换取真实身份；
+        在此之前**不要**把它当作可用鉴权方式。URL 为无效占位符，刻意不指向任何真实服务。
+
+  parameters:
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+      description: |
+        幂等键（ASCII，≤128 字符）。可选：BFF 在 POST comic-projects /
+        generation-intents / tasks 时若缺失会自动生成 `bff_<32hex>` 再转发；
+        携带同一键重放会得到上游的既有资源（HTTP `200` 而非 `201`）。
+        上游对格式非法返回 `400 INVALID_IDEMPOTENCY_KEY`。
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 项目 id（production 删除接口校验形如 `proj_` + 32 位十六进制，共 37 字符）。
+    EpisodeId:
+      name: episodeId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 剧集 id（由前端 `createEpisode` 指定）。
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 单集资产 id。
+    CharacterId:
+      name: characterId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 项目级角色 id。
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 模板 id（协议模板或规则模板）。
+    ChannelId:
+      name: channelId
+      in: path
+      required: true
+      schema: {type: string}
+      description: |
+        渠道 id。在 `/api/v1/workspace/channels/{channelId}` 中同时是路径与主体 id；
+        在 `/api/v1/channels/{channelId}/probe` 中用于查目录/凭据。
+    ModelId:
+      name: modelId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 目录模型 id（存量内置模型可能不是 `mod_` 前缀）。
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 任务（Job）id。
+    IntentId:
+      name: intentId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 生成意图 id。
+    UploadId:
+      name: uploadId
+      in: path
+      required: true
+      schema: {type: string}
+      description: 上传会话 id（来自 `POST /api/v1/assets/uploads` 的 `id`）。
+    TaskStatusQuery:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [queued, running, succeeded, failed, cancelled]
+      description: 按任务状态过滤。
+    TaskKindQuery:
+      name: kind
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [split, interpret, image, video, audio, canvas_export]
+      description: 按任务类型过滤。
+    LimitQuery:
+      name: limit
+      in: query
+      required: false
+      schema: {type: integer, minimum: 1, maximum: 200, default: 50}
+      description: 每页条数（上游仅接受 1–200，其它值静默回退 50）。
+    OffsetQuery:
+      name: offset
+      in: query
+      required: false
+      schema: {type: integer, minimum: 0, default: 0}
+      description: 偏移量（上游仅接受 >=0，其它值静默回退 0）。
+
+  responses:
+    BadRequest:
+      description: 请求不合法（JSON 解析失败、body 过大、必填缺失、Idempotency-Key 非法等）。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthenticated:
+      description: |
+        上游内部鉴权失败。正常情况下不应被浏览器看到（令牌由 BFF 注入）；
+        出现说明 BFF 的 `*_INTERNAL_TOKEN` 配置有误。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: |
+        workspace 授权失败：BFF 以固定身份调用 workspace
+        `/internal/v1/workspaces/{id}/authorize?actor_id=...` 得到 `403`，
+        随即以 `403 FORBIDDEN` 返回（不访问领域服务）。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: 资源不存在，或路径形状不被上游识别。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    MethodNotAllowed:
+      description: 方法不被允许（BFF 或上游返回 `405`）。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: 冲突（幂等键冲突、资源已存在、状态不允许操作等）。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    PayloadTooLarge:
+      description: 上传内容超过 `ASSET_MAX_BYTES`。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    UnprocessableEntity:
+      description: 语义校验失败（字段缺失、枚举非法、凭据缺失、映射参数缺失等）。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    UpstreamUnavailable:
+      description: |
+        领域服务不可达或未就绪（Docker/K8s 场景多为连接失败）。BFF 的
+        `UPSTREAM_UNAVAILABLE` 与上游的 `*_UNAVAILABLE` / `NOT_READY` 都归入此类。
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+
+  schemas:
+    Error:
+      type: object
+      description: |
+        统一错误体（**无全局 envelope**）：所有错误响应都是
+        `{"code": "...", "message": "..."}`，由 BFF 的 `writeError` 与各领域服务的同名函数产生。
+        唯一例外：`GET /ready` 失败返回 `text/plain`。
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: |
+            机器可读错误码。下面是**当前代码中实际出现过的值全集**（按来源分组）：
+
+            - BFF 自身：`METHOD_NOT_ALLOWED`、`FORBIDDEN`、`UPSTREAM_UNAVAILABLE`、
+              `INVALID_BODY`、`REQUEST_FAILED`、`INVALID_PATH`、`INVALID_CHANNEL`。
+            - production：`NOT_READY`、`INTENT_UNAVAILABLE`、`INVALID_IDEMPOTENCY_KEY`、
+              `INVALID_BODY`、`INVALID_INTENT`、`IDEMPOTENCY_CONFLICT`、`PROJECT_NOT_FOUND`、
+              `NOT_FOUND`、`PROJECT_UNAVAILABLE`、`UNAUTHENTICATED`、`INVALID_CONTEXT`、
+              `INVALID_PROJECT`、`INVALID_INPUT`、`CATALOG_UNAVAILABLE`、`MODEL_NOT_FOUND`、
+              `DUPLICATE_MODEL`、`INVALID_CHANNEL`、`INVALID_MODEL`、`PROBE_UNAVAILABLE`、
+              `BAD_REQUEST`、`DUPLICATE`、`INTERNAL`、`BUILTIN_PROTECTED`、`TEMPLATE_IN_USE`。
+            - execution：`NOT_READY`、`INVALID_CONTEXT`、`INVALID_BODY`、`INVALID_INTENT`、
+              `INTENT_CONFLICT`、`EXECUTION_UNAVAILABLE`、`UNAUTHENTICATED`、`INVALID_JSON`、
+              `IDEMPOTENCY_CONFLICT`、`INVALID_TASK`、`TASK_UNAVAILABLE`、`NOT_FOUND`、
+              `INVALID_STATE`、`INVALID_RUN`、`CATALOG_UNAVAILABLE`、`MODEL_NOT_FOUND`、
+              `MODEL_NO_PROTOCOL`、`TEMPLATE_NOT_FOUND`、`CREDENTIALS_MISSING`、
+              `INVALID_GENERATE`、`MISSING_REFERENCE`、`MAPPING_ENGINE_ERROR`、`MISSING_PARAM`、
+              `MAPPING_ERROR`、`JOB_CREATE_FAILED`、`AUDIT_UNAVAILABLE`、`AUDIT_QUERY_FAILED`。
+            - asset：`NOT_READY`、`UNAUTHENTICATED`、`INVALID_CONTEXT`、`INVALID_JSON`、
+              `INVALID_UPLOAD`、`UPLOAD_FAILED`、`NOT_FOUND`、`CONFLICT`、`PAYLOAD_TOO_LARGE`、
+              `SIZE_MISMATCH`、`COMMIT_FAILED`、`HASH_MISMATCH`、`ASSET_UNAVAILABLE`。
+            - workspace：`NOT_READY`、`UNAUTHENTICATED`、`INVALID_CONTEXT`、`FORBIDDEN`、
+              `WORKSPACE_UNAVAILABLE`、`INVALID_BODY`、`CREDENTIAL_UNAVAILABLE`、`NOT_FOUND`、
+              `CHANNEL_UNAVAILABLE`、`INVALID_CHANNEL`、`INVALID_KIND`、`INVALID_AUTH`、
+              `INVALID_PROTOCOL`。
+            - 前端本地兜底：`UNKNOWN_ERROR`（响应体无法解析为 `{code}` 时由
+              `ApiError` 使用，不由服务端返回）。
+
+            **前向兼容要求**：客户端必须容忍未知 code（按「未知错误」展示 `message`），
+            不要把 `code` 当作闭集 switch。新增 code 不算破坏性变更；**删除或改名算**。
+          enum:
+            - METHOD_NOT_ALLOWED
+            - FORBIDDEN
+            - UPSTREAM_UNAVAILABLE
+            - INVALID_BODY
+            - REQUEST_FAILED
+            - INVALID_PATH
+            - INVALID_CHANNEL
+            - NOT_READY
+            - INTENT_UNAVAILABLE
+            - INVALID_IDEMPOTENCY_KEY
+            - INVALID_INTENT
+            - IDEMPOTENCY_CONFLICT
+            - PROJECT_NOT_FOUND
+            - NOT_FOUND
+            - PROJECT_UNAVAILABLE
+            - UNAUTHENTICATED
+            - INVALID_CONTEXT
+            - INVALID_PROJECT
+            - INVALID_INPUT
+            - CATALOG_UNAVAILABLE
+            - MODEL_NOT_FOUND
+            - DUPLICATE_MODEL
+            - INVALID_MODEL
+            - PROBE_UNAVAILABLE
+            - BAD_REQUEST
+            - DUPLICATE
+            - INTERNAL
+            - BUILTIN_PROTECTED
+            - TEMPLATE_IN_USE
+            - INTENT_CONFLICT
+            - EXECUTION_UNAVAILABLE
+            - INVALID_JSON
+            - INVALID_TASK
+            - TASK_UNAVAILABLE
+            - INVALID_STATE
+            - INVALID_RUN
+            - MODEL_NO_PROTOCOL
+            - TEMPLATE_NOT_FOUND
+            - CREDENTIALS_MISSING
+            - INVALID_GENERATE
+            - MISSING_REFERENCE
+            - MAPPING_ENGINE_ERROR
+            - MISSING_PARAM
+            - MAPPING_ERROR
+            - JOB_CREATE_FAILED
+            - AUDIT_UNAVAILABLE
+            - AUDIT_QUERY_FAILED
+            - INVALID_UPLOAD
+            - UPLOAD_FAILED
+            - CONFLICT
+            - PAYLOAD_TOO_LARGE
+            - SIZE_MISMATCH
+            - COMMIT_FAILED
+            - HASH_MISMATCH
+            - ASSET_UNAVAILABLE
+            - WORKSPACE_UNAVAILABLE
+            - CREDENTIAL_UNAVAILABLE
+            - CHANNEL_UNAVAILABLE
+            - INVALID_KIND
+            - INVALID_AUTH
+            - INVALID_PROTOCOL
+        message:
+          type: string
+          description: 人类可读说明（中文或英文，直接来自服务端）。
+      additionalProperties: true
+
+    ProjectList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Project'}
+      additionalProperties: false
+
+    Project:
+      type: object
+      description: 漫剧项目；`required` 依据前端 `ServerProject` 的非可选字段。
+      required:
+        - id
+        - title
+        - style_id
+        - style_version
+        - aspect_ratio
+        - default_image_model
+        - default_video_model
+        - status
+        - current_source_version
+        - source_version
+        - created_at
+        - updated_at
+      properties:
+        id: {type: string, description: 形如 `proj_` + 32 位十六进制。}
+        title: {type: string}
+        style_id: {type: string}
+        style_version: {type: string}
+        aspect_ratio:
+          type: string
+          enum: ['16:9', '9:16', '1:1']
+        default_text_model:
+          type: string
+          description: 前端声明为可选（`?`）；服务端字段以服务端为准，契约待补。
+        default_image_model: {type: string}
+        default_video_model: {type: string}
+        status:
+          type: string
+          description: 状态取值以服务端为准，契约待补（前端按不透明字符串处理）。
+        current_source_version: {type: integer}
+        source_version:
+          type: object
+          description: 当前源文本版本快照。
+          required: [version, sha256, created_at]
+          properties:
+            version: {type: integer}
+            sha256: {type: string}
+            created_at: {type: string, format: date-time}
+          additionalProperties: true
+        source_text:
+          type: string
+          description: 仅详情接口（`GET /api/v1/comic-projects/{projectId}`）返回；列表不返回。
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateProjectRequest:
+      type: object
+      description: 创建项目的完整请求体（上游缺任一必填项即 `422 INVALID_PROJECT`）。
+      required:
+        - title
+        - style_id
+        - style_version
+        - aspect_ratio
+        - default_text_model
+        - default_image_model
+        - default_video_model
+        - source_text
+      properties:
+        title: {type: string}
+        style_id: {type: string}
+        style_version: {type: string}
+        aspect_ratio:
+          type: string
+          enum: ['16:9', '9:16', '1:1']
+        default_text_model: {type: string}
+        default_image_model: {type: string}
+        default_video_model: {type: string}
+        source_text: {type: string}
+      additionalProperties: true
+
+    ProjectPatch:
+      type: object
+      description: 前端发送 `Partial<CreateProjectRequest>`；字段可任意子集。
+      properties:
+        title: {type: string}
+        style_id: {type: string}
+        style_version: {type: string}
+        aspect_ratio:
+          type: string
+          enum: ['16:9', '9:16', '1:1']
+        default_text_model: {type: string}
+        default_image_model: {type: string}
+        default_video_model: {type: string}
+        source_text: {type: string}
+      additionalProperties: true
+
+    EpisodeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Episode'}
+      additionalProperties: false
+
+    Episode:
+      type: object
+      description: |
+        剧集。其中 `counts`、`interpretation`、`execution_target`、`stage_models`、
+        `performance`、`scene_variants`、`directing`、`executable_units`、`production`
+        在前端为 `Record<string, unknown>`：**内部字段以服务端为准，契约待补**。
+      required:
+        - workspace_id
+        - project_id
+        - id
+        - index
+        - title
+        - summary
+        - source_span_start
+        - source_span_end
+        - stage
+        - status
+        - counts
+        - script_checked
+        - interpretation_confirmed
+        - created_at
+        - updated_at
+      properties:
+        workspace_id: {type: string}
+        project_id: {type: string}
+        id: {type: string}
+        index: {type: integer}
+        title: {type: string}
+        summary: {type: string}
+        source_span_start: {type: integer}
+        source_span_end: {type: integer}
+        stage:
+          type: string
+          description: 状态机阶段名，取值以服务端为准（见 `docs/architecture/04-state-machines.md`）。
+        status: {type: string, description: 取值以服务端为准，契约待补。}
+        counts:
+          type: object
+          additionalProperties: true
+          description: 计数桶；字段以服务端为准，契约待补。
+        blocked_by: {type: string}
+        script_checked: {type: boolean}
+        script_draft: {type: string}
+        interpretation:
+          type: object
+          additionalProperties: true
+          description: 字段以服务端为准，契约待补。
+        interpretation_confirmed: {type: boolean}
+        execution_target: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        stage_models: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        performance: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        scene_variants: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        directing: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        directing_step: {type: integer}
+        executable_units: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        production: {type: object, additionalProperties: true, description: 字段以服务端为准，契约待补。}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateEpisodeRequest:
+      type: object
+      required: [id, index, title]
+      properties:
+        id: {type: string, description: 由前端指定剧集 id。}
+        index: {type: integer}
+        title: {type: string}
+        summary: {type: string}
+        source_span_start: {type: integer}
+        source_span_end: {type: integer}
+      additionalProperties: true
+
+    EpisodePatch:
+      type: object
+      description: 前端发送 `Partial<ServerEpisode>`，即 Episode 的全部字段均可选。
+      additionalProperties: true
+
+    EpisodeAssetList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/EpisodeAsset'}
+      additionalProperties: false
+
+    EpisodeAsset:
+      type: object
+      description: |
+        单集描述性资产。项目级引用（`project_character_id` 等）与单集变体字段
+        （`episode_variant` / `variant_image_*`）的深层结构以服务端为准，契约待补。
+      required:
+        - workspace_id
+        - project_id
+        - episode_id
+        - id
+        - kind
+        - name
+        - description
+        - scope
+        - current_version
+        - versions
+        - prompt
+        - negative_prompt
+        - status
+        - model
+        - stale
+        - created_at
+        - updated_at
+      properties:
+        workspace_id: {type: string}
+        project_id: {type: string}
+        episode_id: {type: string}
+        id: {type: string}
+        kind:
+          type: string
+          enum: [character, prop, scene, other]
+        name: {type: string}
+        description: {type: string}
+        scope:
+          type: string
+          enum: [episode, global]
+        source_scene: {type: string}
+        holder: {type: string}
+        current_version: {type: integer}
+        versions:
+          type: array
+          description: 版本历史。
+          items:
+            type: object
+            required: [version, prompt, negative_prompt, status, created_at]
+            properties:
+              version: {type: integer}
+              prompt: {type: string}
+              negative_prompt: {type: string}
+              image_url: {type: string}
+              sha256: {type: string}
+              status: {type: string, description: 取值以服务端为准，契约待补。}
+              created_at: {type: integer, description: 前端声明为 number（疑似时间戳），以服务端为准。}
+            additionalProperties: true
+        prompt: {type: string}
+        negative_prompt: {type: string}
+        image_url: {type: string}
+        status: {type: string, description: 取值以服务端为准，契约待补。}
+        model: {type: string}
+        stale: {type: boolean}
+        project_character_id: {type: string}
+        project_prop_id: {type: string}
+        project_scene_id: {type: string}
+        episode_variant:
+          type: object
+          additionalProperties: {type: string}
+          description: 单集状态变体；键集合以服务端为准，契约待补。
+        variant_image_url: {type: string}
+        variant_image_status: {type: string}
+        variant_image_model: {type: string}
+        variant_image_generated_at: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateEpisodeAssetRequest:
+      type: object
+      required: [id, kind, name]
+      properties:
+        id: {type: string, description: 由前端指定资产 id。}
+        kind:
+          type: string
+          enum: [character, prop, scene, other]
+        name: {type: string}
+        description: {type: string}
+        scope:
+          type: string
+          enum: [episode, global]
+        source_scene: {type: string}
+        holder: {type: string}
+        current_version: {type: integer}
+        versions:
+          type: array
+          items: {$ref: '#/components/schemas/EpisodeAsset/properties/versions/items'}
+        prompt: {type: string}
+        negative_prompt: {type: string}
+        image_url: {type: string}
+        status: {type: string}
+        model: {type: string}
+        stale: {type: boolean}
+      additionalProperties: true
+
+    EpisodeAssetPatch:
+      type: object
+      description: 前端发送 `Partial<ServerEpisodeAsset>`，即 EpisodeAsset 的全部字段均可选。
+      additionalProperties: true
+
+    ProjectCharacterList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/ProjectCharacter'}
+      additionalProperties: false
+
+    ProjectCharacter:
+      type: object
+      description: 项目级角色库条目（角色身份的唯一事实源）。
+      required:
+        - id
+        - workspace_id
+        - project_id
+        - name
+        - gender
+        - age
+        - identity
+        - hairstyle
+        - eye_color
+        - facial_features
+        - special_marks
+        - body_type
+        - skin_texture
+        - top
+        - bottom
+        - shoes
+        - clothing_style
+        - performance
+        - image_status
+        - image_generated_at
+        - image_aspect_ratio
+        - created_at
+        - updated_at
+      properties:
+        id: {type: string}
+        workspace_id: {type: string}
+        project_id: {type: string}
+        name: {type: string}
+        gender: {type: string}
+        age: {type: string}
+        identity: {type: string}
+        hairstyle: {type: string}
+        eye_color: {type: string}
+        facial_features: {type: string}
+        special_marks: {type: string}
+        body_type: {type: string}
+        skin_texture: {type: string}
+        top: {type: string}
+        bottom: {type: string}
+        shoes: {type: string}
+        clothing_style: {type: string}
+        performance: {type: string}
+        image_url: {type: string}
+        image_status: {type: string, description: 取值以服务端为准，契约待补。}
+        image_model: {type: string}
+        image_prompt: {type: string}
+        image_negative_prompt: {type: string}
+        image_generated_at:
+          type: integer
+          description: 前端声明为 number（疑似时间戳），以服务端为准。
+        image_job_id: {type: string}
+        image_error: {type: string}
+        image_aspect_ratio: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateProjectCharacterRequest:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, description: 由前端指定角色 id。}
+        name: {type: string}
+        gender: {type: string}
+        age: {type: string}
+        identity: {type: string}
+        hairstyle: {type: string}
+        eye_color: {type: string}
+        facial_features: {type: string}
+        special_marks: {type: string}
+        body_type: {type: string}
+        skin_texture: {type: string}
+        top: {type: string}
+        bottom: {type: string}
+        shoes: {type: string}
+        clothing_style: {type: string}
+        performance: {type: string}
+        image_url: {type: string}
+        image_status: {type: string}
+        image_model: {type: string}
+        image_prompt: {type: string}
+        image_negative_prompt: {type: string}
+        image_aspect_ratio: {type: string}
+      additionalProperties: true
+
+    ProjectCharacterPatch:
+      type: object
+      description: 前端发送 `Partial<ServerProjectCharacter>`，即 ProjectCharacter 的全部字段均可选。
+      additionalProperties: true
+
+    GenerationIntent:
+      type: object
+      required:
+        - id
+        - project_id
+        - kind
+        - label
+        - payload
+        - scope_epoch
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id: {type: string}
+        project_id: {type: string}
+        episode_id: {type: string}
+        asset_id: {type: string}
+        kind:
+          type: string
+          enum: [split, interpret, image, video, audio, canvas_export]
+        label: {type: string}
+        payload:
+          type: object
+          additionalProperties: true
+          description: 意图载荷，结构由业务定义；字段以服务端为准，契约待补。
+        scope_epoch: {type: integer, description: 作用域纪元，用于失效旧意图。}
+        status:
+          type: string
+          enum: [pending, dispatched, failed]
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateGenerationIntentRequest:
+      type: object
+      description: |
+        `required` 取服务端实际强校验的字段（production `createIntent`：project_id、kind、
+        label 与对象型 payload）。`scope_epoch` 在前端类型中必填，但服务端是否强校验以代码为准，
+        故此处列为可选。
+      required: [project_id, kind, label, payload]
+      properties:
+        project_id: {type: string}
+        episode_id: {type: string}
+        asset_id: {type: string}
+        kind:
+          type: string
+          enum: [split, interpret, image, video, audio, canvas_export]
+        label: {type: string}
+        payload:
+          type: object
+          additionalProperties: true
+          description: 必须为 JSON 对象，否则 `422 INVALID_INTENT`。
+        scope_epoch:
+          type: integer
+          description: 前端必填；服务端校验情况以代码为准。
+      additionalProperties: true
+
+    AssetList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Asset'}
+      additionalProperties: false
+
+    Asset:
+      type: object
+      description: 已落库的资产记录（asset 服务）。
+      required:
+        - id
+        - upload_id
+        - project_id
+        - kind
+        - scope
+        - name
+        - prompt
+        - object_key
+        - sha256
+        - byte_size
+        - content_type
+        - status
+        - created_at
+      properties:
+        id: {type: string}
+        upload_id: {type: string}
+        project_id: {type: string}
+        episode_id: {type: string}
+        kind:
+          type: string
+          enum: [character, prop, scene, other, script]
+        scope:
+          type: string
+          enum: [project, global, episode]
+        name: {type: string}
+        prompt: {type: string}
+        object_key: {type: string, description: 对象存储 key（S3 兼容）。}
+        sha256: {type: string}
+        byte_size: {type: integer}
+        content_type: {type: string}
+        status: {type: string, description: 取值以服务端为准，契约待补。}
+        created_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateAssetUploadRequest:
+      type: object
+      required: [project_id, kind, scope, name]
+      properties:
+        project_id: {type: string}
+        episode_id: {type: string}
+        kind:
+          type: string
+          enum: [character, prop, scene, other, script]
+        scope:
+          type: string
+          enum: [project, global, episode]
+        name: {type: string}
+        prompt: {type: string}
+        sha256:
+          type: string
+          description: 可选，提交时用于校验内容哈希（不匹配则 `422 HASH_MISMATCH`）。
+      additionalProperties: true
+
+    AssetUploadSession:
+      type: object
+      required: [id, project_id, object_key, status, created_at]
+      properties:
+        id: {type: string}
+        project_id: {type: string}
+        object_key: {type: string}
+        status: {type: string, description: 取值以服务端为准，契约待补。}
+        created_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    TaskList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: 上游固定返回最多 50 条。
+          items: {$ref: '#/components/schemas/Task'}
+      additionalProperties: false
+
+    Task:
+      type: object
+      description: 任务（Job）。
+      required:
+        - id
+        - kind
+        - label
+        - status
+        - progress
+        - attempt
+        - created_at
+        - updated_at
+      properties:
+        id: {type: string}
+        kind:
+          type: string
+          enum: [split, interpret, image, video, audio, canvas_export]
+        label: {type: string}
+        project_id: {type: string}
+        episode_id: {type: string}
+        asset_id: {type: string}
+        shot_id: {type: string}
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, cancelled]
+        progress:
+          type: number
+          description: 进度（0–1 或 0–100 由服务端定义，契约待补）。
+        attempt: {type: integer}
+        steps:
+          type: array
+          items:
+            type: object
+            required: [label, done]
+            properties:
+              label: {type: string}
+              done: {type: boolean}
+            additionalProperties: true
+        intent_payload:
+          description: 载荷，服务端可能返回对象、JSON 字符串或 null。
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: string
+            - type: 'null'
+        cost_estimate: {type: string, description: 成本估算（字符串，如货币金额）。}
+        error: {type: string}
+        context_path: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateTaskRequest:
+      type: object
+      required: [kind, label]
+      properties:
+        kind:
+          type: string
+          enum: [split, interpret, image, video, audio, canvas_export]
+        label: {type: string}
+        project_id: {type: string}
+        episode_id: {type: string}
+        asset_id: {type: string}
+        shot_id: {type: string}
+        steps:
+          type: array
+          items:
+            type: object
+            required: [label, done]
+            properties:
+              label: {type: string}
+              done: {type: boolean}
+            additionalProperties: true
+        cost_estimate: {type: string}
+        context_path: {type: string}
+        payload:
+          type: object
+          additionalProperties: true
+          description: 前端字段名；上游以 `intent_payload` 持久化（BFF 不重命名，直接透传）。字段以服务端为准。
+      additionalProperties: true
+
+    RunModelTestRequest:
+      type: object
+      required: [modelId]
+      properties:
+        modelId: {type: string, description: 目录模型 id；缺失返回 `422 INVALID_RUN`。}
+        runtime:
+          type: object
+          additionalProperties: true
+          description: |
+            role=runtime 协议参数的业务取值（如 prompt、尺寸等）。具体键由模型/协议模板定义，
+            字段以服务端为准，契约待补。
+      additionalProperties: false
+
+    RunModelTestResponse:
+      type: object
+      required: [ok, run]
+      properties:
+        ok: {type: boolean, description: 上游调用是否成功（失败时 HTTP 仍为 200）。}
+        run: {$ref: '#/components/schemas/GenerateRun'}
+      additionalProperties: false
+
+    GenerateRun:
+      type: object
+      description: 引擎执行轨迹（不回传任何凭据）。
+      required: [status, duration]
+      properties:
+        status:
+          type: integer
+          description: 上游渠道返回的 HTTP 状态码（不是 BFF 的响应码）。
+        extracted:
+          description: 按协议模板 responseParams 抽取的结果。
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        rawBody: {type: string, description: 上游原始响应体（可能被截断，以服务端为准）。}
+        duration: {type: string, description: Go duration 字符串，如 `1.234s`。}
+        error: {type: string}
+      additionalProperties: true
+
+    GenerateRequest:
+      type: object
+      required: [modelId]
+      properties:
+        modelId: {type: string, description: 目录模型 id；缺失返回 `422 INVALID_GENERATE`。}
+        modality:
+          type: string
+          enum: [text, image, video, audio]
+        mode:
+          type: string
+          description: |
+            业务模式名（如文生图/图生图等），取值必须命中协议模板 `capabilities` 声明的 mode；
+            具体取值以服务端为准，契约待补。
+        input:
+          type: object
+          additionalProperties: true
+          description: 业务输入（prompt、reference_images 等）；字段以服务端为准，契约待补。
+        parameters:
+          type: object
+          additionalProperties: true
+          description: 生成参数；字段以服务端为准，契约待补。
+        metadata:
+          type: object
+          additionalProperties: true
+          description: 透传元数据（写入审计日志 `metadata`）；字段以服务端为准。
+      additionalProperties: true
+
+    GenerateResponse:
+      type: object
+      description: |
+        同步生成结果。成功：`{ok: true, status: "succeeded", output, run}`；
+        失败：`{ok: false, status: "failed", error, run}`（HTTP 均为 200）。
+      properties:
+        ok: {type: boolean}
+        status: {type: string, enum: [succeeded, failed]}
+        output:
+          type: object
+          additionalProperties: true
+          description: 抽取后的生成结果；字段以服务端为准，契约待补。
+        poll_url:
+          type: string
+          description: 异步分支才有；见 path 描述中关于 `/internal/v1/...` 前缀的已知问题。
+        error: {type: string}
+        run: {$ref: '#/components/schemas/GenerateRun'}
+      additionalProperties: true
+
+    GenerateAsyncAccepted:
+      type: object
+      description: 异步模板返回（HTTP 202）。
+      required: [task_id, status, poll_url]
+      properties:
+        task_id: {type: string, description: '即任务 id，可用于 /api/v1/tasks/{taskId}。'}
+        status: {type: string, description: 新建任务的初始状态（服务端返回，通常为 `queued`）。}
+        poll_url:
+          type: string
+          description: |
+            上游组装的轮询地址。**已知问题**：当前为 `/internal/v1/tasks/{task_id}`，
+            并非浏览器可直接访问的 BFF 路径；请改用 `/api/v1/tasks/{task_id}`。
+      additionalProperties: false
+
+    AuditLogList:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/AuditLog'}
+        total:
+          type: integer
+          description: '当前页条数（上游 len(logs)），不是全量总数。'
+        limit: {type: integer}
+        offset: {type: integer}
+      additionalProperties: false
+
+    AuditLog:
+      type: object
+      description: 网关审计日志（所有 AI 调用必经此记录）。
+      required:
+        - id
+        - request_id
+        - workspace_id
+        - product
+        - model_id
+        - mode
+        - request_payload
+        - status
+        - latency_ms
+        - token_input
+        - token_output
+        - token_cached
+        - cost_amount
+        - cost_currency
+        - created_at
+      properties:
+        id: {type: integer}
+        request_id: {type: string}
+        workspace_id: {type: string}
+        project_id: {type: string}
+        episode_id: {type: string}
+        asset_id: {type: string}
+        user_id: {type: string}
+        product: {type: string, description: 产品线标识，取值以服务端为准。}
+        model_id: {type: string}
+        channel_id: {type: string}
+        provider_model: {type: string}
+        mode: {type: string}
+        request_payload: {type: object, additionalProperties: true}
+        response_payload: {type: object, additionalProperties: true}
+        error_message: {type: string}
+        status: {type: string, description: 取值以服务端为准（如 success/failed/queued），契约待补。}
+        latency_ms: {type: integer}
+        token_input: {type: integer}
+        token_output: {type: integer}
+        token_cached: {type: integer}
+        cost_amount: {type: number}
+        cost_currency: {type: string}
+        job_id: {type: string}
+        provider_task_id: {type: string}
+        created_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    ProbeRequest:
+      type: object
+      description: 自定义渠道需要提供 baseUrl；内置渠道可省略或传空对象。
+      properties:
+        baseUrl:
+          type: string
+          description: 自定义渠道的接口地址；为空时 BFF 从平台目录取（内置渠道防篡改）。
+        authType:
+          type: string
+          description: |
+            渠道鉴权方式，影响探测时发送的占位头：`bearer` → `Authorization: Bearer <REDACTED>`、
+            `apikey` → `X-API-Key: <REDACTED>`、`sign` → `Authorization: Sign <REDACTED>`；
+            其它值（含 `none`/空）不发送鉴权头。凭据状态里配置了 authType 时以凭据为准。
+      additionalProperties: false
+
+    ProbeResult:
+      type: object
+      description: |
+        BFF 边缘探测结果。网络不可达时仍是 `200`，`reachable=false` 且 `detail` 说明原因；
+        未配置凭据时 `authConfigured=false`，不发送鉴权头，`authOk` 不出现。
+      required: [channelId, reachable, authConfigured, detail, probedAt]
+      properties:
+        channelId: {type: string}
+        reachable: {type: boolean}
+        authConfigured: {type: boolean, description: 是否已配置该渠道凭据（`hasKey`）。}
+        authOk:
+          type: boolean
+          description: 仅在有凭据且探测完成时出现；2xx 视为通过。
+        statusCode:
+          type: integer
+          description: 仅 `reachable=true` 时出现，是被探测端返回的 HTTP 状态码。
+        detail: {type: string, description: 中文说明文案（如「网络不可达：...」）。}
+        probedAt: {type: string, format: date-time, description: UTC RFC3339。}
+      additionalProperties: false
+
+    CatalogDirectory:
+      type: object
+      description: 平台共享模型目录快照（channels / models / templates）。
+      required: [channels, models, templates]
+      properties:
+        channels:
+          type: array
+          items: {$ref: '#/components/schemas/CatalogChannel'}
+        models:
+          type: array
+          items: {$ref: '#/components/schemas/CatalogModel'}
+        templates:
+          type: array
+          items: {$ref: '#/components/schemas/ProtocolTemplate'}
+      additionalProperties: true
+
+    CatalogChannel:
+      type: object
+      required: [id, name, kind, baseUrl, authType, enabled, note, sort]
+      properties:
+        id: {type: string, description: 'chan_ 前缀，或内置 id（jimeng / minimax / grsai / google / openai / comfy）。'}
+        name: {type: string}
+        kind:
+          type: string
+          enum: [official, aggregator, local]
+        baseUrl: {type: string}
+        authType:
+          type: string
+          enum: [bearer, none]
+          description: 目录侧声明的鉴权类型；工作区凭据侧的 authType 还可能出现 `apikey`/`sign`，以服务端为准。
+        enabled: {type: boolean}
+        note: {type: string}
+        sort: {type: integer}
+      additionalProperties: true
+
+    CatalogChannelPatch:
+      type: object
+      description: 上游 `DisallowUnknownFields`，只能传以下字段。
+      properties:
+        name: {type: string}
+        baseUrl: {type: string}
+        authType:
+          type: string
+          enum: [bearer, none]
+        enabled: {type: boolean}
+        note: {type: string}
+        sort: {type: integer}
+      additionalProperties: false
+
+    CatalogModel:
+      type: object
+      required:
+        - id
+        - channelId
+        - family
+        - name
+        - type
+        - status
+        - sort
+        - note
+        - capability
+        - version
+      properties:
+        id: {type: string}
+        channelId: {type: string}
+        family: {type: string}
+        name: {type: string}
+        providerModel: {type: string}
+        type:
+          type: string
+          enum: [text, image, video]
+        status:
+          type: string
+          enum: [enabled, disabled]
+        sort: {type: integer}
+        note: {type: string}
+        protocolTemplateId: {type: string}
+        requestPath: {type: string, description: 覆盖协议模板的请求路径（可选）。}
+        method:
+          type: string
+          enum: [POST, GET]
+        params:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        responseParams:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        capability:
+          type: object
+          additionalProperties: true
+          description: 能力声明（JSONB）；键集合以服务端/协议模板为准，契约待补。
+        version: {type: integer}
+      additionalProperties: true
+
+    ModelParam:
+      type: object
+      description: 协议参数映射项（禁止在代码中硬编码映射，一律走此结构）。
+      required: [key, value]
+      properties:
+        key: {type: string}
+        value: {type: string}
+        type: {type: string, description: 可选类型标注，取值以服务端为准。}
+      additionalProperties: true
+
+    CreateCatalogModelRequest:
+      type: object
+      description: |
+        前端类型为 `Omit<ServerCatalogModel, 'id' | 'version'>`；上游 `DisallowUnknownFields`
+        解码 `catalog.Model`，字段名必须严格匹配，多传/少传必填都会被拒。
+      required:
+        - channelId
+        - family
+        - name
+        - type
+        - status
+        - sort
+        - note
+        - capability
+      properties:
+        channelId: {type: string}
+        family: {type: string}
+        name: {type: string}
+        providerModel: {type: string}
+        type:
+          type: string
+          enum: [text, image, video]
+        status:
+          type: string
+          enum: [enabled, disabled]
+        sort: {type: integer}
+        note: {type: string}
+        protocolTemplateId: {type: string}
+        requestPath: {type: string}
+        method:
+          type: string
+          enum: [POST, GET]
+        params:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        responseParams:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        capability:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+
+    CatalogModelPatch:
+      type: object
+      description: 上游 `DisallowUnknownFields`，只能传以下字段；全部可选。
+      properties:
+        channelId: {type: string}
+        family: {type: string}
+        name: {type: string}
+        providerModel: {type: string}
+        type:
+          type: string
+          enum: [text, image, video]
+        status:
+          type: string
+          enum: [enabled, disabled]
+        sort: {type: integer}
+        note: {type: string}
+        protocolTemplateId: {type: string}
+        requestPath: {type: string}
+        method:
+          type: string
+          enum: [POST, GET]
+        params:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        responseParams:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        capability:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+
+    ProtocolTemplate:
+      type: object
+      description: 协议模板：声明 HTTP 方法/路径/参数映射与异步轮询规则。
+      required:
+        - id
+        - label
+        - desc
+        - method
+        - requestPath
+        - params
+        - responseParams
+        - builtin
+        - enabled
+        - refCount
+        - version
+      properties:
+        id: {type: string}
+        label: {type: string}
+        desc: {type: string}
+        method:
+          type: string
+          enum: [POST, GET]
+        requestPath: {type: string}
+        params:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        responseParams:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        async:
+          type: object
+          description: 异步任务轮询配置；省略表示同步模板。
+          required: [enabled, taskIdField, statusField, doneValue, failValue]
+          properties:
+            enabled: {type: boolean}
+            taskIdField: {type: string}
+            statusField: {type: string}
+            doneValue: {type: string}
+            failValue: {type: string}
+          additionalProperties: true
+        builtin: {type: boolean, description: 内置模板受保护，不可改/删（`400 BUILTIN_PROTECTED`）。}
+        enabled: {type: boolean}
+        refCount: {type: integer, description: 被模型引用次数；>0 时不可删（`409 TEMPLATE_IN_USE`）。}
+        version: {type: integer}
+        capabilities:
+          type: object
+          additionalProperties: true
+          description: 模板侧的能力声明（capability JSONB）。前端 TS 未声明该字段，但 production 会返回，以服务端为准。
+      additionalProperties: true
+
+    CreateProtocolTemplateRequest:
+      type: object
+      required: [label, desc, requestPath, method, params, responseParams]
+      properties:
+        label: {type: string}
+        desc: {type: string}
+        requestPath: {type: string}
+        method:
+          type: string
+          enum: [POST, GET]
+        params:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        responseParams:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        async:
+          type: object
+          required: [enabled, taskIdField, statusField, doneValue, failValue]
+          properties:
+            enabled: {type: boolean}
+            taskIdField: {type: string}
+            statusField: {type: string}
+            doneValue: {type: string}
+            failValue: {type: string}
+          additionalProperties: true
+      additionalProperties: true
+
+    ProtocolTemplatePatch:
+      type: object
+      description: 前端发送 `Partial<...>`，字段全部可选。
+      properties:
+        label: {type: string}
+        desc: {type: string}
+        requestPath: {type: string}
+        method:
+          type: string
+          enum: [POST, GET]
+        params:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        responseParams:
+          type: array
+          items: {$ref: '#/components/schemas/ModelParam'}
+        async:
+          type: object
+          properties:
+            enabled: {type: boolean}
+            taskIdField: {type: string}
+            statusField: {type: string}
+            doneValue: {type: string}
+            failValue: {type: string}
+          additionalProperties: true
+        enabled: {type: boolean}
+      additionalProperties: true
+
+    ModelCapabilities:
+      type: object
+      required: [model_id, model_name, model_type, capability]
+      properties:
+        model_id: {type: string}
+        model_name: {type: string}
+        model_type: {type: string, description: 取值以服务端为准（通常同 CatalogModel.type）。}
+        capability: {type: object, additionalProperties: true}
+        protocol_template_id: {type: string}
+        protocol_template_label: {type: string}
+        capabilities:
+          type: object
+          additionalProperties: true
+          description: 所挂协议模板的能力声明。
+        supported_modes:
+          type: array
+          items: {type: string}
+          description: 由模板 capabilities 的键推导出的 mode 列表。
+      additionalProperties: true
+
+    RuleTemplateList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/RuleTemplate'}
+      additionalProperties: false
+
+    RuleTemplate:
+      type: object
+      required:
+        - workspace_id
+        - id
+        - kind
+        - name
+        - description
+        - content
+        - config
+        - version
+        - version_history
+        - builtin
+        - enabled
+        - created_at
+        - updated_at
+      properties:
+        workspace_id: {type: string}
+        id: {type: string}
+        kind:
+          type: string
+          enum: [split, prompt]
+        name: {type: string}
+        description: {type: string}
+        stage: {type: string}
+        content: {type: string}
+        config:
+          type: object
+          additionalProperties: true
+          description: 规则配置；字段以服务端为准，契约待补。
+        version: {type: integer}
+        version_history:
+          type: array
+          items:
+            type: object
+            required: [version, savedAt, snapshot]
+            properties:
+              version: {type: integer}
+              savedAt: {type: integer}
+              note: {type: string}
+              snapshot: {type: object, additionalProperties: true}
+            additionalProperties: true
+        builtin: {type: boolean}
+        enabled: {type: boolean}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateRuleTemplateRequest:
+      type: object
+      required: [id, kind, name]
+      properties:
+        id: {type: string, description: 由前端指定模板 id。}
+        kind:
+          type: string
+          enum: [split, prompt]
+        name: {type: string}
+        description: {type: string}
+        stage: {type: string}
+        content: {type: string}
+        config:
+          type: object
+          additionalProperties: true
+        builtin: {type: boolean}
+        enabled: {type: boolean}
+      additionalProperties: true
+
+    RuleTemplatePatch:
+      type: object
+      description: 前端发送 `Partial<ServerRuleTemplate>`，即 RuleTemplate 的全部字段均可选。
+      additionalProperties: true
+
+    CredentialStatusList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/CredentialStatus'}
+      additionalProperties: false
+
+    CredentialStatus:
+      type: object
+      description: 渠道凭据状态（**永不包含明文 key**）。
+      required: [channelId, baseUrl, authType, hasKey, enabled, updatedAt]
+      properties:
+        channelId: {type: string}
+        baseUrl: {type: string}
+        authType: {type: string, description: 取值以服务端为准（见 `bearer`/`apikey`/`sign`/`none`）。}
+        hasKey: {type: boolean}
+        enabled: {type: boolean}
+        updatedAt: {type: string, description: 服务端以字符串返回（store 定义为 string），非 RFC3339 保证。}
+      additionalProperties: true
+
+    CredentialUpsertRequest:
+      type: object
+      description: |
+        上游 `DisallowUnknownFields`，且要求 `channelId` 与 URL 路径一致。
+        `apiKey` 只写不读。
+      required: [channelId, baseUrl, authType]
+      properties:
+        channelId: {type: string, description: '必须与路径中的 {channelId} 相同，否则 400 INVALID_BODY。'}
+        baseUrl: {type: string}
+        authType: {type: string, description: 取值以服务端为准（如 `bearer`/`apikey`/`sign`/`none`）。}
+        apiKey:
+          type: string
+          writeOnly: true
+          description: 明文密钥，只写不读：不落日志、不回显、列表接口不返回。省略表示仅更新 baseUrl/authType。
+      additionalProperties: false
+
+    CredentialStored:
+      type: object
+      required: [channelId, stored]
+      properties:
+        channelId: {type: string}
+        stored: {type: boolean}
+      additionalProperties: false
+
+    CredentialReveal:
+      type: object
+      description: |
+        唯一返回明文 key 的响应。仅用于显式的「显示密钥」动作；不要缓存、不要落日志。
+      required: [channelId, baseUrl, authType, apiKey]
+      properties:
+        channelId: {type: string}
+        baseUrl: {type: string}
+        authType: {type: string}
+        apiKey: {type: string, description: 解密后的明文密钥。}
+      additionalProperties: false
+
+    UserChannelList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/UserChannel'}
+      additionalProperties: false
+
+    UserChannel:
+      type: object
+      description: 租户自有渠道（非平台目录）。
+      required: [id, name, kind, baseUrl, authType, enabled, note]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        kind:
+          type: string
+          enum: [official, aggregator, local]
+        protocol:
+          type: string
+          description: 服务端缺省为 `api`；可能取 `api` | `local`。
+        baseUrl: {type: string}
+        authType: {type: string, description: 写入时服务端只接受 `bearer` | `none`。}
+        enabled: {type: boolean}
+        note: {type: string}
+        sort: {type: integer}
+        updatedAt: {type: string}
+      additionalProperties: true
+
+    UserChannelUpsertRequest:
+      type: object
+      description: |
+        上游 `DisallowUnknownFields`；`channelId` 只来自 URL 路径，body 中**没有** id 字段。
+        服务端约束：name 必填；kind ∈ official|aggregator|local；authType ∈ bearer|none；
+        protocol ∈ api|local（缺省 api）；enabled 缺省 true；sort 缺省 0。
+      required: [name, kind, baseUrl, authType, enabled, note]
+      properties:
+        name: {type: string}
+        kind:
+          type: string
+          enum: [official, aggregator, local]
+        protocol:
+          type: string
+          enum: [api, local]
+        baseUrl: {type: string}
+        authType:
+          type: string
+          enum: [bearer, none]
+        enabled: {type: boolean}
+        note: {type: string}
+        sort: {type: integer, description: 前端未发送；服务端支持。}
+      additionalProperties: false
+
+    UserChannelSaved:
+      type: object
+      required: [channel]
+      properties:
+        channel: {$ref: '#/components/schemas/UserChannel'}
+      additionalProperties: false
