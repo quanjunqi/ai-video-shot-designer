@@ -740,7 +740,9 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			// ④ §2.3「故障定位」要求的耗时百分位（此前只有平均值）
 			"p50LatencyMs": agg.P50LatencyMs,
 			"p95LatencyMs": agg.P95LatencyMs,
-			"aggregateOn":  "filtered_total",
+			// ④ §2.3「按错误文本聚类」：按"第一个冒号前的规范化前缀"分组
+			"topErrors":   agg.TopErrors,
+			"aggregateOn": "filtered_total",
 		},
 	})
 }

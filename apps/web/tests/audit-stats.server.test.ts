@@ -20,6 +20,7 @@ test('审计统计来自服务端 stats，而不是在前端对当前页做 filt
   // ④ §2.3 的耗时百分位同样是【服务端】算的：钉住它不得退化成前端统计
   assert.match(SRC, /stats\?\.p50LatencyMs/, '耗时 P50 必须来自服务端 stats');
   assert.match(SRC, /stats\?\.p95LatencyMs/, '耗时 P95 必须来自服务端 stats');
+  assert.match(SRC, /stats\?\.topErrors/, '错误分布必须来自服务端 stats（不得在前端对当前页聚类）');
   // 旧实现的两个特征写法必须消失
   assert.ok(
     !/logs\.filter\(\(l\) => l\.status === 'success'\)/.test(SRC),

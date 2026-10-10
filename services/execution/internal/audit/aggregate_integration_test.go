@@ -176,3 +176,95 @@ func TestIntegrationAggregateOnEmptySet(t *testing.T) {
 		t.Fatalf("空集的 byStatus 应为空，实际 %v", got.ByStatus)
 	}
 }
+
+// ④ §2.3「按错误文本聚类」：实测形状是"稳定前缀 + ':' + 变量尾部"，且大小写不一致。
+func TestIntegrationAggregateClustersErrorText(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	seedErr := func(msg string) {
+		if _, err := s.Pool.Exec(ctx, `
+			INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+				mode, status, error_message, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+			VALUES ($1,'ws_e','u','image','m','','text-chat','failed',$2,1,0,0,0,0,'CNY', now())`,
+			fmt.Sprintf("req_err_%d", seedSeq.Add(1)), msg); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 同一前缀、不同变量尾部 ⇒ 必须归为一簇
+	seedErr("required parameter missing: messages")
+	seedErr("required parameter missing: model")
+	// 大小写不同 ⇒ 也必须归为一簇
+	seedErr("Model Not Found In Directory")
+	seedErr("model not found in directory")
+	// 另一簇（只有一个）
+	seedErr("invalid generate request JSON")
+	// 另一租户：绝不能混进来
+	if _, err := s.Pool.Exec(ctx, `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+			mode, status, error_message, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ('req_err_other','ws_other','u','image','m','','text-chat','failed','required parameter missing: x',1,0,0,0,0,'CNY', now())`); err != nil {
+		t.Fatal(err)
+	}
+	// 无非空错误的行不得成为一簇
+	seedAudit(t, s, "ws_e", "success", 5)
+
+	got, err := s.Aggregate(ctx, "ws_e", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TopErrors) != 3 {
+		t.Fatalf("应有 3 簇，实际 %d：%+v", len(got.TopErrors), got.TopErrors)
+	}
+	// 按计数降序：required parameter missing(2) > model not found(2) > invalid...(1)
+	// 前两名计数相同 ⇒ 用 key 升序做确定性次序
+	if got.TopErrors[0].Key != "model not found in directory" || got.TopErrors[0].Count != 2 {
+		t.Errorf("第 1 簇应为 model not found in directory ×2，实际 %+v", got.TopErrors[0])
+	}
+	if got.TopErrors[1].Key != "required parameter missing" || got.TopErrors[1].Count != 2 {
+		t.Errorf("第 2 簇应为 required parameter missing ×2，实际 %+v", got.TopErrors[1])
+	}
+	if got.TopErrors[2].Key != "invalid generate request json" || got.TopErrors[2].Count != 1 {
+		t.Errorf("第 3 簇应为 invalid generate request json ×1，实际 %+v", got.TopErrors[2])
+	}
+	// Sample 保留原大小写（min() 取字典序最小者）⇒ "Model Not Found…" 大写在前
+	if got.TopErrors[0].Sample != "Model Not Found In Directory" {
+		t.Errorf("Sample 应保留原始大小写，实际 %q", got.TopErrors[0].Sample)
+	}
+	// 簇数不超过上限
+	if len(got.TopErrors) > 5 {
+		t.Errorf("簇数不应超过 5，实际 %d", len(got.TopErrors))
+	}
+}
+
+// Top-N 上限：多于 5 簇时只返回前 5（按计数降序）
+func TestIntegrationAggregateTopErrorsLimit(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	// 7 个不同前缀，计数递减：e0×7 … e6×1
+	for i := 0; i < 7; i++ {
+		for n := 0; n < 7-i; n++ {
+			if _, err := s.Pool.Exec(ctx, `
+				INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+					mode, status, error_message, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+				VALUES ($1,'ws_top','u','image','m','','text-chat','failed',$2,1,0,0,0,0,'CNY', now())`,
+				fmt.Sprintf("req_top_%d", seedSeq.Add(1)), fmt.Sprintf("e%d: detail", i)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	got, err := s.Aggregate(ctx, "ws_top", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TopErrors) != 5 {
+		t.Fatalf("应截断到 5 簇，实际 %d", len(got.TopErrors))
+	}
+	if got.TopErrors[0].Key != "e0" || got.TopErrors[0].Count != 7 {
+		t.Errorf("第 1 簇应为 e0×7，实际 %+v", got.TopErrors[0])
+	}
+	if got.TopErrors[4].Key != "e4" || got.TopErrors[4].Count != 3 {
+		t.Errorf("第 5 簇应为 e4×3，实际 %+v", got.TopErrors[4])
+	}
+}

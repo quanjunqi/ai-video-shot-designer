@@ -2698,7 +2698,7 @@ components:
           description: |
             在**筛选后全集**上的统计（D7a）。前端必须用它，不得在"当前页"上自行统计。
             聚合失败时 `byStatus` 为 null（`success`/`avgLatencyMs` 为 0）—— 契约如实反映这一点。
-          required: [byStatus, success, successRate, avgLatencyMs, p50LatencyMs, p95LatencyMs, aggregateOn]
+          required: [byStatus, success, successRate, avgLatencyMs, p50LatencyMs, p95LatencyMs, topErrors, aggregateOn]
           properties:
             byStatus:
               type: object
@@ -2716,6 +2716,22 @@ components:
             p95LatencyMs:
               type: integer
               description: 筛选后全集上的耗时 P95（同上，排除 0）。空集时为 0。
+            topErrors:
+              type: array
+              description: >-
+                ④ §2.3「按错误文本聚类」。库里没有错误码列，实测形状是「稳定前缀 + ':' + 变量尾部」，
+                且大小写不一致 ⇒ 取**第一个冒号之前**的部分、trim、转小写作为簇键（不引入相似度算法，
+                保证归类可解释）。key 为规范化簇键；sample 为同簇中字典序最小的原始前缀（保留原大小写）。
+                同一筛选口径与前 5 簇（按计数降序、同计数按 key 升序）。
+              items:
+                type: object
+                required: [key, sample, count]
+                additionalProperties: false
+                properties:
+                  key: {type: string, description: 规范化簇键（小写、无变量尾部）}
+                  sample: {type: string, description: 代表性原始前缀（保留原大小写）}
+                  count: {type: integer}
+
             aggregateOn: {type: string, description: '固定为 filtered_total'}
           additionalProperties: false
       additionalProperties: false
