@@ -35,7 +35,7 @@ export type EpisodeStatus =
   | 'blocked' // 被阻塞
   | 'done';
 
-export type AssetKind = 'character' | 'prop' | 'scene';
+export type AssetKind = 'character' | 'prop' | 'scene' | 'other';
 export type AssetScope = 'episode' | 'global';
 export type JobKind = 'split' | 'interpret' | 'image' | 'video' | 'audio' | 'canvas_export';
 
@@ -105,6 +105,8 @@ export interface RuleTemplate {
   /** 容量 · 最大单元秒数（缺省按模型映射） */
   maxUnitSeconds?: number;
   enabled: boolean;
+  /** 平台内置模板（只读，不可删除；用户模板为 false） */
+  builtin?: boolean;
   createdAt: number;
   updatedAt: number;
   /** 版本历史（每次保存追加一条快照；恢复历史版本 = 生成新版本写回） */
@@ -231,18 +233,26 @@ export interface ProjectCharacter {
   identity: string; // 身份/职业
   // 外貌特征（6）
   hairstyle: string; // 发型+发色（合并描述，如：黑色短发，微卷）
+  /** 发色（AI 提取细分字段，与 hairstyle 并存） */
+  hairColor?: string;
   eyeColor: string; // 瞳色（独立，非所有角色需要详细描述）
   facialFeatures: string; // 面部特征/妆造
   specialMarks: string; // 特殊标记（独立，非所有角色都有）
   bodyType: string; // 体型+身高（合并描述，如：身高180cm，肩宽腰窄）
+  /** 身高（AI 提取细分字段，与 bodyType 并存） */
+  height?: string;
   skinTexture: string; // 皮肤质感（如：小麦色粗糙有光泽）
   // 服装描述（4）
   top: string; // 上装
   bottom: string; // 下装
   shoes: string; // 鞋子
   clothingStyle: string; // 服装风格+配饰（合并描述）
+  /** 配饰（AI 提取细分字段，与 clothingStyle 并存） */
+  accessories?: string;
   // 表演设定（1）
   performance: string; // 性格+典型表情+行为习惯（合并描述）
+  /** 性格关键词（AI 提取细分字段，与 performance 并存） */
+  personality?: string;
   // 标准立绘（Canonical Reference）
   imageUrl?: string; // 标准立绘图片URL
   imageStatus?: 'not_generated' | 'generating' | 'loading' | 'generated' | 'failed'; // 生成状态：generating=生成中, loading=加载图片中, generated=已生成, failed=失败

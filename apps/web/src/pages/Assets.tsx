@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { api, ApiError } from '@/lib/api/client';
 import { toast } from 'sonner';
 
-const KIND_LABEL: Record<Asset['kind'], string> = { character: '角色', scene: '场景', prop: '道具' };
+const KIND_LABEL: Record<Asset['kind'], string> = { character: '角色', scene: '场景', prop: '道具', other: '其他' };
 
 const STATUS_META: Record<ArtifactStatus, { label: string; className: string }> = {
   DRAFT: { label: '草稿', className: 'bg-muted text-muted-foreground' },

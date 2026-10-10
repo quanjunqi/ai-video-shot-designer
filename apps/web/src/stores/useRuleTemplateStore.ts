@@ -16,6 +16,7 @@ const BUILTIN_TEMPLATES: RuleTemplate[] = [
     scenePattern: '^(?:场次|场景)[:：]?\\s*\\d+(?:-\\d+)?',
     maxScenesPerEpisode: 6,
     enabled: true,
+    builtin: true,
     createdAt: now - 2000,
     updatedAt: now - 2000,
   },
@@ -28,6 +29,7 @@ const BUILTIN_TEMPLATES: RuleTemplate[] = [
     scenePattern: '^#{1,3}\\s*(?:场次|场景)[:：]?\\s*\\d+(?:-\\d+)?',
     maxScenesPerEpisode: 4,
     enabled: true,
+    builtin: true,
     createdAt: now - 1000,
     updatedAt: now - 1000,
   },
@@ -46,11 +48,11 @@ interface RuleTemplateState {
 
 export const useRuleTemplateStore = create<RuleTemplateState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       templates: BUILTIN_TEMPLATES,
       upsertTemplate(input, opts) {
+        const exists = get().templates.some((t) => t.id === input.id);
         set((s) => {
-          const exists = s.templates.some((t) => t.id === input.id);
           if (exists) {
             return {
               templates: s.templates.map((t) => {

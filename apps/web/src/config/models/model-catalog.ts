@@ -82,7 +82,7 @@ export interface ProtocolAsync {
   statusField: string; // 轮询响应中状态字段（如 status）
   doneValue: string; // 完成判定值（如 SUCCESS / completed / succeeded）
   failValue: string; // 失败判定值（如 FAILED / failed / error）
-  pollPath: string; // 轮询路径模板，{task_id} 会被替换为实际任务 ID（如 /v1/images/tasks/{task_id}）
+  pollPath?: string; // 轮询路径模板，{task_id} 会被替换为实际任务 ID（如 /v1/images/tasks/{task_id}）；未声明时执行器按提交端点兜底轮询
 }
 
 /** 模型协议模板：平台预置的请求协议描述（端点/方法/请求参数/响应映射），

@@ -298,7 +298,7 @@ export interface ServerTask {
   progress: number;
   attempt: number;
   steps?: { label: string; done: boolean }[];
-  intent_payload?: Record<string, unknown> | null;
+  intent_payload?: Record<string, unknown> | string | null;
   cost_estimate?: string;
   error?: string;
   context_path?: string;

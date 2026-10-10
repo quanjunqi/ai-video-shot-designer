@@ -219,7 +219,7 @@ export const useProjectCharacterStore = create<State>()(
 
       addCharacter: async (projectId, form) => {
         const now = Date.now();
-        const id = form.id || generateId();
+        const id = generateId();
         const character: ProjectCharacter = {
           id,
           projectId,
@@ -290,29 +290,17 @@ export const useProjectCharacterStore = create<State>()(
 
       importCharacters: (projectId, characters) => {
         const now = Date.now();
-        const newCharacters: ProjectCharacter[] = characters.map((form) => ({
-          id: generateId(),
-          projectId,
-          ...form,
-          imageStatus: 'not_generated',
-          createdAt: now,
-          updatedAt: now,
-        }));
-        set((s) => ({ characters: [...s.characters, ...newCharacters] }));
-      },
-
-      importCharacters: (projectId, characters) => {
-        const now = Date.now();
         set((s) => {
           const existingNames = new Set(s.characters.filter((c) => c.projectId === projectId).map((c) => c.name));
           const newCharacters = characters
             .filter((c) => !existingNames.has(c.name))
-            .map((form) => ({
-              id: form.id || generateId(),
+            .map((form): ProjectCharacter => ({
+              id: generateId(),
               projectId,
               ...form,
-              createdAt: form.createdAt || now,
-              updatedAt: form.updatedAt || now,
+              imageStatus: 'not_generated',
+              createdAt: now,
+              updatedAt: now,
             }));
           return { characters: [...s.characters, ...newCharacters] };
         });

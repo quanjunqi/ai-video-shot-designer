@@ -396,21 +396,21 @@ function episodeFromServer(server: ServerEpisode): Episode {
     summary: server.summary ?? '',
     sourceSpan: { start: server.source_span_start ?? 0, end: server.source_span_end ?? 0 },
     stage: (server.stage as Episode['stage']) ?? 'analyze',
-    status: (server.status as Episode['status']) ?? 'draft',
+    status: (server.status as Episode['status']) ?? 'pending',
     counts: (server.counts as Episode['counts']) ?? { scenes: 0, characters: 0, pendingReview: 0 },
     blockedBy: server.blocked_by,
     scriptChecked: server.script_checked,
     scriptDraft: server.script_draft,
-    interpretation: server.interpretation as Episode['interpretation'],
+    interpretation: server.interpretation as unknown as Episode['interpretation'],
     interpretationConfirmed: server.interpretation_confirmed,
-    executionTarget: server.execution_target as Episode['executionTarget'],
-    stageModels: server.stage_models as Episode['stageModels'],
-    performance: server.performance as Episode['performance'],
-    sceneVariants: server.scene_variants as Episode['sceneVariants'],
-    directing: server.directing as Episode['directing'],
+    executionTarget: server.execution_target as unknown as Episode['executionTarget'],
+    stageModels: server.stage_models as unknown as Episode['stageModels'],
+    performance: server.performance as unknown as Episode['performance'],
+    sceneVariants: server.scene_variants as unknown as Episode['sceneVariants'],
+    directing: server.directing as unknown as Episode['directing'],
     directingStep: server.directing_step as Episode['directingStep'],
-    executableUnits: server.executable_units as Episode['executableUnits'],
-    production: server.production as Episode['production'],
+    executableUnits: server.executable_units as unknown as Episode['executableUnits'],
+    production: server.production as unknown as Episode['production'],
     createdAt: server.created_at ? new Date(server.created_at).getTime() : Date.now(),
   };
 }
@@ -432,13 +432,13 @@ function episodeToServerPatch(ep: Episode): Partial<ServerEpisode> {
     directing_step: ep.directingStep,
   };
   // 复杂 JSON 字段只在有值时发送
-  if (ep.interpretation) patch.interpretation = ep.interpretation as Record<string, unknown>;
-  if (ep.executionTarget) patch.execution_target = ep.executionTarget as Record<string, unknown>;
-  if (ep.stageModels) patch.stage_models = ep.stageModels as Record<string, unknown>;
-  if (ep.performance) patch.performance = ep.performance as Record<string, unknown>;
-  if (ep.sceneVariants) patch.scene_variants = ep.sceneVariants as Record<string, unknown>;
-  if (ep.directing) patch.directing = ep.directing as Record<string, unknown>;
-  if (ep.executableUnits) patch.executable_units = ep.executableUnits as Record<string, unknown>;
-  if (ep.production) patch.production = ep.production as Record<string, unknown>;
+  if (ep.interpretation) patch.interpretation = ep.interpretation as unknown as Record<string, unknown>;
+  if (ep.executionTarget) patch.execution_target = ep.executionTarget as unknown as Record<string, unknown>;
+  if (ep.stageModels) patch.stage_models = ep.stageModels as unknown as Record<string, unknown>;
+  if (ep.performance) patch.performance = ep.performance as unknown as Record<string, unknown>;
+  if (ep.sceneVariants) patch.scene_variants = ep.sceneVariants as unknown as Record<string, unknown>;
+  if (ep.directing) patch.directing = ep.directing as unknown as Record<string, unknown>;
+  if (ep.executableUnits) patch.executable_units = ep.executableUnits as unknown as Record<string, unknown>;
+  if (ep.production) patch.production = ep.production as unknown as Record<string, unknown>;
   return patch;
 }

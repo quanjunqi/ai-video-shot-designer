@@ -349,7 +349,7 @@ function CharacterGridCard({
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground truncate">{char.name}</h3>
           {char.scope === 'global' && (
-            <Globe className="h-3.5 w-3.5 shrink-0 text-primary" title="全局资产" />
+            <Globe className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="全局资产" />
           )}
         </div>
         <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -412,20 +412,18 @@ function CharacterDetailDrawer({
     temporaryOutfit: '',
     specialProp: '',
   });
-  const variantInitialized = useRef(false);
+  const [variantInitialized, setVariantInitialized] = useState(false);
   const [imageTab, setImageTab] = useState<'standard' | 'variant'>('standard');
   const meta = STATUS_META[char.status];
 
-  // 从角色描述解析初始档案
-  useEffect(() => {
+  // 当角色切换时，在渲染期间重新解析档案与状态变体（React 19：避免在 effect 内同步 setState）
+  const [syncedCharId, setSyncedCharId] = useState<string | null>(null);
+  if (syncedCharId !== char.id) {
+    setSyncedCharId(char.id);
     const parsed = parseProfileFromDescription(char.description || '');
     parsed.name = char.name;
     setProfile(parsed);
-  }, [char.id, char.description, char.name]);
-
-  // 从后端加载状态变体
-  useEffect(() => {
-    variantInitialized.current = false;
+    setVariantInitialized(false);
     if (char.episodeVariant) {
       setEpisodeVariant({
         emotionState: char.episodeVariant.emotionState || '',
@@ -436,13 +434,17 @@ function CharacterDetailDrawer({
     } else {
       setEpisodeVariant({ emotionState: '', appearanceChange: '', temporaryOutfit: '', specialProp: '' });
     }
-    const t = setTimeout(() => { variantInitialized.current = true; }, 100);
+  }
+
+  // 初始化宽限期：100ms 内不把「角色切换触发的状态变体重置」误判为用户编辑并保存
+  useEffect(() => {
+    const t = setTimeout(() => setVariantInitialized(true), 100);
     return () => clearTimeout(t);
-  }, [char.id, char.episodeVariant]);
+  }, [char.id]);
 
   // 状态变体变化时保存到后端
   useEffect(() => {
-    if (!variantInitialized.current) return;
+    if (!variantInitialized) return;
     const { updateAsset } = useAssetStore.getState();
     updateAsset(char.id, { episodeVariant: { ...episodeVariant } });
   }, [episodeVariant, char.id]);
@@ -596,6 +598,12 @@ function CharacterDetailDrawer({
           strength: 0.6,
           aspect_ratio: aspectRatio,
           n: 1,
+        },
+        metadata: {
+          product: 'comic',
+          project_id: char.projectId,
+          episode_id: char.episodeId,
+          asset_id: char.id,
         },
       });
 
@@ -1353,7 +1361,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
 
       // 如果角色库有匹配，基于角色库设定生成 description 和 prompt
       let description = existing?.description || '';
-      let promptParts = [
+      const promptParts = [
         `${s.name}，角色立绘设定图`,
         '四视图身份资产：正面全身、90度侧面全身、背面全身、正面胸部以上脸部特写',
         '完整服装造型，细节清晰',
@@ -2419,11 +2427,15 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                                       version: 1,
                                       prompt,
                                       negativePrompt: generateNegativePrompt(),
+                                      sha256: '',
                                       status: 'DRAFT' as const,
                                       createdAt: Date.now(),
                                     }],
+                                    prompt,
+                                    negativePrompt: generateNegativePrompt(),
+                                    model: '',
+                                    stale: false,
                                     createdAt: Date.now(),
-                                    updatedAt: Date.now(),
                                   }]);
                                   toast.success(`已引用角色「${pc.name}」到本集`);
                                 }}

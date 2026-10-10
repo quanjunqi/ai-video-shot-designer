@@ -310,7 +310,7 @@ function promptTemplateFromServer(server: import('@/lib/api/client').ServerRuleT
   return {
     id: server.id,
     version: server.version,
-    stage: server.stage || '',
+    stage: (server.stage as PromptRuleTemplate['stage']) || 'interpretation',
     name: server.name,
     desc: server.description,
     content: server.content,

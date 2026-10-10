@@ -252,7 +252,7 @@ export function buildInterpretation(
     facts: hasIR && ir ? ir.evs.slice(0, 3) : pick(context.facts, 3),
     constraints: hasIR && ir ? ir.locks.map((l) => l.text) : pick(context.constraints, 3),
     suggestions: pick(context.suggestions, 2),
-    openItems: hasIR && ir && ir.unparsed.length ? [...pick(context.openItems, 1), `规则层未能解析 ${ir.unparsed.length} 行（已如实标注，解读层补充语义）`] : pick(context.openItems, 2),
+    openItems: hasIR && ir && ir.unparsed.length ? [...pick(context.openItems, 1).map((q) => ({ question: q, confirmed: false })), { question: `规则层未能解析 ${ir.unparsed.length} 行（已如实标注，解读层补充语义）`, confirmed: false }] : pick(context.openItems, 2).map((q) => ({ question: q, confirmed: false })),
     decisions: [],
     rawFacts: hasIR && ir
       ? [

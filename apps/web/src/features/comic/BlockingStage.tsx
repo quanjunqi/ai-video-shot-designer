@@ -203,7 +203,7 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
           <SectionHead icon={Mic} title="表演与对白" hint="情绪/台词" />
           <div className="grid grid-cols-2 gap-2">
             <Editable label="当前情绪" value={card.acting.emotion} onChange={(v) => onPatch({ acting: { ...card.acting, emotion: v } })} />
-            <Editable label="肢体表现" value={card.acting.physical} onChange={(v) => onPatch({ acting: { ...card.acting, physical: v } })} />
+            <Editable label="情绪强度" value={card.acting.intensity} onChange={(v) => onPatch({ acting: { ...card.acting, intensity: v } })} />
           </div>
           {card.acting.dialog.length > 0 && (
             <div className="mt-2 space-y-1">
@@ -239,7 +239,7 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
                   {card.world.characters.map((c, i) => (
                     <div key={i} className="rounded bg-muted/30 px-2 py-1 text-[10px]">
                       <span className="font-medium">{c.name}</span>
-                      <span className="text-muted-foreground"> · {c.position} · 朝向{c.bodyFacing} · {c.emotion}</span>
+                      <span className="text-muted-foreground"> · {c.position} · 朝向{c.facing} · {c.emotion}</span>
                     </div>
                   ))}
                 </div>
@@ -251,7 +251,7 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
                 <div className="grid grid-cols-2 gap-2">
                   <Editable label="主光方向" value={card.visual.keyLight} onChange={(v) => onPatch({ visual: { ...card.visual, keyLight: v } })} />
                   <Editable label="色温" value={card.visual.colorTemp} onChange={(v) => onPatch({ visual: { ...card.visual, colorTemp: v } })} />
-                  <Editable label="光线质感" value={card.visual.lightQuality} onChange={(v) => onPatch({ visual: { ...card.visual, lightQuality: v } })} />
+                  <Editable label="光线质感" value={card.visual.quality} onChange={(v) => onPatch({ visual: { ...card.visual, quality: v } })} />
                   <Editable label="整体色调" value={card.visual.overallTone} onChange={(v) => onPatch({ visual: { ...card.visual, overallTone: v } })} />
                 </div>
               </div>
@@ -476,7 +476,7 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
                 <Mic className="h-3 w-3 text-muted-foreground" />
                 <span className="w-12 text-[9px] text-muted-foreground">表演</span>
-                <span className="text-[9px] text-foreground/70">{card.acting.emotion} · {card.acting.physical}</span>
+                <span className="text-[9px] text-foreground/70">{card.acting.emotion} · {card.acting.intensity}</span>
               </div>
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
                 <span className="w-12 text-[9px] text-muted-foreground">光影</span>
@@ -755,42 +755,42 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
       expression: '',
       breathing: '平稳',
       gaze: '',
-      physical: '',
       dialog: [],
     },
     camera: {
       shotSize: '中景',
-      angle: '平视',
       movement: '固定机位',
       composition: '三分构图',
       lens: '标准镜头',
-      focus: '主体清晰',
+      movePurpose: '',
+      cameraZone: '',
     },
     visual: {
       keyLight: after.visual.keyLight,
+      quality: after.visual.quality,
       colorTemp: after.visual.colorTemp,
-      shadow: '自然阴影',
-      atmosphere: after.visual.atmosphere,
+      overallTone: after.visual.overallTone,
+      weatherFx: after.visual.weatherFx,
       groundState: '',
       windEffect: '无风',
     },
     audio: {
       ambient: after.audio.ambient,
-      sfx: [],
-      dialogue: [],
+      sfx: '',
+      sync: '',
       reverb: '自然混响',
       sourcePosition: '',
     },
     causal: {
-      priorCause: `承接上镜：${after.causal.endState || '上一镜收尾状态'}`,
+      priorNeeded: `承接上镜：${after.causal.endState || '上一镜收尾状态'}`,
       outcome: '',
-      endState: '',
+      nextAffect: '',
       irreversible: [],
+      endState: '',
     },
     constraints: [],
     checklist: HARD_CONSTRAINTS.map((label) => ({ label, ok: false })),
-    prompt: '',
-    status: 'PENDING',
+    status: 'DRAFT',
   });
 
   // 插入镜头（在当前选中镜头之后）

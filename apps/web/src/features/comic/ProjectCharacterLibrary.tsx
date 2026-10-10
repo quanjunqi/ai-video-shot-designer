@@ -78,7 +78,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
   const defaultImageModel = useMemo(() => {
     if (!project?.defaultImageModel) return null;
     return catalogModels.find((m) => m.name === project.defaultImageModel) || null;
-  }, [project?.defaultImageModel, catalogModels]);
+  }, [project, catalogModels]);
 
   // 获取项目视觉风格（响应式，风格库更新时自动同步）
   const styles = useStyleStore((s) => s.styles);
@@ -87,7 +87,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
     const style = styles.find((s) => s.id === project.styleId);
     if (style) return style;
     return DEFAULT_STYLE_OPTIONS.find((s) => s.id === project.styleId) ?? null;
-  }, [project?.styleId, styles]);
+  }, [project, styles]);
 
   const stylePrompt = projectStyle?.prompt?.trim() || projectStyle?.description?.trim() || '';
 
@@ -170,7 +170,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
   };
 
   // 生成标准立绘
-  const generateReference = async (char: ProjectCharacter, customPrompt?: string) => {
+  const generateReference = async (char: ProjectCharacter, customPrompt: string | undefined, jobId: string) => {
     if (!defaultImageModel) {
       toast.error('未找到可用的图片生成模型，请先在项目设置中配置图片模型');
       return;
@@ -184,7 +184,6 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
     const { prompt: autoPrompt, negativePrompt } = buildCharacterReferencePrompt(char, stylePrompt, aspectRatio);
     const prompt = customPrompt || char.imagePrompt || autoPrompt;
 
-    const jobId = `ref-${char.id}-${Date.now()}`;
     setGenerating(char.id, jobId, defaultImageModel.name, prompt, negativePrompt);
     // 同步更新 viewing 本地状态
     const genUpdated = useProjectCharacterStore.getState().getById(char.id);
@@ -1239,7 +1238,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                     size="sm"
                     className="h-11 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-[13px] font-semibold text-white shadow-md shadow-amber-500/20 transition-all hover:shadow-lg hover:shadow-amber-500/30 disabled:opacity-60"
                     onClick={() => {
-                      generateReference(viewing, editingPrompt ? promptDraft : undefined);
+                      generateReference(viewing, editingPrompt ? promptDraft : undefined, `ref-${viewing.id}-${Date.now()}`);
                       setEditingPrompt(false);
                       setTimeout(() => {
                         const updated = useProjectCharacterStore.getState().getById(viewing.id);

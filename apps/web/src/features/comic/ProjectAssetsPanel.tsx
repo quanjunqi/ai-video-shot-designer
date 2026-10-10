@@ -11,7 +11,7 @@ import { placeholderUrl } from '@/lib/placeholder';
 import type { AssetKind } from '@/types';
 import { cn } from '@/lib/utils';
 
-const KIND_LABEL: Record<AssetKind, string> = { character: '角色', prop: '道具', scene: '场景' };
+const KIND_LABEL: Record<AssetKind, string> = { character: '角色', prop: '道具', scene: '场景', other: '其他' };
 const KIND_TABS = [
   { key: 'all', label: '全部' },
   { key: 'character', label: '角色' },

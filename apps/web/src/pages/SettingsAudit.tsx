@@ -35,7 +35,6 @@ export default function SettingsAuditPage() {
   const [filter, setFilter] = useState('');
 
   const loadLogs = async () => {
-    setLoading(true);
     try {
       const res = await api.listAuditLogs({ limit: 100 });
       setLogs(res.items || []);
@@ -47,7 +46,13 @@ export default function SettingsAuditPage() {
   };
 
   useEffect(() => {
-    loadLogs();
+    let cancelled = false;
+    // 初始加载：setState 全部落在异步回调中，避免 effect 内同步 setState 触发级联渲染
+    api.listAuditLogs({ limit: 100 })
+      .then((res) => { if (!cancelled) setLogs(res.items || []); })
+      .catch((e) => console.error('Failed to load audit logs', e))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const filteredLogs = logs.filter((log) => {
@@ -77,7 +82,7 @@ export default function SettingsAuditPage() {
           <p className="mt-0.5 text-xs text-muted-foreground">记录所有AI模型调用的完整审计信息，可追溯、可排查</p>
         </div>
         <button
-          onClick={loadLogs}
+          onClick={() => { setLoading(true); loadLogs(); }}
           disabled={loading}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
         >
