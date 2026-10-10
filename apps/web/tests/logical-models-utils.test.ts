@@ -84,7 +84,7 @@ test('sortCandidatesByRoutePriority orders by priority ascending without mutatin
 });
 
 test('describeLogicalModelError explains every documented business error code', () => {
-  assert.match(describeLogicalModelError({ code: 'ID_IMMUTABLE', message: 'logical model id is immutable' }), /对外契约/);
+  assert.match(describeLogicalModelError({ code: 'ID_IMMUTABLE', message: 'logical model id is immutable' }), /对外接口名/);
   assert.match(describeLogicalModelError({ code: 'MODEL_ALREADY_BOUND', message: 'model mod_1 is already bound to logical model image-t2i-low' }), /已被另一个逻辑模型占用/);
   // 409 必须带上服务端归属信息，不能吞成通用错误
   assert.match(describeLogicalModelError({ code: 'MODEL_ALREADY_BOUND', message: 'model mod_1 is already bound to logical model image-t2i-low' }), /image-t2i-low/);

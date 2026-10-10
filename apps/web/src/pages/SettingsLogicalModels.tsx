@@ -211,7 +211,7 @@ export default function SettingsLogicalModelsPage() {
           sort: Number(form.sort),
           note: form.note.trim(),
         });
-        toast.success(`逻辑模型「${created.label}」已创建：id ${created.id} 自此成为对外契约`);
+        toast.success(`逻辑模型「${created.label}」已创建：id ${created.id} 自此成为对外接口名，创建后不可改名`);
         setSelectedId(created.id);
       }
       setDialogOpen(false);
@@ -248,9 +248,9 @@ export default function SettingsLogicalModelsPage() {
         <div className="min-w-0">
           <h1 className="text-lg font-semibold">逻辑模型管理</h1>
           <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
-            逻辑模型是执行器对外的统一标识（ADR-003 §3.1）：调用方只认 <span className="font-mono text-foreground">id</span>
+            逻辑模型是执行器对外的统一标识：调用方只认 <span className="font-mono text-foreground">id</span>
             （能力型 kebab-case，如 <span className="font-mono text-foreground">image-t2i-high</span>），候选目录模型按{' '}
-            <span className="font-mono text-foreground">routePriority</span> 小者优先依次兜底。id 一经使用即是对外契约——
+            <span className="font-mono text-foreground">routePriority</span> 小者优先依次兜底。id 一经使用就是调用方依赖的对外接口名——
             <span className="text-foreground">不可改名、后端未提供删除</span>，下线请用「停用」。
           </p>
         </div>
@@ -418,7 +418,7 @@ export default function SettingsLogicalModelsPage() {
                       size="sm"
                       className="h-7 w-7"
                       onClick={() => openEdit(m)}
-                      title="编辑（id 只读：对外契约不可改名）"
+                      title="编辑（id 只读：对外接口名不可改名）"
                       aria-label={`编辑「${m.label}」`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -430,7 +430,7 @@ export default function SettingsLogicalModelsPage() {
           })}
 
           <p className="pt-1 text-[10px] leading-relaxed text-muted-foreground">
-            错误码如实透传：<span className="font-mono">400 ID_IMMUTABLE</span>（id 是对外契约）·{' '}
+            错误码如实透传：<span className="font-mono">400 ID_IMMUTABLE</span>（id 是对外接口名）·{' '}
             <span className="font-mono">409 MODEL_ALREADY_BOUND</span>（含归属逻辑模型）·{' '}
             <span className="font-mono">404 LOGICAL_MODEL_NOT_FOUND / MODEL_NOT_FOUND / CANDIDATE_NOT_FOUND</span>。
           </p>
@@ -463,12 +463,12 @@ export default function SettingsLogicalModelsPage() {
           </DialogHeader>
           <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">逻辑模型 id（对外契约）</Label>
+              <Label className="text-xs text-muted-foreground">逻辑模型 id（对外接口名）</Label>
               {editing ? (
                 <>
                   <Input value={form.id} readOnly disabled className="font-mono text-xs" />
                   <p className="text-[10px] leading-relaxed text-muted-foreground">
-                    id 是对外契约（ADR-003 §3.1.2），创建后不可修改——服务端对改名请求返回{' '}
+                    id 是对外接口名，创建后不可修改——服务端对改名请求返回{' '}
                     <span className="font-mono">400 ID_IMMUTABLE</span>。如需更换标识，请新建逻辑模型并把候选重新绑定过去。
                   </p>
                 </>
@@ -528,7 +528,7 @@ export default function SettingsLogicalModelsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">capability（能力标签，供调用方/编排识别）</Label>
+              <Label className="text-xs text-muted-foreground">能力标签 capability（供调用方识别用途）</Label>
               <Input
                 value={form.capability}
                 onChange={(e) => setForm({ ...form, capability: e.target.value })}

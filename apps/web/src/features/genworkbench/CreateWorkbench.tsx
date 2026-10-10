@@ -59,6 +59,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { placeholderUrl } from '@/lib/placeholder';
 import { parseMentions, type LocalRef } from '@/lib/mentions';
 import { api, type ServerTask } from '@/lib/api/client';
+import { SETTINGS_MODEL_CATALOG_PATH } from '@/features/settings/settings-navigation';
 import { cn } from '@/lib/utils';
 
 const KIND_META: Record<CreateKind, { title: string; icon: typeof ImageIcon; accent: string; emptyHint: string }> = {
@@ -366,7 +367,7 @@ export default function CreateWorkbench({
               : '请先在设置中心启用渠道并添加该类型的模型，页面会自动读取目录能力生成参数。'
           }
           actionLabel={kind === 'audio' ? undefined : '去设置中心'}
-          onAction={kind === 'audio' ? undefined : () => navigate('/settings/models')}
+          onAction={kind === 'audio' ? undefined : () => navigate(SETTINGS_MODEL_CATALOG_PATH)}
         />
       </div>
     );

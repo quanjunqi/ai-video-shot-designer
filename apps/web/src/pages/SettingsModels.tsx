@@ -445,7 +445,7 @@ export default function SettingsModelsPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">协议模板（请求契约：端点/参数/响应映射）</Label>
+              <Label className="text-xs text-muted-foreground">协议模板（请求规则：端点/参数/响应映射）</Label>
               <Select value={form.protocolTemplateId ?? ''} onValueChange={(v) => {
                 const t = templates.find((x) => x.id === v);
                 if (t) applyTemplate(t);
