@@ -52,10 +52,15 @@ ai-video-shot-designer/
 │   ├── TECHNICAL_ARCHITECTURE.md  # 技术架构（权威）
 │   ├── DESIGN.md              # 设计规范
 │   └── adr/                   # 架构决策记录
-├── references/                # 行业规范参考
-├── scripts/                   # 工具脚本
+├── deploy/local/              # 本地 Compose（PostgreSQL/Redis/Kafka/Temporal/MinIO）
+├── .github/                   # CI、任务卡、PR 模板
 └── AGENTS.md                  # 本文档
 ```
+
+> **仓库边界（2026-10-10 拆分）**：本仓库只承载全栈应用（`apps/web` + `services/`）。
+> 原 Python 规则/校验线（`SKILL.md`、`references/`、`scripts/`、`tests/`、`config/`）已独立为
+> [ai-video-shot-designer-skill](https://github.com/quanjunqi/ai-video-shot-designer-skill)，
+> 仅作迁移对照与离线工具，**不在本仓库的请求链路上**。跨仓库改动需在两个仓库分别开 PR。
 
 ---
 

@@ -23,8 +23,8 @@
 
 | 现有模块 | 可以复用 | 需要新增或调整 |
 |---|---|---|
-| `SKILL.md`、`references/`、`config/workflow/` | 剧本事实、导演解读、角色/场景、Gate、版本、审核和依赖规则 | 将 CLI/文件运行时封装成服务；设计多剧集与共享资产的范围 |
-| `scripts/shotdesigner/` | 校验、图片候选、空间/镜头、台账与 Adapter | 任务持久化、并发控制、API 契约和可恢复执行 |
+| `ai-video-shot-designer-skill` 仓库的 `SKILL.md`、`references/`、`config/workflow/` | 剧本事实、导演解读、角色/场景、Gate、版本、审核和依赖规则 | 将 CLI/文件运行时封装成服务；设计多剧集与共享资产的范围 |
+| `ai-video-shot-designer-skill` 仓库的 `scripts/shotdesigner/` | 校验、图片候选、空间/镜头、台账与 Adapter | 任务持久化、并发控制、API 契约和可恢复执行 |
 | `apps/web/src/layouts/AppLayout.tsx` | 侧栏、顶部导航和响应式基础 | 新导航、面包屑、通知及用户菜单 |
 | `apps/web/src/pages/projects.tsx` | 筛选、列表/看板和项目卡交互 | 真正的新建剧本项目、上传与独立项目路由 |
 | `apps/web/src/pages/comic.tsx` | 三栏工坊视觉和阶段原型 | 多项目/多剧集、真实阶段数据和审核动作 |

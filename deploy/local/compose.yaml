@@ -1,0 +1,432 @@
+name: shotdesigner
+
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shotdesigner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-production}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  minio:
+    profiles: [platform]
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-localminio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in deploy/local/.env}
+    ports:
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+
+  kafka:
+    profiles: [platform]
+    image: apache/kafka:3.9.1
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    restart: unless-stopped
+
+  schema-registry:
+    profiles: [platform]
+    image: confluentinc/cp-schema-registry:7.8.1
+    depends_on:
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+    ports:
+      - "127.0.0.1:${SCHEMA_REGISTRY_PORT:-8082}:8081"
+    restart: unless-stopped
+
+  temporal:
+    profiles: [platform]
+    image: temporalio/auto-setup:1.26.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_SEEDS: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-shotdesigner}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+    ports:
+      - "127.0.0.1:${TEMPORAL_PORT:-7233}:7233"
+    restart: unless-stopped
+
+  temporal-ui:
+    profiles: [platform]
+    image: temporalio/ui:2.35.0
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:8233
+    ports:
+      - "127.0.0.1:${TEMPORAL_UI_PORT:-8233}:8080"
+    restart: unless-stopped
+
+  keycloak:
+    profiles: [platform]
+    image: quay.io/keycloak/keycloak:26.1.2
+    command: ["start-dev", "--http-port=8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-shotdesigner}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in deploy/local/.env}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8083}:8080"
+    restart: unless-stopped
+
+  production-migrate:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: ${POSTGRES_DB:-production}
+    volumes:
+      - ../../services/production/migrations:/migrations:ro
+    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+    restart: "no"
+
+  workspace-migrate:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      workspace-db-init:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: workspace
+    volumes:
+      - ../../services/workspace/migrations:/migrations:ro
+    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+    restart: "no"
+
+  asset-db-init:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: ${POSTGRES_DB:-production}
+    command: ["sh", "-ec", "psql -v ON_ERROR_STOP=1 -tc \"SELECT 1 FROM pg_database WHERE datname='asset'\" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c \"CREATE DATABASE asset\""]
+    restart: "no"
+
+  asset-migrate:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      asset-db-init:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: asset
+    volumes:
+      - ../../services/asset/migrations:/migrations:ro
+    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+    restart: "no"
+
+  workspace-db-init:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: ${POSTGRES_DB:-production}
+    command: ["sh", "-ec", "psql -v ON_ERROR_STOP=1 -tc \"SELECT 1 FROM pg_database WHERE datname='workspace'\" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c \"CREATE DATABASE workspace\""]
+    restart: "no"
+
+  execution-db-init:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: ${POSTGRES_DB:-production}
+    command: ["sh", "-ec", "psql -v ON_ERROR_STOP=1 -tc \"SELECT 1 FROM pg_database WHERE datname='execution'\" | grep -q 1 || psql -v ON_ERROR_STOP=1 -c \"CREATE DATABASE execution\""]
+    restart: "no"
+
+  execution-migrate:
+    profiles: [app]
+    image: postgres:16.8-alpine
+    depends_on:
+      execution-db-init:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-shotdesigner}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}
+      PGDATABASE: execution
+    volumes:
+      - ../../services/execution/migrations:/migrations:ro
+    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+    restart: "no"
+
+  production:
+    profiles: [app]
+    build:
+      context: ../../services/production
+      dockerfile: Dockerfile
+    depends_on:
+      production-migrate:
+        condition: service_completed_successfully
+    environment:
+      PRODUCTION_DATABASE_URL: postgres://${POSTGRES_USER:-shotdesigner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}@postgres:5432/${POSTGRES_DB:-production}?sslmode=disable
+      PRODUCTION_INTERNAL_TOKEN: ${PRODUCTION_INTERNAL_TOKEN:?set PRODUCTION_INTERNAL_TOKEN in deploy/local/.env}
+      PRODUCTION_LISTEN_ADDR: 0.0.0.0:8081
+    expose:
+      - "8081"
+    ports:
+      - "127.0.0.1:18081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  workspace:
+    profiles: [app]
+    build:
+      context: ../../services/workspace
+      dockerfile: Dockerfile
+    depends_on:
+      workspace-migrate:
+        condition: service_completed_successfully
+    environment:
+      WORKSPACE_DATABASE_URL: postgres://${POSTGRES_USER:-shotdesigner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}@postgres:5432/workspace?sslmode=disable
+      WORKSPACE_INTERNAL_TOKEN: ${WORKSPACE_INTERNAL_TOKEN:?set WORKSPACE_INTERNAL_TOKEN in deploy/local/.env}
+      WORKSPACE_CRED_KEY: ${WORKSPACE_CRED_KEY:?set WORKSPACE_CRED_KEY in deploy/local/.env (正式环境须为密钥管理注入的随机值)}
+      WORKSPACE_LISTEN_ADDR: 0.0.0.0:8082
+    expose:
+      - "8082"
+    ports:
+      - "127.0.0.1:18082:8082"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  asset:
+    profiles: [app]
+    build:
+      context: ../../services/asset
+      dockerfile: Dockerfile
+    depends_on:
+      asset-migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+    environment:
+      ASSET_DATABASE_URL: postgres://${POSTGRES_USER:-shotdesigner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}@postgres:5432/asset?sslmode=disable
+      ASSET_INTERNAL_TOKEN: ${ASSET_INTERNAL_TOKEN:?set ASSET_INTERNAL_TOKEN in deploy/local/.env}
+      ASSET_S3_ENDPOINT: minio:9000
+      ASSET_S3_BUCKET: ${ASSET_S3_BUCKET:-assets}
+      ASSET_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-localminio}
+      ASSET_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in deploy/local/.env}
+      ASSET_MAX_BYTES: ${ASSET_MAX_BYTES:-104857600}
+      ASSET_LISTEN_ADDR: 0.0.0.0:8084
+    expose:
+      - "8084"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8084/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  execution:
+    profiles: [app]
+    build:
+      context: ../../services/execution
+      dockerfile: Dockerfile
+    depends_on:
+      execution-migrate:
+        condition: service_completed_successfully
+    environment:
+      EXECUTION_DATABASE_URL: postgres://${POSTGRES_USER:-shotdesigner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}@postgres:5432/execution?sslmode=disable
+      EXECUTION_INTERNAL_TOKEN: ${EXECUTION_INTERNAL_TOKEN:?set EXECUTION_INTERNAL_TOKEN in deploy/local/.env}
+      EXECUTION_LISTEN_ADDR: 0.0.0.0:8085
+    expose:
+      - "8085"
+    ports:
+      - "127.0.0.1:${EXECUTION_PORT:-8085}:8085"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8085/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  outbox-relay:
+    profiles: [app]
+    build:
+      context: ../../services/outbox-relay
+      dockerfile: Dockerfile
+    depends_on:
+      production:
+        condition: service_healthy
+      execution:
+        condition: service_healthy
+    environment:
+      OUTBOX_DATABASE_URL: postgres://${POSTGRES_USER:-shotdesigner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}@postgres:5432/${POSTGRES_DB:-production}?sslmode=disable
+      OUTBOX_EXECUTION_URL: http://execution:8085
+      OUTBOX_EXECUTION_TOKEN: ${EXECUTION_INTERNAL_TOKEN:?set EXECUTION_INTERNAL_TOKEN in deploy/local/.env}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-20}
+      OUTBOX_LEASE_SECONDS: ${OUTBOX_LEASE_SECONDS:-60}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-20}
+      OUTBOX_POLL_SECONDS: ${OUTBOX_POLL_SECONDS:-2}
+    restart: unless-stopped
+
+  web-bff:
+    profiles: [app]
+    build:
+      context: ../../services/web-bff
+      dockerfile: Dockerfile
+    depends_on:
+      workspace:
+        condition: service_healthy
+      production:
+        condition: service_healthy
+      asset:
+        condition: service_healthy
+      execution:
+        condition: service_healthy
+    environment:
+      BFF_LISTEN_ADDR: 0.0.0.0:8080
+      BFF_WORKSPACE_URL: http://workspace:8082
+      BFF_PRODUCTION_URL: http://production:8081
+      BFF_ASSET_URL: http://asset:8084
+      BFF_EXECUTION_URL: http://execution:8085
+      WORKSPACE_INTERNAL_TOKEN: ${WORKSPACE_INTERNAL_TOKEN:?set WORKSPACE_INTERNAL_TOKEN in deploy/local/.env}
+      PRODUCTION_INTERNAL_TOKEN: ${PRODUCTION_INTERNAL_TOKEN:?set PRODUCTION_INTERNAL_TOKEN in deploy/local/.env}
+      ASSET_INTERNAL_TOKEN: ${ASSET_INTERNAL_TOKEN:?set ASSET_INTERNAL_TOKEN in deploy/local/.env}
+      EXECUTION_INTERNAL_TOKEN: ${EXECUTION_INTERNAL_TOKEN:?set EXECUTION_INTERNAL_TOKEN in deploy/local/.env}
+      BFF_DEV_WORKSPACE_ID: ${BFF_DEV_WORKSPACE_ID:-ws_dev}
+      BFF_DEV_ACTOR_ID: ${BFF_DEV_ACTOR_ID:-user_dev}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  production-test:
+    profiles: [test]
+    build:
+      context: ../../services/production
+      dockerfile: Dockerfile
+      target: build
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PRODUCTION_TEST_DATABASE_URL: postgres://${POSTGRES_USER:-shotdesigner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/local/.env}@postgres:5432/production_test?sslmode=disable
+    command: ["go", "test", "./...", "-count=1"]
+    restart: "no"
+
+  web:
+    profiles: [app]
+    build:
+      context: ../../apps/web
+      dockerfile: Dockerfile
+    depends_on:
+      web-bff:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5173}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+  kafka-data:

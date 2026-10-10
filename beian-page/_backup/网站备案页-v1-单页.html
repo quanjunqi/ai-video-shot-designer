@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Video Shot Designer · 网站建设中</title>
+<meta name="description" content="AI Video Shot Designer — 将中文或英文剧本转换为结构化镜头计划，交付 MiniMax H3 与 Seedance 2.5 Prompt 的 AI 视频分镜设计工坊。">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="6" y="10" width="52" height="44" rx="4" fill="none" stroke="%23e8983d" stroke-width="4"/><path d="M32 18v28M18 32h28" stroke="%23e8983d" stroke-width="1.5" opacity="0.55"/><path d="M6 24h10M6 40h10M48 24h10M48 40h10" stroke="%23e8983d" stroke-width="3" opacity="0.7"/></svg>'>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap">
+<style>
+  :root {
+    --bg: #0e1116;
+    --bg-soft: #12161d;
+    --ink: #ecebe7;
+    --ink-dim: #98a1ad;
+    --ink-faint: #6b7280;
+    --accent: #e8983d;
+    --hairline: rgba(255, 255, 255, 0.09);
+    --hairline-soft: rgba(255, 255, 255, 0.05);
+    --serif: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
+    --sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 背景细微光晕：从片场顶光抽象而来，保持安静 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(900px 480px at 50% -10%, rgba(232, 152, 61, 0.07), transparent 65%),
+      radial-gradient(1200px 700px at 85% 110%, rgba(90, 120, 160, 0.05), transparent 60%);
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    width: min(1080px, 100% - 64px);
+    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 44px 0 36px;
+  }
+
+  /* ===== 顶栏 ===== */
+  header.brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .brand-name {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    align-self: center;
+  }
+
+  .brand-name .word {
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .brand-name .cn {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 6px 14px;
+    white-space: nowrap;
+  }
+
+  .status-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(232, 152, 61, 0.8);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ===== 主视觉 ===== */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 84px 0 64px;
+  }
+
+  .hero {
+    text-align: center;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .viewfinder {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 40px;
+    display: block;
+  }
+
+  .viewfinder .frame {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+
+  .viewfinder .tick {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.75;
+  }
+
+  .viewfinder .guide {
+    fill: none;
+    stroke: var(--ink-dim);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    opacity: 0.55;
+  }
+
+  .hero .kicker {
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    color: var(--accent);
+    margin-bottom: 22px;
+    font-weight: 500;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: clamp(34px, 5.6vw, 58px);
+    line-height: 1.22;
+    letter-spacing: 0.02em;
+    margin-bottom: 24px;
+    text-wrap: balance;
+  }
+
+  .hero h1 .accent {
+    color: var(--accent);
+    font-weight: 900;
+  }
+
+  .hero .lede {
+    font-size: 15px;
+    color: var(--ink-dim);
+    max-width: 560px;
+    margin: 0 auto;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }
+
+  .hero .lede em {
+    font-style: normal;
+    color: var(--ink);
+  }
+
+  /* ===== 流程三列（真正的序列：剧本→分镜→生成） ===== */
+  .process {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 88px;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .step {
+    padding: 34px 30px 36px;
+    position: relative;
+  }
+
+  .step + .step {
+    border-left: 1px solid var(--hairline);
+  }
+
+  .step .no {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 18px;
+    display: block;
+  }
+
+  .step h3 {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: 0.03em;
+  }
+
+  .step p {
+    font-size: 13px;
+    color: var(--ink-dim);
+    font-weight: 300;
+    line-height: 1.85;
+  }
+
+  /* ===== 备案信息 ===== */
+  .filing {
+    margin-top: 88px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+
+  .filing .rule {
+    width: 44px;
+    height: 1px;
+    background: var(--hairline);
+    margin: 0 auto 26px;
+  }
+
+  .filing .rows {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .filing .row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+
+  .filing .row .label {
+    color: var(--ink-faint);
+  }
+
+  .filing .row .value {
+    color: var(--ink-dim);
+  }
+
+  .filing .row .value.pending {
+    color: var(--ink-faint);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  /* ===== 页脚 ===== */
+  footer.foot {
+    border-top: 1px solid var(--hairline);
+    padding-top: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.05em;
+  }
+
+  footer.foot .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  footer.foot svg { flex: none; }
+
+  /* ===== 加载序列动效（尊重 reduced-motion） ===== */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--d, 0s);
+  }
+
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .status-badge .dot { animation: none; }
+    .viewfinder path, .viewfinder rect, .viewfinder line {
+      stroke-dasharray: none !important;
+      stroke-dashoffset: 0 !important;
+    }
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 860px) {
+    .page { width: min(100% - 40px, 1080px); padding-top: 28px; }
+    main { padding: 64px 0 48px; }
+    .viewfinder { width: 96px; height: 96px; margin-bottom: 32px; }
+    .process { grid-template-columns: 1fr; margin-top: 64px; }
+    .step { padding: 26px 6px; text-align: left; }
+    .step + .step { border-left: none; border-top: 1px solid var(--hairline); }
+    .filing { margin-top: 64px; }
+  }
+
+  @media (max-width: 560px) {
+    .brand-name .cn { display: none; }
+    .hero h1 { font-size: 30px; }
+    .hero .lede { font-size: 14px; }
+    footer.foot { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .status-badge { padding: 5px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="brand reveal" style="--d:0s">
+    <div class="brand-name">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="6" y="12" width="52" height="40" rx="4" fill="none" stroke="var(--accent)" stroke-width="4"/>
+        <path d="M32 22v20M22 32h20" stroke="var(--accent)" stroke-width="1.2" opacity="0.5"/>
+        <path d="M6 26h8M6 38h8M50 26h8M50 38h8" stroke="var(--accent)" stroke-width="2.5" opacity="0.65"/>
+      </svg>
+      <span class="word">AI VIDEO SHOT DESIGNER</span>
+      <span class="cn">AI 视频分镜设计工坊</span>
+    </div>
+    <span class="status-badge"><span class="dot"></span>网站建设中</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <svg class="viewfinder reveal" style="--d:0.1s" viewBox="0 0 120 120" aria-hidden="true">
+        <rect class="frame" x="12" y="26" width="96" height="68" rx="6"/>
+        <path class="guide" d="M60 34v52M26 60h68"/>
+        <path class="tick" d="M12 38h9M12 82h9M99 38h9M99 82h9"/>
+      </svg>
+      <p class="kicker reveal" style="--d:0.18s">SHOT · SCENE · CONTINUITY</p>
+      <h1 class="reveal" style="--d:0.26s">把剧本，变成<span class="accent">可执行</span>的镜头计划</h1>
+      <p class="lede reveal" style="--d:0.34s">从剧本锁定到场景规划、镜头卡与连续性台账，为 <em>MiniMax H3</em> 与 <em>Seedance 2.5</em> 交付结构化、可校验的 AI 视频分镜方案。</p>
+    </section>
+
+    <section class="process" aria-label="工作流程">
+      <div class="step reveal" style="--d:0.42s">
+        <span class="no">01</span>
+        <h3>剧本锁定</h3>
+        <p>建立不可变事实基线，逐场提取事件、对白与锁定内容，任何修改都有据可查。</p>
+      </div>
+      <div class="step reveal" style="--d:0.5s">
+        <span class="no">02</span>
+        <h3>镜头规划</h3>
+        <p>场景地图、镜头卡与连续性台账协同，让每个镜头的空间与状态真实可追踪。</p>
+      </div>
+      <div class="step reveal" style="--d:0.58s">
+        <span class="no">03</span>
+        <h3>生成交付</h3>
+        <p>按目标模型适配器契约，输出可直接执行的 Prompt 与生成单元。</p>
+      </div>
+    </section>
+
+    <section class="filing reveal" style="--d:0.66s">
+      <div class="rule"></div>
+      <div class="rows">
+        <div class="row"><span class="label">ICP 备案号</span><span class="value pending">备案完成后公示</span></div>
+        <div class="row"><span class="label">公安备案号</span><span class="value pending">备案完成后公示</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot reveal" style="--d:0.72s">
+    <span>© 2026 AI Video Shot Designer. All rights reserved.</span>
+    <span class="right">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M12 3l7 4v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V7l7-4z"/>
+      </svg>
+      本页面为网站建设期展示页
+    </span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 取景框描边绘制：仅在不减动效时启用
+    if (!prefersReduced) {
+      var frame = document.querySelector('.viewfinder .frame');
+      var guide = document.querySelector('.viewfinder .guide');
+      var ticks = document.querySelectorAll('.viewfinder .tick');
+      var draw = function (el, delay) {
+        var len = el.getTotalLength();
+        el.style.strokeDasharray = len;
+        el.style.strokeDashoffset = len;
+        el.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(0.22, 1, 0.36, 1) ' + delay + 's';
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { el.style.strokeDashoffset = '0'; });
+        });
+      };
+      draw(frame, 0.1);
+      if (guide) draw(guide, 0.5);
+      ticks.forEach(function (t, i) { draw(t, 0.35 + i * 0.08); });
+    }
+
+    // 依次揭示
+    var reveals = document.querySelectorAll('.reveal');
+    if (prefersReduced) {
+      reveals.forEach(function (el) { el.classList.add('in'); });
+    } else {
+      reveals.forEach(function (el, i) {
+        setTimeout(function () { el.classList.add('in'); }, 80 + i * 90);
+      });
+    }
+  })();
+</script>
+</body>
+</html>
