@@ -9,19 +9,76 @@ on:
   pull_request:
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # 变更检测：决定哪些检查需要**真正执行**。
+  #
+  # 关键约束（勿简化）：GitHub 的**必需状态检查必须每次都上报**。被 if: 跳过的
+  # **job** 不会上报，会让必需检查永远停在 "Expected"，从而卡死所有 PR ——
+  # 那正是本项目反复出现的「假防线」模式。因此本 job 只输出判定结果，
+  # 各 job 内部用**步骤级** if: 过滤重量级步骤，job 本身始终运行并上报。
+  #
+  # 判定脚本任何异常都 fail-safe 到「全量执行」（见脚本头部说明）。
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.detect.outputs.frontend }}
+      backend: ${{ steps.detect.outputs.backend }}
+      security: ${{ steps.detect.outputs.security }}
+      services: ${{ steps.detect.outputs.services }}
+      reason: ${{ steps.detect.outputs.reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # 需要与基线比较
+
+      - name: Detect changed paths
+        id: detect
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$IS_PR" = "true" ]; then
+            bash .github/scripts/detect-changes.sh "origin/$BASE_REF"
+          else
+            bash .github/scripts/detect-changes.sh "$BEFORE"
+          fi
+          echo "判定依据：${{ steps.detect.outputs.reason }}"
+
   # 前端质量门禁
   frontend:
     name: Frontend Quality Gate
+    needs: changes
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/web
 
     steps:
+      # fail-closed：变更检测异常时**不得**静默跳过，否则就是「假绿」
+      # 注意：必须显式指定 working-directory，否则会继承本 job 的
+      # defaults.run.working-directory（apps/web）—— 而本步骤在 Checkout **之前**执行，
+      # 那时 apps/web 还不存在，会导致步骤无法启动（已真实发生过）。
+      - name: Assert change detection succeeded
+        working-directory: .
+        env:
+          REASON: ${{ needs.changes.outputs.reason }}
+        run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "::error::变更检测失败或未完成，无法判定是否需要运行本检查 → 按失败处理（fail-closed）"
+            exit 1
+          fi
+          echo "变更检测结论：$REASON"
+
       - name: Checkout
+        if: needs.changes.outputs.frontend == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: needs.changes.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -29,47 +86,85 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
+        if: needs.changes.outputs.frontend == 'true'
         run: npm ci
 
       - name: TypeScript typecheck
+        if: needs.changes.outputs.frontend == 'true'
         run: npm run typecheck
 
       - name: ESLint
+        if: needs.changes.outputs.frontend == 'true'
         run: npm run lint:eslint
 
       - name: Quality gate
+        if: needs.changes.outputs.frontend == 'true'
         run: npm run gate
 
       - name: Unit tests
+        if: needs.changes.outputs.frontend == 'true'
         run: npm test
 
+      - name: Skipped (无前端改动)
+        if: needs.changes.outputs.frontend != 'true'
+        run: echo "无 apps/web 改动，跳过前端门禁（本检查已如实上报成功）"
+
   # 后端编译和测试
+  # 保留**静态 6 服务矩阵**（而非动态矩阵）是刻意选择：必需检查名
+  # `Backend Build & Test (<svc>)` 必须每次都上报，动态矩阵在「无服务改动」时
+  # 会产生 0 个 job → 检查永不上报 → 卡死 PR。代价是无改动时仍会起 6 个 runner，
+  # 但 setup-go 与全部重量级步骤都被跳过，实际开销仅数秒。
   backend:
     name: Backend Build & Test
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       matrix:
         service: [workspace, production, execution, asset, web-bff, outbox-relay]
 
     steps:
+      - name: Relevance
+        id: rel
+        env:
+          SERVICES: ${{ needs.changes.outputs.services }}
+          REASON: ${{ needs.changes.outputs.reason }}
+        run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "::error::变更检测失败或未完成 → 按失败处理（fail-closed）"
+            exit 1
+          fi
+          case "$SERVICES" in
+            *"\"${{ matrix.service }}\""*)
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              echo "「${{ matrix.service }}」有改动 → 执行完整后端门禁（依据：$REASON）" ;;
+            *)
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              echo "「${{ matrix.service }}」无改动 → 跳过重量级步骤" ;;
+          esac
+
       - name: Checkout
+        if: steps.rel.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Go
+        if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
+        if: steps.rel.outputs.run == 'true'
         run: go build ./...
         working-directory: services/${{ matrix.service }}
 
       - name: Vet
+        if: steps.rel.outputs.run == 'true'
         run: go vet ./...
         working-directory: services/${{ matrix.service }}
 
       - name: Go format check (gofmt)
+        if: steps.rel.outputs.run == 'true'
         run: |
           unformatted="$(gofmt -l .)"
           if [ -n "$unformatted" ]; then
@@ -85,6 +180,7 @@ jobs:
       # 未提供 .golangci.yml：使用官方默认 linter 集（errcheck/gosimple/govet/ineffassign/staticcheck/unused），
       # 避免自定义配置与 action 安装的 golangci-lint 版本产生 schema 冲突。
       - name: Run golangci-lint (new issues only)
+        if: steps.rel.outputs.run == 'true'
         uses: golangci/golangci-lint-action@v6
         with:
           working-directory: services/${{ matrix.service }}
@@ -92,14 +188,17 @@ jobs:
           args: --timeout=5m
 
       - name: Test
+        if: steps.rel.outputs.run == 'true'
         run: go test ./... -v -race -coverprofile=coverage.out
         working-directory: services/${{ matrix.service }}
 
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/TESTING.md §3.3）
       - name: Coverage floor (ratchet)
+        if: steps.rel.outputs.run == 'true'
         run: bash .github/scripts/check-coverage.sh "${{ matrix.service }}" "services/${{ matrix.service }}/coverage.out"
 
       - name: Upload coverage
+        if: steps.rel.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.service }}
@@ -109,13 +208,25 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [frontend, backend]
+    needs: [changes, frontend, backend]
 
     steps:
+      - name: Assert change detection succeeded
+        env:
+          REASON: ${{ needs.changes.outputs.reason }}
+        run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "::error::变更检测失败或未完成 → 按失败处理（fail-closed）"
+            exit 1
+          fi
+          echo "变更检测结论：$REASON"
+
       - name: Checkout
+        if: needs.changes.outputs.security == 'true'
         uses: actions/checkout@v4
 
       - name: Run Gosec Security Scanner
+        if: needs.changes.outputs.security == 'true'
         uses: securego/gosec@master
         with:
           args: ./services/...
@@ -125,6 +236,7 @@ jobs:
       # /-/npm/v1/security/audits 端点，会返回 NOT_IMPLEMENTED —— 之前该步骤因此静默失败，
       # 等于从未真正校验过依赖漏洞。
       - name: NPM audit (production deps, blocking)
+        if: needs.changes.outputs.frontend == 'true'
         run: npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
         working-directory: apps/web
 
@@ -132,9 +244,14 @@ jobs:
       # 开发工具，暂不阻断，但必须可见（见 CHANGELOG.md Known Issues）。
       # 修复后应去掉 continue-on-error 改为阻断。
       - name: NPM audit (all deps incl. dev, advisory)
+        if: needs.changes.outputs.frontend == 'true'
         run: npm audit --audit-level=high --registry=https://registry.npmjs.org
         working-directory: apps/web
         continue-on-error: true
+
+      - name: Skipped (无相关改动)
+        if: needs.changes.outputs.security != 'true'
+        run: echo "无 services/ 或 apps/web 改动，跳过安全扫描（本检查已如实上报成功）"
 
   # 文档检查
   docs:
@@ -161,6 +278,19 @@ jobs:
       - name: Check ADR directory exists
         run: test -d docs/adr
 
+      # 防止 `$var` 紧跟非 ASCII 字符：bash 会把多字节字符并入变量名，
+      # 在 set -u 下报 "unbound variable"。本仓库已因此踩坑两次
+      # （check-coverage.sh 与 detect-changes.sh），故固化为检查。
+      # 正确写法：${var} 或 ${var}：
+      - name: Check shell scripts for \$var followed by non-ASCII
+        run: |
+          if grep -rnP '\$[A-Za-z_][A-Za-z0-9_]*(?=[^\x00-\x7F])' \
+               --include='*.sh' .github/scripts deploy/ 2>/dev/null; then
+            echo "::error::发现 \$var 紧跟非 ASCII 字符（会被 bash 并入变量名）；请改用 \${var}"
+            exit 1
+          fi
+          echo "✓ shell 脚本无 \$var 紧跟非 ASCII 的写法"
+
       # 关键文档与契约必须存在，防止被误删（新增文档时同步此处）
       - name: Check key docs and contract exist
         run: |
@@ -176,6 +306,7 @@ jobs:
             docs/RELEASE.md \
             docs/FRONTEND_QUALITY_GATE.md \
             docs/branch-protection.md \
+            docs/CI.md \
             openapi/bff.yaml \
             openapi/README.md
           do
@@ -225,7 +356,7 @@ jobs:
   merge-check:
     name: Merge Check
     runs-on: ubuntu-latest
-    needs: [frontend, backend, security, docs]
+    needs: [changes, frontend, backend, security, docs]
     if: github.event_name == 'pull_request'
 
     steps:
