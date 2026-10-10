@@ -16,7 +16,6 @@ import {
 const NAV_ICON: Record<SettingsSectionKey, typeof Boxes> = {
   models: Boxes,
   channels: Cable,
-  usage: ScrollText,
   preferences: SlidersHorizontal,
 };
 

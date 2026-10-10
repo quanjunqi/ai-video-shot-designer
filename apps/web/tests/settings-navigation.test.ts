@@ -10,6 +10,7 @@ import {
   SETTINGS_MODEL_CATALOG_PATH,
   SETTINGS_MODEL_SUBVIEWS,
   SETTINGS_NAV,
+  SETTINGS_EXTERNAL_TARGETS,
   SETTINGS_ROUTES,
   settingsRelativePath,
   settingsSectionForPath,
@@ -21,22 +22,24 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 }
 
-// ADR-005 D2：顶层导航固定 4 项，顺序即产品顺序。
+// 方案 A（Owner 决策）：顶层导航固定 3 项「模型 / 渠道 / 偏好」，顺序即产品顺序。
 // 这个测试的作用是「把架构决策钉在测试里」：谁把导航改回 6 项、改 label/路径，或让旧深链失去落点，都会红。
-test('settings navigation is exactly the 4 ADR-005 sections in order', () => {
-  assert.equal(SETTINGS_NAV.length, 4, '导航必须是 4 项（ADR-005 D2）');
+test('settings navigation is exactly the 3 sections of 方案 A in order', () => {
+  assert.equal(SETTINGS_NAV.length, 3, '导航必须是 3 项（方案 A：设置只放配置）');
   assert.deepEqual(
     SETTINGS_NAV.map((n) => n.key),
-    ['models', 'channels', 'usage', 'preferences'],
+    ['models', 'channels', 'preferences'],
   );
   assert.deepEqual(
     SETTINGS_NAV.map((n) => n.label),
-    ['模型', '渠道', '用量', '偏好'],
+    ['模型', '渠道', '偏好'],
   );
   assert.deepEqual(
     SETTINGS_NAV.map((n) => n.path),
-    ['/settings/models', '/settings/channels', '/settings/usage', '/settings/preferences'],
+    ['/settings/models', '/settings/channels', '/settings/preferences'],
   );
+  // 方案 A 的核心：设置里【不得】再有「看运行数据」的分组
+  assert.ok(!SETTINGS_NAV.some((n) => n.key === 'usage'), '「用量」必须已移出设置中心');
 });
 
 test('every settings section carries a non-empty one-line user task statement', () => {
@@ -71,7 +74,7 @@ test('the 模型 section splits into a primary (对外能力) and a secondary (�
 });
 
 // 旧 6 条路径的最终去向（逐条锁定，改一条就红）
-test('all 6 legacy settings paths keep an explicit destination', () => {
+test('all legacy settings paths keep an explicit destination', () => {
   assert.deepEqual(
     SETTINGS_LEGACY_PATHS.map((p) => [p.from, p.to]),
     [
@@ -79,7 +82,8 @@ test('all 6 legacy settings paths keep an explicit destination', () => {
       ['/settings/logical-models', '/settings/models'],
       ['/settings/channels', '/settings/channels'],
       ['/settings/protocols', '/settings/channels/protocols'],
-      ['/settings/audit', '/settings/usage'],
+      ['/settings/audit', '/tasks'],
+      ['/settings/usage', '/tasks'],
       ['/settings/preferences', '/settings/preferences'],
     ],
   );
@@ -87,19 +91,31 @@ test('all 6 legacy settings paths keep an explicit destination', () => {
   for (const p of SETTINGS_LEGACY_PATHS) assert.ok(p.why.trim().length > 0, `${p.from} 缺少去向理由`);
 });
 
-test('legacy redirects target a real route, so no old deep link can land on a 404', () => {
+test('legacy redirects target a registered real route (settings or whitelisted app route)', () => {
   assert.deepEqual(SETTINGS_LEGACY_REDIRECTS.map((p) => p.from), [
     '/settings/logical-models',
     '/settings/protocols',
     '/settings/audit',
+    '/settings/usage',
   ]);
   for (const p of SETTINGS_LEGACY_REDIRECTS) {
-    assert.ok(SETTINGS_ROUTES.includes(p.to), `${p.from} 跳到不存在的路由 ${p.to}`);
+    // 「落点必须真实存在」这条不变量【保留】：落点须在设置路由或已迁出白名单之内。
+    // 修订说明（方案 A）：原规则是「落点必须都在设置中心内」；
+    // Owner 决定把「用量」移出设置 ⇒ 该规则放宽为「设置内 ∪ 已迁出的真实 app 路由」，
+    // 但【不】允许跳到不存在或未登记的路由。
+    assert.ok(
+      SETTINGS_ROUTES.includes(p.to) || SETTINGS_EXTERNAL_TARGETS.includes(p.to),
+      `${p.from} 跳到未登记的落点 ${p.to}（既不在 SETTINGS_ROUTES，也不在 SETTINGS_EXTERNAL_TARGETS）`,
+    );
     // 不允许「跳到自己」形成死循环
     assert.notEqual(p.from, p.to);
   }
-  // 落点必须都在设置中心内
-  for (const p of SETTINGS_LEGACY_PATHS) assert.ok(p.to.startsWith('/settings'), `${p.from} 跳到设置中心之外`);
+  for (const p of SETTINGS_LEGACY_PATHS) {
+    assert.ok(
+      p.to.startsWith('/settings') || SETTINGS_EXTERNAL_TARGETS.includes(p.to),
+      `${p.from} 跳到设置中心之外且未在白名单登记：${p.to}`,
+    );
+  }
 });
 
 test('settingsRelativePath strips the /settings prefix for nested <Route> registration', () => {
@@ -112,7 +128,8 @@ test('settingsSectionForPath resolves sub-routes to their parent section', () =>
   assert.equal(settingsSectionForPath('/settings/models')?.key, 'models');
   assert.equal(settingsSectionForPath('/settings/models/catalog')?.key, 'models');
   assert.equal(settingsSectionForPath('/settings/channels/protocols')?.key, 'channels');
-  assert.equal(settingsSectionForPath('/settings/usage')?.key, 'usage');
+  // 方案 A 后 /settings/usage 不再是设置分组（它已迁出）——解析结果应为 undefined
+  assert.equal(settingsSectionForPath('/settings/usage'), undefined);
   assert.equal(settingsSectionForPath('/settings/preferences')?.key, 'preferences');
   assert.equal(settingsSectionForPath('/comic/projects'), undefined);
 });
