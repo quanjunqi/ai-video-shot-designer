@@ -74,6 +74,9 @@ export default function SettingsProtocolsPage() {
     setOpen(true);
   };
   const openEdit = (t: ProtocolTemplate) => {
+    // 内置模板在界面上只读（B4a）。后端本就拒绝（handler.go 映射 400 BUILTIN_PROTECTED），
+    // 此前界面仍提供「编辑」入口 ⇒ 用户点开、填写、保存后才拿到 400 —— 界面在说谎。
+    if (t.builtin) { toast.error('平台预置模板只读；如需修改请「复制为自定义」后编辑副本'); return; }
     setEditingId(t.id);
     setShowAdvanced(false);
     setForm({ label: t.label, desc: t.desc, type: t.type ?? 'all', requestPath: t.requestPath, method: t.method, params: t.params.map((p) => ({ ...p })), responseParams: t.responseParams.map((p) => ({ ...p })), async: t.async ? { ...t.async } : undefined });
@@ -220,12 +223,16 @@ export default function SettingsProtocolsPage() {
                   <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => duplicate(t)} title="复制为自定义模板">
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => openEdit(t)} title="编辑协议">
+                  {!t.builtin && (
+                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => openEdit(t)} title="编辑协议">
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => removeOne(t)} title={t.builtin ? '平台预置不可删除' : '删除协议'}>
+                  )}
+                  {!t.builtin && (
+                    <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => removeOne(t)} title={t.builtin ? '平台预置不可删除' : '删除协议'}>
                     <Trash2 className={`h-3.5 w-3.5 ${t.builtin ? 'text-muted-foreground/40' : 'text-destructive'}`} />
                   </Button>
+                  )}
                 </div>
               </div>
 

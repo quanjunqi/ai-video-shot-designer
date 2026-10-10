@@ -721,9 +721,63 @@ export const api = {
       body: JSON.stringify(params),
     }),
   // Gateway audit logs
-  listAuditLogs: (params?: { limit?: number; offset?: number }) =>
-    request<{ items: AuditLog[]; total: number; limit: number; offset: number }>(
-      `/api/v1/audit/logs${params ? `?limit=${params.limit ?? 50}&offset=${params.offset ?? 0}` : ''}`,
+
+  /**
+   * D8c：审计导出 URL。
+   *
+   * 为什么直接返回 URL 而不用 request() 取 Blob：
+   *   ① 导出是【浏览器原生下载】，交给浏览器才能正确使用服务端的
+   *      Content-Disposition 文件名（D8b 修的那个头正是为此）；
+   *   ② BFF 的身份是服务端自带的（它用自己的 token 与 devWorkspace 调 workspace），
+   *      前端无需附加身份头 —— 实测 request() 也只发 Accept/Cache-Control/Pragma。
+   */
+  auditExportUrl: (params?: {
+    status?: string;
+    model_id?: string;
+    channel_id?: string;
+    since?: string;
+    until?: string;
+  }) =>
+    `/api/v1/audit/export?${new URLSearchParams({
+      ...(params?.status ? { status: params.status } : {}),
+      ...(params?.model_id ? { model_id: params.model_id } : {}),
+      ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+      ...(params?.since ? { since: params.since } : {}),
+      ...(params?.until ? { until: params.until } : {}),
+    }).toString()}`,
+  listAuditLogs: (params?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    model_id?: string;
+    channel_id?: string;
+    since?: string;
+    until?: string;
+  }) =>
+    request<{
+      items: AuditLog[];
+      total: number;
+      limit: number;
+      offset: number;
+      // D7a/D7b：统计由【服务端】在【筛选后全集】上算。
+      // 此前前端在"当前页"(limit:100) 上算 success/failed/avgLatency ⇒ 翻页或筛选后"统计"会变，是假统计。
+      stats?: {
+        byStatus: Record<string, number>;
+        success: number;
+        successRate: number;
+        avgLatencyMs: number;
+        aggregateOn: string;
+      };
+    }>(
+      `/api/v1/audit/logs?${new URLSearchParams({
+        limit: String(params?.limit ?? 50),
+        offset: String(params?.offset ?? 0),
+        ...(params?.status ? { status: params.status } : {}),
+        ...(params?.model_id ? { model_id: params.model_id } : {}),
+        ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+        ...(params?.since ? { since: params.since } : {}),
+        ...(params?.until ? { until: params.until } : {}),
+      }).toString()}`,
     ),
   // Episodes
   listEpisodes: (projectId: string) =>

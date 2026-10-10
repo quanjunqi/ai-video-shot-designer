@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, Search, Download } from 'lucide-react';
 import { api, type AuditLog } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
@@ -28,16 +28,34 @@ function formatLatency(ms: number) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+/**
+ * D7b：把服务端返回的 stats 归一化为界面计数。
+ * 缺失时回退 0 —— 【不假装有数据】：与服务端未聚合时的行为一致（stats 为 undefined）。
+ */
+function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number } }) {
+  return {
+    total: res.total,
+    success: res.stats?.byStatus?.success ?? 0,
+    failed: res.stats?.byStatus?.failed ?? 0,
+    avgLatencyMs: res.stats?.avgLatencyMs ?? 0,
+  };
+}
+
 export default function SettingsAuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
+  // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
+  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number } | null>(null);
+  // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
+  const [status, setStatus] = useState('');
 
   const loadLogs = async () => {
     try {
-      const res = await api.listAuditLogs({ limit: 100 });
+      const res = await api.listAuditLogs({ limit: 100, status: status || undefined });
       setLogs(res.items || []);
+      setStats(statsFrom(res));
     } catch (e) {
       console.error('Failed to load audit logs', e);
     } finally {
@@ -48,12 +66,12 @@ export default function SettingsAuditPage() {
   useEffect(() => {
     let cancelled = false;
     // 初始加载：setState 全部落在异步回调中，避免 effect 内同步 setState 触发级联渲染
-    api.listAuditLogs({ limit: 100 })
-      .then((res) => { if (!cancelled) setLogs(res.items || []); })
+    api.listAuditLogs({ limit: 100, status: status || undefined })
+      .then((res) => { if (!cancelled) { setLogs(res.items || []); setStats(statsFrom(res)); } })
       .catch((e) => console.error('Failed to load audit logs', e))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [status]);
 
   const filteredLogs = logs.filter((log) => {
     if (!filter) return true;
@@ -67,11 +85,13 @@ export default function SettingsAuditPage() {
     );
   });
 
-  // Stats
-  const totalCalls = logs.length;
-  const successCount = logs.filter((l) => l.status === 'success').length;
-  const failedCount = logs.filter((l) => l.status === 'failed').length;
-  const avgLatency = logs.length > 0 ? Math.round(logs.reduce((s, l) => s + l.latency_ms, 0) / logs.length) : 0;
+  // Stats —— D7b：一律用【服务端】在【筛选后全集】上的结果。
+  // 此前这里是 logs.filter(...) / reduce(...)，而 logs 是"当前页"(limit:100)
+  // ⇒ 翻页或筛选后"统计"会变，是【假统计】。回退值只用于 stats 尚未返回的首次渲染。
+  const totalCalls = stats?.total ?? logs.length;
+  const successCount = stats?.success ?? 0;
+  const failedCount = stats?.failed ?? 0;
+  const avgLatency = stats?.avgLatencyMs ?? 0;
 
   return (
     <div className="space-y-5">
@@ -81,14 +101,37 @@ export default function SettingsAuditPage() {
           <h1 className="text-lg font-semibold text-foreground">调用审计日志</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">记录所有AI模型调用的完整审计信息，可追溯、可排查</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); loadLogs(); }}
-          disabled={loading}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-        >
-          <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          刷新
-        </button>
+        <div className="flex items-center gap-2">
+          {/* D8c：状态筛选 —— 与 stats、导出【同一口径】 */}
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            aria-label="按状态筛选"
+            className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          >
+            <option value="">全部状态</option>
+            <option value="success">成功</option>
+            <option value="failed">失败</option>
+            <option value="queued">排队中</option>
+          </select>
+          {/* D8c：导出用原生链接交给浏览器下载 —— 才能用上服务端的 Content-Disposition
+              文件名（D8b 修的那个头）。筛选条件与页面【一致】。 */}
+          <a
+            href={api.auditExportUrl({ status: status || undefined })}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            <Download className="h-3.5 w-3.5" />
+            导出 CSV
+          </a>
+          <button
+            onClick={() => { setLoading(true); loadLogs(); }}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+            刷新
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"sort"
+	"strings"
 	"testing"
 )
 
@@ -164,20 +166,28 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 		t.Errorf("pt_builtin_jimeng_video async:\n got: %+v\nwant: %+v", jimeng, wantJimeng)
 	}
 
-	// 断言 ③：MiniMax 视频 —— 同样只增 pollPath；doneValue/failValue 由迁移 030 改为
-	// MiniMax 官方顶层 status 枚举的确切值 completed / failed（见下方 030 用例）。
+	// 断言 ③：MiniMax 视频 —— 本用例只锁【迁移 029 的 pollPath 与字段集合】。
+	//
+	// ★ 终态取值**不在**本用例的契约内（它由 TestPostgresProtocolTemplateAsyncTerminalValues
+	//   专门锁，涉及 030 与 032 两次演进）。此前这里对整个结构体做 DeepEqual、并把
+	//   doneValue/failValue 硬编码为 030 的单值，于是 032 把它们扩成候选并集后
+	//   **本用例连带变红** —— 一个用例锁了两个契约，任一演进都会让另一个误报。
+	//   现在把这两个字段摘出来、用与专用用例**同一个 helper** 判定，期望值不再写两遍。
 	minimax, ok := loadAsync(t, "pt_builtin_minimax_video")
 	if !ok {
 		t.Error("pt_builtin_minimax_video: async 缺 pollPath（迁移 029 未生效）")
 	}
+	assertSameCandidateSet(t, "doneValue", minimax.DoneValue, []string{"completed", "Success"})
+	assertSameCandidateSet(t, "failValue", minimax.FailValue, []string{"failed", "Fail"})
+
 	wantMinimax := ProtocolAsync{
 		Enabled:     true,
 		TaskIDField: "task_id",
 		StatusField: "status",
-		DoneValue:   "completed",
-		FailValue:   "failed",
 		PollPath:    "/v1/query/video_generation?task_id={task_id}",
 	}
+	// 终态两字段已单独判过 ⇒ 这里置空，使结构体比较聚焦于"本用例的契约"（字段集合 + pollPath）
+	minimax.DoneValue, minimax.FailValue = "", ""
 	if !reflect.DeepEqual(minimax, wantMinimax) {
 		t.Errorf("pt_builtin_minimax_video async:\n got: %+v\nwant: %+v", minimax, wantMinimax)
 	}
@@ -209,10 +219,15 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 // TestPostgresProtocolTemplateAsyncTerminalValues 锁定迁移 030 的数据契约。
 //
 // 全量迁移应用到一个全新库后断言：
-//  1. pt_builtin_minimax_video 的 async->>'doneValue' / ->>'failValue' 是 MiniMax 官方
-//     顶层 status 枚举的确切值 completed / failed（迁移 008 写的 Success/Failed 与枚举
-//     都不相等 ⇒ 成功与失败都检测不到，必然空转到超时）；执行器 matchesTerminalValue
-//     按逗号分隔 + 大小写不敏感匹配，queued/in_progress 是有意的「继续轮询」态。
+//  1. pt_builtin_minimax_video 的 async->>'doneValue' / ->>'failValue' 的**候选集合**
+//     恰好是两套【已文档化】的取值：
+//     · 030 依据国际站 v2 文档写入 completed / failed；
+//     · 032 核实后指出本模板 pollPath 是 legacy 端点，其官方文档写 Success / Fail。
+//     同一产品不同文档页给出冲突枚举 ⇒ 032 把两套都列为候选（执行器 matchesTerminalValue
+//     支持逗号分隔 + 大小写不敏感），这样无论实际返回哪一套都能被识别为终态。
+//     ⇒ 本断言是【集合相等】而非【等于某一个字面量】：后者会把 032 之后正确且更宽容的
+//     实现误判为回归（本文件此前正是如此，详见 032 的注释）。
+//     queued/in_progress 仍是有意的「继续轮询」态，不在终态候选内。
 //  2. jsonb_set 只覆盖这两个键：该行 async 仍是 6 个字段（一个都没丢），pollPath 未被破坏。
 //  3. 全表带 failValue 的行恰好是这两个异步模板；其余 6 个内置模板 async 仍为 '{}'
 //     —— 即「只改了该改的」。
@@ -232,12 +247,8 @@ func TestPostgresProtocolTemplateAsyncTerminalValues(t *testing.T) {
 		Scan(&failValue, &doneValue, &pollPath, &keyCount); err != nil {
 		t.Fatalf("load pt_builtin_minimax_video async: %v", err)
 	}
-	if doneValue != "completed" {
-		t.Errorf("minimax doneValue = %q, want %q（官方 status 枚举；迁移 030 未生效）", doneValue, "completed")
-	}
-	if failValue != "failed" {
-		t.Errorf("minimax failValue = %q, want %q（官方 status 枚举；迁移 030 未生效）", failValue, "failed")
-	}
+	assertSameCandidateSet(t, "doneValue", doneValue, []string{"completed", "Success"})
+	assertSameCandidateSet(t, "failValue", failValue, []string{"failed", "Fail"})
 	if keyCount != 6 {
 		t.Errorf("minimax async 字段数 = %d, want 6（jsonb_set 只改两个键，不得丢字段）", keyCount)
 	}
@@ -295,5 +306,29 @@ func TestPostgresProtocolTemplateAsyncTerminalValues(t *testing.T) {
 	}
 	if !reflect.DeepEqual(emptyAsync, wantEmptyAsync) {
 		t.Errorf("async 仍为 {} 的模板集合:\n got: %v\nwant: %v", emptyAsync, wantEmptyAsync)
+	}
+}
+
+// assertSameCandidateSet 断言"逗号分隔的候选集合"与期望集合**相等**（大小写不敏感、与顺序无关）。
+//
+// 为什么不是"包含"：包含会把多写的垃圾候选也放过；而这里两套取值都是**有文档依据**的，
+// 集合相等既锁住"两套都在"（032 的目的），也锁住"没多写"（避免悄悄加入未被文档支持的终态）。
+func assertSameCandidateSet(t *testing.T, field, got string, want []string) {
+	t.Helper()
+	norm := func(in []string) []string {
+		out := make([]string, 0, len(in))
+		for _, v := range in {
+			v = strings.ToLower(strings.TrimSpace(v))
+			if v != "" {
+				out = append(out, v)
+			}
+		}
+		sort.Strings(out)
+		return out
+	}
+	gotSet := norm(strings.Split(got, ","))
+	wantSet := norm(want)
+	if !reflect.DeepEqual(gotSet, wantSet) {
+		t.Errorf("minimax %s 候选集合 = %v, want %v（030 的官方值 + 032 依 legacy 文档补充的候选）", field, gotSet, wantSet)
 	}
 }

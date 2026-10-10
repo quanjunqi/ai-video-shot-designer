@@ -48,7 +48,7 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 		return dir, err
 	}
 
-	templates, err := store.Pool.Query(ctx, `SELECT t.id, t.label, t.description, t.type, t.method, t.request_path, t.params, t.response_params, t.async, t.capabilities, t.builtin, t.enabled, t.version, COALESCE(t.request_template, ''),
+	templates, err := store.Pool.Query(ctx, `SELECT t.id, t.label, t.description, t.type, t.method, t.request_path, t.params, t.response_params, t.async, t.capabilities, t.builtin, t.enabled, t.version, COALESCE(t.request_template, ''), t.doc_ref, t.observed_evidence,
 	        (SELECT count(*) FROM model_catalog mc WHERE mc.protocol_template_id = t.id) AS ref_count
 	        FROM protocol_templates t ORDER BY t.builtin DESC, t.label`)
 	if err != nil {
@@ -57,7 +57,7 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 	defer templates.Close()
 	for templates.Next() {
 		var t ProtocolTemplate
-		if err := templates.Scan(&t.ID, &t.Label, &t.Desc, &t.Type, &t.Method, &t.RequestPath, &t.Params, &t.ResponseParams, &t.Async, &t.Capabilities, &t.Builtin, &t.Enabled, &t.Version, &t.RequestTemplate, &t.RefCount); err != nil {
+		if err := templates.Scan(&t.ID, &t.Label, &t.Desc, &t.Type, &t.Method, &t.RequestPath, &t.Params, &t.ResponseParams, &t.Async, &t.Capabilities, &t.Builtin, &t.Enabled, &t.Version, &t.RequestTemplate, &t.DocRef, &t.ObservedEvidence, &t.RefCount); err != nil {
 			return dir, err
 		}
 		dir.Templates = append(dir.Templates, t)

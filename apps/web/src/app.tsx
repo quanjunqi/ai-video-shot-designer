@@ -60,7 +60,6 @@ export default function App() {
           <Route path="channels" element={<SettingsChannelsPage />} />
           <Route path="channels/protocols" element={<SettingsProtocolsPage />} />
           {/* 用量：原「调用审计」并入（ADR-005 §3） */}
-          <Route path="usage" element={<SettingsAuditPage />} />
           <Route path="preferences" element={<SettingsPreferencesPage />} />
           {/* 旧路径兼容（ADR-005 §3）：旧深链一律 replace 到新位置，不得 404。
               映射表唯一事实源在 features/settings/settings-navigation.ts，并由单测锁定。 */}

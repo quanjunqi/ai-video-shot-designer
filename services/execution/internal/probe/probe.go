@@ -247,7 +247,7 @@ func (p *Prober) resolve(ctx context.Context, workspaceID, actorID, channelID st
 // normalizeBaseURL 归一化 base URL。
 //
 // 裸 host:port（本地 ComfyUI/Ollama）按既有行为补全 http:// 前缀
-// （docs/DESIGN.md：探测/执行对裸 host:port 自动补全 http://）；
+// （docs/product/design.md：探测/执行对裸 host:port 自动补全 http://）；
 // 其它非 http(s) 协议一律拒绝。
 func normalizeBaseURL(base string) (string, error) {
 	u := strings.TrimRight(strings.TrimSpace(base), "/")

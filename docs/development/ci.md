@@ -89,6 +89,61 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 关键点是**必需检查全部如实上报成功**，因此 PR 可正常合并 —— 这正是
 §3 那条不变量的意义。
 
+## 7. 集成测试必须真正执行（不得以 SKIP 冒充通过）
+
+各服务的**真库集成测试**在未设置测试库 DSN 时会 `t.Skip` —— 于是
+**"跑过且通过"与"根本没跑"在 CI 输出里无法区分**。
+
+本项目因此**真实发生过**：2 条与迁移脱节的断言（终态取值 030/032、
+`source_versions` 的 DELETE 语义 015）**红着很久无人知晓** —— 它们只在有测试库时才执行。
+
+**对策（已落地）**：
+
+1. `backend` job 起一个**一次性 Postgres service**（本地容器口令，非任何真实凭据）；
+2. 通过 **job 级 `env`** 注入三个 DSN：
+   `EXECUTION_TEST_DATABASE_URL` / `PRODUCTION_TEST_DATABASE_URL` / `WORKSPACE_TEST_DATABASE_URL`
+   （判据：源码里 `os.Getenv` 的实际取值。三者都自建**随机 schema**并在结束时清理 ⇒ 共用一个库是安全的）；
+3. `Test` 步骤用 `tee` 落盘，并 `set -o pipefail` 保证**退出码不被管道吞掉**；
+4. 新增步骤 **`Integration tests must not skip`**：**已提供测试库时出现 `--- SKIP` 即失败**
+   （复用上一步的日志，不重跑测试）。
+
+**判据（本地复现，同一命令，唯一变量是 DSN）**：
+
+| 条件 | `--- SKIP` 行数 | `--- PASS` 行数 |
+|---|---|---|
+| 提供 DSN | **0** | **112** |
+| 未提供 | **4** | — |
+
+被跳过的正是 `TestIntegration_CompleteWritesResultPayloadAndKeepsIntent` /
+`TestIntegration_LegacyRowResultStillReadable` / `TestIntegration_FailOrRetryThenDeadLetter`
+—— 即"**有测试但从不执行**"的那一层。
+
+> **注意**：本节的守卫与 §3 的"必需检查必须上报"是两件事，互不冲突 ——
+> §3 说的是 **job 不得被 job 级 `if:` 跳过**；本节说的是 **job 内部不得用 SKIP 冒充通过**。
+> 新增的守卫是**步骤级** `if:`，符合 §3。
+
+### 7.1 这个守卫对哪些服务**真的有约束**（如实标注）
+
+守卫的判据是"提供了 DSN 就不许出现 `--- SKIP`"。因此**只有存在 DSN 门控测试的服务**
+才真正被它保护；对没有这类测试的服务，它**空转通过**（这本身不是缺陷，但读者不应误以为
+六个服务都受保护）。
+
+| 服务 | DSN 门控的集成测试 | 守卫 |
+|---|---|---|
+| `workspace` | 4 条（`TestPostgresCredential*` / `TestPostgresUserChannel*`） | ✅ **有效** |
+| `production` | 12 条（`TestPostgres*`） | ✅ **有效** |
+| `execution` | 3 条（`TestIntegration_*`） | ✅ **有效** |
+| `asset` | 5 条（`CreateUpload` / `List`；`Put`/`Commit` 需 MinIO，另议） | ✅ **有效** |
+| `web-bff` | 0 条 | ⚠️ 空转 |
+| `outbox-relay` | 0 条 | ⚠️ 空转 |
+
+判据（`git grep -c TEST_DATABASE_URL` 与 `--- SKIP` 计数）：
+`workspace` 无 DSN 时 PASS 20→16、SKIP 0→**4**；`production`/`execution` 的 DSN 由
+`.env.local` 提供（本地默认即已开启），其集成测试条数分别为 12 / 3 —— 源码可数。
+
+> **已补**：`asset` 的 `Store` 现已覆盖 `CreateUpload` / `List`（`PUT`/`Commit` 会连 MinIO，
+> 需在 CI 再加一个对象存储 service，另议）。这批测试在补上之前**即使写了也不会在 CI 执行**。
+
 ## 相关文档
 
 - 分支与必需检查：[docs/development/branch-protection.md](branch-protection.md)

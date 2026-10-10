@@ -3,36 +3,26 @@ package job
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// 需要真实 PostgreSQL（与会话验证一致的做法）：
+// 需要真实 PostgreSQL：设置 EXECUTION_TEST_DATABASE_URL 后执行
 //
 //	EXECUTION_TEST_DATABASE_URL=postgres://... go test ./internal/job/ -run Integration -v
 //
-// 未设置时整组跳过，因此 CI 无需数据库也能通过。
-func newTestPool(t *testing.T) *pgxpool.Pool {
-	t.Helper()
-	dsn := os.Getenv("EXECUTION_TEST_DATABASE_URL")
-	if dsn == "" {
-		t.Skip("未设置 EXECUTION_TEST_DATABASE_URL，跳过集成测试")
-	}
-	pool, err := pgxpool.New(context.Background(), dsn)
-	if err != nil {
-		t.Fatalf("连接测试库失败: %v", err)
-	}
-	return pool
-}
-
+// ★ 测试库的准备工作交给同包的 testStore（store_test.go）：它**自建随机 schema 并把
+//
+//	migrations 应用进去**，结束时清理。
+//	本文件此前另写了一个直连公共 schema 的 newTestPool，等于**默认测试库已被预先应用迁移**
+//	—— 那让它依赖"开发者本地库的状态"，CI 里首次真正执行时就报
+//	`relation "job_attempts" does not exist`。三个集成测试用同一套准备方式后，
+//	这个隐式依赖消失。
 func TestIntegration_FailOrRetryThenDeadLetter(t *testing.T) {
-	pool := newTestPool(t)
-	defer pool.Close()
+	// 与同包其它集成测试一致：随机 schema + 就地应用迁移（清理由 helper 注册）
+	s := testStore(t)
+	pool := s.Pool
 	ctx := context.Background()
-	s := Store{Pool: pool}
 
 	if _, err := pool.Exec(ctx, `DELETE FROM job_attempts WHERE job_id LIKE 'it-retry-%'`); err != nil {
 		t.Fatalf("清理 attempts: %v", err)

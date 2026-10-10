@@ -67,6 +67,7 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/tasks/run", h.runModel)
 	mux.HandleFunc("POST /v1/generate", h.generate)
 	mux.HandleFunc("GET /internal/v1/audit/logs", h.listAuditLogs)
+	mux.HandleFunc("GET /internal/v1/audit/export", h.exportAuditLogs)
 	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
 	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -361,6 +362,7 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 // generate is the unified model gateway entry: accepts a modality-agnostic
 // request, validates model capability, and dispatches to sync or async
 // execution based on the protocol template's async config.
+
 func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	if !h.auth(w, r) {
 		return
@@ -370,10 +372,11 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
 		return
 	}
-	if h.Catalog == nil || h.Creds == nil || h.EngineClient == nil {
-		writeError(w, 503, "EXECUTION_UNAVAILABLE", "execution engine not configured")
-		return
-	}
+	// D1：审计骨架【前移】到所有早退守卫之前。
+	// 原先 requestID/startTime 与 writeAudit 都定义在 4 个早退守卫【之后】，
+	// 于是任何早退都不留痕（实测：71 个 jobs 只对应 4 条审计，且全停在 queued）。
+	requestID := genRequestID()
+	startTime := time.Now()
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 	var in struct {
 		ModelID    string         `json:"modelId"`
@@ -383,22 +386,59 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		Parameters map[string]any `json:"parameters"`
 		Metadata   map[string]any `json:"metadata"`
 	}
+	var (
+		product   string
+		projectID string
+		episodeID string
+		assetID   string
+	)
+	// auditChannelID 在渠道解析之后填入；解析前为空 —— 这是【诚实】的结果：
+	// 那一刻系统确实还不知道渠道，写空串比事后回填/猜测更可信。
+	var auditChannelID string
+	// D4a：用量（token）落库。三个值在引擎调用之后填入，由 writeAudit 读取。
+	// 只记【事实】：本片【不写】cost_amount —— model_catalog.capability.billing 的字段
+	// 是「积分/百万 Token」（产品 UI 原文），而本表 cost_currency 硬编码 CNY，
+	// 单位未定；把积分写进 CNY 列是数据缺陷。价格换算待 Owner 定单位后另做（D4b）。
+	var auditTokenIn, auditTokenOut, auditTokenCached int
+	// writeAudit 写一条审计。审计失败不得阻断主流程，但【必须可见】（D1：不再用 _ = 丢弃）。
+	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
+		if h.AuditStore == nil {
+			return
+		}
+		reqBytes, _ := json.Marshal(map[string]any{"input": in.Input, "parameters": in.Parameters})
+		auditLog := audit.Log{
+			RequestID: requestID, WorkspaceID: ws, ChannelID: auditChannelID,
+			ProjectID: projectID, EpisodeID: episodeID, AssetID: assetID,
+			UserID: actor, Product: product, ModelID: in.ModelID, Mode: in.Mode,
+			RequestPayload: reqBytes, ResponsePayload: respPayload, ErrorMessage: errMsg,
+			Status: status, LatencyMs: int(time.Since(startTime).Milliseconds()),
+			TokenInput: auditTokenIn, TokenOutput: auditTokenOut, TokenCached: auditTokenCached,
+			JobID: jobID, ProviderTaskID: providerTaskID, CostCurrency: "CNY",
+		}
+		if err := h.AuditStore.Insert(r.Context(), auditLog); err != nil {
+			slog.Error("audit insert failed", "requestId", requestID, "status", status, "error", err)
+		}
+	}
+	if h.Catalog == nil || h.Creds == nil || h.EngineClient == nil {
+		writeAudit("failed", nil, "execution engine not configured", "", "")
+		writeError(w, 503, "EXECUTION_UNAVAILABLE", "execution engine not configured")
+		return
+	}
+	// Extract product context from metadata
+	product = ""
+	projectID = ""
+	episodeID = ""
+	assetID = ""
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeAudit("failed", nil, "invalid generate request JSON", "", "")
 		writeError(w, 400, "INVALID_BODY", "invalid generate request JSON")
 		return
 	}
 	if in.ModelID == "" {
+		writeAudit("failed", nil, "modelId is required", "", "")
 		writeError(w, 422, "INVALID_GENERATE", "modelId is required")
 		return
 	}
-	// Generate request ID for audit tracing
-	requestID := genRequestID()
-	startTime := time.Now()
-	// Extract product context from metadata
-	product := ""
-	projectID := ""
-	episodeID := ""
-	assetID := ""
 	if in.Metadata != nil {
 		if v, ok := in.Metadata["product"].(string); ok {
 			product = v
@@ -413,36 +453,6 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			assetID = v
 		}
 	}
-	// Helper to write audit log (audit failure should not block main flow)
-	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
-		if h.AuditStore == nil {
-			return
-		}
-		reqBytes, _ := json.Marshal(map[string]any{
-			"input":      in.Input,
-			"parameters": in.Parameters,
-		})
-		auditLog := audit.Log{
-			RequestID:       requestID,
-			WorkspaceID:     ws,
-			ProjectID:       projectID,
-			EpisodeID:       episodeID,
-			AssetID:         assetID,
-			UserID:          actor,
-			Product:         product,
-			ModelID:         in.ModelID,
-			Mode:            in.Mode,
-			RequestPayload:  reqBytes,
-			ResponsePayload: respPayload,
-			ErrorMessage:    errMsg,
-			Status:          status,
-			LatencyMs:       int(time.Since(startTime).Milliseconds()),
-			JobID:           jobID,
-			ProviderTaskID:  providerTaskID,
-			CostCurrency:    "CNY",
-		}
-		_ = h.AuditStore.Insert(r.Context(), auditLog)
-	}
 	// 配额与限流：超限**拒绝**并写审计（status=rate_limited / quota_exceeded），
 	// 让「被限流」「超预算」可查，而不是静默失败或无限放行。
 	if h.Quota != nil {
@@ -456,6 +466,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Resolve model + template from catalog
 	dir, err := h.Catalog.Get(r.Context(), ws, actor)
 	if err != nil {
+		writeAudit("failed", nil, "catalog unavailable: "+err.Error(), "", "")
 		writeError(w, 503, "CATALOG_UNAVAILABLE", err.Error())
 		return
 	}
@@ -467,10 +478,14 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if model == nil {
+		writeAudit("failed", nil, "model not found in directory", "", "")
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
 	}
+	// 渠道已解析：从此之后的审计都能带上真实 channel_id。
+	auditChannelID = model.ChannelID
 	if model.ProtocolTemplateID == "" {
+		writeAudit("failed", nil, "model has no protocol template", "", "")
 		writeError(w, 422, "MODEL_NO_PROTOCOL", "model has no protocol template")
 		return
 	}
@@ -482,6 +497,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if tmpl == nil {
+		writeAudit("failed", nil, "protocol template not found", "", "")
 		writeError(w, 404, "TEMPLATE_NOT_FOUND", "protocol template not found")
 		return
 	}
@@ -503,6 +519,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !hasRef {
+			writeAudit("failed", nil, "image-to-image/image-to-video requires reference_images", "", "")
+			// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 			writeError(w, 422, "MISSING_REFERENCE", "image-to-image/image-to-video requires reference_images")
 			return
 		}
@@ -511,6 +529,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Build runtime using dynamic parameter mapping engine (template-driven, no hardcoding)
 	mappingEngine, err := mapping.NewEngine(tmpl.Capabilities)
 	if err != nil {
+		writeAudit("failed", nil, fmt.Sprintf("failed to create mapping engine: %v", err), "", "")
+		// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 		writeError(w, 500, "MAPPING_ENGINE_ERROR", fmt.Sprintf("failed to create mapping engine: %v", err))
 		return
 	}
@@ -531,6 +551,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Validate required parameters (if template has capability config)
 	if mappingEngine.HasCapability(in.Mode) {
 		if err := mappingEngine.ValidateRequired(in.Mode, mergeInput); err != nil {
+			writeAudit("failed", nil, err.Error(), "", "")
+			// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 			writeError(w, 422, "MISSING_PARAM", err.Error())
 			return
 		}
@@ -539,6 +561,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Apply parameter mapping: unified API params -> model-specific params
 	mappedParams, err := mappingEngine.ApplyMapping(mergeInput, in.Mode)
 	if err != nil {
+		writeAudit("failed", nil, fmt.Sprintf("failed to apply parameter mapping: %v", err), "", "")
+		// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 		writeError(w, 500, "MAPPING_ERROR", fmt.Sprintf("failed to apply parameter mapping: %v", err))
 		return
 	}
@@ -567,6 +591,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 
 	creds, err := h.Creds.Reveal(r.Context(), ws, model.ChannelID)
 	if err != nil {
+		writeAudit("failed", nil, err.Error(), "", "")
+		// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 		writeError(w, 422, "CREDENTIALS_MISSING", err.Error())
 		return
 	}
@@ -630,6 +656,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	// Sync execution
 	out, err := engine.Run(r.Context(), creds, engineReq, h.EngineClient)
+	auditTokenIn, auditTokenOut, auditTokenCached = engine.UsageFromExtracted(out.Extracted)
 	if err != nil {
 		respBytes, _ := json.Marshal(out)
 		writeAudit("failed", respBytes, out.Error, "", "")
@@ -675,16 +702,42 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			offset = n
 		}
 	}
-	logs, err := h.AuditStore.ListByWorkspace(r.Context(), ws, limit, offset)
+	// D7a：筛选条件（status / model_id / channel_id / since / until）
+	// 筛选解析抽成 auditFilterFrom，列表与导出【共用同一口径】——避免两处漂移
+	f, ferr := auditFilterFrom(r)
+	if ferr != "" {
+		writeError(w, 400, ferr, "since/until must be RFC3339")
+		return
+	}
+	logs, total, err := h.AuditStore.ListByWorkspace(r.Context(), ws, f, limit, offset)
 	if err != nil {
 		writeError(w, 500, "AUDIT_QUERY_FAILED", err.Error())
 		return
 	}
+	// D7a：统计由【服务端】在【筛选后全集】上算 —— 前端此前在"当前页"上算，是假统计。
+	byStatus, avgLatency, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
+	if aggErr != nil {
+		// 统计失败不该让列表也不可用：如实标注，便于排查。
+		slog.Error("audit aggregate failed", "error", aggErr)
+		byStatus, avgLatency = nil, 0
+	}
+	success := byStatus["success"]
+	successRate := 0.0
+	if total > 0 {
+		successRate = float64(success) / float64(total)
+	}
 	writeJSON(w, 200, map[string]any{
 		"items":  logs,
-		"total":  len(logs),
+		"total":  total,
 		"limit":  limit,
 		"offset": offset,
+		"stats": map[string]any{
+			"byStatus":     byStatus,
+			"success":      success,
+			"successRate":  successRate,
+			"avgLatencyMs": avgLatency,
+			"aggregateOn":  "filtered_total",
+		},
 	})
 }
 

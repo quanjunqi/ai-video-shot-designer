@@ -42,6 +42,7 @@ func main() {
 	mux.HandleFunc("/api/v1/tasks", s.tasks)
 	mux.HandleFunc("/api/v1/tasks/", s.tasks)
 	mux.HandleFunc("/api/v1/audit/logs", s.auditLogs)
+	mux.HandleFunc("/api/v1/audit/export", s.auditExport)
 	mux.HandleFunc("/api/v1/generate", s.generate)
 	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
 	mux.HandleFunc("/api/v1/catalog", s.catalogProxy)
@@ -543,6 +544,42 @@ func (s *server) generate(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, resp.Body)
 }
 
+// auditExport 转发审计导出到 execution /internal/v1/audit/export（④ D8b）。
+// 与 auditLogs 的区别：不解析/不裁剪响应体，只透传状态码、Content-Type、
+// Content-Disposition 与流（导出可能是大响应，不做缓冲）。
+func (s *server) auditExport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, 503, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet,
+		s.executionURL+"/internal/v1/audit/export?"+r.URL.RawQuery, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
 // auditLogs forwards audit log queries to execution /internal/v1/audit/logs.
 func (s *server) auditLogs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -733,6 +770,11 @@ func copyHeaders(dst, src http.Header) {
 	}
 	if v := src.Get("Location"); v != "" {
 		dst.Set("Location", v)
+	}
+	// 导出类响应需要它：否则浏览器拿不到文件名（D8b 实测：缺此条时 CSV 仍能下载，
+	// 但文件名退化为 URL 末段）。
+	if v := src.Get("Content-Disposition"); v != "" {
+		dst.Set("Content-Disposition", v)
 	}
 }
 func writeError(w http.ResponseWriter, status int, code, message string) {

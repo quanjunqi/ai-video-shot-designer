@@ -59,7 +59,8 @@
 | 用户隐私原文（未脱敏的剧本全文/对白） | 合规；需要时记长度与哈希，不记内容 |
 | DSN 中的密码 | 安全；打印连接信息时必须去掉密码段 |
 
-> 已有先例：`services/web-bff/cmd/server/main.go` 对探测请求打印的是 `Bearer <REDACTED>`，请保持该习惯。
+> 已有先例：渠道探测在 `services/execution/internal/probe/probe.go` 打印的是 `Bearer <REDACTED>`，请保持该习惯。
+> （该实现原在 `services/web-bff/cmd/server/main.go`，已按 ADR-008 §9 合流到 execution —— 探测只有一份实现。）
 
 ### 1.5 审计写入失败必须可见（**当前缺陷**）
 

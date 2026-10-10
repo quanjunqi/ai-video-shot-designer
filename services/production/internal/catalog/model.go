@@ -82,6 +82,12 @@ type ProtocolTemplate struct {
 	// 追加式 + omitempty：既有 JSON 消费者不受影响（空值不出现该键）。
 	// 转义责任在模板作者：字符串值原样插入，模板里需要自己写引号（见执行器 RenderRequestTemplate）。
 	RequestTemplate string `json:"requestTemplate,omitempty"`
+	// ADR-008 §3 两类证据并列：
+	//   doc_ref           —— 文档依据（**外部输入**，可能过期或本身有误）
+	//   observed_evidence —— 实测证据（**事实**，冲突时以它为准，且差异必须保留可见）
+	// 两者都是 jsonb；NULL = 尚未对齐文档 / 尚未实测。
+	DocRef           json.RawMessage `json:"docRef,omitempty"`
+	ObservedEvidence json.RawMessage `json:"observedEvidence,omitempty"`
 }
 
 type ProtocolTemplatePatch struct {

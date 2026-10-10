@@ -32,3 +32,16 @@ go test ./...
 ## 当前边界
 
 首版没有签名下载 URL、媒体扫描、病毒检测、转码/缩略图、派生资源、生命周期清理或审核状态机。`GET` 返回的 `status` 是服务端对象初始状态（通常为 `DRAFT`）；前端的用户批准、拒绝、版本和失效日志属于独立领域状态，不能直接互相覆盖。后续应增加签名访问接口和媒体处理任务，再接入 Execution/Task Service。
+
+## 数据库集成测试
+
+不设置 `ASSET_TEST_DATABASE_URL` 时**跳过**。设置后指向一个**专用测试库**（需要建 schema 的权限）：
+每个用例自建随机 schema、就地应用 `migrations/`、结束时清理 —— 因此**不依赖**测试库已被预先应用迁移。
+
+```bash
+ASSET_TEST_DATABASE_URL=postgres://... go test ./internal/asset -run Integration -count=1
+```
+
+覆盖范围：`CreateUpload`（TrimSpace / 默认值 / 空串转 NULL / sha256 CHECK）与 `List`
+（按 workspace 与 project 过滤、按 created_at 倒序、空结果是 `[]` 而非 `null`）。
+`Put` / `Commit` 会连 MinIO，需要对象存储 ⇒ 另议。
