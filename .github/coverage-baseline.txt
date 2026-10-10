@@ -6,6 +6,6 @@
 workspace      15
 production      8
 execution      34
-asset           0
+asset          23
 web-bff        23
 outbox-relay   14
