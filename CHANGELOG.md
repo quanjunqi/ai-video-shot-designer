@@ -14,6 +14,47 @@
 ## [Unreleased]
 
 ### Added
+#### 审计能力（④ 合规留痕 / 成本归因 / 故障定位 / 质量评估）
+
+- **审计覆盖率：失败分支不再留痕缺失**（PR #84 / #88）：审计骨架原先在 `generate()` 的
+  早退守卫**之后**才建立，导致 `EXECUTION_UNAVAILABLE`/`INVALID_BODY`/`MODEL_NOT_FOUND` 等
+  **失败分支完全不写审计**（实测 71 个 jobs 只对应 4 条审计且全停在 `queued`）。
+  现骨架前移，**15 处失败返回中 14 处留痕**（唯一例外 `INVALID_CONTEXT`：那一刻
+  `workspace_id` 取不到，而该列 NOT NULL，写入空串是**数据污染**而非留痕）。
+  真机判据：审计行 4 → 7 → 9，且 `channel_id` 在模型已解析的失败中为**真实渠道**。
+- **异步链终态写回审计**（PR #85）：worker 此前**不持有 auditStore** ⇒ 异步链零审计，
+  而异步任务主要是**视频类长任务（主要付费路径）**。新增 `UpdateResultByJobID`
+  （按 `job_id` 定位，**无需 schema 变更**：任务表无 `request_id`，而审计表已有 `job_id`），
+  在 `executeJob` 的 **11 处**终态与 `failOrRetry` 的 **2 处终态**（重试耗尽/死信）写回；
+  **非终态的"还会重试"分支刻意不写** —— 提前写会把"还在重试"记成"已失败"。
+- **用量落库**（PR #87）：`token_input`/`token_output`/`token_cached` 三列此前**从不写入**
+  （恒 0），而 `quota` 的日/月成本上限比的是 `SUM(cost_amount)` ⇒ **上限永不触发（失效的安全阀）**。
+  真机判据：一次真实文本调用写入 `in=35 out=38`。**金额（`cost_amount`）本片未写**：
+  `capability.billing` 的单位（积分 / CNY）未定，写错币种是数据缺陷。
+- **密钥 L0 脱敏**（PR #89）：脱敏放在 `audit.Store` 的**两个写入口**，任何调用方都不可能忘记
+  （对照：两处 probe 都记得发占位串，但审计 payload 一直是原文）；纯函数 ⇒ `audit` 包
+  **首批单测**锁定"密钥形状必打码 + 脱敏后仍是合法 JSON + 正常内容一字不动"。
+  真机：prompt 内与 `api_key` 字段两处 `<REDACTED>`，JSON 结构完整。
+- **审计查询可筛选、真 `total`、服务端聚合**（PR #90）：此前只有 `limit`/`offset`（表上
+  早有 status/model 索引却无人使用）、`total` 实为**当前页条数**、统计在前端**当前页**上算
+  （翻页即变，是假统计）。现支持 5 个筛选、`total` 用 `COUNT(*) OVER()` 取筛选后总数、
+  `stats` 在筛选后全集上聚合。真机：`limit=2` 时 `items=2` 而 **`total=10`**，与 SQL 直查一致。
+- **前端改用服务端统计 + 状态筛选 + CSV 导出入口**（PR #91 / #95）：并加**源码级护栏测试**
+  断言"不得再对当前页做 filter/reduce"—— 这类缺陷不报错、不崩溃，只能靠不变量守住。
+- **审计导出 CSV**（PR #93）：`GET /api/v1/audit/export`，流式不缓冲，
+  筛选口径与列表**共用同一解析函数**。**刻意不导出 payload 原文**（L1 未定案）。
+  修复中发现并修掉真实缺陷：BFF 的 `copyHeaders` 原先只透传 `Content-Type`/`Location`
+  ⇒ **CSV 能下载、内容也对，但浏览器拿不到文件名**（只验响应体会漏掉 ⇒ 已加响应头断言）。
+- **审计「身份不可变」约束**（PR #92）：表注释写着"不可变追加"，但**无触发器**且代码确有
+  UPDATE（D2 要回填终态）⇒ 不写"绝对不可变"，而是区分：**身份字段永不可改**（含
+  `request_id`/`workspace_id`/`model_id`/`request_payload`/`created_at`…），
+  **完成字段允许回填**（`status`/`response_payload`/`token_*`/`cost_*`…）；
+  `DELETE` 默认拒绝，仅 `SET LOCAL app.allow_audit_purge='on'` 放行（留给保留期清理）。
+  同时把误导性表注释改成**实际约定**。
+- **审计保留期清理**（PR #94）：**默认关闭**（清理是破坏性操作，未显式配置不启动）；
+  两个窗口（成功行 / 非成功行）；**删除本身写一条审计**（`product=system`、`mode=audit_purge`），
+  挂在哨兵 `workspace_id=__system__` 下以免误归因到真实租户。
+
 #### 渠道探测（接入验证）
 
 - **渠道探测合流为一份实现并加上 SSRF 防护**（`refactor(execution)` / PR #71）：

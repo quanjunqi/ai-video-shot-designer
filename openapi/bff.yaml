@@ -898,13 +898,36 @@ paths:
       summary: 查询网关审计日志
       description: |
         仅允许 GET。转发到 execution `GET /internal/v1/audit/logs`，查询串原样透传。
-        上游 `limit` 有效范围 1–200（其它值回退 50），`offset` >= 0（其它值回退 0）。
-        响应中的 `total` 是**当前页条数**（`len(logs)`），不是全量总数。
-        上游错误：`500 AUDIT_QUERY_FAILED`、`503 AUDIT_UNAVAILABLE`。
+        `limit` 有效范围 1–200（其它值回退 50），`offset` >= 0（其它值回退 0）。
+        支持服务端筛选（D7a）：`status` / `model_id` / `channel_id` / `since` / `until`；
+        `since`/`until` 必须是 RFC3339，否则 `400 INVALID_SINCE` / `INVALID_UNTIL`。
+        响应中的 `total` 是**筛选后的全量总数**（`COUNT(*) OVER()` 在同一次查询中得出），
+        前端不得在"当前页"上自行统计成功率 —— 那会让翻页改变"成功率"。
+        上游错误：`400 INVALID_SINCE` / `INVALID_UNTIL`、`500 AUDIT_QUERY_FAILED`、`503 AUDIT_UNAVAILABLE`。
       x-upstream: {service: execution, method: GET, path: '/internal/v1/audit/logs'}
       parameters:
         - $ref: '#/components/parameters/LimitQuery'
         - $ref: '#/components/parameters/OffsetQuery'
+        - name: status
+          in: query
+          schema: {type: string}
+          description: 状态筛选（success / failed / queued / rate_limited …）。空表示不筛。
+        - name: model_id
+          in: query
+          schema: {type: string}
+          description: 模型 ID 精确筛选。空表示不筛。
+        - name: channel_id
+          in: query
+          schema: {type: string}
+          description: 渠道 ID 精确筛选。空表示不筛。
+        - name: since
+          in: query
+          schema: {type: string, format: date-time}
+          description: 起始时间（RFC3339，含）。非法值返回 400 INVALID_SINCE。
+        - name: until
+          in: query
+          schema: {type: string, format: date-time}
+          description: 结束时间（RFC3339，含）。非法值返回 400 INVALID_UNTIL。
       responses:
         '200':
           description: 审计日志分页
@@ -916,6 +939,48 @@ paths:
         '403': {$ref: '#/components/responses/Forbidden'}
         '503': {$ref: '#/components/responses/UpstreamUnavailable'}
 
+  /api/v1/audit/export:
+    get:
+      operationId: exportAuditLogs
+      tags: [审计日志]
+      summary: 导出审计日志（CSV）
+      description: |
+        仅允许 GET。转发到 execution `GET /internal/v1/audit/export`，查询串原样透传，
+        **响应体不缓冲**（流式拷贝）。
+        筛选参数与 `/api/v1/audit/logs` **完全一致**（共用同一解析函数，口径不分叉）。
+        响应 `text/csv; charset=utf-8`，带
+        `Content-Disposition: attachment; filename="audit-export.csv"` 与 `Cache-Control: no-store`。
+
+        **刻意不含 `request_payload` / `response_payload`**：L0（密钥）已在写库前脱敏，
+        但 L1（prompt 与上游响应原文的出入策略）尚未定案；**导出是数据离开系统的边界**，
+        故定案前保守地只导出可机读的元数据与用量/成本。
+      x-upstream: {service: execution, method: GET, path: '/internal/v1/audit/export'}
+      parameters:
+        - name: status
+          in: query
+          schema: {type: string}
+        - name: model_id
+          in: query
+          schema: {type: string}
+        - name: channel_id
+          in: query
+          schema: {type: string}
+        - name: since
+          in: query
+          schema: {type: string, format: date-time}
+        - name: until
+          in: query
+          schema: {type: string, format: date-time}
+      responses:
+        '200':
+          description: CSV 导出
+          content:
+            text/csv:
+              schema: {type: string}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '405': {$ref: '#/components/responses/MethodNotAllowed'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
   /api/v1/channels/{channelId}/probe:
     parameters:
       - $ref: '#/components/parameters/ChannelId'
@@ -2625,9 +2690,26 @@ components:
           items: {$ref: '#/components/schemas/AuditLog'}
         total:
           type: integer
-          description: '当前页条数（上游 len(logs)），不是全量总数。'
+          description: '筛选后的全量总数（COUNT(*) OVER()），不是当前页条数。'
         limit: {type: integer}
         offset: {type: integer}
+        stats:
+          type: object
+          description: |
+            在**筛选后全集**上的统计（D7a）。前端必须用它，不得在"当前页"上自行统计。
+            聚合失败时 `byStatus` 为 null（`success`/`avgLatencyMs` 为 0）—— 契约如实反映这一点。
+          required: [byStatus, success, successRate, avgLatencyMs, aggregateOn]
+          properties:
+            byStatus:
+              type: object
+              nullable: true
+              additionalProperties: {type: integer}
+              description: 各状态计数；上游聚合失败时为 null
+            success: {type: integer}
+            successRate: {type: number, description: 'success / total（服务端算）'}
+            avgLatencyMs: {type: integer}
+            aggregateOn: {type: string, description: '固定为 filtered_total'}
+          additionalProperties: false
       additionalProperties: false
 
     AuditLog:
