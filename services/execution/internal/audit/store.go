@@ -42,6 +42,10 @@ type Store struct{ Pool *pgxpool.Pool }
 
 // Insert 插入一条审计日志（同步写入，不异步丢失）
 func (s Store) Insert(ctx context.Context, log Log) error {
+	// D5a：L0 脱敏在【写库入口】做 —— 唯一收口，任何调用方都不可能忘记。
+	log.RequestPayload = RedactJSON(log.RequestPayload)
+	log.ResponsePayload = RedactJSON(log.ResponsePayload)
+	log.ErrorMessage = redactText(log.ErrorMessage)
 	requestPayload := log.RequestPayload
 	if len(requestPayload) == 0 {
 		requestPayload = json.RawMessage(`{}`)
@@ -94,6 +98,9 @@ func (s Store) UpdateResult(ctx context.Context, requestID string, status string
 // 返回受影响行数：0 表示该 job【没有提交时的审计行】（例如经 /internal/v1/tasks 提交的任务）。
 // 调用方必须把这个 0 打出来 —— 静默的空更新会重现"审计看起来有、其实没更新"的问题。
 func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, providerTaskID string) (int64, error) {
+	// D5a：同一个收口点，异步终态也走 L0 脱敏
+	responsePayload = RedactJSON(responsePayload)
+	errorMessage = redactText(errorMessage)
 	tag, err := s.Pool.Exec(ctx, `
 		UPDATE gateway_audit_logs SET
 			status = $2,
