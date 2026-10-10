@@ -45,7 +45,11 @@ SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
 #     `Error response from daemon: No such container: shotdesigner-postgres-1`
 #   而本地因为容器确实在，看不出差异。典型的"在我机器上能跑"。
 #   现在与 scratch-stack.sh 保持一致：默认**空** ⇒ 直连（CI 的 Postgres service 场景）。
+# ★ 必须 **export**：下面所有 `bash "$SS" ...` 都是【子进程】，
+#   不导出的话子进程看不到这个（可能为空的）值，会用它自己的默认值（容器名）
+#   ⇒ 又回到 docker 模式。本片真实踩到：套件打印"直连"，而 A1 的 setup 输出 docker。
 PG_CONTAINER="${PG_CONTAINER-}"
+export PG_CONTAINER
 PG_USER="${PG_USER:-shotdesigner}"
 PORT="${SCRATCH_PORT:-8095}"
 # 口令：环境变量优先（CI），其次 .env.local。
