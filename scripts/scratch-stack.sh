@@ -17,7 +17,11 @@
 # 环境变量（一般不用改）：
 #   SCRATCH_DB     临时库名，默认 execution_verify
 #   SCRATCH_PORT   实例端口，默认 8095
-#   PG_CONTAINER   PostgreSQL 容器名，默认 shotdesigner-postgres-1
+#   PG_CONTAINER   PostgreSQL 容器名（默认 shotdesigner-postgres-1）
+#                  ★ 设为【空字符串】即切到"直连模式"：用 psql 客户端连
+#                    EXECUTION_DATABASE_URL 所指的服务器（CI 用的是 Postgres service，
+#                    没有 docker 容器）。两种模式共用同一个 SCRATCH_DB 命名与安全断言。
+#   PG_USER        直连/docker 两模式下的数据库用户，默认 shotdesigner
 #   PG_USER        PostgreSQL 用户，默认 shotdesigner
 #   SCRATCH_ENV_FILE  额外环境变量文件（KEY=VALUE 每行一条），启动实例前 source
 #                     例：把 EXECUTION_PRODUCTION_URL 指向死地址以迫使 failOrRetry；
@@ -41,7 +45,22 @@ BIN_DIR="${BIN_DIR:-/tmp/mdp-scratch-bin}"
 LOG="${LOG:-/tmp/scratch-stack.log}"
 
 die() { echo "❌ $*" >&2; exit 1; }
-psql_() { docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" "$@"; }
+# psql_：两种模式（判据：PG_CONTAINER 是否为空）
+#   docker：本地默认，连 compose 起的容器
+#   直连  ：CI 用（Postgres service），连接参数从 EXECUTION_DATABASE_URL 推导
+psql_() {
+  if [ -n "$PG_CONTAINER" ]; then
+    docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" "$@"
+  else
+    local dsn="${EXECUTION_DATABASE_URL:-}"
+    [ -n "$dsn" ] || die "直连模式（PG_CONTAINER 为空）需要 EXECUTION_DATABASE_URL"
+    PGUSER="${PGUSER:-$(printf '%s' "$dsn" | sed -E 's#^postgres://([^:]+):.*#\1#')}" \
+    PGPASSWORD="${PGPASSWORD:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^:]+:([^@]+)@.*#\1#')}" \
+    PGHOST="${PGHOST:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@([^:/]+).*#\1#')}" \
+    PGPORT="${PGPORT:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@[^:]+:([0-9]+).*#\1#')}" \
+      psql "$@"
+  fi
+}
 
 assert_scratch_name() {
   for real in $REAL_DBS; do
@@ -54,10 +73,18 @@ assert_scratch_name() {
 }
 
 dsn_for_scratch() {
+  # 环境变量优先，其次 .env.local（本地约定）—— CI 里没有 .env.local。
+  local saved="${EXECUTION_DATABASE_URL:-}"
   set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
-  [ -n "${EXECUTION_DATABASE_URL:-}" ] || die "EXECUTION_DATABASE_URL 未设置（先 .env.local）"
-  # 只替换库名，其余（用户/口令/主机/参数）沿用真实配置 —— 手拼 DSN 会错（本项目已发生过 SASL 认证失败）
-  printf '%s' "$EXECUTION_DATABASE_URL" | sed -E "s#/execution(\\?|\$)#/$SCRATCH_DB\\1#"
+  if [ -n "$saved" ]; then EXECUTION_DATABASE_URL="$saved"; fi
+  [ -n "${EXECUTION_DATABASE_URL:-}" ] || die "EXECUTION_DATABASE_URL 未设置（导出它，或准备 .env.local）"
+  # 只替换【库名】，其余（用户/口令/主机/参数）沿用真实配置
+  # —— 手拼 DSN 会错（本项目已发生过 SASL 认证失败）。
+  # 用"按最后一个 / 切分"而不是正则匹配 /execution：CI 的 service 库名是 postgres，
+  # 将来也可能换名；正则匹配一旦不中，就会静默连到错误的库（比报错更危险）。
+  local base="$EXECUTION_DATABASE_URL" qs=""
+  case "$base" in *\?*) qs="?${base#*\?}"; base="${base%%\?*}" ;; esac
+  printf '%s/%s%s' "${base%/*}" "$SCRATCH_DB" "$qs"
 }
 
 cmd_up() {
@@ -89,7 +116,10 @@ cmd_up() {
   local old; old="$(lsof -ti ":$port" 2>/dev/null | head -1)"
   [ -n "$old" ] && { kill "$old"; sleep 2; echo "   已停旧实例 PID=$old"; }
 
+  local saved_dsn="${EXECUTION_DATABASE_URL:-}" saved_tok="${EXECUTION_INTERNAL_TOKEN:-}"
   set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  [ -n "$saved_dsn" ] && EXECUTION_DATABASE_URL="$saved_dsn"
+  [ -n "$saved_tok" ] && EXECUTION_INTERNAL_TOKEN="$saved_tok"
   if [ -n "${SCRATCH_ENV_FILE:-}" ]; then
     [ -f "$SCRATCH_ENV_FILE" ] || die "SCRATCH_ENV_FILE=$SCRATCH_ENV_FILE 不存在"
     set -a; . "$SCRATCH_ENV_FILE"; set +a
@@ -143,12 +173,14 @@ cmd_down() {
 case "${1:-}" in
   up)     shift; cmd_up "${1:-execution}" "${2:-$SCRATCH_PORT}" ;;
   sql)    shift; cmd_sql "${1:-}" ;;
+  psql)   shift; psql_ -d "$SCRATCH_DB" "$@" ;;
   status) cmd_status ;;
   down)   cmd_down ;;
   *) cat <<EOF
 用法：
   $0 up [service] [port]      建一次性库（跑该服务全部迁移）并起实例
   $0 sql "<SQL>"              在一次性库上执行 SQL
+  $0 psql [psql 参数]         在当前模式下对一次性库执行 psql（默认库 ${SCRATCH_DB}）
   $0 status                   打印库与实例状态
   $0 down                     停实例并删库（幂等）
 环境：SCRATCH_DB=$SCRATCH_DB SCRATCH_PORT=$SCRATCH_PORT PG_CONTAINER=$PG_CONTAINER

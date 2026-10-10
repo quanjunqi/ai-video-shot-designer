@@ -34,13 +34,19 @@ SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
 PG_CONTAINER="${PG_CONTAINER:-shotdesigner-postgres-1}"
 PG_USER="${PG_USER:-shotdesigner}"
 PORT="${SCRATCH_PORT:-8095}"
-TOKEN="$(grep -E '^EXECUTION_INTERNAL_TOKEN=' "$ROOT/.env.local" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'"'[:space:]')"
+# 口令：环境变量优先（CI），其次 .env.local。
+TOKEN="${EXECUTION_INTERNAL_TOKEN:-}"
+if [ -z "$TOKEN" ]; then
+  TOKEN="$(grep -E '^EXECUTION_INTERNAL_TOKEN=' "$ROOT/.env.local" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'"'[:space:]')"
+fi
 
 PASS=0; FAIL=0
 ok()   { printf '   ✅ %s\n' "$1"; PASS=$((PASS+1)); }
 bad()  { printf '   ❌ %s\n' "$1"; FAIL=$((FAIL+1)); }
-q()    { docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$SCRATCH_DB" -tA -c "$1" 2>/dev/null | tr -d ' '; }
-qfile(){ docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$SCRATCH_DB" -q -f - >/dev/null 2>&1; }
+# ★ 连接方式（docker / 直连 CI service）由 scratch-stack.sh 统一决定，
+#   本套件不自己拼连接 —— 否则"两套口径"迟早分叉（本项目已多次踩到）。
+q()    { bash "$SS" psql -tA -c "$1" 2>/dev/null | tr -d ' '; }
+qfile(){ bash "$SS" psql -q -f - >/dev/null 2>&1; }
 waitfor() { # $1=SQL(期望返回非空/non-zero) $2=秒数 $3=说明
   local i; for i in $(seq 1 "$2"); do sleep 1; [ "$(q "$1")" != "0" ] && [ -n "$(q "$1")" ] && return 0; done; return 1
 }
@@ -100,10 +106,10 @@ waitfor "SELECT count(*) FROM gateway_audit_logs WHERE job_id='job_v_terminal' A
   || bad "V1 审计行仍停在 queued"
 
 # V2：身份不可变 + 完成字段可回填
-out="$(docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$SCRATCH_DB" -tA -c "UPDATE gateway_audit_logs SET request_id='rewritten' WHERE job_id='job_v_terminal';" 2>&1)"
+out="$(bash "$SS" psql -tA -c "UPDATE gateway_audit_logs SET request_id='rewritten' WHERE job_id='job_v_terminal';" 2>&1)"
 printf '%s' "$out" | grep -q "identity columns are immutable" \
   && ok "V2a 改身份字段(request_id) 被触发器拒绝" || bad "V2a 身份字段竟可改：$out"
-out2="$(docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$SCRATCH_DB" -tA -c "UPDATE gateway_audit_logs SET status='success' WHERE job_id='job_v_terminal';" 2>&1)"
+out2="$(bash "$SS" psql -tA -c "UPDATE gateway_audit_logs SET status='success' WHERE job_id='job_v_terminal';" 2>&1)"
 printf '%s' "$out2" | grep -q "UPDATE 1" \
   && ok "V2b 回填完成字段(status) 成功" || bad "V2b 完成字段无法回填：$out2"
 
