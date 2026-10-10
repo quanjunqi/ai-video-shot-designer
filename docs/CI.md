@@ -69,6 +69,7 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 | 明明没改后端，却跑了后端 | 改动命中了 `.github/**`、`deploy/**` 或判定退化到全量；看 `Detect Changes` 的 `reason` 输出 |
 | 判定结果不对 | 用 `--from-stdin` 本地复现：`printf 'services/asset/a.go\n' \| bash .github/scripts/detect-changes.sh --from-stdin` |
 | shell 步骤报 unbound variable | `$var` 紧跟了非 ASCII 字符（bash 会并入变量名）—— 改用 `${var}`；CI 已有专门检查 |
+| 步骤报 `working directory ... No such file or directory` | 该 job 设了 `defaults.run.working-directory`，而某个 `run` 步骤在 **Checkout 之前**执行 —— 那时工作目录还不存在。给该步骤显式加 `working-directory: .`（本仓库已真实踩过：frontend job 的判定断言步骤） |
 
 ## 相关文档
 

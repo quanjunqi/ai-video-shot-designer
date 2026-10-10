@@ -59,7 +59,11 @@ jobs:
 
     steps:
       # fail-closed：变更检测异常时**不得**静默跳过，否则就是「假绿」
+      # 注意：必须显式指定 working-directory，否则会继承本 job 的
+      # defaults.run.working-directory（apps/web）—— 而本步骤在 Checkout **之前**执行，
+      # 那时 apps/web 还不存在，会导致步骤无法启动（已真实发生过）。
       - name: Assert change detection succeeded
+        working-directory: .
         env:
           REASON: ${{ needs.changes.outputs.reason }}
         run: |
