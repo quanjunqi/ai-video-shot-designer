@@ -43,6 +43,11 @@ import {
 import { useCreateControls } from '@/hooks/useCreateControls';
 import { GENERATION_MODE_LABEL, type ControlDef, type CreateKind } from '@/config/create/control-schema';
 import { useAssetStore } from '@/stores/useAssetStore';
+import { useLensStore } from '@/stores/useLensStore';
+import { useStyleStore } from '@/stores/useStyleStore';
+import {
+  isFragmentApplied, lensFragment, styleFragment, toggleFragment,
+} from '@/features/genworkbench/prompt-presets';
 import { useShallow } from 'zustand/react/shallow';
 import { placeholderUrl } from '@/lib/placeholder';
 import { parseMentions, type LocalRef } from '@/lib/mentions';
@@ -113,6 +118,10 @@ export default function CreateWorkbench({
   const { schema, model, values, submitValues, setValue, issueFor, canSubmit, cost, catalogSource, models, draftRestored } = controls;
 
   const assets = useAssetStore(useShallow((s) => s.assets));
+  // 预设来源：风格库（用户可管理，仅取启用项）与镜头语言库
+  const styles = useStyleStore(useShallow((s) => s.styles.filter((item) => item.enabled)));
+  const lensItems = useLensStore(useShallow((s) => s.items));
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const [refs, setRefs] = useState<RefItem[]>([]);
   const [jobs, setJobs] = useState<ServerTask[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
@@ -314,6 +323,9 @@ export default function CreateWorkbench({
   };
 
   const sourceNote = CATALOG_SOURCE_NOTE[catalogSource] ?? CATALOG_SOURCE_NOTE.demo;
+  // 风格对图片/视频都有意义；镜头语言是视频工作台的专属（ADR-006 D7）
+  const showStylePresets = kind === 'image' || kind === 'video';
+  const showLensPresets = kind === 'video';
   const advancedControls: ControlDef[] = schema.controls.filter((c) => c.key === 'negative' || c.key === 'quality');
   const inlineControls: ControlDef[] = schema.controls.filter((c) => c.key !== 'prompt' && !advancedControls.includes(c));
   const promptIssue = issueFor('prompt');
@@ -433,6 +445,86 @@ export default function CreateWorkbench({
             />
             {promptIssue && <p className="text-[10px] text-destructive">{promptIssue}</p>}
           </div>
+
+          {/* 预设：平台独有资产（风格库 / 镜头语言库）→ 提示词片段。
+              单向追加、再点即移除；chip 高亮由「提示词里是否已含该片段」派生，
+              因此永远与用户手改后的文本一致（ADR-006 D7）。 */}
+          {(showStylePresets || showLensPresets) && (
+            <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
+              <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground">
+                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', presetsOpen && 'rotate-180')} />
+                预设
+                <span className="ml-1 font-mono text-[10px]">
+                  {showStylePresets ? `风格 ${styles.length}` : ''}
+                  {showStylePresets && showLensPresets ? ' · ' : ''}
+                  {showLensPresets ? `镜头 ${lensItems.length}` : ''}
+                </span>
+                <span className="ml-auto text-[10px]">点选即并入提示词，再点移除</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                {showStylePresets && (
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-muted-foreground">风格</div>
+                    <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto">
+                      {styles.length === 0 ? (
+                        <span className="text-[10px] text-muted-foreground">
+                          风格库为空，可在「镜头语言/风格库」页添加
+                        </span>
+                      ) : (
+                        styles.map((style) => {
+                          const fragment = styleFragment(style);
+                          const applied = isFragmentApplied(promptText, fragment);
+                          return (
+                            <button
+                              key={style.id}
+                              type="button"
+                              title={fragment}
+                              onClick={() => setValue('prompt', toggleFragment(promptText, fragment).prompt)}
+                              className={cn(
+                                'rounded-full border px-2 py-0.5 text-[10px] transition',
+                                applied
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                              )}
+                            >
+                              {style.name}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+                {showLensPresets && (
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-muted-foreground">镜头语言</div>
+                    <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto">
+                      {lensItems.map((item) => {
+                        const fragment = lensFragment(item);
+                        const applied = isFragmentApplied(promptText, fragment);
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            title={`${item.shotParams}｜${item.usage}`}
+                            onClick={() => setValue('prompt', toggleFragment(promptText, fragment).prompt)}
+                            className={cn(
+                              'rounded-full border px-2 py-0.5 text-[10px] transition',
+                              applied
+                                ? 'border-sky-500 bg-sky-500/10 text-sky-600 dark:text-sky-400'
+                                : 'border-border text-muted-foreground hover:border-sky-500/40 hover:text-foreground',
+                            )}
+                          >
+                            {item.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {/* 常显参数：最高频的 3 个以内 */}
           {inlineControls.map((control) => (
