@@ -69,32 +69,19 @@ bad()  { printf '   ❌ %s\n' "$*"; FAILED+=("$*"); }
 warn() { printf '   ⚠️  %s\n' "$*"; }
 
 # ---- 门 0：脚本自检（`$VAR` 后紧跟非 ASCII ⇒ bash 会把多字节字符当成变量名的一部分）----
-# 为什么（本项目真实事故，两次，跨两个脚本）：
+# 规则实现见 scripts/check-shell-vars.sh —— **单一实现**：提交时（.husky/pre-commit）
+# 与预检时都用它，避免"规则写在两处、迟早分叉"。
+# 为什么必须有这道门（本项目三次真实事故）：
 #   scratch-stack.sh 的 `echo "…（端口 ${port}）…"` ⇒ `port）: unbound variable`；
-#   preflight.sh 的 `warn "…${dsn_var}】⇒ …"` ⇒ `dsn_var】: unbound variable`
-#   —— 后者在 set -u 下【直接中止脚本】，而管道里的 grep 掩盖了退出码，
-#   于是那一次预检"看起来跑过了"，其实只跑了一半。
-# ⇒ 规则靠记忆必然复发（已两次），故做成每次预检都执行的检查。
-SHELL_VAR_BUG=0
-for f in scripts/*.sh .husky/*; do
-  [ -f "$f" ] || continue
-  hits="$(python3 - "$f" <<'PYEOF'
-import re,sys
-raw=open(sys.argv[1],'rb').read()
-out=[]
-for m in re.finditer(rb'\$[A-Za-z_][A-Za-z0-9_]*', raw):
-    if m.end()<len(raw) and raw[m.end()]>127:
-        out.append(f'{raw[:m.start()].count(chr(10).encode())+1}:{m.group().decode()}')
-print('\n'.join(out))
-PYEOF
-)"
-  if [ -n "$hits" ]; then
-    bad "$f 存在 \${VAR} 紧跟非 ASCII（bash 会误认为变量名的一部分）"
-    printf '%s\n' "$hits" | sed 's/^/      /'
-    SHELL_VAR_BUG=1
-  fi
-done
-if [ "$SHELL_VAR_BUG" = "0" ]; then ok "脚本自检（\${VAR} 与非 ASCII 相邻）"; fi
+#   preflight.sh 的 `warn "…${dsn_var}】⇒ …"` ⇒ 在 set -u 下【直接中止脚本】，
+#   而管道里的 grep 掩盖了退出码 ⇒ 那次预检"看起来跑过了"，其实只跑了一半。
+if bash "$ROOT/scripts/check-shell-vars.sh"; then
+  ok "脚本自检（\${VAR} 与非 ASCII 相邻）"
+else
+  rc=$?
+  [ "$rc" = "2" ] && bad "脚本自检【未验证】（缺 python3）—— 不等于通过" \
+                  || bad "脚本自检（\${VAR} 与非 ASCII 相邻）"
+fi
 
 # ---- 选定要检查的服务与前端 ----
 FRONTEND=1

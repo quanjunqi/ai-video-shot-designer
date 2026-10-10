@@ -31,9 +31,14 @@ fi
 
 want_frontend=0
 go_list=""
+shell_list=""
 for f in $STAGED; do
   case "$f" in apps/web/*) want_frontend=1 ;; esac
   case "$f" in *.go) go_list="$go_list$f
+" ;; esac
+  # 脚本改动也要过一道门：本项目三次因 `$VAR` 紧跟非 ASCII 出事，
+  # 而此前改脚本时**本地没有任何门**（门 0 只存在于 preflight.sh）—— 已真实撞到。
+  case "$f" in scripts/*.sh|.husky/*) shell_list="$shell_list$f
 " ;; esac
 done
 
@@ -56,6 +61,15 @@ if [ -n "$go_list" ]; then
   fi
 fi
 
+if [ -n "$shell_list" ]; then
+  echo "[pre-commit] 脚本自检（\${VAR} 与非 ASCII 相邻）…"
+  if ( cd "$ROOT" && printf '%s' "$shell_list" | tr '\n' ' ' | xargs bash "$ROOT/scripts/check-shell-vars.sh" ); then
+    echo "[pre-commit] ✓ 脚本自检通过"
+  else
+    status=1
+  fi
+fi
+
 if [ "$want_frontend" = "1" ]; then
   if [ ! -d "$ROOT/apps/web/node_modules" ]; then
     echo "[pre-commit] ✗ 暂存里有 apps/web 改动，但 apps/web/node_modules 不存在。"
@@ -69,8 +83,8 @@ if [ "$want_frontend" = "1" ]; then
   fi
 fi
 
-if [ -z "$go_list" ] && [ "$want_frontend" = "0" ]; then
-  echo "[pre-commit] 暂存内容不涉及 Go 或 apps/web，跳过门禁"
+if [ -z "$go_list" ] && [ "$want_frontend" = "0" ] && [ -z "$shell_list" ]; then
+  echo "[pre-commit] 暂存内容不涉及 Go / apps/web / 脚本，跳过门禁"
 fi
 
 if [ "$status" != "0" ]; then
