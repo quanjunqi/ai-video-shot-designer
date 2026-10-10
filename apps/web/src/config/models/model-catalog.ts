@@ -82,7 +82,7 @@ export interface ProtocolAsync {
   statusField: string; // 轮询响应中状态字段（如 status）
   doneValue: string; // 完成判定值（如 SUCCESS / completed / succeeded）
   failValue: string; // 失败判定值（如 FAILED / failed / error）
-  pollPath?: string; // 轮询路径模板，{task_id} 会被替换为实际任务 ID（如 /v1/images/tasks/{task_id}）；未声明时执行器按提交端点兜底轮询
+  pollPath?: string; // 轮询路径模板，必须含 {task_id} 占位符（执行器用 ReplaceAll 替换）。未声明时执行器会退化到**硬编码**默认值 /v1/images/tasks/{task_id}（并非按提交端点推导）—— 对多数渠道是错的，务必显式声明
 }
 
 /** 模型协议模板：平台预置的请求协议描述（端点/方法/请求参数/响应映射），
@@ -205,7 +205,7 @@ export const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [
       { key: 'status', type: 'string', value: '任务状态（轮询判断完成/失败）' },
       { key: 'data.0.url', type: 'string', value: '视频地址' },
     ],
-    async: { enabled: true, taskIdField: 'task_id', statusField: 'status', doneValue: 'SUCCESS', failValue: 'FAILED' },
+    async: { enabled: true, taskIdField: 'task_id', statusField: 'status', doneValue: 'SUCCESS', failValue: 'FAILED', pollPath: '' },
   },
   {
     id: 'grsai-forward',
