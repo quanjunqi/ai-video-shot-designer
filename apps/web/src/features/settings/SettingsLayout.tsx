@@ -1,7 +1,7 @@
 // EXPORTS: default SettingsLayout
 // 设置台二级导航布局（3.4）
 import { NavLink, Outlet } from 'react-router-dom';
-import { Cable, Boxes, SlidersHorizontal, Layers, ScrollText } from 'lucide-react';
+import { Cable, Boxes, SlidersHorizontal, Layers, ScrollText, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -10,6 +10,8 @@ const NAV = [
   { key: 'models', label: '模型配置', path: '/settings/models', icon: Boxes },
   { key: 'audit', label: '调用审计', path: '/settings/audit', icon: ScrollText },
   { key: 'preferences', label: '通用设置', path: '/settings/preferences', icon: SlidersHorizontal },
+  // 逻辑模型管理（追加项：仅新增，不重排既有导航）
+  { key: 'logical-models', label: '逻辑模型管理', path: '/settings/logical-models', icon: Route },
 ];
 
 export default function SettingsLayout() {
