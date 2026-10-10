@@ -188,8 +188,11 @@ func TestProtocolDefinitionsMatchMigrations(t *testing.T) {
 				`{"key":"file_id","type":"string","value":"成品文件 ID"}]`,
 			// 008 原样 + 029 补 pollPath（GET /v1/query/video_generation?task_id=<id>
 			// 实测 200+base_resp.status_code=1004 鉴权失败签名，同前缀近邻路径 404 ⇒ 路由存在）。
-			// 注意 doneValue/failValue 与即梦不同（Success/Failed），不得统一。
-			async:        `{"enabled":true,"taskIdField":"task_id","statusField":"status","doneValue":"Success","failValue":"Failed","pollPath":"/v1/query/video_generation?task_id={task_id}"}`,
+			// 030：doneValue/failValue 改为 MiniMax 官方顶层 status 枚举的确切值
+			// completed / failed（008 写的 Success/Failed 与枚举都不相等，成功与失败都检测不到，
+			// 必然空转到 6 分钟超时）。执行器按逗号分隔 + 大小写不敏感匹配，queued/in_progress
+			// 是有意的「继续轮询」态。
+			async:        `{"enabled":true,"taskIdField":"task_id","statusField":"status","doneValue":"completed","failValue":"failed","pollPath":"/v1/query/video_generation?task_id={task_id}"}`,
 			capabilities: `{}`,
 			version:      1,
 		},
@@ -308,7 +311,9 @@ func TestProtocolDefinitionsAsyncConsistency(t *testing.T) {
 		if !def.Async.Enabled {
 			continue
 		}
-		// enabled=true ⇒ taskIdField/statusField/doneValue 非空，pollPath 必须含 {task_id} 占位符。
+		// enabled=true ⇒ taskIdField/statusField/doneValue/failValue 非空，pollPath 必须含
+		// {task_id} 占位符。failValue 与 doneValue 同等重要：它决定失败态能否被识别
+		// （识别不了就会空转到超时，并使重试机制失效）。
 		if strings.TrimSpace(def.Async.TaskIDField) == "" {
 			got = append(got, def.ID+": taskIdField 为空")
 		}
@@ -317,6 +322,9 @@ func TestProtocolDefinitionsAsyncConsistency(t *testing.T) {
 		}
 		if strings.TrimSpace(def.Async.DoneValue) == "" {
 			got = append(got, def.ID+": doneValue 为空")
+		}
+		if strings.TrimSpace(def.Async.FailValue) == "" {
+			got = append(got, def.ID+": failValue 为空")
 		}
 		switch {
 		case strings.TrimSpace(def.Async.PollPath) == "":

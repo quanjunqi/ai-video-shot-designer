@@ -164,7 +164,8 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 		t.Errorf("pt_builtin_jimeng_video async:\n got: %+v\nwant: %+v", jimeng, wantJimeng)
 	}
 
-	// 断言 ③：MiniMax 视频 —— 同样只增 pollPath，doneValue/failValue 保持 Success/Failed。
+	// 断言 ③：MiniMax 视频 —— 同样只增 pollPath；doneValue/failValue 由迁移 030 改为
+	// MiniMax 官方顶层 status 枚举的确切值 completed / failed（见下方 030 用例）。
 	minimax, ok := loadAsync(t, "pt_builtin_minimax_video")
 	if !ok {
 		t.Error("pt_builtin_minimax_video: async 缺 pollPath（迁移 029 未生效）")
@@ -173,8 +174,8 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 		Enabled:     true,
 		TaskIDField: "task_id",
 		StatusField: "status",
-		DoneValue:   "Success",
-		FailValue:   "Failed",
+		DoneValue:   "completed",
+		FailValue:   "failed",
 		PollPath:    "/v1/query/video_generation?task_id={task_id}",
 	}
 	if !reflect.DeepEqual(minimax, wantMinimax) {
@@ -202,5 +203,97 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 	wantWithPollPath := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video"}
 	if !reflect.DeepEqual(withPollPath, wantWithPollPath) {
 		t.Errorf("带 pollPath 的模板集合:\n got: %v\nwant: %v", withPollPath, wantWithPollPath)
+	}
+}
+
+// TestPostgresProtocolTemplateAsyncTerminalValues 锁定迁移 030 的数据契约。
+//
+// 全量迁移应用到一个全新库后断言：
+//  1. pt_builtin_minimax_video 的 async->>'doneValue' / ->>'failValue' 是 MiniMax 官方
+//     顶层 status 枚举的确切值 completed / failed（迁移 008 写的 Success/Failed 与枚举
+//     都不相等 ⇒ 成功与失败都检测不到，必然空转到超时）；执行器 matchesTerminalValue
+//     按逗号分隔 + 大小写不敏感匹配，queued/in_progress 是有意的「继续轮询」态。
+//  2. jsonb_set 只覆盖这两个键：该行 async 仍是 6 个字段（一个都没丢），pollPath 未被破坏。
+//  3. 全表带 failValue 的行恰好是这两个异步模板；其余 6 个内置模板 async 仍为 '{}'
+//     —— 即「只改了该改的」。
+//
+// 未设置 PRODUCTION_TEST_DATABASE_URL 时跳过（与既有集成测试一致）。
+func TestPostgresProtocolTemplateAsyncTerminalValues(t *testing.T) {
+	store := testPostgresStore(t)
+	ctx := context.Background()
+
+	// 断言 ①②：只改 doneValue/failValue 两个键，字段数与其它字段不变。
+	var failValue, doneValue, pollPath string
+	var keyCount int
+	if err := store.Pool.QueryRow(ctx,
+		`SELECT async->>'failValue', async->>'doneValue', coalesce(async->>'pollPath', ''),
+		        (SELECT count(*) FROM jsonb_object_keys(async))
+		   FROM protocol_templates WHERE id = 'pt_builtin_minimax_video'`).
+		Scan(&failValue, &doneValue, &pollPath, &keyCount); err != nil {
+		t.Fatalf("load pt_builtin_minimax_video async: %v", err)
+	}
+	if doneValue != "completed" {
+		t.Errorf("minimax doneValue = %q, want %q（官方 status 枚举；迁移 030 未生效）", doneValue, "completed")
+	}
+	if failValue != "failed" {
+		t.Errorf("minimax failValue = %q, want %q（官方 status 枚举；迁移 030 未生效）", failValue, "failed")
+	}
+	if keyCount != 6 {
+		t.Errorf("minimax async 字段数 = %d, want 6（jsonb_set 只改两个键，不得丢字段）", keyCount)
+	}
+	if pollPath != "/v1/query/video_generation?task_id={task_id}" {
+		t.Errorf("minimax pollPath = %q, 被 030 破坏", pollPath)
+	}
+
+	// 断言 ③：带 failValue 的行恰好是这两个异步模板；其余 6 个内置模板 async 仍为 '{}'。
+	rows, err := store.Pool.Query(ctx,
+		`SELECT id FROM protocol_templates WHERE jsonb_exists(async, 'failValue') ORDER BY id`)
+	if err != nil {
+		t.Fatalf("query rows with failValue: %v", err)
+	}
+	defer rows.Close()
+	var withFailValue []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("scan id: %v", err)
+		}
+		withFailValue = append(withFailValue, id)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate rows: %v", err)
+	}
+	wantWithFailValue := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video"}
+	if !reflect.DeepEqual(withFailValue, wantWithFailValue) {
+		t.Errorf("带 failValue 的模板集合:\n got: %v\nwant: %v", withFailValue, wantWithFailValue)
+	}
+
+	emptyRows, err := store.Pool.Query(ctx,
+		`SELECT id FROM protocol_templates WHERE async = '{}'::jsonb ORDER BY id`)
+	if err != nil {
+		t.Fatalf("query rows with empty async: %v", err)
+	}
+	defer emptyRows.Close()
+	var emptyAsync []string
+	for emptyRows.Next() {
+		var id string
+		if err := emptyRows.Scan(&id); err != nil {
+			t.Fatalf("scan id: %v", err)
+		}
+		emptyAsync = append(emptyAsync, id)
+	}
+	if err := emptyRows.Err(); err != nil {
+		t.Fatalf("iterate rows: %v", err)
+	}
+	wantEmptyAsync := []string{
+		"pt_builtin_comfyui",
+		"pt_builtin_grsai",
+		"pt_builtin_jimeng_image",
+		"pt_builtin_minimax_text",
+		"pt_builtin_openai",
+		"pt_builtin_openai_img",
+	}
+	if !reflect.DeepEqual(emptyAsync, wantEmptyAsync) {
+		t.Errorf("async 仍为 {} 的模板集合:\n got: %v\nwant: %v", emptyAsync, wantEmptyAsync)
 	}
 }
