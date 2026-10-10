@@ -198,6 +198,47 @@ func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, f Filter
 	return logs, total, rows.Err()
 }
 
+// ExportAll 返回筛选后的审计行（导出用），最多 maxRows 行。
+//
+// 为什么单独一个方法而不是复用 ListByWorkspace：
+//
+//	导出的语义是"给我筛选后的这一批"，不是"第 N 页"；用同一个方法会让
+//	limit/offset 的分页语义混进导出，容易误用（例如 offset 被当成"跳过多少行再导出"）。
+//	maxRows 是防爆护栏：导出必须有上界，否则一次请求就能把整表拉进内存。
+func (s Store) ExportAll(ctx context.Context, workspaceID string, f Filter, maxRows int) ([]Log, error) {
+	rows, err := s.Pool.Query(ctx, `
+		SELECT id, request_id, workspace_id, project_id, episode_id, asset_id, user_id,
+			product, model_id, channel_id, provider_model, mode,
+			request_payload, response_payload, error_message, status,
+			latency_ms, token_input, token_output, token_cached,
+			cost_amount, cost_currency, job_id, provider_task_id, created_at
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1`+f.whereClause()+`
+		ORDER BY created_at DESC
+		LIMIT $7
+	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, maxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []Log
+	for rows.Next() {
+		var l Log
+		if err := rows.Scan(
+			&l.ID, &l.RequestID, &l.WorkspaceID, &l.ProjectID, &l.EpisodeID, &l.AssetID, &l.UserID,
+			&l.Product, &l.ModelID, &l.ChannelID, &l.ProviderModel, &l.Mode,
+			&l.RequestPayload, &l.ResponsePayload, &l.ErrorMessage, &l.Status,
+			&l.LatencyMs, &l.TokenInput, &l.TokenOutput, &l.TokenCached,
+			&l.CostAmount, &l.CostCurrency, &l.JobID, &l.ProviderTaskID, &l.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, rows.Err()
+}
+
 // Aggregate 返回【筛选后全集】的按状态计数与平均耗时（D7a）。
 //
 // 为什么要服务端算：前端此前在【当前页】（limit:100）上算成功率与平均耗时
