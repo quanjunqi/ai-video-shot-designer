@@ -6,8 +6,12 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"shotdesigner/services/execution/internal/netguard"
 )
 
 const testAPIKey = "test-key"
@@ -354,5 +358,66 @@ func TestExtractTaskID(t *testing.T) {
 				t.Fatalf("extractTaskID = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// TestSubmit_SSRFGuardBlocksLoopbackUpstream 证明 SSRF 防护作用于**真实调用路径**：
+// 渠道凭据里的 base_url 指向环回地址时，请求在建立连接之前被拦下，
+// 上游（用 httptest 模拟内网服务）**根本收不到请求**。
+//
+// 这比只测 netguard.CheckIP 更有价值：它证明防护确实挂在了引擎的出站 client 上，
+// 而不是一个没人调用的工具函数。
+func TestSubmit_SSRFGuardBlocksLoopbackUpstream(t *testing.T) {
+	var hits int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"leaked"}}]}`))
+	}))
+	defer srv.Close()
+
+	execReq := ExecutorRequest{
+		ProviderModel: "provider-model-1",
+		Input:         map[string]any{"prompt": "x"},
+		ProtocolTemplate: Template{
+			Label:       "ssrf-probe",
+			Method:      http.MethodPost,
+			RequestPath: "/v1/chat/completions",
+			Params: []Param{
+				{Key: "model", Role: "model"},
+				{Key: "prompt", Role: "runtime"},
+			},
+			ResponseParams: []Param{{Key: "choices.0.message.content", Type: "string"}},
+		},
+	}
+	cfg := ExecutorConfig{
+		Type:        ExecutorTypeAPI,
+		Credentials: Credentials{BaseURL: srv.URL, AuthType: "bearer", APIKey: testAPIKey},
+	}
+
+	// ① 默认策略（拒绝私网/环回）：必须被拦下，且上游零命中
+	cfg.HTTPClient = netguard.Policy{}.NewClient(5 * time.Second)
+	if _, err := NewAPIConnector(cfg).Submit(context.Background(), execReq); err == nil {
+		t.Fatal("默认策略下对环回上游的调用应被拒绝，但成功了")
+	} else if !strings.Contains(err.Error(), "netguard") {
+		t.Fatalf("错误应来自 netguard，实际: %v", err)
+	}
+	if n := atomic.LoadInt32(&hits); n != 0 {
+		t.Fatalf("上游不应被访问，但命中了 %d 次", n)
+	}
+
+	// ② 显式放开私网（本地开发场景）：同一调用必须成功 —— 证明防护不误伤本地 provider
+	cfg.HTTPClient = netguard.Policy{AllowPrivate: true}.NewClient(5 * time.Second)
+	res, err := NewAPIConnector(cfg).Submit(context.Background(), execReq)
+	if err != nil {
+		t.Fatalf("AllowPrivate 下应成功，实际: %v", err)
+	}
+	if res.Status != TaskStatusSucceeded {
+		t.Fatalf("status = %v, want succeeded", res.Status)
+	}
+	if got := res.Extracted["choices.0.message.content"]; got != "leaked" {
+		t.Fatalf("提取结果异常: %v", got)
+	}
+	if n := atomic.LoadInt32(&hits); n != 1 {
+		t.Fatalf("上游应被访问 1 次，实际 %d 次", n)
 	}
 }
