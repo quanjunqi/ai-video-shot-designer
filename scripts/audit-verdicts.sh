@@ -104,10 +104,17 @@ fi
   && ok "V3b 【关键】还在重试 ⇒ 审计【刻意不写】终态（保持 queued）" \
   || bad "V3b 还在重试却写了终态：'${retry_audit}'"
 if [ "$retry_status" != "queued" ] || [ "$retry_audit" != "queued" ]; then
-  echo "   —— 诊断（判据：库与 worker 日志原文）——"
-  q "SELECT id||' attempt='||attempt||'/'||max_attempts||' status='||status FROM jobs WHERE id LIKE 'job_v_%' ORDER BY id" | sed 's/^/      /'
-  echo "      job_attempts: $(q "SELECT COALESCE(string_agg(attempt||':'||status, ' ' ORDER BY attempt), '(无)') FROM job_attempts WHERE job_id='job_v_retry'")"
-  grep -E "job_v_retry" /tmp/scratch-stack.log | tail -6 | sed 's/^/      /'
+  echo "   —— 诊断（判据：库与 worker 日志原文；以下每一步都不允许中断诊断）——"
+  echo "      [1] 任务行："
+  q "SELECT id||' attempt='||attempt||'/'||max_attempts||' status='||status FROM jobs WHERE id LIKE 'job_v_%' ORDER BY id" | sed 's/^/         /' || true
+  echo "      [2] 审计行（★ error_message 是判定走了哪条分支的关键）："
+  q "SELECT job_id||' status='||status||' err='||COALESCE(NULLIF(error_message,''),'(空)') FROM gateway_audit_logs WHERE job_id LIKE 'job_v_%' ORDER BY job_id" | sed 's/^/         /' || true
+  echo "      [3] job_attempts："
+  q "SELECT COALESCE(string_agg(attempt||':'||status, ' ' ORDER BY attempt), '(无行)') FROM job_attempts WHERE job_id='job_v_retry'" | sed 's/^/         /' || true
+  echo "      [4] worker 日志尾部（未过滤，原文）："
+  tail -15 /tmp/scratch-stack.log 2>&1 | sed 's/^/         /' || true
+  echo "      [5] 实例启动时的配置相关行："
+  head -12 /tmp/scratch-stack.log 2>&1 | sed 's/^/         /' || true
 fi
 bash "$SS" down >/dev/null 2>&1
 
