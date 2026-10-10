@@ -20,7 +20,8 @@
 # 用法：
 #   scripts/preflight.sh                 全部后端服务 + 前端
 #   scripts/preflight.sh execution d6    只跑指定服务（可多个）
-#   scripts/preflight.sh --changed       只跑相对 origin/develop 改动过的部分（模拟 CI 的 Relevance）
+#   scripts/preflight.sh --changed       只跑改动过的部分（模拟 CI 的 Relevance）；
+#                                        ★ 计入【工作区】：已提交 + 已暂存 + 未暂存 + 未跟踪
 #   PREFLIGHT_BASE=origin/master scripts/preflight.sh --changed   改基线
 #   PREFLIGHT_ENV_FILE=/dev/null scripts/preflight.sh              不用 .env.local（测"无测试库"分支）
 #
@@ -99,12 +100,30 @@ if [ "$SHELL_VAR_BUG" = "0" ]; then ok "脚本自检（\${VAR} 与非 ASCII 相�
 FRONTEND=1
 declare -a TARGETS=()
 if [ "${1:-}" = "--changed" ]; then
-  mapfile -t CHANGED < <(git diff --name-only "$BASE"...HEAD 2>/dev/null || true)
+  # ★ 必须把【工作区】也算进来：此前只比较 `git diff "$BASE"...HEAD`（**已提交历史**），
+  #   于是"改动还没提交"时会报「没有改动 ⇒ 无需预检 ✅ 通过」—— **那次裁决等于没说**。
+  #   （本项目真实踩到：改动全在工作区，预检报空过，见 docs/development/iteration-qa.md）
+  #   四类都要算：已提交 / 已暂存 / 未暂存 / 未跟踪，去重后 union。
+  mapfile -t CHANGED < <(
+    {
+      git diff --name-only "$BASE"...HEAD 2>/dev/null
+      git diff --cached --name-only 2>/dev/null
+      git diff --name-only 2>/dev/null
+      git ls-files --others --exclude-standard 2>/dev/null
+    } | sed '/^$/d' | sort -u
+  )
+  DIRTY=0
+  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then DIRTY=1; fi
   if [ "${#CHANGED[@]}" -eq 0 ]; then
-    say "   相对 $BASE 没有改动 ⇒ 无需预检（CI 也会因 Relevance 跳过）"
+    say "   相对 $BASE 无改动，且工作区干净 ⇒ 无需预检（CI 也会因 Relevance 跳过）"
     exit 0
   fi
-  say "   相对 $BASE 改动的文件：${#CHANGED[@]} 个"
+  say "   参与判定的改动文件：${#CHANGED[@]} 个（已提交 + 已暂存 + 未暂存 + 未跟踪）"
+  printf '      %s\n' "${CHANGED[@]}" | head -10
+  if [ "${#CHANGED[@]}" -gt 10 ]; then say "      …（其余 $(( ${#CHANGED[@]} - 10 )) 个）"; fi
+  if [ "$DIRTY" = "1" ]; then
+    say "   （工作区不干净：未提交的改动【已计入】上面这份清单，不会出现看着干净的空过）"
+  fi
   for s in "${SERVICES[@]}"; do
     for f in "${CHANGED[@]}"; do
       case "$f" in services/$s/*) TARGETS+=("$s"); break;; esac
