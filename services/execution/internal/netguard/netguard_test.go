@@ -144,8 +144,8 @@ func TestClient_AllowPrivatePermitsLocalProvider(t *testing.T) {
 
 // 集成验证 3：允许的初始主机若 302 到被禁地址，必须在重定向时被拒。
 func TestClient_RevalidatesRedirectTarget(t *testing.T) {
-	var srv *httptest.Server
-	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 重定向目标是固定地址，无需自引用变量
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "http://169.254.169.254/latest/meta-data/", http.StatusFound)
 	}))
 	defer srv.Close()
@@ -162,9 +162,9 @@ func TestClient_RevalidatesRedirectTarget(t *testing.T) {
 
 // 集成验证 4：重定向跳数上限。
 func TestClient_RedirectHopLimit(t *testing.T) {
-	var srv *httptest.Server
-	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, srv.URL+r.URL.Path+"x", http.StatusFound)
+	// 用**相对**重定向构造无限循环：无需引用 srv 自身（否则 golangci-lint 报 S1021）
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/loop", http.StatusFound)
 	}))
 	defer srv.Close()
 
