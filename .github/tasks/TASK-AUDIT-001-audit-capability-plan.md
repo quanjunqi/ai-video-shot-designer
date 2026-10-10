@@ -12,13 +12,13 @@
 | 事实 | 证据 |
 |---|---|
 | **71 个 jobs 只对应 4 条审计** | SQL `count(*)`：jobs=71 / job_attempts=76 / gateway_audit_logs=4 |
-| **异步链零审计** | `cmd/server/main.go:90` `runWorker(...)` **未传 auditStore** ⇒ worker 从不写审计 |
-| **审计行永不更新** | `audit/store.go:67-80` `UpdateResult` **零调用者**（grep 全仓） |
-| **22 个失败分支不留痕** | `httpapi/handler.go:380-566` 多个分支直接 return，而 `writeAudit` 定义在 `:411`、首调在 `:444` |
-| **写入错误被丢弃** | `handler.go:438` `_ = h.AuditStore.Insert(...)` |
-| **`channel_id` 只能为空** | 写入时渠道尚未解析，而该列为 `NOT NULL DEFAULT ''` ⇒ 实测 4 行全空串 |
-| **`cost_amount` 无写入点** | `handler.go:419-437` 不设 `CostAmount` ⇒ 恒 0 ⇒ `SUM` 恒 0 ⇒ **日/月成本上限永不触发** |
-| **`token_*` 无写入点** | 同上；上游 usage 只进 `Extracted`，未映射到列 |
+| **异步链零审计** | `cmd/server/main.go:98` `go runWorker(store, catalogClient, credsClient, engineClient, gate)` **未传 auditStore**（同文件 `:100` 给 Handler 传了）⇒ worker 从不写审计 |
+| **审计行永不更新** | `audit/store.go:68` 定义 `UpdateResult`；全库**只有定义那一行 + 一行注释**，**0 个调用者** |
+| **失败分支不留痕** | **范围：`generate()` 函数内、首次 `writeAudit` 之前 ⇒ 4 处**（`handler.go:370,374,387,391`，即 `INVALID_CONTEXT` / `EXECUTION_UNAVAILABLE` / `INVALID_BODY` / `INVALID_GENERATE`）。<br>另：`writeAudit` 定义在 `:417`、首调在 `:450`（`git show origin/develop:…` 实测，判据为**提交内容**）。<br>⚠️ 本卡初版写的「22 个分支」是**另一个范围**（整个 handler 文件），已在 §1.1 更正 |
+| **写入错误被丢弃** | `handler.go:444` `_ = h.AuditStore.Insert(...)`（实测行号；本卡初版写 `:438` 为旧行号） |
+| **`channel_id` 只能为空** | `audit.Log{}` 字面量**没有 `ChannelID` 字段**（注意：`:347`/`:582` 的 `ChannelID:` 属**别的结构体**，不是审计行）；该列 `NOT NULL DEFAULT ''` ⇒ 实测 4 行全空串 |
+| **`cost_amount` 无写入点** | `handler.go:417-443` 的 `audit.Log{...}` 字面量**不含** `CostAmount`/`Token*` ⇒ 恒 0 ⇒ `SUM` 恒 0 ⇒ **日/月成本上限永不触发** |
+| **`token_*` 无写入点** | 同一字面量里也没有 `TokenInput/Output/Cached`；上游 usage 只进 `Extracted` |
 | **无脱敏** | `request_payload` 原样入库（`handler.go:415-418`）→ 原样出 API → 前端**原样渲染**（`SettingsAudit.tsx:211`） |
 | **无保留期/清理** | `grep -rn "DELETE FROM gateway_audit_logs"` → **0** |
 | **查询只有 limit/offset** | `handler.go:659-671`；SQL 只有 `WHERE workspace_id=$1 ORDER BY created_at DESC` |
@@ -29,6 +29,26 @@
 | **无 CHECK 约束** | 实测 status 出现注释枚举外的 `queued` |
 | **重复索引** | `gateway_audit_logs_ws_created_idx` 与 `idx_gateway_audit_workspace_time` 定义相同 |
 | **`asset_id` 列恒空** | 4 行全空 —— ④ 的"质量评估"所需字段**实际上不存在** |
+
+### 1.1 本卡的更正记录（2026-10-10，按当前 `develop` 复核）
+
+**判据对象**：全部读 `git show origin/develop:<file>`（**提交内容**），不是工作区；`develop` 当时为 `539dc49`。
+
+| 项 | 初版写的 | 复核后的准确值（含范围） |
+|---|---|---|
+| 失败分支数 | 「22 个」 | **4 处** —— 范围限定为 **`generate()` 函数内、首次 `writeAudit` 之前**。<br>「22」是**整个 handler 文件**的范围（含其它路由），**两个都不算错，但必须写明范围**，否则无法复跑 |
+| `writeAudit` 位置 | 定义 `:411`、首调 `:444` | 定义 **`:417`**、首调 **`:450`**（调用点共 5 处：`:450,618,623,635,640`） |
+| `_ = Insert` | `:438` | **`:444`** |
+| worker 未接 auditStore | `main.go:90` | **`main.go:98`** |
+| DB 回执 | 4 行全 `queued`、`channel_id` 空 | **仍成立**（SQL：`audit=4` · `status=queued n=4` · `channel_id_empty=4`） |
+| `UpdateResult` 零调用者 | 成立 | **仍成立**（全库仅 1 行定义 + 1 行注释） |
+
+**D1 的可实现判据（据此可直接开工）**：
+
+1. 造一个 `MODEL_NOT_FOUND`（未知 modelId）请求 → **审计行 +1**（现状 **+0**，因为它落在 `:417` 之前的分支）
+2. 新写入行的 **`channel_id` 非空**（要求把写入时机移到渠道解析之后，并给 `audit.Log{}` 补 `ChannelID`）
+3. `Insert` 失败**不再被丢弃**（当前 `:444` 是 `_ =`）：至少要有 `slog` 错误日志
+4. 既有 5 个调用点的行为**不回退**（同步成功/失败、配额拒绝、异步入队仍各写一次）
 
 ---
 
