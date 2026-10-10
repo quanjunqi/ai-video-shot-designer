@@ -249,10 +249,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	isAsync := len(tmpl.Async) > 0 && json.Unmarshal(tmpl.Async, &asyncCfg) == nil && asyncCfg.Enabled
 
 	var result engine.RunResult
+	// credentials is already engine.Credentials (including the data-driven
+	// AuthHeader/AuthPrefix knobs), so pass it through untouched.
 	if isAsync {
-		result, err = engine.RunAsync(ctx, engine.Credentials{BaseURL: credentials.BaseURL, AuthType: credentials.AuthType, APIKey: credentials.APIKey}, req, client)
+		result, err = engine.RunAsync(ctx, credentials, req, client)
 	} else {
-		result, err = engine.Run(ctx, engine.Credentials{BaseURL: credentials.BaseURL, AuthType: credentials.AuthType, APIKey: credentials.APIKey}, req, client)
+		result, err = engine.Run(ctx, credentials, req, client)
 	}
 
 	if err != nil {

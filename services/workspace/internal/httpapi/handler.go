@@ -23,20 +23,25 @@ type Handler struct {
 type WorkspaceStore interface {
 	Members(context.Context, string) ([]store.Member, error)
 	Authorize(context.Context, string, string) (store.Member, error)
-	PutCredential(context.Context, string, string, string, string, string, string) error
+	PutCredential(context.Context, store.Credential) error
 	Status(context.Context, string) ([]store.CredentialStatus, error)
 	DeleteCredential(context.Context, string, string) error
-	RevealKey(context.Context, string, string) (string, string, string, error)
+	RevealKey(context.Context, string, string) (store.RevealedCredential, error)
 	ListUserChannels(context.Context, string) ([]store.UserChannel, error)
 	UpsertUserChannel(context.Context, string, store.UserChannel) (store.UserChannel, error)
 	DeleteUserChannel(context.Context, string, string) error
 }
 
+// CredentialInput is the credential write payload. AuthHeader/AuthPrefix are the
+// data-driven auth knobs (ADR-007 D2): omitting them keeps the stored value,
+// sending "" clears it back to the auth_type fallback.
 type CredentialInput struct {
-	ChannelID string `json:"channelId"`
-	BaseURL   string `json:"baseUrl"`
-	AuthType  string `json:"authType"`
-	APIKey    string `json:"apiKey"` // 只写不读：不落日志、不回显、不返回
+	ChannelID  string  `json:"channelId"`
+	BaseURL    string  `json:"baseUrl"`
+	AuthType   string  `json:"authType"`
+	AuthHeader *string `json:"authHeader"`
+	AuthPrefix *string `json:"authPrefix"`
+	APIKey     string  `json:"apiKey"` // 只写不读：不落日志、不回显、不返回
 }
 
 func (h Handler) Routes() http.Handler {
@@ -136,7 +141,16 @@ func (h Handler) putCredential(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "INVALID_BODY", "channelId is required")
 		return
 	}
-	if err := h.Store.PutCredential(r.Context(), ws, input.ChannelID, input.BaseURL, input.AuthType, input.APIKey, "internal"); err != nil {
+	if err := h.Store.PutCredential(r.Context(), store.Credential{
+		WorkspaceID: ws,
+		ChannelID:   input.ChannelID,
+		BaseURL:     input.BaseURL,
+		AuthType:    input.AuthType,
+		AuthHeader:  input.AuthHeader,
+		AuthPrefix:  input.AuthPrefix,
+		APIKey:      input.APIKey,
+		Actor:       "internal",
+	}); err != nil {
 		writeError(w, 503, "CREDENTIAL_UNAVAILABLE", "credential could not be stored (WORKSPACE_CRED_KEY must be set)")
 		return
 	}
@@ -173,7 +187,7 @@ func (h Handler) revealCredential(w http.ResponseWriter, r *http.Request) {
 	if !h.authenticated(w, r) {
 		return
 	}
-	base, auth, key, err := h.Store.RevealKey(r.Context(), r.PathValue("workspace_id"), r.PathValue("channel_id"))
+	revealed, err := h.Store.RevealKey(r.Context(), r.PathValue("workspace_id"), r.PathValue("channel_id"))
 	if errors.Is(err, store.ErrCredentialNotFound) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "credential not configured")
 		return
@@ -182,7 +196,14 @@ func (h Handler) revealCredential(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "CREDENTIAL_UNAVAILABLE", "credential could not be decrypted (WORKSPACE_CRED_KEY mismatch?)")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"channelId": r.PathValue("channel_id"), "baseUrl": base, "authType": auth, "apiKey": key})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"channelId":  r.PathValue("channel_id"),
+		"baseUrl":    revealed.BaseURL,
+		"authType":   revealed.AuthType,
+		"authHeader": store.AuthHeaderValue(revealed.AuthHeader),
+		"authPrefix": store.AuthHeaderValue(revealed.AuthPrefix),
+		"apiKey":     revealed.APIKey,
+	})
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
@@ -197,14 +218,16 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 // UserChannelInput is the tenant-owned channel payload. Secret material is
 // never part of this domain; API keys go to channel_credentials separately.
 type UserChannelInput struct {
-	Name     string `json:"name"`
-	Kind     string `json:"kind"`
-	Protocol string `json:"protocol"`
-	BaseURL  string `json:"baseUrl"`
-	AuthType string `json:"authType"`
-	Enabled  *bool  `json:"enabled"`
-	Note     string `json:"note"`
-	Sort     *int   `json:"sort"`
+	Name       string  `json:"name"`
+	Kind       string  `json:"kind"`
+	Protocol   string  `json:"protocol"`
+	BaseURL    string  `json:"baseUrl"`
+	AuthType   string  `json:"authType"`
+	AuthHeader *string `json:"authHeader"`
+	AuthPrefix *string `json:"authPrefix"`
+	Enabled    *bool   `json:"enabled"`
+	Note       string  `json:"note"`
+	Sort       *int    `json:"sort"`
 }
 
 func (h Handler) listUserChannels(w http.ResponseWriter, r *http.Request) {
@@ -263,7 +286,8 @@ func (h Handler) putUserChannel(w http.ResponseWriter, r *http.Request) {
 	}
 	saved, err := h.Store.UpsertUserChannel(r.Context(), ws, store.UserChannel{
 		ID: id, Name: input.Name, Kind: input.Kind, Protocol: protocol, BaseURL: input.BaseURL,
-		AuthType: input.AuthType, Enabled: enabled, Note: input.Note, Sort: sort,
+		AuthType: input.AuthType, AuthHeader: input.AuthHeader, AuthPrefix: input.AuthPrefix,
+		Enabled: enabled, Note: input.Note, Sort: sort,
 	})
 	if err != nil {
 		writeError(w, 503, "CHANNEL_UNAVAILABLE", "user channel could not be saved")
