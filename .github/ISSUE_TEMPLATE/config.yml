@@ -1,0 +1,23 @@
+# Issue 模板选择器
+#
+# 说明：本仓库要求通过模板开 Issue，因此关闭空白 Issue。
+blank_issues_enabled: false
+
+contact_links:
+  # ---------------------------------------------------------------------------
+  # TODO（待开启 GitHub Discussions 后启用）
+  #
+  # Discussions 目前**尚未开启**。开启后请：
+  #   1. 取消下面条目的注释；
+  #   2. 确认 `quanjunqi/ai-video-shot-designer` 的 Discussions 已打开
+  #      （Settings → Features → Discussions）；
+  #   3. 若需要，把 URL 换成具体的讨论分类地址。
+  #
+  # - name: 💬 提问与讨论
+  #   url: https://github.com/quanjunqi/ai-video-shot-designer/discussions
+  #   about: 使用问题、方案讨论、经验分享请走 Discussions，不要开 Issue
+  # ---------------------------------------------------------------------------
+
+  - name: 🔒 报告安全漏洞（请勿公开提交）
+    url: https://github.com/quanjunqi/ai-video-shot-designer/security/advisories/new
+    about: 安全漏洞请走 GitHub 私密漏洞报告，详见 SECURITY.md

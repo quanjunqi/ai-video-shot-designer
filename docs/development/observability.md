@@ -76,7 +76,7 @@ if err := h.AuditStore.Insert(ctx, log); err != nil {
 ```
 
 **原则**：是否阻塞主流程可以讨论，但**静默必须消除**。详见
-[architecture/02-key-sequences.md](architecture/02-key-sequences.md)。
+[architecture/02-key-sequences.md](../architecture/02-key-sequences.md)。
 
 ---
 
@@ -158,7 +158,7 @@ ServiceMonitor / 采集侧访问，**不通过 BFF 或网关对外**。
 
 ## 相关文档
 
-- 信任边界与信任模型：[architecture/01-c4-context-container.md](architecture/01-c4-context-container.md)
-- 审计发生在哪些链路：[architecture/02-key-sequences.md](architecture/02-key-sequences.md)
-- 审计表字段：[architecture/03-data-model.md](architecture/03-data-model.md)
-- 安全基线：[`../SECURITY.md`](../SECURITY.md)
+- 信任边界与信任模型：[architecture/01-c4-context-container.md](../architecture/01-c4-context-container.md)
+- 审计发生在哪些链路：[architecture/02-key-sequences.md](../architecture/02-key-sequences.md)
+- 审计表字段：[architecture/03-data-model.md](../architecture/03-data-model.md)
+- 安全基线：[`../SECURITY.md`](../../SECURITY.md)

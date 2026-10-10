@@ -1,10 +1,10 @@
 # 迭代教训台账（ITERATION QA LEDGER）
 
-> **规则已全部合并至 [`docs/FRONTEND_QUALITY_GATE.md`](./FRONTEND_QUALITY_GATE.md)**（前端交付质量门禁的**唯一权威**规则文件：交付门禁三层防线 + 六步硬门禁 + 代码逻辑自检 + UI 8 维度自检 + R-UI/R-DATA/R-CRUD/R-HOOK 规则库 + 反例库 R1-R10 + 品质标准）。**本文件不再承载任何规则正文**，请勿在此新增规则。
+> **规则已全部合并至 [`docs/development/frontend-quality-gate.md`](frontend-quality-gate.md)**（前端交付质量门禁的**唯一权威**规则文件：交付门禁三层防线 + 六步硬门禁 + 代码逻辑自检 + UI 8 维度自检 + R-UI/R-DATA/R-CRUD/R-HOOK 规则库 + 反例库 R1-R10 + 品质标准）。**本文件不再承载任何规则正文**，请勿在此新增规则。
 >
-> 本文件只记录**每次迭代发现的教训条目**：**追加式，不删历史**。每次交付前仍需按 `FRONTEND_QUALITY_GATE.md` §一「交付门禁」三层六步执行，并重读本台账确认历史教训未复发。
+> 本文件只记录**每次迭代发现的教训条目**：**追加式，不删历史**。每次交付前仍需按 `docs/development/frontend-quality-gate.md` §一「交付门禁」三层六步执行，并重读本台账确认历史教训未复发。
 >
-> 编号对照（台账「预防检查项 / 固化成的规则编号」列引用）：`清单 1-7` → `FRONTEND_QUALITY_GATE.md` §九；`R1-R10` → §十一；`R-UI-*` → §四；`R-DATA-*` → §五；`R-CRUD-*` → §七；`R-HOOK-*` → §八；`L1/L2/L3、六步硬门禁` → §一；`§2.x / §3.x` → §二 / §三。
+> 编号对照（台账「预防检查项 / 固化成的规则编号」列引用）：`清单 1-7` → `docs/development/frontend-quality-gate.md` §九；`R1-R10` → §十一；`R-UI-*` → §四；`R-DATA-*` → §五；`R-CRUD-*` → §七；`R-HOOK-*` → §八；`L1/L2/L3、六步硬门禁` → §一；`§2.x / §3.x` → §二 / §三。
 
 ---
 
@@ -32,16 +32,16 @@
 | 2026-10 | 新建弹窗默认模型三列：`SelectTrigger` 基类 `w-fit` 按内容撑宽，长模型名（PearAPI GPT 测试）溢出 grid 列，矩形检测与相邻列交叉 8px | shadcn SelectTrigger 默认 `w-fit`，grid 列内未覆盖 `w-full min-w-0`；grid item 未加 `min-w-0` | 清单 2（grid 内所有 Select/长文本控件强制 `w-full min-w-0` + 列容器 `min-w-0`；交付前必须跑 rect 交叉检测） |
 | 2026-10 | 新建弹窗视觉风格区空白占位（只有「选择风格」+ 加载动画），风格库图文未直接展示 | styleId 初始空串，未默认选中首个可用风格，用户打开弹窗看不到任何风格内容 | 清单 5/微交互（弹窗打开即默认选中首个 enabled 风格，直接图文展示；不允许无内容占位） |
 | 2026-10 | analyze 首解读页导演解读规则默认折叠，用户看不到当前生效规则全文（三层提示词说明写了 directorRule.content，UI 却不展示） | `showRule` 初始 false，规则内容需点击才展开，关键决策信息不可见 | 清单 6/视觉层级（生效规则等关键信息默认展开可见，折叠仅用于次要详情） |
-| 2026-10 | 规则写入 ITERATION_QA.md 但本次交付未执行（同行重叠正是清单 2 所防问题） | 规则文件无强制触发机制，交付时未重读文件、未打开浏览器实测，凭"改了代码应该没问题"交付 | 交付门禁（顶部强制流程）：重读文件 → 静态门禁 → 反例核对 → 页面实测 → 交互走查 → 登记反例，六步缺一不得交付 |
+| 2026-10 | 规则写入 docs/development/iteration-qa.md 但本次交付未执行（同行重叠正是清单 2 所防问题） | 规则文件无强制触发机制，交付时未重读文件、未打开浏览器实测，凭"改了代码应该没问题"交付 | 交付门禁（顶部强制流程）：重读文件 → 静态门禁 → 反例核对 → 页面实测 → 交互走查 → 登记反例，六步缺一不得交付 |
 | 2026-10 | 用户明确反对「靠打开浏览器检测样式问题」：代码层面可静态判定的问题应写代码时拦截 | 原门禁以浏览器实测为核心（L3 当第一道防线），静态可判问题未前置 | 门禁改为三层：L1 组件基类根治 → L2 `npm run gate` 静态扫描（反模式 R1-R9 规则化进 `quality-gate.mjs`）→ L3 浏览器仅兜底（新反例 R10） |
 | 2026-10 | `npm run gate` 严格 typecheck（tsconfig.app.json）连续暴露此前默认 tsc 未抓到的遗留类型错误（ParamEditor/StageModelPicker/client/useSettingsStore/useProjectStore/SettingsModels 等 10+ 处） | 验收口径用了宽松 tsconfig，严格口径从未执行 | 验收统一用 `tsconfig.app.json` 严格口径；`gate` 内 typecheck 必须是 `-p tsconfig.app.json` |
 | 2026-10 | quality-gate 首版 `\|\| ??` 正则误报 19 处合法模式（JSX 条件渲染 + 模板插值、括号隔离的 `(a\|\|b) ?? c`） | 正则按「行内出现两者即报」，未区分同一子句无括号 | 规则精确化：仅拦截同一子句（无括号/逗号/分号/`{` 模板插值分隔）内 `\|/&&` 与 `??` 相邻；全量扫描 0 误报 |
 | 2026-10 | 页面级 `max-w-3xl` 被 R3 误拦 | 规则把 3xl（768px，内容区合理上限）与过窄的 xl/2xl 混为一档 | R3 只拦 `max-w-xl/2xl`；3xl+ 视为规范留白 |
 | 2026-10 | `SelectTrigger` 基类 `w-fit` 导致全局溢出隐患（新建弹窗 3 处 Select 交叉 8px 为表象） | 根因在基类，逐处修治标不治本 | **L1 根治**：`select.tsx` 基类统一 `w-full min-w-0`（45 处使用者一处生效）+ 7 文件 16 处 grid 列容器批量补 `min-w-0` |
-| 2026-10 | 导演解读「内容过短（可能被上游截断）」误报：DeepSeek-v4-Pro 长 prompt 下 `choices.0.message.content` 为 **null**、全部输出在 `reasoning_content`（1517 字），前端提取 content 得 null → 误判截断 | 思考型模型（reasoning model）渠道行为：正式字段 content 置 null；execution 引擎 `extractPath` 对 null 返回 ok 且原兜底只判断空字符串（`v.(string)` 对 nil 断言失败未触发） | 引擎层兜底归一：目标响应 key 命中 **null 或空串**时，回退同结构 `reasoning_content`（`replaceLastPathSeg` 保留数组下标），非空即采用；文本/图片模型不受影响（无该字段保持原值）。回归：长 prompt 调用 content 由 0 → 1507 字（固化于 `FRONTEND_QUALITY_GATE.md` §2.2 数据流验证） |
-| 2026-10 | 角色资产页面刷新后从 1 个变 4 个重复"王力" | 页面加载时**自动提取 useEffect** 与 `loadAssetsFromServer()` 竞态：后端数据还没加载完，`chars` 为空，自动提取就创建了新资产；每次刷新都重复这个过程 | **禁止页面加载时自动创建业务数据**：自动提取/自动创建类 useEffect 必须移除，所有数据创建必须由用户明确操作（点击按钮）触发；去重必须使用稳定标识符（name/id），禁止 `Date.now()` 作为业务 id（固化于 `FRONTEND_QUALITY_GATE.md` §2.6） |
-| 2026-10 | 重新提取角色时已存在的角色被重复创建（id 不同） | 重新提取逻辑用 `Date.now()` 生成新 id，且已存在角色使用新 id 而不是已有 id，导致 upsert 时认为是不同资产 | 去重逻辑：已存在角色使用**已有 id** 更新出场统计，保留用户已填写的描述；新角色使用基于 name 的稳定 id（`${episodeId}-char-${name}`）；明确区分新增/更新数量（固化于 `FRONTEND_QUALITY_GATE.md` §2.6） |
-| 2026-10 | 右侧"预览与操作"面板底部内容被截断（生成按钮、来源与版本只能看到一部分） | 整个面板 `p-4` 无滚动区域，内容超出后被父容器截断；三栏布局中每栏都需要独立的滚动容器 | **三栏/多栏布局必须有滚动区域**：固定标题栏（shrink-0 + border-b）+ 独立内容滚动区（min-h-0 flex-1 overflow-y-auto）；禁止整个面板无滚动导致底部截断；交付前检查每栏是否可独立滚动到底部（固化于 `FRONTEND_QUALITY_GATE.md` §3.7） |
+| 2026-10 | 导演解读「内容过短（可能被上游截断）」误报：DeepSeek-v4-Pro 长 prompt 下 `choices.0.message.content` 为 **null**、全部输出在 `reasoning_content`（1517 字），前端提取 content 得 null → 误判截断 | 思考型模型（reasoning model）渠道行为：正式字段 content 置 null；execution 引擎 `extractPath` 对 null 返回 ok 且原兜底只判断空字符串（`v.(string)` 对 nil 断言失败未触发） | 引擎层兜底归一：目标响应 key 命中 **null 或空串**时，回退同结构 `reasoning_content`（`replaceLastPathSeg` 保留数组下标），非空即采用；文本/图片模型不受影响（无该字段保持原值）。回归：长 prompt 调用 content 由 0 → 1507 字（固化于 `docs/development/frontend-quality-gate.md` §2.2 数据流验证） |
+| 2026-10 | 角色资产页面刷新后从 1 个变 4 个重复"王力" | 页面加载时**自动提取 useEffect** 与 `loadAssetsFromServer()` 竞态：后端数据还没加载完，`chars` 为空，自动提取就创建了新资产；每次刷新都重复这个过程 | **禁止页面加载时自动创建业务数据**：自动提取/自动创建类 useEffect 必须移除，所有数据创建必须由用户明确操作（点击按钮）触发；去重必须使用稳定标识符（name/id），禁止 `Date.now()` 作为业务 id（固化于 `docs/development/frontend-quality-gate.md` §2.6） |
+| 2026-10 | 重新提取角色时已存在的角色被重复创建（id 不同） | 重新提取逻辑用 `Date.now()` 生成新 id，且已存在角色使用新 id 而不是已有 id，导致 upsert 时认为是不同资产 | 去重逻辑：已存在角色使用**已有 id** 更新出场统计，保留用户已填写的描述；新角色使用基于 name 的稳定 id（`${episodeId}-char-${name}`）；明确区分新增/更新数量（固化于 `docs/development/frontend-quality-gate.md` §2.6） |
+| 2026-10 | 右侧"预览与操作"面板底部内容被截断（生成按钮、来源与版本只能看到一部分） | 整个面板 `p-4` 无滚动区域，内容超出后被父容器截断；三栏布局中每栏都需要独立的滚动容器 | **三栏/多栏布局必须有滚动区域**：固定标题栏（shrink-0 + border-b）+ 独立内容滚动区（min-h-0 flex-1 overflow-y-auto）；禁止整个面板无滚动导致底部截断；交付前检查每栏是否可独立滚动到底部（固化于 `docs/development/frontend-quality-gate.md` §3.7） |
 | 2026-10 | 智能创作专业级改造：参数 JSON 双视图的解析结果用 `{ ok: true } \| { ok: false; error }` 判别联合，`npm run gate` 报 `Property 'error' does not exist on type 'ParamJsonResult'`（`if (!parsed.ok)` 与 `else { parsed.error }` 两种写法都不收窄） | 根因不在写法而在编译配置：`apps/web/tsconfig.app.json` 是 **`"strict": false`**（`noImplicitAny: false`）。非 strict 模式下 TypeScript 不对**布尔字面量判别联合**做控制流收窄，`ok` 被视为普通 boolean，联合退化为不可判别 | **本仓库禁用布尔字面量判别联合做控制流**（`strict:false` 下无效）：需要"成功/失败"结果时改用**扁平结构 + 可选 error 字段**（`{ values; ignoredKeys; error? }`），失败时同时把数据字段置空以避免误用半份数据；若确需联合，判别式用**字符串字面量**（如 `status: 'ok' \| 'error'`）并先验证收窄生效 |
 
 ---
@@ -49,11 +49,11 @@
 ## 新增条目模板（追加用 · 不删历史）
 
 ```
-| YYYY-MM | [问题现象，含可复现路径/截图编号] | [根因：为什么发生，含代码层机制] | [固化成的规则编号，如 R-UI-006 / R-DATA-003 / 清单 2 / 反例 Rn；若无对应编号则先新增规则编号并同步登记到 FRONTEND_QUALITY_GATE.md] |
+| YYYY-MM | [问题现象，含可复现路径/截图编号] | [根因：为什么发生，含代码层机制] | [固化成的规则编号，如 R-UI-006 / R-DATA-003 / 清单 2 / 反例 Rn；若无对应编号则先新增规则编号并同步登记到 docs/development/frontend-quality-gate.md] |
 ```
 
 登记规则：
 
 - 用户每纠正一个问题，在对应改动完成后**当日**追加一条（日期 / 问题 / 根因 / 固化成的规则编号）。
-- 新问题类型若无法被现有规则覆盖：**先追加规则编号到 [`docs/FRONTEND_QUALITY_GATE.md`](./FRONTEND_QUALITY_GATE.md)**（新增只追加编号，不修改已有编号），再在本台账登记引用。
+- 新问题类型若无法被现有规则覆盖：**先追加规则编号到 [`docs/development/frontend-quality-gate.md`](frontend-quality-gate.md)**（新增只追加编号，不修改已有编号），再在本台账登记引用。
 - 本台账**只追加、不删改历史条目**；条目正文允许补充「固化于 §x.x」等定位信息。

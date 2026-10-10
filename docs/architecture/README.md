@@ -1,12 +1,13 @@
 # 架构图集
 
-> 本目录存放**图形化**架构资料。文字论证以 [`../TECHNICAL_ARCHITECTURE.md`](../TECHNICAL_ARCHITECTURE.md) 为准，
+> 本目录存放**图形化**架构资料。文字论证以 [`00-technical-architecture.md`](00-technical-architecture.md) 为准，
 > 架构决策以 [`../adr/`](../adr/) 为准；本目录只负责「一眼看清结构与流转」。
 
 ## 图集索引
 
 | 文件 | 内容 | 回答什么问题 |
 |---|---|---|
+| [00-technical-architecture.md](00-technical-architecture.md) | 技术架构文字权威（非图） | 服务边界、数据归属、目标态与已知未完成项 |
 | [01-c4-context-container.md](01-c4-context-container.md) | C4 Context + Container | 系统边界在哪？有哪些可部署单元？谁调用谁？ |
 | [02-key-sequences.md](02-key-sequences.md) | 关键链路时序图 | 一次请求/一次生成到底经过哪些步骤？ |
 | [03-data-model.md](03-data-model.md) | ER 图（4 个库、23 张表） | 数据存在哪？表之间怎么关联？ |

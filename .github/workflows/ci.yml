@@ -198,7 +198,7 @@ jobs:
         run: go test ./... -v -race -coverprofile=coverage.out
         working-directory: services/${{ matrix.service }}
 
-      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/TESTING.md §3.3）
+      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
         run: bash .github/scripts/check-coverage.sh "${{ matrix.service }}" "services/${{ matrix.service }}/coverage.out"
@@ -278,8 +278,8 @@ jobs:
       - name: Check AGENTS.md exists
         run: test -f AGENTS.md
 
-      - name: Check TECHNICAL_ARCHITECTURE.md exists
-        run: test -f docs/TECHNICAL_ARCHITECTURE.md
+      - name: Check docs/architecture/00-technical-architecture.md exists
+        run: test -f docs/architecture/00-technical-architecture.md
 
       - name: Check ADR directory exists
         run: test -d docs/adr
@@ -307,12 +307,12 @@ jobs:
             CONTRIBUTING.md \
             .env.example \
             docs/architecture/README.md \
-            docs/TESTING.md \
-            docs/OBSERVABILITY.md \
-            docs/RELEASE.md \
-            docs/FRONTEND_QUALITY_GATE.md \
-            docs/branch-protection.md \
-            docs/CI.md \
+            docs/development/testing.md \
+            docs/development/observability.md \
+            docs/development/release.md \
+            docs/development/frontend-quality-gate.md \
+            docs/development/branch-protection.md \
+            docs/development/ci.md \
             openapi/bff.yaml \
             openapi/README.md
           do
@@ -360,7 +360,7 @@ jobs:
 
       # 结构不变量校验（在 OpenAPI 步骤之后，PyYAML 已安装）
       # 把两条踩坑得来的规则固化：必需检查不可加 job 级 if；不可用 job 级
-      # defaults.run.working-directory。详见脚本头部与 docs/CI.md §3。
+      # defaults.run.working-directory。详见脚本头部与 docs/development/ci.md §3。
       - name: Validate workflow structure invariants
         run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
 

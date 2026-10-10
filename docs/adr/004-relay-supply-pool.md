@@ -2,7 +2,7 @@
 
 - **状态**：已确认（Owner 2026-10-10，见 §9）
 - **日期**：2026-10-10
-- **相关**：ADR-003（路由层）、`docs/routing-seed-proposal.md`、`docs/BACKLOG.md`
+- **相关**：ADR-003（路由层）、`docs/archive/routing-seed-proposal.md`、`docs/development/backlog.md`
 
 ---
 

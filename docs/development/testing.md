@@ -1,7 +1,7 @@
 # 测试策略
 
-> 本文件是测试的**权威规范**。测试门禁的执行口径见 [`FRONTEND_QUALITY_GATE.md`](FRONTEND_QUALITY_GATE.md)，
-> 图与链路见 [`architecture/02-key-sequences.md`](architecture/02-key-sequences.md)。
+> 本文件是测试的**权威规范**。测试门禁的执行口径见 [`docs/development/frontend-quality-gate.md`](frontend-quality-gate.md)，
+> 图与链路见 [`architecture/02-key-sequences.md`](../architecture/02-key-sequences.md)。
 
 ## 1. 原则
 
@@ -16,7 +16,7 @@
 |---|---|---|---|
 | **单元** | 纯函数与领域逻辑（映射引擎、校验、状态机、序列化） | 与被测代码同包 `*_test.go` / `*.test.ts` | 所有新增领域逻辑 |
 | **集成** | Repository ↔ 真实 PostgreSQL；HTTP handler ↔ 真实依赖 | `services/<svc>/internal/**/postgres_integration_test.go` | 所有数据库读写路径 |
-| **契约** | BFF `/api/v1/*` 与 [`../openapi/`](../openapi/) 的一致性 | 待建（见 §6） | 接口变更时 |
+| **契约** | BFF `/api/v1/*` 与 [`../openapi/`](../../openapi/) 的一致性 | 待建（见 §6） | 接口变更时 |
 | **端到端** | 浏览器 → BFF → 服务 → 库 | 待建（见 §6） | 关键用户旅程 |
 
 ## 3. 覆盖率要求
@@ -103,9 +103,9 @@ docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml \
 |---|---|---|
 | **P0** | 前端测试仅 1 个文件 | 19 个页面/13 个 store 的回归全靠人工 |
 | **P0** | CI 覆盖率无阈值 | 「覆盖率」是声明而非约束 |
-| **P1** | 无契约测试 | BFF 与前端字段漂移无法自动发现（[`../openapi/`](../openapi/) 就位后可补） |
+| **P1** | 无契约测试 | BFF 与前端字段漂移无法自动发现（[`../openapi/`](../../openapi/) 就位后可补） |
 | **P1** | 无端到端测试 | 跨服务链路（生成→审计→任务）无自动化验证 |
-| **P1** | 无性能/容量测试 | 异步 worker 无并发上限，容量未知（见 [architecture/02](architecture/02-key-sequences.md)） |
+| **P1** | 无性能/容量测试 | 异步 worker 无并发上限，容量未知（见 [architecture/02](../architecture/02-key-sequences.md)） |
 | **P2** | 无变异测试/模糊测试 | 可选增强，非阻塞 |
 
 ## 7. 新增测试的检查清单
@@ -119,9 +119,9 @@ docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml \
 
 ## 相关文档
 
-- 质量门禁执行口径：[`FRONTEND_QUALITY_GATE.md`](FRONTEND_QUALITY_GATE.md)
-- 关键链路（决定该测什么）：[`architecture/02-key-sequences.md`](architecture/02-key-sequences.md)
-- 跨库数据隔离（集成测试前提）：[`architecture/03-data-model.md`](architecture/03-data-model.md)
+- 质量门禁执行口径：[`docs/development/frontend-quality-gate.md`](frontend-quality-gate.md)
+- 关键链路（决定该测什么）：[`architecture/02-key-sequences.md`](../architecture/02-key-sequences.md)
+- 跨库数据隔离（集成测试前提）：[`architecture/03-data-model.md`](../architecture/03-data-model.md)
 
 
 ---

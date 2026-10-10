@@ -19,7 +19,7 @@
 | `PATCH` | 向后兼容的缺陷修复 | bug 修复、文档修正、依赖安全升级 |
 
 **API 版本与产品版本解耦**：URL 里的 `v1` 只在**破坏性契约变更**时递增（见
-[`../openapi/README.md`](../openapi/README.md)），普通功能迭代不动 URL 版本。
+[`../openapi/README.md`](../../openapi/README.md)），普通功能迭代不动 URL 版本。
 
 ### 1.2 版本号落点
 
@@ -37,7 +37,7 @@ Go 服务不写死版本；运行时版本通过构建期注入（`-ldflags "-X 
 
 - [ ] `master` 上 CI 全绿（前端门禁 + 6 个后端 + 安全扫描 + 文档检查）
 - [ ] `CHANGELOG.md` 已更新，含本次全部用户可见变更
-- [ ] 破坏性变更已同步：[`../openapi/`](../openapi/) 契约、前端调用方、`docs/TECHNICAL_ARCHITECTURE.md`
+- [ ] 破坏性变更已同步：[`../openapi/`](../../openapi/) 契约、前端调用方、`docs/architecture/00-technical-architecture.md`
 - [ ] 有 schema 变更时：迁移文件齐备且**已在预发环境从零跑通**（`psql -v ON_ERROR_STOP=1` 逐文件）
 - [ ] 回滚方案已明确（见 §4），且回滚所需的前置条件成立
 - [ ] 安全：无新增明文密钥；依赖漏洞扫描无新增高危
@@ -85,7 +85,7 @@ go build -o /tmp/mdp-bin/<service> ./cmd/server     # 本地验证
 |---|---|
 | 应用缺陷（无 schema 变更） | 回退镜像到上一版本 tag；**不要**用 `git revert` 改 master 来救生产 |
 | 有 schema 变更 | 优先**前向修复**；因迁移「只增不改」，回退应用可能导致新旧代码与库不一致 |
-| 数据损坏 | 走备份恢复流程（**当前备份/恢复尚未交付**，属高可用范围，见 [architecture/05-deployment.md](architecture/05-deployment.md)） |
+| 数据损坏 | 走备份恢复流程（**当前备份/恢复尚未交付**，属高可用范围，见 [architecture/05-deployment.md](../architecture/05-deployment.md)） |
 
 **原则**：迁移是**向前兼容**的（新增列可空、不删列、不改语义），使应用可以安全回退一版。
 
@@ -107,12 +107,12 @@ go build -o /tmp/mdp-bin/<service> ./cmd/server     # 本地验证
 | 部署 | ❌ 无（本地 compose 仅供开发） | Helm/K8s 分环境部署 |
 | 发布可见性 | ❌ 无 | GitHub Release + 变更摘要自动生成 |
 
-> **不可宣称已具备生产交付能力**：`docs/TECHNICAL_ARCHITECTURE.md` §17 已明确
+> **不可宣称已具备生产交付能力**：`docs/architecture/00-technical-architecture.md` §17 已明确
 > 「当前仅交付已有 Web 与 Production 的镜像构建文件，不能据此宣称生产容器化或 M5 高可用已完成」。
 
 ## 相关文档
 
-- 变更记录：[`../CHANGELOG.md`](../CHANGELOG.md)
-- 接口破坏性变更判定：[`../openapi/README.md`](../openapi/README.md)
-- 部署形态与差距：[architecture/05-deployment.md](architecture/05-deployment.md)
-- 分支与门禁：[branch-protection.md](branch-protection.md)
+- 变更记录：[`../CHANGELOG.md`](../../CHANGELOG.md)
+- 接口破坏性变更判定：[`../openapi/README.md`](../../openapi/README.md)
+- 部署形态与差距：[architecture/05-deployment.md](../architecture/05-deployment.md)
+- 分支与门禁：[docs/development/branch-protection.md](branch-protection.md)
