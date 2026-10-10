@@ -133,7 +133,7 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 | `workspace` | 4 条（`TestPostgresCredential*` / `TestPostgresUserChannel*`） | ✅ **有效** |
 | `production` | 12 条（`TestPostgres*`） | ✅ **有效** |
 | `execution` | 3 条（`TestIntegration_*`） | ✅ **有效** |
-| `asset` | **0 条** | ⚠️ **空转**（该服务的 `Store` 尚无任何集成测试） |
+| `asset` | 5 条（`CreateUpload` / `List`；`Put`/`Commit` 需 MinIO，另议） | ✅ **有效** |
 | `web-bff` | 0 条 | ⚠️ 空转 |
 | `outbox-relay` | 0 条 | ⚠️ 空转 |
 
@@ -141,8 +141,8 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 `workspace` 无 DSN 时 PASS 20→16、SKIP 0→**4**；`production`/`execution` 的 DSN 由
 `.env.local` 提供（本地默认即已开启），其集成测试条数分别为 12 / 3 —— 源码可数。
 
-> **已知缺口**：`asset` 的 `Store`（CreateUpload / Put / Commit / List）**没有任何测试证据**。
-> 在本次改动之前，即使补上集成测试也**不会在 CI 执行**（无测试库）；现在补上就会真的跑。
+> **已补**：`asset` 的 `Store` 现已覆盖 `CreateUpload` / `List`（`PUT`/`Commit` 会连 MinIO，
+> 需在 CI 再加一个对象存储 service，另议）。这批测试在补上之前**即使写了也不会在 CI 执行**。
 
 ## 相关文档
 
