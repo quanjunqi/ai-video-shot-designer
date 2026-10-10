@@ -110,7 +110,7 @@ export default function CreateWorkbench({
   const meta = KIND_META[kind];
   const Icon = meta.icon;
   const controls = useCreateControls(kind);
-  const { schema, model, values, setValue, issueFor, canSubmit, cost, catalogSource, models } = controls;
+  const { schema, model, values, submitValues, setValue, issueFor, canSubmit, cost, catalogSource, models, draftRestored } = controls;
 
   const assets = useAssetStore(useShallow((s) => s.assets));
   const [refs, setRefs] = useState<RefItem[]>([]);
@@ -182,7 +182,7 @@ export default function CreateWorkbench({
     if (!canSubmit) return;
     const localRefs = buildLocalRefs(refs);
     const { mentions } = parseMentions(promptText, assets, localRefs);
-    const quantity = Math.min(8, Math.max(1, Number.parseInt(values.count ?? '1', 10) || 1));
+    const quantity = Math.min(8, Math.max(1, Number.parseInt(submitValues.count ?? '1', 10) || 1));
     const tagParts: string[] = [];
     if (refs.length > 0) tagParts.push(`参考图×${refs.length}`);
     if (mentions.length > 0) tagParts.push(`@引用×${mentions.length}`);
@@ -197,7 +197,7 @@ export default function CreateWorkbench({
         const label = quantity > 1 ? `${base}${tag} · 候选 ${index + 1}/${quantity}` : `${base}${tag}`;
         const payload = {
           prompt: promptText,
-          parameters: values,
+          parameters: submitValues,
           model_id: model?.id,
           protocol_template_id: model?.protocolTemplateId,
           references,
@@ -238,7 +238,7 @@ export default function CreateWorkbench({
       const first = results.find((r) => r.status === 'rejected');
       toast.error(first?.status === 'rejected' && first.reason instanceof Error ? first.reason.message : '部分任务提交失败');
     }
-  }, [canSubmit, refs, promptText, assets, values, meta.title, model, projectId, episodeId, assetId, kind, scopeEpoch, cost, loadJobs]);
+  }, [canSubmit, refs, promptText, assets, submitValues, meta.title, model, projectId, episodeId, assetId, kind, scopeEpoch, cost, loadJobs]);
 
   // ---- 结果复用：把历史任务的提示词/参数套回 composer ----
   // 两种意图必须分开（ADR-006 D6：InvokeAI 的 Remix vs Use All）：
@@ -346,6 +346,25 @@ export default function CreateWorkbench({
           <span className="text-sm font-medium">{meta.title}</span>
           <span className={cn('ml-auto rounded px-1.5 py-px text-[10px]', sourceNote.className)}>{sourceNote.label}</span>
         </div>
+
+        {/* 草稿恢复提示：只恢复了参数文本与模型，参考图不入草稿（dataURL 会爆本地配额） */}
+        {draftRestored && (
+          <div className="flex items-start gap-2 rounded-lg border border-border bg-accent/40 px-2 py-1.5">
+            <Info className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1 text-[10px] leading-relaxed text-muted-foreground">
+              已恢复上次未提交的输入（参考图不在草稿中，需重新添加）。
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-5 shrink-0 px-1.5 text-[10px]"
+              onClick={() => controls.resetDraft()}
+            >
+              清空
+            </Button>
+          </div>
+        )}
 
         {/* 模型档位：独立于参数之外的选择，旁标单价，让"选模型"成为可比较的决策 */}
         <div className="space-y-1.5">

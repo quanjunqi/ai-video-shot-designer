@@ -11,8 +11,10 @@
 // 这样做的原因：目录会在挂载后异步 hydrate（syncCatalog），若把全量表单值放进 state 并在
 // schema 变化时重建，用户在 hydrate 期间正在输入的提示词会被清空。覆盖值方案下，
 // 未改动的字段自动跟随新模型默认值，已输入的内容始终保留。
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSettingsStore, type CatalogSource } from '@/stores/useSettingsStore';
+import { useCreateDraftStore } from '@/stores/useCreateDraftStore';
+import { hasRecoverableContent, pickKnown } from '@/features/genworkbench/draft-utils';
 import {
   buildControlSchema,
   estimateCost,
@@ -38,8 +40,12 @@ export interface UseCreateControls {
   channel?: ChannelConfig;
   selectModel(id: string): void;
   schema: ControlSchema;
-  /** 当前生效值（schema 默认值 + 用户改动） */
+  /** 当前生效值（schema 默认值 + 用户改动）；含草稿恢复的键，渲染用 */
   values: Record<string, string>;
+  /** 提交用值：只保留当前 schema 认识的键（草稿里换模型残留的键不会发给上游） */
+  submitValues: Record<string, string>;
+  /** 本次挂载是否从本地草稿恢复了内容（供 UI 如实提示，可一键清空） */
+  draftRestored: boolean;
   setValue(key: string, value: string): void;
   /**
    * 批量套用一份草稿（用于「复用历史任务的参数」）。
@@ -68,8 +74,14 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
 
   const available = useMemo(() => runnableModels(models, channels, kind), [models, channels, kind]);
 
+  // ---- 草稿恢复（ADR-006 D6）：只恢复参数文本与模型档位，不恢复参考图 ----
+  // 这里读的是原始持久化数据（此时还不知道 schema 的键集合），
+  // 因此**在提交时统一用 pickKnown 过滤**，而不是在恢复时猜。
+  // 过期判定在 store 内完成（渲染期不得直接调用 Date.now，React 纯函数规则）。
+  const initialDraft = useMemo(() => useCreateDraftStore.getState().readRawDraft(kind), [kind]);
+
   // 首选模型：用户显式选择 → 设置中心的默认模型 → 目录首个可运行模型
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = useState(() => initialDraft?.modelId ?? '');
   const preferred =
     kind === 'image' ? preferences.defaultImageModel : kind === 'video' ? preferences.defaultVideoModel : '';
   const model = useMemo(() => {
@@ -81,8 +93,25 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
 
   const schema = useMemo(() => buildControlSchema(model, kind), [model, kind]);
 
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [overrides, setOverrides] = useState<Record<string, string>>(() => initialDraft?.values ?? {});
   const values = useMemo(() => ({ ...initialValues(schema), ...overrides }), [schema, overrides]);
+  const submitValues = useMemo(
+    () => pickKnown(values, schema.controls.map((c) => c.key)),
+    [values, schema.controls],
+  );
+
+  // 草稿落盘：输入是高频事件，用 400ms 防抖，避免每次按键都写 localStorage
+  const allowedKeys = useMemo(() => schema.controls.map((c) => c.key), [schema.controls]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      useCreateDraftStore.getState().saveDraft(kind, {
+        values: overrides,
+        modelId: selectedId === '' ? undefined : selectedId,
+        allowedKeys,
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [kind, overrides, selectedId, allowedKeys]);
 
   // 参考附件计数：按模型上限**派生**收紧，而不是用 effect 改 state。
   // 切到上限更低的模型时计数立即收敛（不会出现"已挂载但非法"的中间态），
@@ -90,6 +119,7 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
   // 调用方需注意：引用条数组本身仍由 composer 依 schema.limits.maxRefImages 裁剪（TASK-CREATE-002）。
   const [rawRefCount, setRefCount] = useState(0);
   const [rawAudioRefCount, setAudioRefCount] = useState(0);
+  const [draftRestored, setDraftRestored] = useState(() => hasRecoverableContent(initialDraft));
   const refCount = Math.min(rawRefCount, schema.limits.maxRefImages);
   const audioRefCount = Math.min(rawAudioRefCount, schema.limits.maxRefAudios);
 
@@ -124,7 +154,9 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
     setOverrides({});
     setRefCount(0);
     setAudioRefCount(0);
-  }, []);
+    useCreateDraftStore.getState().clearDraft(kind);
+    setDraftRestored(false);
+  }, [kind]);
 
   const issues = useMemo(
     () => validateDraft(schema, values, { refCount, audioRefCount }),
@@ -155,6 +187,8 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
     selectModel: setSelectedId,
     schema,
     values,
+    submitValues,
+    draftRestored,
     setValue,
     applyDraft,
     refCount,
