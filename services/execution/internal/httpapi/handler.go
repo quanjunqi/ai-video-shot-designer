@@ -361,6 +361,49 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 // generate is the unified model gateway entry: accepts a modality-agnostic
 // request, validates model capability, and dispatches to sync or async
 // execution based on the protocol template's async config.
+
+// usageFromExtracted 从抽取结果里读 token 用量（D4a）。
+//
+// 为什么按"约定键名"而不是按声明读：
+//
+//	protocol_templates.response_params 只声明 key/type/value，
+//	【没有】"这个参数是 token 数"的语义标记 ⇒ 目前只能按约定识别。
+//	后续可给 response_params 加角色标记（类似请求参数的三分类 static/model/runtime），
+//	届时改为按声明读取；本函数即那个改动唯一需要替换的地方。
+//
+// 键名依据（判据：SQL 查 protocol_templates.response_params）：
+//
+//	pt_builtin_openai 的响应参数含 usage.prompt_tokens / usage.completion_tokens /
+//	usage.total_tokens ⇒ 抽取结果 map 的键就是这些点路径原文。
+func usageFromExtracted(ex map[string]any) (in, out, cached int) {
+	if ex == nil {
+		return 0, 0, 0
+	}
+	pick := func(keys ...string) int {
+		for _, k := range keys {
+			v, ok := ex[k]
+			if !ok {
+				continue
+			}
+			switch n := v.(type) {
+			case float64:
+				return int(n)
+			case int:
+				return n
+			case json.Number:
+				if i, err := n.Int64(); err == nil {
+					return int(i)
+				}
+			}
+		}
+		return 0
+	}
+	in = pick("usage.prompt_tokens", "prompt_tokens", "usage.input_tokens", "input_tokens")
+	out = pick("usage.completion_tokens", "completion_tokens", "usage.output_tokens", "output_tokens")
+	cached = pick("usage.prompt_tokens_details.cached_tokens", "usage.cached_tokens", "cached_tokens")
+	return in, out, cached
+}
+
 func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	if !h.auth(w, r) {
 		return
@@ -393,6 +436,11 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// auditChannelID 在渠道解析之后填入；解析前为空 —— 这是【诚实】的结果：
 	// 那一刻系统确实还不知道渠道，写空串比事后回填/猜测更可信。
 	var auditChannelID string
+	// D4a：用量（token）落库。三个值在引擎调用之后填入，由 writeAudit 读取。
+	// 只记【事实】：本片【不写】cost_amount —— model_catalog.capability.billing 的字段
+	// 是「积分/百万 Token」（产品 UI 原文），而本表 cost_currency 硬编码 CNY，
+	// 单位未定；把积分写进 CNY 列是数据缺陷。价格换算待 Owner 定单位后另做（D4b）。
+	var auditTokenIn, auditTokenOut, auditTokenCached int
 	// writeAudit 写一条审计。审计失败不得阻断主流程，但【必须可见】（D1：不再用 _ = 丢弃）。
 	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
 		if h.AuditStore == nil {
@@ -405,6 +453,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			UserID: actor, Product: product, ModelID: in.ModelID, Mode: in.Mode,
 			RequestPayload: reqBytes, ResponsePayload: respPayload, ErrorMessage: errMsg,
 			Status: status, LatencyMs: int(time.Since(startTime).Milliseconds()),
+			TokenInput: auditTokenIn, TokenOutput: auditTokenOut, TokenCached: auditTokenCached,
 			JobID: jobID, ProviderTaskID: providerTaskID, CostCurrency: "CNY",
 		}
 		if err := h.AuditStore.Insert(r.Context(), auditLog); err != nil {
@@ -638,6 +687,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	// Sync execution
 	out, err := engine.Run(r.Context(), creds, engineReq, h.EngineClient)
+	auditTokenIn, auditTokenOut, auditTokenCached = usageFromExtracted(out.Extracted)
 	if err != nil {
 		respBytes, _ := json.Marshal(out)
 		writeAudit("failed", respBytes, out.Error, "", "")
