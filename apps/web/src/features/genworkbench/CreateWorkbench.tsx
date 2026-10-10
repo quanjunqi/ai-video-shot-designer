@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, AudioLines, Ban, ChevronDown, Download, History, Image as ImageIcon,
+  AlertTriangle, AudioLines, Ban, ChevronDown, Download, HelpCircle, History, Image as ImageIcon,
   Info, Loader2, RefreshCw, RotateCw, Settings2, Sparkles, Video, Wallet, Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +30,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
@@ -41,7 +43,12 @@ import {
   mediaKind, parseTaskPayload, reusableDraft,
 } from '@/features/genworkbench/result-utils';
 import { useCreateControls } from '@/hooks/useCreateControls';
-import { GENERATION_MODE_LABEL, type ControlDef, type CreateKind } from '@/config/create/control-schema';
+import { useCreatePrefsStore } from '@/stores/useCreatePrefsStore';
+import { parseParamJson, toParamJson } from '@/features/genworkbench/param-json';
+import {
+  GENERATION_MODE_LABEL, TIER_LABEL, controlsUpToTier, hasTier,
+  type ControlDef, type CreateKind,
+} from '@/config/create/control-schema';
 import { useAssetStore } from '@/stores/useAssetStore';
 import { useLensStore } from '@/stores/useLensStore';
 import { useStyleStore } from '@/stores/useStyleStore';
@@ -122,6 +129,13 @@ export default function CreateWorkbench({
   const styles = useStyleStore(useShallow((s) => s.styles.filter((item) => item.enabled)));
   const lensItems = useLensStore(useShallow((s) => s.items));
   const [presetsOpen, setPresetsOpen] = useState(false);
+  // 显示偏好（档位 / 表单或 JSON 视图）是"怎么看"，与草稿内容分开持久化
+  const tier = useCreatePrefsStore((s) => s.tiers[kind] ?? 'basic');
+  const view = useCreatePrefsStore((s) => s.views[kind] ?? 'form');
+  const setTier = useCreatePrefsStore((s) => s.setTier);
+  const setView = useCreatePrefsStore((s) => s.setView);
+  const [jsonDraft, setJsonDraft] = useState('');
+  const [jsonError, setJsonError] = useState<string>();
   const [refs, setRefs] = useState<RefItem[]>([]);
   const [jobs, setJobs] = useState<ServerTask[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
@@ -129,7 +143,6 @@ export default function CreateWorkbench({
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [detailJob, setDetailJob] = useState<ServerTask>();
   const [cancelTarget, setCancelTarget] = useState<ServerTask>();
   const [busyId, setBusyId] = useState<string>();
@@ -333,8 +346,11 @@ export default function CreateWorkbench({
   // 风格对图片/视频都有意义；镜头语言是视频工作台的专属（ADR-006 D7）
   const showStylePresets = kind === 'image' || kind === 'video';
   const showLensPresets = kind === 'video';
-  const advancedControls: ControlDef[] = schema.controls.filter((c) => c.key === 'negative' || c.key === 'quality');
-  const inlineControls: ControlDef[] = schema.controls.filter((c) => c.key !== 'prompt' && !advancedControls.includes(c));
+  // 按披露档位过滤（累积：进阶 = 基础+进阶；专家 = 全部）。提示词永远显示，不受档位影响。
+  const visibleControls: ControlDef[] = controlsUpToTier(
+    schema.controls.filter((c) => c.key !== 'prompt'),
+    tier,
+  );
   const promptIssue = issueFor('prompt');
 
   // 无可用模型：给真实空态并指向设置中心（不回退到硬编码模型名）
@@ -533,79 +549,137 @@ export default function CreateWorkbench({
             </Collapsible>
           )}
 
-          {/* 常显参数：最高频的 3 个以内 */}
-          {inlineControls.map((control) => (
-            <div key={control.key} className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {control.label}
-                {control.source === 'count-fallback' && (
-                  <span className="ml-1 text-[10px] font-normal text-muted-foreground/70" title="目录只声明了数量，具体取值清单待目录声明（ADR-006 D3）">
-                    ·取值待目录声明
-                  </span>
-                )}
-              </Label>
-              {control.type === 'chips' ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {(control.options ?? []).map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => setValue(control.key, option)}
-                      className={cn(
-                        'rounded-md border px-2 py-1 font-mono text-[11px] transition',
-                        values[control.key] === option
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                      )}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              ) : control.type === 'select' ? (
-                <Select value={values[control.key] ?? ''} onValueChange={(v) => setValue(control.key, v)}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(control.options ?? []).map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  type="number"
-                  value={values[control.key] ?? ''}
-                  min={control.min}
-                  max={control.max}
-                  step={control.step}
-                  onChange={(e) => setValue(control.key, e.target.value)}
-                  className="h-9 text-xs"
-                />
-              )}
-              {issueFor(control.key) && <p className="text-[10px] text-destructive">{issueFor(control.key)}</p>}
-              {control.min !== undefined && control.max !== undefined && control.type === 'number' && !issueFor(control.key) && (
-                <p className="text-[10px] text-muted-foreground">该模型支持 {control.min}–{control.max}</p>
-              )}
+          {/* 参数：披露档位 + 表单/JSON 双视图（专业级改造：默认只露基础，
+              深度按需展开；JSON 是同一份 schema 的另一种投影） */}
+          <div className="flex items-center gap-1.5 border-t border-border pt-2">
+            <span className="text-[10px] text-muted-foreground">参数</span>
+            <div className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5">
+              {(['basic', 'advanced', 'expert'] as const).map((option) => {
+                // 该档没有控件就不显示按钮，避免出现点进去是空的
+                if (option !== 'basic' && !hasTier(schema.controls, option)) return null;
+                if (option === 'expert' && !hasTier(schema.controls, 'expert')) return null;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setTier(kind, option)}
+                    className={cn(
+                      'rounded px-2 py-0.5 text-[10px] transition',
+                      tier === option ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {TIER_LABEL[option]}
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* 高级参数：渐进披露（ADR-005 的结论：数据分层 ≠ 界面分层） */}
-        {advancedControls.length > 0 && (
-          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-            <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground">
-              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', advancedOpen && 'rotate-180')} />
-              高级参数
-              <span className="ml-auto font-mono text-[10px]">{advancedControls.length}</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-3 pt-2">
-              {advancedControls.map((control) => (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground">
+              {view === 'form' ? `共 ${visibleControls.length} 项` : 'JSON 视图'}
+            </span>
+            <div className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5">
+              {(['form', 'json'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setView(kind, option);
+                    setJsonError(undefined);
+                    // 切到 JSON 时以当前值为准载入，避免看到上一次的残留
+                    if (option === 'json') setJsonDraft(toParamJson(values, schema.controls));
+                  }}
+                  className={cn(
+                    'rounded px-2 py-0.5 text-[10px] transition',
+                    view === option ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {option === 'form' ? '表单' : 'JSON'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {view === 'json' ? (
+            <div className="space-y-1.5">
+              <Textarea
+                value={jsonDraft}
+                onChange={(e) => { setJsonDraft(e.target.value); setJsonError(undefined); }}
+                rows={10}
+                spellCheck={false}
+                className="font-mono text-[11px] leading-5"
+                placeholder='{"ratio": "16:9", "count": "2"}'
+              />
+              {jsonError && (
+                <p className="flex items-start gap-1 text-[10px] text-destructive">
+                  <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+                  {jsonError}
+                </p>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-6 gap-1 text-[10px]"
+                  onClick={() => {
+                    const parsed = parseParamJson(jsonDraft, schema.controls);
+                    if (parsed.error) {
+                      setJsonError(parsed.error);
+                      return;
+                    }
+                    for (const [key, value] of Object.entries(parsed.values)) setValue(key, value);
+                    setJsonError(undefined);
+                    if (parsed.ignoredKeys.length > 0) {
+                      toast.warning(`已应用；${parsed.ignoredKeys.length} 项不属于当前模型，已忽略：${parsed.ignoredKeys.join('、')}`);
+                    } else {
+                      toast.success('已按 JSON 更新参数');
+                    }
+                  }}
+                >
+                  应用
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-[10px]"
+                  onClick={() => setJsonDraft(toParamJson(values, schema.controls))}
+                >
+                  从当前值重载
+                </Button>
+                <span className="ml-auto text-[10px] text-muted-foreground">键为业务参数名，只接受当前模型声明的键</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visibleControls.map((control) => (
                 <div key={control.key} className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{control.label}</Label>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs text-muted-foreground">{control.label}</Label>
+                    {control.hint && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            title={`${control.label}说明`}
+                            aria-label={`${control.label}说明`}
+                            className="text-muted-foreground/60 transition hover:text-foreground"
+                          >
+                            <HelpCircle className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-64 text-[11px] leading-relaxed">{control.hint}</TooltipContent>
+                      </Tooltip>
+                    )}
+                    {control.source === 'count-fallback' && (
+                      <span className="text-[10px] text-muted-foreground/70">·取值待目录声明</span>
+                    )}
+                    {control.tier && control.tier !== 'basic' && (
+                      <span className="rounded bg-muted px-1 text-[9px] text-muted-foreground">{TIER_LABEL[control.tier]}</span>
+                    )}
+                  </div>
                   {control.type === 'textarea' ? (
                     <MentionTextarea
                       value={values[control.key] ?? ''}
@@ -615,7 +689,25 @@ export default function CreateWorkbench({
                       disableMention
                       placeholder="不希望在画面中出现的内容"
                     />
-                  ) : (
+                  ) : control.type === 'chips' ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(control.options ?? []).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setValue(control.key, option)}
+                          className={cn(
+                            'rounded-md border px-2 py-1 font-mono text-[11px] transition',
+                            values[control.key] === option
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                          )}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  ) : control.type === 'select' ? (
                     <Select value={values[control.key] ?? ''} onValueChange={(v) => setValue(control.key, v)}>
                       <SelectTrigger className="h-9">
                         <SelectValue />
@@ -628,12 +720,26 @@ export default function CreateWorkbench({
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : (
+                    <Input
+                      type="number"
+                      value={values[control.key] ?? ''}
+                      min={control.min}
+                      max={control.max}
+                      step={control.step}
+                      onChange={(e) => setValue(control.key, e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  )}
+                  {issueFor(control.key) && <p className="text-[10px] text-destructive">{issueFor(control.key)}</p>}
+                  {control.min !== undefined && control.max !== undefined && control.type === 'number' && !issueFor(control.key) && (
+                    <p className="text-[10px] text-muted-foreground">该模型支持 {control.min}–{control.max}</p>
                   )}
                 </div>
               ))}
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* 费用 + 提交 */}
         <div className="space-y-2 border-t border-border pt-3">

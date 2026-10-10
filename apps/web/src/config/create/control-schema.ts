@@ -46,6 +46,32 @@ export const GENERATION_MODE_LABEL: Record<GenerationMode, string> = {
 /** 控件种类（UI 语法）——与协议字段无关 */
 export type ControlType = 'textarea' | 'chips' | 'select' | 'number';
 
+/**
+ * 披露层级（ADR-007 专业级改造 / 对齐专业工具研究的 E2「基础/进阶/专家三层，默认只露基础」）。
+ * - basic：不填就没法生成（提示词、画面比例、数量）
+ * - advanced：影响质量与时长，但不是每次都改（时长、清晰度、负面提示词）
+ * - expert：需要理解上游协议才该动的（本平台当前为空，见文件末尾说明）
+ */
+export type ControlTier = 'basic' | 'advanced' | 'expert';
+
+export const TIER_LABEL: Record<ControlTier, string> = {
+  basic: '基础',
+  advanced: '进阶',
+  expert: '专家',
+};
+
+/** 层级是累积披露：选「进阶」= basic + advanced；选「专家」= 全部 */
+export function controlsUpToTier(controls: ControlDef[], tier: ControlTier): ControlDef[] {
+  const order: ControlTier[] = ['basic', 'advanced', 'expert'];
+  const max = order.indexOf(tier);
+  return controls.filter((control) => order.indexOf(control.tier ?? 'basic') <= max);
+}
+
+/** 某层级是否有控件（用于决定要不要显示该档按钮，避免出现空档） */
+export function hasTier(controls: ControlDef[], tier: ControlTier): boolean {
+  return controls.some((control) => control.tier === tier);
+}
+
 export interface ControlDef {
   /** 业务键（不是协议字段名） */
   key: string;
@@ -60,6 +86,8 @@ export interface ControlDef {
   /** 取值域来源：declared = 目录/模板明确声明；count-fallback = 目录只给了数量，候选集合由前端兜底 */
   source?: 'declared' | 'count-fallback' | 'platform-default';
   hint?: string;
+  /** 披露层级；缺省视为 basic */
+  tier?: ControlTier;
 }
 
 /** 目录对「一组取值」只给了数量时的兜底内容与来源标记 */
@@ -177,11 +205,22 @@ function promptControls(kind: CreateKind, supportsNegative: boolean): ControlDef
       type: 'textarea',
       defaultValue: '',
       required: true,
-      hint: '支持 @ 引用素材与参考图',
+      tier: 'basic',
+      hint:
+        kind === 'audio'
+          ? '要合成的文本内容；支持 @ 引用素材'
+          : '描述画面。支持 @ 引用素材与参考图；先写主体与动作，再补环境、光线、镜头（顺序会影响权重）',
     },
   ];
   if (supportsNegative) {
-    controls.push({ key: 'negative', label: '负面提示词', type: 'textarea', defaultValue: '' });
+    controls.push({
+      key: 'negative',
+      label: '负面提示词',
+      type: 'textarea',
+      defaultValue: '',
+      tier: 'advanced',
+      hint: '不希望出现在画面里的内容（如 low quality、extra fingers）。部分上游不支持该字段，是否生效取决于所选模型的协议模板',
+    });
   }
   return controls;
 }
@@ -201,6 +240,8 @@ function audioSchema(): ControlSchema {
         options: ['沉稳男声', '清亮女声', '童声', '旁白'],
         defaultValue: '沉稳男声',
         source: 'platform-default',
+        tier: 'basic',
+        hint: '平台默认音色清单（目录暂无音频类型，音色未由任何模型声明）',
       },
     ],
     limits: { maxRefImages: 0, maxRefAudios: 0 },
@@ -246,6 +287,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
         options: aspectRatios.values,
         defaultValue: aspectRatios.values[0] ?? '',
         source: aspectRatios.source,
+        tier: 'basic',
+        hint: '成片画幅。目录只声明了该模型支持的比例数量，具体取值清单待目录补充（ADR-006 D3）',
       },
     ];
     if (qualityOptions.values.length > 0) {
@@ -256,6 +299,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
         options: qualityOptions.values,
         defaultValue: qualityOptions.values[0],
         source: qualityOptions.source,
+        tier: 'advanced',
+        hint: `该模型声明了 ${qualityOptions.declaredCount ?? qualityOptions.values.length} 档清晰度；具体档位名称待目录声明。档位越高通常越慢、越贵`,
       });
     }
     controls.push({
@@ -265,6 +310,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
       defaultValue: '1',
       min: 1,
       max: MAX_BATCH_COUNT,
+      tier: 'basic',
+      hint: `一次提交的候选数（1–${MAX_BATCH_COUNT}）。数量直接乘进费用预估；上游按张计费，多张不会更便宜`,
     });
     return {
       kind,
@@ -294,6 +341,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
         options: aspectRatios.values,
         defaultValue: aspectRatios.values[0] ?? '',
         source: aspectRatios.source,
+        tier: 'basic',
+        hint: '成片画幅。目录尚未声明视频模型的比例清单，此处为常见比例候选',
       },
       {
         key: 'duration',
@@ -304,6 +353,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
         max: capability.maxDurationSeconds,
         step: 1,
         source: 'declared',
+        tier: 'advanced',
+        hint: `该模型支持 ${capability.minDurationSeconds}–${capability.maxDurationSeconds} 秒（来自模型能力声明）。时长直接乘进按秒计费的费用预估`,
       },
     ];
     if (qualityOptions.values.length > 0) {
@@ -314,6 +365,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
         options: qualityOptions.values,
         defaultValue: qualityOptions.values[0],
         source: qualityOptions.source,
+        tier: 'advanced',
+        hint: `该模型声明了 ${qualityOptions.declaredCount ?? qualityOptions.values.length} 档清晰度；具体档位名称待目录声明。档位越高通常越慢、越贵`,
       });
     }
     // 帧率当前目录未声明（capability 无 fps 字段），故不产出控件 —— 不展示无依据的选项
