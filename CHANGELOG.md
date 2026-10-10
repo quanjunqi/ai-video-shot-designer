@@ -49,6 +49,16 @@
 
 ### Fixed
 
+- **`project_characters` 缺失建表迁移（P0 阻塞级）**：该表被 Go 代码读写、被迁移 `020` 写入，
+  但全仓库无 `CREATE TABLE`；迁移执行器 `psql -v ON_ERROR_STOP=1` + `sh -e` 首个错误即中止，
+  故**全新数据库上 `app` profile 无法启动、021 永不执行**。
+  用真实 PostgreSQL 16 实证：修复前执行到 020 报 `relation "project_characters" does not exist`。
+  新增 `019a_project_characters.sql`（字典序位于 020 之前），**未修改任何已执行迁移**。
+- **迁移 `020` 的重复主键缺陷**：其 `id = md5(project_id || '-' || name)` 且 `NOT EXISTS`
+  只检查语句执行前的表状态，故同项目下**跨剧集同名角色**（主角常态）会插入相同 id
+  并触发主键冲突 —— 带数据升级必失败。新增 `019b_project_characters_backfill.sql`
+  在 020 之前完成**去重回填**，使 020 步骤 1 退化为空操作、步骤 2/3 仍正常关联。
+  实测：修复前同名跨集 → 主键冲突；修复后 → 合并为 1 条角色记录，所有同名资产指向它。
 - **文档与实现不符 8 处**：含 workspace 启动命令用错环境变量（`EXECUTION_DATABASE_URL`
   → 实际应为 `WORKSPACE_DATABASE_URL`，按原文执行会启动失败）、技术栈版本（React 18 → 19）、
   目录树、数据库清单、ADR 位置冲突等。
@@ -82,9 +92,11 @@
   **生产依赖 4 个 moderate（0 high / 0 critical）**；
   **开发构建链 2 critical + 20 high**（`concurrently`→`shell-quote` 命令注入、
   eslint 工具链、vite、`@tailwindcss/node`）。生产依赖已改为阻断门禁，dev 链存量待修。
-- **`project_characters` 表无建表迁移**：迁移 `020` 向该表 `INSERT`，但全仓库无
-  `CREATE TABLE`。迁移执行器为 `psql -v ON_ERROR_STOP=1` + `sh -e`，**首个错误即中止**
-  → 全新数据库上 `deploy/local` 的 `app` profile 无法启动，且 `021` 永不执行。
+- **迁移并非全部幂等 → compose 重复 up 会失败**：`006_catalog_response_params.sql` 与
+  `workspace/004` 的 `ADD COLUMN` 缺 `IF NOT EXISTS`、`production/011` 的 `DROP CONSTRAINT`
+  无守卫。compose 的 migrate job 每次 up 都重跑全部迁移（无版本跟踪），
+  **实测第二次执行在 006 报 `column "response_params" ... already exists`**。
+  根治办法是让执行器改为版本跟踪（`schema_migrations` 表）。见 `.github/tasks/TASK-FIX-001` 附表。
 - **审计写入失败被静默忽略**：`_ = h.AuditStore.Insert(...)` 与「审计日志不异步丢失」冲突。
 - **`TaskStatus.timeout` 无法落库**：Go 有 6 个状态，`jobs`/`job_attempts` 的 `CHECK` 仅 5 个。
 - **`projects.status` 被 `CHECK` 冻结**为 `pending_parse`，且无任何更新代码 → 服务端状态机未实现。

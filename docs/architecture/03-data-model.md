@@ -70,7 +70,7 @@ erDiagram
 erDiagram
     projects ||--o{ source_versions : "不可变源版本"
     projects ||--o{ episodes : "剧集"
-    projects ||--o{ project_characters : "角色库（部分证据缺失，见下）"
+    projects ||--o{ project_characters : "角色库"
     episodes ||--o{ episode_assets : "单集资产"
     episode_assets }o--o| project_characters : "引用（变体）"
     episode_assets }o--o| project_props : "引用（变体）"
@@ -218,17 +218,46 @@ erDiagram
     }
 ```
 
-### ⚠️ `project_characters` 与 `project_props` / `project_scenes` 的建表证据缺失
+### `project_characters` 的建表迁移（2026-10-10 已修复）
 
-| 表 | 被代码/迁移使用 | 有 `CREATE TABLE` 迁移 |
+| 表 | 被代码/迁移使用 | 建表迁移 |
 |---|---|---|
-| `project_characters` | ✅ Go 读写（`internal/projectcharacter/postgres.go`）、迁移 020 写入 | ❌ **没有** |
-| `project_props` | 迁移 019 引用列 `project_prop_id` | ❌ 没有 |
-| `project_scenes` | 迁移 019 引用列 `project_scene_id` | ❌ 没有 |
+| `project_characters` | ✅ Go 读写（`internal/projectcharacter/postgres.go`）、020 写入 | ✅ `019a_project_characters.sql` |
+| `project_props` | 019 引用了列 `project_prop_id`，但**无任何代码读写该表** | 暂不创建（无据不推测） |
+| `project_scenes` | 019 引用了列 `project_scene_id`，但**无任何代码读写该表** | 暂不创建（无据不推测） |
 
-**后果**：迁移执行器为 `psql -v ON_ERROR_STOP=1` + `sh -e`，**首个错误即整体中止**。
-全新数据库上迁移 `020` 必然失败 → `deploy/local` 的 `app` profile 无法启动，且 `021` 永不执行。
-（CI 不跑 compose 迁移，故未暴露。**已上报 Owner 待决策修法**，涉及 AGENTS.md §7 禁区「修改已执行迁移」。）
+**曾经的缺陷**：`project_characters` 被代码与迁移 020 使用，却没有任何迁移创建它。
+迁移执行器为 `psql -v ON_ERROR_STOP=1` + `sh -e`（首个错误即整体中止），
+因此全新数据库上 020 必然失败、`app` profile 无法启动、021 永不执行。
+（CI 不跑 compose 迁移，故长期未暴露。）
+
+**修复方式**（遵守 `AGENTS.md` §7「已执行迁移只增不改」，未修改任何既有文件）：
+
+| 文件 | 作用 |
+|---|---|
+| `019a_project_characters.sql` | 建表。字典序 `019_ < 019a_ < 020_`，故在 020 之前执行 |
+| `019b_project_characters_backfill.sql` | **去重回填**，前置修正 020 的重复主键缺陷（见下） |
+
+**020 的第二个缺陷**（同样已实证）：其 `id = 'pc-' || md5(ea.project_id || '-' || ea.name)`，
+而 `NOT EXISTS` 去重只检查**语句执行前**的表状态 —— 当同项目下多个剧集出现同名角色
+（主角出现在每一集 = 常态）时，同一条 `INSERT … SELECT` 会插入两行相同 id，
+触发 `duplicate key value violates unique constraint "project_characters_pkey"`。
+
+对照实验（同项目两个剧集各有一条同名角色资产）：
+
+| 场景 | 修复前 | 修复后 |
+|---|---|---|
+| 同项目、**不同名**角色 | ✅ 020 成功 | ✅ 成功 |
+| 同项目、**同名**跨剧集角色 | ❌ 主键冲突 | ✅ 成功，合并为 **1 条**角色记录、所有同名资产指向它 |
+
+`019b` 在 020 之前先写入去重后的角色行，使 020 步骤 1 的 `NOT EXISTS` 每行都为真（插入 0 行、不再冲突），
+而 020 的步骤 2（建立关联）与步骤 3（清理冗余字段）仍正常执行 —— 最终结果正是 ADR-002 的「引用而非复制」。
+同名多行取代表值时，**优先取有立绘的行**，其次取最早创建的行。
+
+> **仍未修复（独立缺陷，另立任务）**：迁移**并非全部幂等** ——
+> `006_catalog_response_params.sql` 与 `workspace/004` 的 `ADD COLUMN` 缺 `IF NOT EXISTS`、
+> `production/011` 的 `DROP CONSTRAINT` 无守卫，故 compose 的 migrate job（每次 up 重跑全部迁移）
+> 第二次执行会在 006 失败。根治办法是让执行器改为**版本跟踪**（`schema_migrations` 表）。
 
 ---
 
