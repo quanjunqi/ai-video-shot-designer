@@ -38,7 +38,10 @@ cd "$ROOT" || exit 2
 
 SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
 SCRATCH_PORT="${SCRATCH_PORT:-8095}"
-PG_CONTAINER="${PG_CONTAINER:-shotdesigner-postgres-1}"
+# ★ 用 ${VAR-默认} 而不是 ${VAR:-默认}：后者会把"已显式设为空字符串"也当成未设置，
+#   于是 CI 里的 `PG_CONTAINER: ''` 会静默退回 docker 模式（本片真实踩到，
+#   而且它伪装成了一次"直连模式 11/11 通过"的假绿）。
+PG_CONTAINER="${PG_CONTAINER-shotdesigner-postgres-1}"
 PG_USER="${PG_USER:-shotdesigner}"
 REAL_DBS="execution workspace production asset"
 BIN_DIR="${BIN_DIR:-/tmp/mdp-scratch-bin}"
@@ -54,11 +57,15 @@ psql_() {
   else
     local dsn="${EXECUTION_DATABASE_URL:-}"
     [ -n "$dsn" ] || die "直连模式（PG_CONTAINER 为空）需要 EXECUTION_DATABASE_URL"
-    PGUSER="${PGUSER:-$(printf '%s' "$dsn" | sed -E 's#^postgres://([^:]+):.*#\1#')}" \
-    PGPASSWORD="${PGPASSWORD:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^:]+:([^@]+)@.*#\1#')}" \
-    PGHOST="${PGHOST:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@([^:/]+).*#\1#')}" \
-    PGPORT="${PGPORT:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@[^:]+:([0-9]+).*#\1#')}" \
-      psql "$@"
+    # ★ 必须用 export（单行）：此前写成多行 `VAR=... \` 的行续接，
+    #   实际执行时四个变量成了【独立赋值】、没有传给 psql ⇒ psql 去连本地 unix socket、
+    #   以 OS 用户身份认证 ⇒ `FATAL: role "root" does not exist`。
+    #   Bash 的行续接对"末尾空格"极敏感，这类写法在这里不值得冒险。
+    export PGUSER="${PGUSER:-$(printf '%s' "$dsn" | sed -E 's#^postgres://([^:]+):.*#\1#')}"
+    export PGPASSWORD="${PGPASSWORD:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^:]+:([^@]+)@.*#\1#')}"
+    export PGHOST="${PGHOST:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@([^:/]+).*#\1#')}"
+    export PGPORT="${PGPORT:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@[^:]+:([0-9]+).*#\1#')}"
+    psql "$@"
   fi
 }
 
@@ -92,7 +99,11 @@ cmd_up() {
   local service="${1:-execution}" port="${2:-$SCRATCH_PORT}"
   [ -d "services/$service/migrations" ] || die "services/$service/migrations 不存在"
 
-  echo "── 建库 $SCRATCH_DB ──"
+  if [ -n "$PG_CONTAINER" ]; then
+    echo "── 模式：docker（容器 ${PG_CONTAINER}）· 建库 $SCRATCH_DB ──"
+  else
+    echo "── 模式：直连 psql（PG_CONTAINER 为空）· 建库 $SCRATCH_DB ──"
+  fi
   psql_ -d postgres -q -c "DROP DATABASE IF EXISTS $SCRATCH_DB;" || die "drop 失败"
   psql_ -d postgres -q -c "CREATE DATABASE $SCRATCH_DB;" || die "create 失败"
 

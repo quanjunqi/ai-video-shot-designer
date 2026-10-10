@@ -31,7 +31,8 @@ SS="$SELF_DIR/scratch-stack.sh"
 # 否则场景会静默退化，"跑过了"却不代表验过了。
 grep -q 'SCRATCH_ENV_FILE' "$SS" || { echo "❌ $SS 不支持 SCRATCH_ENV_FILE（版本过旧）⇒ 场景会静默退化，拒绝继续"; exit 2; }
 SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
-PG_CONTAINER="${PG_CONTAINER:-shotdesigner-postgres-1}"
+# 同 scratch-stack.sh：用 ${VAR-}，否则显式设成空字符串会被默认值覆盖（本片真实踩到）
+PG_CONTAINER="${PG_CONTAINER-shotdesigner-postgres-1}"
 PG_USER="${PG_USER:-shotdesigner}"
 PORT="${SCRATCH_PORT:-8095}"
 # 口令：环境变量优先（CI），其次 .env.local。
@@ -70,14 +71,29 @@ echo "── 场景 A：catalog 不可达（迫使 failOrRetry）─────
 #   于是"重试 / 死信"这两条根本不会被触发（本项目实测踩过：日志里是
 #   `job store: Complete … status=failed`，说明压根没进 failOrRetry）。
 printf 'EXECUTION_PRODUCTION_URL=http://127.0.0.1:1\n' > /tmp/verdict-deadcatalog.env
-SCRATCH_ENV_FILE=/tmp/verdict-deadcatalog.env bash "$SS" up execution "$PORT" >/dev/null 2>&1 || { echo "❌ 无法建立一次性栈"; exit 2; }
+SCRATCH_ENV_FILE=/tmp/verdict-deadcatalog.env # ★ 建栈失败时必须把【原因】打出来：此前重定向到 /dev/null，
+#   于是 CI 里只看到"无法建立一次性栈"，无从判断（本片就踩过）。
+setup_log=/tmp/verdict-setup-a.log
+if ! bash "$SS" up execution "$PORT" >"$setup_log" 2>&1; then
+  echo "❌ 无法建立一次性栈 —— 构建/迁移/启动的输出如下（原文）："
+  tail -30 "$setup_log" | sed 's/^/      /'
+  exit 2
+fi
 
 # V3 先用：两个任务，一个还会重试、一个已耗尽
-seed job_v_retry 1 5
+# ★ 这里刻意用很大的 max_attempts：本用例断言的是"【还在重试】时审计保持 queued"，
+#   若 max_attempts 太接近等待时长，断言就变成与"退避是否已经走完"赛跑
+#   —— 那会让判据时绿时红（本片真实出现过：同一个 fixture 一次过一个不过）。
+seed job_v_retry 1 500
 seed job_v_dead  5 5
 waitfor "SELECT count(*) FROM jobs WHERE id='job_v_dead' AND dead_lettered_at IS NOT NULL" 30 "死信"
 sleep 2
 
+if [ "$(q "SELECT status FROM jobs WHERE id='job_v_retry'")" != "queued" ]; then
+  echo "   —— 诊断（判据：库与日志原文）——"
+  q "SELECT id||' attempt='||attempt||'/'||max_attempts||' status='||status FROM jobs WHERE id LIKE 'job_v_%' ORDER BY id" | sed 's/^/      /'
+  grep -E "job_v_retry" /tmp/scratch-stack.log 2>/dev/null | tail -4 | sed 's/^/      /'
+fi
 [ "$(q "SELECT status FROM jobs WHERE id='job_v_retry'")" = "queued" ] \
   && ok "V3a 还在重试的任务：job 状态 = queued" || bad "V3a job_v_retry 状态异常：$(q "SELECT status FROM jobs WHERE id='job_v_retry'")"
 [ "$(q "SELECT status FROM gateway_audit_logs WHERE job_id='job_v_retry'")" = "queued" ] \
@@ -116,7 +132,12 @@ printf '%s' "$out2" | grep -q "UPDATE 1" \
 echo "── 场景 B：开启保留期清理（窗口 1 天 / 间隔 5s）──────────"
 bash "$SS" down >/dev/null 2>&1
 printf 'EXECUTION_AUDIT_RETENTION_DAYS=1\nEXECUTION_AUDIT_FAILURE_RETENTION_DAYS=1\nEXECUTION_AUDIT_PURGE_INTERVAL=5s\n' > /tmp/verdict-purge.env
-SCRATCH_ENV_FILE=/tmp/verdict-purge.env bash "$SS" up execution "$PORT" >/dev/null 2>&1 || { echo "❌ 无法建立清理场景"; exit 2; }
+setup_log=/tmp/verdict-setup-b.log
+if ! SCRATCH_ENV_FILE=/tmp/verdict-purge.env bash "$SS" up execution "$PORT" >"$setup_log" 2>&1; then
+  echo "❌ 无法建立清理场景 —— 输出如下（原文）："
+  tail -30 "$setup_log" | sed 's/^/      /'
+  exit 2
+fi
 
 cat <<'SQL' | qfile
 DELETE FROM gateway_audit_logs WHERE request_id LIKE 'req_v4_%';

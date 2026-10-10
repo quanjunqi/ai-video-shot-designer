@@ -133,8 +133,12 @@ jobs:
           POSTGRES_PASSWORD: shotdesigner
           POSTGRES_DB: postgres
         ports: ['5432:5432']
+        # --health-cmd 必须显式带 -d：pg_isready 默认探测【与用户名同名】的库，
+        # 而这里没有名为 shotdesigner 的库 ⇒ 健康检查会一直失败并每 5s 刷一条 FATAL。
+        # ★ 注意：options 是 YAML 折叠标量，【不能】在里面写注释 —— 注释会变成传给
+        #   docker 的参数（本片踩过，被 YAML 解析结果当场暴露）。
         options: >-
-          --health-cmd "pg_isready -U shotdesigner"
+          --health-cmd "pg_isready -U shotdesigner -d postgres"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       # 三个服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
