@@ -48,6 +48,8 @@ func main() {
 	mux.HandleFunc("/api/v1/catalog/", s.catalogProxy)
 	mux.HandleFunc("/api/v1/rule-templates", s.ruleTemplates)
 	mux.HandleFunc("/api/v1/rule-templates/", s.ruleTemplates)
+	mux.HandleFunc("/api/v1/logical-models", s.logicalModels)
+	mux.HandleFunc("/api/v1/logical-models/", s.logicalModels)
 	mux.HandleFunc("/api/v1/workspace/credentials", s.workspaceCredentials)
 	mux.HandleFunc("/api/v1/workspace/credentials/", s.workspaceCredentials)
 	mux.HandleFunc("/api/v1/workspace/channels", s.workspaceChannels)
@@ -426,6 +428,60 @@ func (s *server) ruleTemplates(w http.ResponseWriter, r *http.Request) {
 	}
 	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/rule-templates")
 	upstreamPath := "/internal/v1/rule-templates" + rel
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.productionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if value := r.Header.Get("Content-Type"); value != "" {
+		req.Header.Set("Content-Type", value)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// logicalModels forwards the logical model CRUD and candidate bindings to the
+// production service. Paths align 1:1 with production routes, so the business
+// status codes and error codes produced there (400 ID_IMMUTABLE,
+// 409 MODEL_ALREADY_BOUND, 404 MODEL_NOT_FOUND / CANDIDATE_NOT_FOUND) reach the
+// browser unchanged.
+func (s *server) logicalModels(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/logical-models") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodPatch && r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "production authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
+		return
+	}
+	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/logical-models")
+	upstreamPath := "/internal/v1/logical-models" + rel
 	if r.URL.RawQuery != "" {
 		upstreamPath += "?" + r.URL.RawQuery
 	}

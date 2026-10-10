@@ -15,6 +15,12 @@
 
 ### Added
 
+- **BFF 暴露逻辑模型与候选绑定（ADR-003 第 2 步后半）**：新增 `/api/v1/logical-models*`
+  代理（4 个 path / 7 个 operation），照抄既有 `catalogProxy`/`ruleTemplates` 模式，
+  状态码与业务错误码**原样透传**（`ID_IMMUTABLE` / `MODEL_ALREADY_BOUND` /
+  `MODEL_NOT_FOUND` / `CANDIDATE_NOT_FOUND`）；`client.ts` 新增 7 个方法与类型
+  （零 `any`）；`openapi/bff.yaml` 同步登记契约。
+
 - **逻辑模型与候选绑定 API（production，ADR-003 第 2 步）**：新增 7 个内部端点，
   支持逻辑模型 CRUD 与"把 `model_catalog` 行绑为候选 + 设 `route_priority`"。
   `id` 不可修改（400 `ID_IMMUTABLE`）、候选已被占用返回 409 且整体回滚、

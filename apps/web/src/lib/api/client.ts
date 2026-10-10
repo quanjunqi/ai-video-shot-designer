@@ -521,6 +521,73 @@ export interface CredentialStatus {
   updatedAt: string;
 }
 
+// ---- Logical models & candidate bindings (production, ADR-003 §3.1) ----
+// 逻辑模型是对外统一标识（能力型 kebab-case，id 一经使用即不可改名）；
+// 其候选行是 model_catalog 的一行，按 routePriority **小者优先**依次尝试。
+// 列表接口与其它端点不同：上游返回裸数组（不是 {items: [...]}）。
+export type LogicalModelType = 'text' | 'image' | 'video';
+export type LogicalModelStatus = 'enabled' | 'disabled';
+
+export interface ServerLogicalModel {
+  id: string;
+  label: string;
+  type: LogicalModelType;
+  capability: string;
+  status: LogicalModelStatus;
+  sort: number;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * `POST /api/v1/logical-models` 请求体。
+ * 上游以 `DisallowUnknownFields` 解码，字段必须与契约完全一致。
+ */
+export interface CreateLogicalModelRequest {
+  id: string;
+  label: string;
+  type: LogicalModelType;
+  capability?: string;
+  status?: LogicalModelStatus;
+  sort?: number;
+  note?: string;
+}
+
+/**
+ * `PATCH /api/v1/logical-models/{id}` 请求体。
+ * `id` 只用于表达「改名意图」：与路径 id 不一致时服务端返回 `400 ID_IMMUTABLE`；
+ * 省略字段表示保持原值（`sort` 可显式传 0）。**不接受** `createdBy`/`createdAt` 等只读字段。
+ */
+export interface UpdateLogicalModelRequest {
+  id?: string;
+  label?: string;
+  type?: LogicalModelType;
+  capability?: string;
+  status?: LogicalModelStatus;
+  sort?: number;
+  note?: string;
+}
+
+export interface ServerLogicalModelCandidate {
+  id: string;
+  logicalModelId: string;
+  name: string;
+  family: string;
+  channelId: string;
+  providerModel: string;
+  type: LogicalModelType;
+  status: LogicalModelStatus;
+  /** 路由尝试顺序，小者优先；未提供时上游使用默认值 100。 */
+  routePriority: number;
+}
+
+export interface BindLogicalModelCandidatesRequest {
+  modelIds: string[];
+  routePriority?: number;
+}
+
 export const api = {
   listProjects: () => request<{ items: ServerProject[] }>('/api/v1/comic-projects'),
   getProject: (id: string) => request<ServerProject>(`/api/v1/comic-projects/${encodeURIComponent(id)}`),
@@ -729,6 +796,43 @@ export const api = {
     }),
   deleteRuleTemplate: (templateId: string) =>
     request<void>(`/api/v1/rule-templates/${encodeURIComponent(templateId)}`, { method: 'DELETE' }),
+  // Logical models & candidate bindings
+  // BFF 原样透传上游状态码与错误码：400 ID_IMMUTABLE / 409 MODEL_ALREADY_BOUND /
+  // 404 MODEL_NOT_FOUND / 404 CANDIDATE_NOT_FOUND 由调用方按 ApiError.code 分支处理。
+  listLogicalModels: (filters?: { status?: LogicalModelStatus; type?: LogicalModelType }) => {
+    const query = new URLSearchParams();
+    if (filters?.status) query.set('status', filters.status);
+    if (filters?.type) query.set('type', filters.type);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return request<ServerLogicalModel[]>(`/api/v1/logical-models${suffix}`);
+  },
+  createLogicalModel: (input: CreateLogicalModelRequest) =>
+    request<ServerLogicalModel>('/api/v1/logical-models', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+  getLogicalModel: (modelId: string) =>
+    request<ServerLogicalModel>(`/api/v1/logical-models/${encodeURIComponent(modelId)}`),
+  updateLogicalModel: (modelId: string, patch: UpdateLogicalModelRequest) =>
+    request<ServerLogicalModel>(`/api/v1/logical-models/${encodeURIComponent(modelId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }),
+  listLogicalModelCandidates: (modelId: string) =>
+    request<ServerLogicalModelCandidate[]>(`/api/v1/logical-models/${encodeURIComponent(modelId)}/candidates`),
+  bindLogicalModelCandidates: (modelId: string, input: BindLogicalModelCandidatesRequest) =>
+    request<ServerLogicalModelCandidate[]>(`/api/v1/logical-models/${encodeURIComponent(modelId)}/candidates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+  unbindLogicalModelCandidate: (modelId: string, candidateModelId: string) =>
+    request<void>(
+      `/api/v1/logical-models/${encodeURIComponent(modelId)}/candidates/${encodeURIComponent(candidateModelId)}`,
+      { method: 'DELETE' },
+    ),
 };
 
 function createIdempotencyKey(): string {

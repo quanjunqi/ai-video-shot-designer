@@ -37,7 +37,8 @@ info:
     - **BFF → 领域服务：静态内部令牌。** BFF 向每个领域服务注入
       `Authorization: Bearer <SERVICE>_INTERNAL_TOKEN`，并把 `X-Workspace-Id` / `X-Actor-Id`
       写为上述开发身份（`services/web-bff/cmd/server/main.go` 的 `projects`/`assets`/`tasks`/
-      `generate`/`catalogProxy`/`ruleTemplates`/`workspaceCredentials`/`workspaceChannels`）。
+      `generate`/`catalogProxy`/`ruleTemplates`/`logicalModels`/`workspaceCredentials`/
+      `workspaceChannels`）。
       浏览器无法、也不应提供该令牌。
     - `components.securitySchemes` 中列出的两个 scheme 仅用于描述 **BFF → 领域服务** 这一跳，
       不是浏览器契约的一部分；不要据此在客户端实现鉴权。
@@ -52,6 +53,8 @@ info:
       `{task_id, status, poll_url}`；`POST /api/v1/tasks/run` 返回 `{ok, run}`；
       `PUT /api/v1/workspace/credentials/{channelId}` 返回 `{channelId, stored}`；
       `PUT /api/v1/workspace/channels/{channelId}` 返回 `{channel, ...}`。
+      **逻辑模型例外**：`/api/v1/logical-models*` 是纯透传，上游 production 返回**裸数组**
+      （`LogicalModel[]` / `LogicalModelCandidate[]`），没有 `{items: [...]}` 包装。
     - **缓存**：BFF 对所有响应强制
       `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` + `Pragma: no-cache`
       + `Expires: 0`（`withTimeout` 中间件），任务/生成/审计路径额外显式设置一次。前端轮询任务
@@ -60,8 +63,9 @@ info:
       若调用方未带 `Idempotency-Key`，BFF 会自动生成（`bff_<32hex>`）后转发；重放时上游返回
       `200` 而不是 `201`。
     - **请求体上限**（BFF 读取限制，超出即 `INVALID_BODY`）：comic-projects / tasks / generate
-      `2MiB + 4096`；rule-templates `2MiB`；catalog / workspace 凭据 / workspace 渠道
-      `256KiB + 4096`；generation-intents `512KiB + 4096`；渠道探测 `/probe` 请求体 `16KiB`。
+      `2MiB + 4096`；rule-templates `2MiB`；catalog / logical-models / workspace 凭据 /
+      workspace 渠道 `256KiB + 4096`；generation-intents `512KiB + 4096`；渠道探测 `/probe`
+      请求体 `16KiB`。
     - **超时**：BFF 请求上下文 300s（`withTimeout`），内部 HTTP client 300s，
       单个上游服务另有自己的超时（workspace 5s、asset 60s）。
     - **字段不确定处**：凡是仅由 TS 类型声明的深层结构（`Record<string, unknown>` 等），
@@ -108,6 +112,11 @@ tags:
     description: 平台共享模型目录（渠道/模型/协议模板）CRUD。转发到 production `/internal/v1/catalog*`。
   - name: 规则模板
     description: 拆分/提示词规则模板 CRUD。转发到 production `/internal/v1/rule-templates*`。
+  - name: 逻辑模型
+    description: |
+      逻辑模型（对外统一标识）与候选绑定 CRUD。转发到 production `/internal/v1/logical-models*`，
+      路径一一对应；状态码与错误码原样透传（`400 ID_IMMUTABLE`、`409 MODEL_ALREADY_BOUND`、
+      `404 MODEL_NOT_FOUND` / `CANDIDATE_NOT_FOUND`）。
   - name: 工作区凭据
     description: 租户渠道凭据（只写不读 key）。转发到 workspace `/internal/v1/workspaces/{workspace_id}/credentials*`。
   - name: 工作区渠道
@@ -1241,6 +1250,177 @@ paths:
         '403': {$ref: '#/components/responses/Forbidden'}
         '503': {$ref: '#/components/responses/UpstreamUnavailable'}
 
+  /api/v1/logical-models:
+    get:
+      operationId: listLogicalModels
+      tags: [逻辑模型]
+      summary: 列出逻辑模型
+      description: |
+        可选 `status`（`enabled` | `disabled`）与 `type`（`text` | `image` | `video`）过滤，
+        查询串原样转发；非法取值由上游返回 `400 INVALID_INPUT`。
+        **返回裸数组**（上游 `writeJSON(200, []LogicalModel)`），没有 `{items: [...]}` 包装。
+      x-upstream: {service: production, method: GET, path: '/internal/v1/logical-models'}
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: {type: string, enum: [enabled, disabled]}
+          description: 按逻辑模型状态过滤；省略返回全部。
+        - name: type
+          in: query
+          required: false
+          schema: {type: string, enum: [text, image, video]}
+          description: 按模态过滤；省略返回全部。
+      responses:
+        '200':
+          description: 逻辑模型数组（裸数组）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/LogicalModel'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: createLogicalModel
+      tags: [逻辑模型]
+      summary: 创建逻辑模型
+      description: |
+        成功返回 `201`。上游以 `DisallowUnknownFields` 解码，字段必须与
+        `CreateLogicalModelRequest` 完全一致。上游 `Location` 头是内部路径
+        `/internal/v1/logical-models/{id}`，BFF 原样透传，浏览器不应直接跟随。
+        错误：`400 INVALID_ID` / `INVALID_TYPE` / `INVALID_LABEL` / `INVALID_STATUS` /
+        `INVALID_INPUT`，`409 DUPLICATE_LOGICAL_MODEL`。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/logical-models'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateLogicalModelRequest'}
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LogicalModel'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/logical-models/{logicalModelId}:
+    parameters:
+      - $ref: '#/components/parameters/LogicalModelId'
+    get:
+      operationId: getLogicalModel
+      tags: [逻辑模型]
+      summary: 获取逻辑模型详情
+      x-upstream: {service: production, method: GET, path: '/internal/v1/logical-models/{id}'}
+      responses:
+        '200':
+          description: 逻辑模型
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LogicalModel'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    patch:
+      operationId: updateLogicalModel
+      tags: [逻辑模型]
+      summary: 更新逻辑模型
+      description: |
+        `id` 不可修改：body 中的 `id` 与路径不一致时上游返回 `400 ID_IMMUTABLE`
+        （**不静默忽略**）。省略字段保持原值，`sort` 可显式置 0。
+        其它错误：`400 INVALID_TYPE` / `INVALID_LABEL` / `INVALID_STATUS`，
+        `404 LOGICAL_MODEL_NOT_FOUND`。
+      x-upstream: {service: production, method: PATCH, path: '/internal/v1/logical-models/{id}'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateLogicalModelRequest'}
+      responses:
+        '200':
+          description: 更新后的逻辑模型
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LogicalModel'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/logical-models/{logicalModelId}/candidates:
+    parameters:
+      - $ref: '#/components/parameters/LogicalModelId'
+    get:
+      operationId: listLogicalModelCandidates
+      tags: [逻辑模型]
+      summary: 列出逻辑模型的候选渠道
+      description: '按 `routePriority` **升序**返回（小者优先）。**返回裸数组**，没有 `{items: [...]}` 包装。'
+      x-upstream: {service: production, method: GET, path: '/internal/v1/logical-models/{id}/candidates'}
+      responses:
+        '200':
+          description: 候选数组（裸数组）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/LogicalModelCandidate'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+    post:
+      operationId: bindLogicalModelCandidates
+      tags: [逻辑模型]
+      summary: 绑定候选渠道
+      description: |
+        绑定成功后返回该逻辑模型的候选数组（裸数组）。`modelIds` 为空 / 含空白 id →
+        `400 INVALID_INPUT`；`routePriority` < 0 → `400 INVALID_INPUT`（缺省 100）。
+        候选已被**另一个**逻辑模型占用 → `409 MODEL_ALREADY_BOUND`，且**整体回滚**
+        （不部分写入）；`modelIds` 含目录中不存在的行 → `404 MODEL_NOT_FOUND`。
+      x-upstream: {service: production, method: POST, path: '/internal/v1/logical-models/{id}/candidates'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BindLogicalModelCandidatesRequest'}
+      responses:
+        '200':
+          description: 绑定后的候选数组（裸数组）
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/LogicalModelCandidate'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
+  /api/v1/logical-models/{logicalModelId}/candidates/{modelId}:
+    parameters:
+      - $ref: '#/components/parameters/LogicalModelId'
+      - $ref: '#/components/parameters/ModelId'
+    delete:
+      operationId: unbindLogicalModelCandidate
+      tags: [逻辑模型]
+      summary: 解绑候选渠道
+      description: |
+        只置 `logical_model_id = NULL`，**不删除** model_catalog 行；成功返回 `204`（无响应体）。
+        错误：`404 LOGICAL_MODEL_NOT_FOUND`（逻辑模型不存在）或 `404 CANDIDATE_NOT_FOUND`
+        （该行不属于此逻辑模型）。
+      x-upstream: {service: production, method: DELETE, path: '/internal/v1/logical-models/{id}/candidates/{modelId}'}
+      responses:
+        '204':
+          description: 已解绑
+        '404': {$ref: '#/components/responses/NotFound'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/UpstreamUnavailable'}
+
   /api/v1/workspace/credentials:
     get:
       operationId: listChannelCredentials
@@ -1477,6 +1657,14 @@ components:
       required: true
       schema: {type: string}
       description: 目录模型 id（存量内置模型可能不是 `mod_` 前缀）。
+    LogicalModelId:
+      name: logicalModelId
+      in: path
+      required: true
+      schema: {type: string, maxLength: 64}
+      description: |
+        逻辑模型 id：非空、能力型 kebab-case（小写字母/数字、单连字符分隔、≤64 字符）。
+        一经对外使用即成契约，**不可修改**（改名用 `label`）。
     TaskId:
       name: taskId
       in: path
@@ -1599,7 +1787,11 @@ components:
               `NOT_FOUND`、`PROJECT_UNAVAILABLE`、`UNAUTHENTICATED`、`INVALID_CONTEXT`、
               `INVALID_PROJECT`、`INVALID_INPUT`、`CATALOG_UNAVAILABLE`、`MODEL_NOT_FOUND`、
               `DUPLICATE_MODEL`、`INVALID_CHANNEL`、`INVALID_MODEL`、`PROBE_UNAVAILABLE`、
-              `BAD_REQUEST`、`DUPLICATE`、`INTERNAL`、`BUILTIN_PROTECTED`、`TEMPLATE_IN_USE`。
+              `BAD_REQUEST`、`DUPLICATE`、`INTERNAL`、`BUILTIN_PROTECTED`、`TEMPLATE_IN_USE`、
+              `LOGICAL_MODEL_NOT_FOUND`、`CANDIDATE_NOT_FOUND`、`MODEL_ALREADY_BOUND`、
+              `DUPLICATE_LOGICAL_MODEL`、`ID_IMMUTABLE`、`INVALID_ID`、`INVALID_TYPE`、
+              `INVALID_LABEL`、`INVALID_STATUS`、`LOGICAL_MODEL_UNAVAILABLE`。
+              （`MODEL_NOT_FOUND` 既用于 catalog 模型，也用于逻辑模型候选绑定。）
             - execution：`NOT_READY`、`INVALID_CONTEXT`、`INVALID_BODY`、`INVALID_INTENT`、
               `INTENT_CONFLICT`、`EXECUTION_UNAVAILABLE`、`UNAUTHENTICATED`、`INVALID_JSON`、
               `IDEMPOTENCY_CONFLICT`、`INVALID_TASK`、`TASK_UNAVAILABLE`、`NOT_FOUND`、
@@ -1649,6 +1841,16 @@ components:
             - INTERNAL
             - BUILTIN_PROTECTED
             - TEMPLATE_IN_USE
+            - LOGICAL_MODEL_NOT_FOUND
+            - CANDIDATE_NOT_FOUND
+            - MODEL_ALREADY_BOUND
+            - DUPLICATE_LOGICAL_MODEL
+            - ID_IMMUTABLE
+            - INVALID_ID
+            - INVALID_TYPE
+            - INVALID_LABEL
+            - INVALID_STATUS
+            - LOGICAL_MODEL_UNAVAILABLE
             - INTENT_CONFLICT
             - EXECUTION_UNAVAILABLE
             - INVALID_JSON
@@ -3013,4 +3215,131 @@ components:
       required: [channel]
       properties:
         channel: {$ref: '#/components/schemas/UserChannel'}
+      additionalProperties: false
+
+    LogicalModel:
+      type: object
+      description: |
+        逻辑模型（ADR-003 §3.1）：对外唯一标识 `id` + 展示用 `label`。
+        必填依据 production `catalog.LogicalModel` 的 JSON 字段（无 omitempty）。
+      required:
+        - id
+        - label
+        - type
+        - capability
+        - status
+        - sort
+        - note
+        - createdBy
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          maxLength: 64
+          description: 能力型 kebab-case；创建后不可修改。
+        label: {type: string, maxLength: 200, description: 展示名；改名用此字段。}
+        type:
+          type: string
+          enum: [text, image, video]
+        capability:
+          type: string
+          description: 能力声明（如 `image.t2i`）；上游未做格式校验，字段以服务端为准。
+        status:
+          type: string
+          enum: [enabled, disabled]
+        sort: {type: integer, minimum: 0, description: 目录排序，缺省 100。}
+        note: {type: string}
+        createdBy: {type: string, description: 创建者 actor id。}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+      additionalProperties: true
+
+    CreateLogicalModelRequest:
+      type: object
+      description: |
+        上游 `DisallowUnknownFields`（未知字段 → `400 INVALID_BODY`），因此不接受
+        `createdBy`/`createdAt`/`updatedAt` 等只读字段。
+      required: [id, label, type]
+      properties:
+        id:
+          type: string
+          maxLength: 64
+          description: 能力型 kebab-case，由调用方指定；已存在 → `409 DUPLICATE_LOGICAL_MODEL`。
+        label: {type: string, maxLength: 200}
+        type:
+          type: string
+          enum: [text, image, video]
+        capability: {type: string}
+        status:
+          type: string
+          enum: [enabled, disabled]
+        sort: {type: integer, minimum: 0}
+        note: {type: string}
+      additionalProperties: false
+
+    UpdateLogicalModelRequest:
+      type: object
+      description: |
+        局部更新：省略字段保持原值（`sort` 可显式传 0）。
+        `id` 只用于表达「改名意图」——与路径 id 不一致时返回 `400 ID_IMMUTABLE`，
+        与路径一致则被忽略（不写库）。未知字段 → `400 INVALID_BODY`。
+      properties:
+        id: {type: string, description: 仅用于探测改名意图；不参与写入。}
+        label: {type: string, maxLength: 200}
+        type:
+          type: string
+          enum: [text, image, video]
+        capability: {type: string}
+        status:
+          type: string
+          enum: [enabled, disabled]
+        sort: {type: integer, minimum: 0}
+        note: {type: string}
+      additionalProperties: false
+
+    LogicalModelCandidate:
+      type: object
+      description: |
+        某逻辑模型下的候选行（= model_catalog 一行，只读视图）。
+        路由尝试顺序由 `routePriority` 决定，**小者优先**。
+      required:
+        - id
+        - logicalModelId
+        - name
+        - family
+        - channelId
+        - providerModel
+        - type
+        - status
+        - routePriority
+      properties:
+        id: {type: string, description: model_catalog 行 id。}
+        logicalModelId: {type: string}
+        name: {type: string}
+        family: {type: string}
+        channelId: {type: string}
+        providerModel: {type: string}
+        type:
+          type: string
+          enum: [text, image, video]
+        status:
+          type: string
+          enum: [enabled, disabled]
+          description: 该候选行自身的启用状态（model_catalog.status）。
+        routePriority: {type: integer, minimum: 0, description: 路由尝试顺序，小者优先；缺省 100。}
+      additionalProperties: true
+
+    BindLogicalModelCandidatesRequest:
+      type: object
+      description: |
+        上游 `DisallowUnknownFields`。`modelIds` 非空、每项非空白且 ≤128 字符；
+        同一 id 重复出现是幂等的（去重后保留首次出现顺序）。
+      required: [modelIds]
+      properties:
+        modelIds:
+          type: array
+          minItems: 1
+          items: {type: string, maxLength: 128}
+        routePriority: {type: integer, minimum: 0, description: 省略时上游使用默认值 100。}
       additionalProperties: false
