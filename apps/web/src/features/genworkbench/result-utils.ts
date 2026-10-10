@@ -1,4 +1,4 @@
-// EXPORTS: parseTaskPayload, extractResultUrl, mediaKind, reusableDraft, cancelPlan, canCancel, canRetry, formatTaskTime, attemptsNote, type TaskPayload, type ReusableDraft, type CancelPlan, type MediaKind
+// EXPORTS: parseTaskPayload, resolveTaskResult, extractResultUrl, mediaKind, reusableDraft, cancelPlan, canCancel, canRetry, formatTaskTime, attemptsNote, type TaskPayload, type ReusableDraft, type CancelPlan, type MediaKind
 //
 // 智能创作结果区的纯逻辑（ADR-006 D6/D10）：解析已落库的任务负载、判定可复用参数、
 // 以及区分「排队中 / 执行中」的取消语义。
@@ -6,12 +6,14 @@
 // 为什么单独成文件：这些规则需要单测覆盖（node:test 直接加载），且不应埋在组件里。
 // 本文件只依赖 type import，便于测试环境直接 strip-types 加载。
 //
-// 事实前提（已核实）：
+// 事实前提（已核实，2026-10-10 真机验收）：
 //   · `POST /internal/v1/tasks` 会把前端提交的 payload 原样持久化到 `jobs.intent_payload`
 //     （services/execution/internal/httpapi/handler.go:174），所以「复用参数」读的是真实数据。
-//   · 但**没有任何代码把生成结果写回 intent_payload**（全仓 grep `jsonb_set` / `'result'` 命中为 0），
-//     因此 `result` 只可能由未来/其它链路写入 —— 故对结果地址做**防御式探测**：
-//     取到就显示真实产物，取不到就如实回退到占位图。
+//   · 结果曾由 execution 的 `job.Store.Complete` **覆盖写进 `intent_payload`**（键名 `result`），
+//     因此历史任务的结果只能从 `intent_payload.result` 读到。
+//   · execution 010 起结果改存独立的 `result_payload` 列，`intent_payload` 保持原始意图不变。
+//   · 故结果一律走 `resolveTaskResult`：**优先 `result_payload`，回退 `intent_payload.result`**，
+//     新旧任务都拿得到结果，取不到就如实回退到占位图。
 import type { ServerTask } from '@/lib/api/client';
 
 /** 前端提交并被原样落库的任务负载（与 CreateWorkbench 的 submit 一一对应） */
@@ -24,23 +26,48 @@ export interface TaskPayload {
   reference_count?: number;
   quantity?: number;
   candidate_index?: number;
-  /** 上游结果（当前无写入链路，防御式读取） */
+  /** 上游结果（由 resolveTaskResult 归一化：优先 result_payload，回退 intent_payload.result） */
   result?: Record<string, unknown>;
 }
 
-/** intent_payload 可能是对象或 JSON 字符串（服务端列类型为 jsonb/raw），两种都要能吃 */
-export function parseTaskPayload(task: Pick<ServerTask, 'intent_payload'>): TaskPayload {
-  const raw = task.intent_payload;
-  if (raw === null || raw === undefined) return {};
+/** 服务端 jsonb 列可能返回对象、JSON 字符串或 null —— 统一解析为对象 */
+function parseJsonObject(raw: unknown): Record<string, unknown> | undefined {
+  if (raw === null || raw === undefined) return undefined;
   if (typeof raw === 'string') {
     try {
       const parsed: unknown = JSON.parse(raw);
-      return parsed !== null && typeof parsed === 'object' ? (parsed as TaskPayload) : {};
+      return parsed !== null && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : undefined;
     } catch {
-      return {};
+      return undefined;
     }
   }
-  return raw as TaskPayload;
+  return typeof raw === 'object' ? (raw as Record<string, unknown>) : undefined;
+}
+
+/**
+ * 解析任务结果，屏蔽「结果存在哪里」的两代差异：
+ *   · 新任务（execution 010+）：结果在 `result_payload`；
+ *   · 历史任务：结果被覆盖写在 `intent_payload.result`（服务端读取路径也会归一化，这里再兜一层，
+ *     保证即使服务端未升级/未归一化也能显示）。
+ * 优先 `result_payload`，回退 `intent_payload.result`；都没有则返回空对象。
+ */
+export function resolveTaskResult(
+  task: Pick<ServerTask, 'intent_payload' | 'result_payload'>,
+): Record<string, unknown> {
+  const explicit = parseJsonObject(task.result_payload);
+  if (explicit) return explicit;
+  const legacy = parseJsonObject(task.intent_payload)?.result;
+  return legacy !== null && typeof legacy === 'object' ? (legacy as Record<string, unknown>) : {};
+}
+
+/** intent_payload 可能是对象或 JSON 字符串（服务端列类型为 jsonb/raw），两种都要能吃 */
+export function parseTaskPayload(
+  task: Pick<ServerTask, 'intent_payload' | 'result_payload'>,
+): TaskPayload {
+  const payload = parseJsonObject(task.intent_payload) as TaskPayload | undefined;
+  if (!payload) return {};
+  const result = resolveTaskResult(task);
+  return Object.keys(result).length > 0 ? { ...payload, result } : payload;
 }
 
 const URL_KEYS = [
@@ -62,8 +89,8 @@ function isUsableUrl(value: unknown): value is string {
 
 /**
  * 从任务负载里探测真实产物地址。
- * 当前正常链路不会写入 result，因此多数情况返回 undefined（调用方如实回退到占位图）；
- * 一旦上游/后续链路开始写回，本函数即可直接展示真实产物，无需改组件。
+ * 结果位置的两代差异已由 resolveTaskResult 抹平（result_payload 优先、回退 intent_payload.result）；
+ * 取不到地址时返回 undefined，调用方如实回退到占位图。
  */
 export function extractResultUrl(payload: TaskPayload): string | undefined {
   const result = payload.result;

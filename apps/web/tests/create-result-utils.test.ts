@@ -11,6 +11,7 @@ import {
   formatTaskTime,
   mediaKind,
   parseTaskPayload,
+  resolveTaskResult,
   reusableDraft,
 } from '../src/features/genworkbench/result-utils.ts';
 
@@ -37,6 +38,70 @@ test('extractResultUrl 在无 result 时返回 undefined（当前链路就是这
   // 非 URL 值不得被当作产物
   assert.equal(extractResultUrl({ result: { url: 'not-a-url' } }), undefined);
   assert.equal(extractResultUrl({ result: { url: 123 } }), undefined);
+});
+
+// execution 010 起结果与意图分离：新任务读 result_payload，历史任务回退 intent_payload.result
+test('resolveTaskResult 优先读 result_payload（新任务）', () => {
+  assert.deepEqual(
+    resolveTaskResult({
+      intent_payload: { prompt: '雾夜钟楼' },
+      result_payload: { url: 'https://cdn/new.png' },
+    }),
+    { url: 'https://cdn/new.png' },
+  );
+  // 服务端 jsonb 也可能以 JSON 字符串返回
+  assert.deepEqual(
+    resolveTaskResult({ intent_payload: null, result_payload: '{"url":"https://cdn/str.png"}' }),
+    { url: 'https://cdn/str.png' },
+  );
+});
+
+test('resolveTaskResult 回退读历史行的 intent_payload.result', () => {
+  // 010 之前：结果被覆盖写进 intent_payload.result，没有 result_payload 列
+  assert.deepEqual(
+    resolveTaskResult({ intent_payload: { prompt: '蓝衣', result: { url: 'https://cdn/legacy.png' } } }),
+    { url: 'https://cdn/legacy.png' },
+  );
+  // intent_payload 为 JSON 字符串的历史形态
+  assert.deepEqual(
+    resolveTaskResult({ intent_payload: '{"result":{"url":"https://cdn/legacy-str.png"}}' }),
+    { url: 'https://cdn/legacy-str.png' },
+  );
+});
+
+test('resolveTaskResult 在两个来源都缺失/损坏时返回空对象，不抛错', () => {
+  assert.deepEqual(resolveTaskResult({ intent_payload: { prompt: '无结果' } }), {});
+  assert.deepEqual(resolveTaskResult({ intent_payload: null, result_payload: null }), {});
+  assert.deepEqual(resolveTaskResult({ intent_payload: '{不是合法JSON', result_payload: '也不是' }), {});
+  assert.deepEqual(resolveTaskResult({ intent_payload: { result: null } }), {});
+  assert.deepEqual(resolveTaskResult({ intent_payload: { result: 'not-an-object' } }), {});
+  assert.deepEqual(resolveTaskResult({ intent_payload: 'null' }), {});
+});
+
+test('parseTaskPayload 同时吐出意图（reusableDraft 用）与归一化后的结果', () => {
+  // 新任务：意图无 result 键，结果来自 result_payload
+  const fresh = parseTaskPayload({
+    intent_payload: { prompt: '雾夜钟楼', model_id: 'seedance-2.0' },
+    result_payload: { url: 'https://cdn/new.png' },
+  });
+  assert.equal(fresh.model_id, 'seedance-2.0');
+  assert.equal(fresh.prompt, '雾夜钟楼');
+  assert.deepEqual(fresh.result, { url: 'https://cdn/new.png' });
+  assert.equal(extractResultUrl(fresh), 'https://cdn/new.png');
+
+  // 历史任务：结果从 intent_payload.result 回退，意图字段照常可读
+  const legacy = parseTaskPayload({
+    intent_payload: { prompt: '蓝衣', model_id: 'image-v1', result: { url: 'https://cdn/legacy.png' } },
+  });
+  assert.equal(legacy.model_id, 'image-v1');
+  assert.equal(extractResultUrl(legacy), 'https://cdn/legacy.png');
+
+  // result_payload 与历史 result 同时存在时以 result_payload 为准
+  const both = parseTaskPayload({
+    intent_payload: { prompt: 'x', result: { url: 'https://cdn/old.png' } },
+    result_payload: { url: 'https://cdn/winner.png' },
+  });
+  assert.equal(extractResultUrl(both), 'https://cdn/winner.png');
 });
 
 test('extractResultUrl 能识别已核实的多种上游字段形状（前向兼容）', () => {

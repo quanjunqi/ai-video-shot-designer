@@ -34,6 +34,7 @@ import StageModelPicker from '@/features/comic/StageModelPicker';
 import type { ArtifactStatus, Episode, ShotCard } from '@/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
+import { resolveTaskResult } from '@/features/genworkbench/result-utils';
 
 const STATUS_META: Record<ArtifactStatus, { label: string; className: string; dot: string }> = {
   DRAFT: { label: '草稿', className: 'bg-muted text-muted-foreground', dot: 'bg-muted-foreground' },
@@ -630,20 +631,14 @@ function CharacterDetailDrawer({
         return;
       }
 
-      // 6. 从intent_payload中提取图片URL
+      // 6. 提取图片URL（结果优先读 result_payload，回退历史行的 intent_payload.result）
       let url: string | undefined;
       for (let retry = 0; retry < 10; retry++) {
         if (retry > 0) {
           await new Promise((r) => setTimeout(r, 2000));
           finalTask = await api.getTask(genRes.task_id);
         }
-        let payload: { result?: Record<string, unknown> } | undefined;
-        if (typeof finalTask.intent_payload === 'string') {
-          try { payload = JSON.parse(finalTask.intent_payload); } catch { /* ignore */ }
-        } else {
-          payload = finalTask.intent_payload;
-        }
-        const result = payload?.result || {};
+        const result = resolveTaskResult(finalTask);
         url = (result['output.image_urls.0'] || result['output.data.0.url'] || result['data.0.url'] || result['url']) as string | undefined;
         if (url) break;
       }

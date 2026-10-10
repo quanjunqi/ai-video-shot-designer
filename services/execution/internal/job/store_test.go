@@ -81,7 +81,8 @@ func TestIntentPayloadIsNotTaskStepsAndParticipatesInIdempotency(t *testing.T) {
 	if err != nil || replay {
 		t.Fatalf("first create: job=%+v replay=%v err=%v", first, replay, err)
 	}
-	if string(first.Steps) != "[]" || string(first.IntentPayload) != string(in.IntentPayload) {
+	// jsonb 会规范化空白与键序（真库读回 `{"model": "image-v1", ...}`），故按语义比较而非字节。
+	if string(first.Steps) != "[]" || !jsonEqual(first.IntentPayload, in.IntentPayload) {
 		t.Fatalf("intent fields were mixed: steps=%s payload=%s", first.Steps, first.IntentPayload)
 	}
 	second, replay, err := store.Create(ctx, "workspace-a", "actor-a", in)
