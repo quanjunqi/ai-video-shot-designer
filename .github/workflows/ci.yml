@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [master]
+  # 所有 PR 都跑门禁，不限基线分支：
+  # AGENTS.md §6.3 要求「PR 合并前必须通过 typecheck + lint + 单元测试」，
+  # 而 stacked PR（基线为另一个 feature 分支）此前被 branches 过滤掉、完全不跑 CI。
   pull_request:
-    branches: [master]
 
 jobs:
   # 前端质量门禁
