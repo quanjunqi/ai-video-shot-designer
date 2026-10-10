@@ -388,11 +388,15 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 			continue
 		}
 		status, _ := statusRaw.(string)
-		if status == async.DoneValue {
+		// 终态匹配走 matchesTerminalValue：声明值支持逗号分隔候选 + 大小写不敏感。
+		// 精确比较会让状态字面量的任何差异（大小写、同义拼写）被当成「未完成」，
+		// 于是成功与失败都空转到 6 分钟超时（超时与失败在语义及重试策略上不同，
+		// 误判会让阶段 1 的重试机制失效）。
+		if matchesTerminalValue(status, async.DoneValue) {
 			finalDoc = pollDoc
 			break
 		}
-		if status == async.FailValue {
+		if matchesTerminalValue(status, async.FailValue) {
 			return fail(fmt.Errorf("engine: async task failed: %s", truncate(string(pollBodyBytes), 300)))
 		}
 	}

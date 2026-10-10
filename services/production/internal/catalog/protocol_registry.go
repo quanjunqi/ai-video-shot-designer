@@ -214,12 +214,21 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Version:         1,
 			RequestTemplate: `{"stream":{{stream}},"task_type":"sync"}`,
 		},
-		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）+ 029 补 pollPath。
+		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）+ 029 补 pollPath
+		// + 030 修正 doneValue/failValue。
 		// pollPath 证据：GET https://api.minimax.chat/v1/query/video_generation?task_id=<id>
 		// 无鉴权返回 HTTP 200 + base_resp.status_code=1004（"login fail: Please carry the API
 		// secret key in the 'Authorization' field"）；同前缀近邻路径 404，且平台注册的提交路径
 		// POST /v1/video_generation 返回同一 200+1004 签名 ⇒ 路由存在、仅缺鉴权。
 		// 与官方 OpenAPI 一致（GET /v1/query/video_generation，task_id 为 query 参数）。
+		//
+		// failValue/doneValue = "failed" / "completed"：MiniMax 官方文档的顶层 status 枚举是
+		// queued | in_progress | completed | failed（迁移 008 写的 Success/Failed 与它都不相等，
+		// 导致成功与失败都检测不到、空转到超时）。注意枚举取自国际站文档 platform.minimax.io，
+		// 而渠道 base_url 是 api.minimax.chat；值有据、域名差异未证实，且执行器已支持
+		// 逗号分隔候选 + 大小写不敏感匹配，届时只需一条 jsonb_set 数据修正。必须与迁移 030 一致。
+		// 另一套接口用嵌套 task.status（枚举含 succeeded/cancelled）；本模板取顶层 status，
+		// 万一是后者，把 doneValue 补为 "completed,succeeded" 即可，无需改代码。
 		{
 			ID:          "pt_builtin_minimax_video",
 			Label:       "MiniMax 视频（异步任务）",
@@ -237,8 +246,8 @@ func ProtocolDefinitions() []ProtocolDefinition {
 				Enabled:     true,
 				TaskIDField: "task_id",
 				StatusField: "status",
-				DoneValue:   "Success",
-				FailValue:   "Failed",
+				DoneValue:   "completed",
+				FailValue:   "failed",
 				PollPath:    "/v1/query/video_generation?task_id={task_id}",
 			},
 			Capabilities: nil, // DB 默认 '{}'
