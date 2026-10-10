@@ -71,7 +71,13 @@ echo "── 场景 A1：仍在重试（单变量 —— 只播一个任务）�
 #   `attempt=1/500 status=failed`（尝试计数一步没动却是失败态）的怪象，
 #   而【完全相同的 fixture 单独跑】逐条正确（worker 日志：第1/2/3次失败 + 5s/11s/23s 退避）。
 #   ⇒ 判据必须单变量。产品行为已被日志证明正确，问题在编排。
-printf 'EXECUTION_PRODUCTION_URL=http://127.0.0.1:1\n' > /tmp/verdict-deadcatalog.env
+# ★ 必须同时给出【catalog 与 creds】两侧配置：main.go:69
+#   `if catalogClient == nil || credsClient == nil { … }` ⇒ 只给一侧，引擎仍是 nil，
+#   任务会在 main.go:229 的守卫处直接 Complete(false)（审计 error_message =
+#   "execution engine not configured"），**根本走不到 failOrRetry** —— 本片就是这样
+#   在 CI 上连红两轮：本地有 .env.local 把引擎配齐了，CI 没有。
+#   两侧都指向死地址，正是场景 A 想要的：跨过守卫、在 catalog 调用处失败 ⇒ failOrRetry。
+printf 'EXECUTION_PRODUCTION_URL=http://127.0.0.1:1\nEXECUTION_PRODUCTION_TOKEN=ci-dead\nEXECUTION_WORKSPACE_URL=http://127.0.0.1:1\nEXECUTION_WORKSPACE_TOKEN=ci-dead\n' > /tmp/verdict-deadcatalog.env
 setup_log=/tmp/verdict-setup-a1.log
 if ! SCRATCH_ENV_FILE=/tmp/verdict-deadcatalog.env bash "$SS" up execution "$PORT" >"$setup_log" 2>&1; then
   echo "❌ 无法建立场景 A1 —— 输出如下（原文）："
