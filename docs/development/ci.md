@@ -144,6 +144,24 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 > **已补**：`asset` 的 `Store` 现已覆盖 `CreateUpload` / `List`（`PUT`/`Commit` 会连 MinIO，
 > 需在 CI 再加一个对象存储 service，另议）。这批测试在补上之前**即使写了也不会在 CI 执行**。
 
+## 8. ④ 审计判决套件已在 CI 中强制（`scripts/audit-verdicts.sh`）
+
+它此前被**显式推迟**（`ci.yml` 里留了 ⏸ 注记，不假装已接入）。当时的阻塞与现状：
+
+| 当时的阻塞（判据） | 现在 |
+|---|---|
+| CI 里**执行引擎未被构建**：`warning: execution engine partial config (catalog=false creds=false)`，审计写成 `"execution engine not configured"` ⇒ 判据表现成"失败" | 套件用**本地桩** `scripts/stub-upstream.py` 同时提供**目录**与**凭据**；并新增 `assert_engine_configured`：先**自证实例实际看到的引擎配置**，未构建就直接报错 —— 不再让"引擎没配起来"伪装成"判据不成立" |
+| D4a/D4c 需要**真实上游调用** ⇒ 会产生费用，故当时不放进自动套件 | 桩把上游换成本地进程：链路依然完整（解析目录 → reveal 凭据 → 发 HTTP → 抽 usage → 写审计），但**不花钱、可复现** |
+
+**覆盖的裁决**：V1 终态写回 · V2 身份不可变 · V3 重试与死信 · V4 保留期清理 ·
+**V5 真实调用链**（终态词 / 用量 / 耗时 / 上游确实被调用 / 聚合口径一致）· **V6 私网防护**（默认拒绝且如实留痕）。
+
+**本地实测**：20 项全通过、退出码 0。
+
+**接入方式**：**步骤级** `if: matrix.service == 'execution'`（符合 §3：禁止 **job 级** `if:`）——
+只在 `execution` 这一条矩阵上跑，其余矩阵项该步骤被跳过而 **job 仍正常上报**。
+套件自建一次性库 `execution_verify`（与用例库 `postgres` 互不干扰）并自行清理。
+
 ## 相关文档
 
 - 分支与必需检查：[docs/development/branch-protection.md](branch-protection.md)

@@ -250,14 +250,26 @@ jobs:
           echo "集成测试守卫通过：无 SKIP；本次通过 $ran 个用例（含真库集成）"
         working-directory: services/${{ matrix.service }}
 
-      # ⏸ ④ 审计判决套件【尚未接入 CI】—— 显式推迟，不假装已接入。
-      #   现状：scripts/audit-verdicts.sh 在本地两种模式（docker 与直连）下均 13/13 通过，
-      #   但同一脚本在 CI 上稳定失败于"执行引擎未被构建"：
-      #     审计 error_message = "execution engine not configured"
-      #     启动日志 = warning: execution engine partial config (catalog=false creds=false)
-      #   即 CI 里 EXECUTION_PRODUCTION_URL / EXECUTION_WORKSPACE_URL 未生效（本地因 .env.local
-      #   把引擎配齐而看不出差异）。下一步应先让脚本自证"实例实际看到的引擎配置"，
-      #   再谈接进 CI —— 否则只是把"本地绿"换成"CI 红"。
+      # ✅ ④ 审计判决套件（V1–V6）：从"本地跑过"变成"每次都被强制"。
+      #
+      #   此前显式推迟（⏸）的两条阻塞，现已各自解决：
+      #     1) CI 里引擎未被构建（catalog=false creds=false）—— 现在套件用【本地桩】
+      #        （scripts/stub-upstream.py）同时提供目录与凭据；且套件会**自证**实例实际
+      #        看到的引擎配置（assert_engine_configured：未构建就直接报错，
+      #        而不是让判据静默失败）。
+      #     2) 真实上游调用会产生费用 —— 桩把上游换成本地进程：链路仍然完整
+      #        （解析目录 → reveal 凭据 → 发 HTTP → 抽 usage → 写审计），但不花钱、可复现。
+      #
+      #   接入方式是【步骤级】if（符合 ci.md §3：禁止 job 级 if）：
+      #   只在 execution 这一条矩阵上跑，其余矩阵项该步骤被跳过，job 仍正常上报。
+      #   套件自建一次性库 execution_verify（与用例库 postgres 互不干扰）并自行清理。
+      - name: Audit verdict suite (④ V1–V6，含真实调用链)
+        if: steps.rel.outputs.run == 'true' && matrix.service == 'execution'
+        env:
+          # 直连模式由 scratch-stack.sh 依据 PG_CONTAINER 是否为空自动选择（CI 无容器 ⇒ 直连）。
+          EXECUTION_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
+          EXECUTION_INTERNAL_TOKEN: ci-verdict-token
+        run: bash scripts/audit-verdicts.sh
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
