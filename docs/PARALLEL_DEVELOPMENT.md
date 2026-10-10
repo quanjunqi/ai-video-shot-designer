@@ -36,11 +36,19 @@ git worktree remove .worktrees/<线名>                        # 收工
 
 ---
 
-## 2. 分支：一律基于 `master`，禁止堆叠
+## 2. 分支：三层模型（`feature → develop → master`）
+
+```
+master    生产分支：只接受来自 develop 的验收通过合并 + hotfix
+ develop   集成分支：feature 合入 → 在此验收 → 通过后合并到 master
+ feature/* 开发分支：统一从 develop 拉取
+```
+
 
 | 规则 | 原因 |
 |---|---|
-| 所有线基于 `origin/master` 拉分支 | 堆叠 PR 在有人先合并后会大面积冲突 |
+| feature 基于 `origin/develop` 拉分支（**不是 master**） | 从 master 拉会缺少已集成未发布的依赖；堆叠 PR 在有人先合并后会大面积冲突 |
+| **hotfix 从 `master` 拉，修完必须合回 `develop`** | 否则下次 develop→master 会覆盖该修复 |
 | **合并必须用 merge commit，禁止 squash** | squash 生成新 SHA，孩子 PR 的 diff 会变回全量 |
 | 不删他人尚未合并分支的基线 | GitHub 会**自动关闭**以它为基线的 PR，且**无法重开** |
 | 合并后删**自己的**远端分支 | 安全 |

@@ -123,6 +123,11 @@
 
 ### Changed
 
+- **分支模型改为三层（企业级 GitFlow 子集）**：`master`（生产）/ `develop`（集成与验收）/
+  `feature/*`（开发）。feature **统一从 `develop` 拉取**；验收通过后 `develop → master`；
+  **hotfix 从 `master` 拉并必须合回 `develop`**（否则会被下次 develop→master 覆盖）。
+  `AGENTS.md` §12.2/§12.6、`docs/PARALLEL_DEVELOPMENT.md` §2、`docs/branch-protection.md` 已同步。
+
 - **服务工程结构统一**：`outbox-relay` 的 `main.go` 迁入 `cmd/server/`，与其余 5 个服务一致。
 - **站点运维材料归位**：`beian-page/` → `deploy/site/`。
 - **权威文档归位**：根 `TECHNICAL_ARCHITECTURE.md`（706 行）与 `DESIGN.md`（547 行）移入 `docs/`；
