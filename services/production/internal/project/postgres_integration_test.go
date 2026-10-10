@@ -101,17 +101,26 @@ func TestPostgresCreateReplayIsolationAndImmutability(t *testing.T) {
 	if _, err := store.Get(ctx, "workspace-a", other.ID); err != ErrNotFound {
 		t.Fatalf("reverse cross-workspace lookup should be hidden, got %v", err)
 	}
-	for _, statement := range []string{
+	// UPDATE 必须被拒 —— 迁移 001 建立、015 保留的"版本不可变"契约。
+	if _, err := store.Pool.Exec(ctx,
 		"UPDATE source_versions SET content = 'overwritten' WHERE workspace_id = $1 AND project_id = $2",
-		"DELETE FROM source_versions WHERE workspace_id = $1 AND project_id = $2",
-	} {
-		if _, err := store.Pool.Exec(ctx, statement, "workspace-a", first.ID); err == nil || !strings.Contains(err.Error(), "source versions are append-only") {
-			t.Fatalf("source mutation should fail: %q: %v", statement, err)
-		}
+		"workspace-a", first.ID); err == nil || !strings.Contains(err.Error(), "source versions are append-only") {
+		t.Fatalf("source version UPDATE should fail: %v", err)
 	}
 	var content string
 	if err := store.Pool.QueryRow(ctx, "SELECT content FROM source_versions WHERE workspace_id = $1 AND project_id = $2 AND version = 1", "workspace-a", first.ID).Scan(&content); err != nil || content != input.SourceText {
 		t.Fatalf("original source changed: err=%v", err)
+	}
+
+	// ★ DELETE 【允许】—— 迁移 015 的原文："允许删除 source_versions（项目删除时级联清理需要），
+	//   仍禁止 UPDATE 保证版本不可变"。
+	//   本文件此前把 DELETE 也断言为"必须失败"，那是 **015 之前**的契约（陈旧断言）：
+	//   它会让"级联清理"这条正当路径在任何有测试库的环境里都被判成回归。
+	//   语义因此收窄为：**不可改**（UPDATE 拒），但**可随项目删除而清理**（DELETE 放行）。
+	if _, err := store.Pool.Exec(ctx,
+		"DELETE FROM source_versions WHERE workspace_id = $1 AND project_id = $2",
+		"workspace-a", first.ID); err != nil {
+		t.Fatalf("自迁移 015 起 DELETE 应被允许（项目删除的级联清理），实际失败：%v", err)
 	}
 }
 
