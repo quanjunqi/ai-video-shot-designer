@@ -1,0 +1,168 @@
+# ADR-003：模型聚合网关的路由层（逻辑模型 + 多渠道失败切换）
+
+- **状态**：已确认（Owner 决策 2026-10-10）
+- **日期**：2026-10-10
+- **决策者**：Owner
+- **相关**：ADR-001（模型网关架构）、`docs/BACKLOG.md`（"先做模型中心底座"决策）
+
+---
+
+## 1. 背景
+
+`docs/BACKLOG.md` 记录了 Owner 判断：本项目所有能力都建立在 AI 模型之上，
+但模型中心（AI 模型聚合网关）**底座尚未搭好**，故先做底座。
+
+对现状的实测（本次会话）：
+
+| 层 | 现状 |
+|---|---|
+| 接入层 | ✅ `model_channels` / `user_channels` / `channel_credentials` / `protocol_templates`，凭据加密 + `probeChannel` + `runModelTest`；鉴权支持 `bearer/apikey/sign/token/none` |
+| 能力层 | ⚠️ `capabilities` JSONB 已存在；未用于前端表单生成与提交前拦截 |
+| **路由层** | ❌ **`model_catalog` 带 `channel_id` —— 一行模型只绑一个渠道；`model_channels` 无 priority/weight；无失败切换** |
+| 治理层 | ✅ 租户级配额/限流/成本上限/审计（阶段 1 三项 P0） |
+| 运营层 | ⚠️ `gateway_audit_logs` 有 token/成本/渠道/延迟原始数据，无视图与报表 |
+
+**核心问题**：外部用户看到的是"一个模型 = 一个渠道"，某家上游故障即整体不可用 ——
+**这只是在列渠道，不是聚合**。"聚合"的实质在路由层。
+
+## 2. 决策（Owner 已确认）
+
+### D1：对外标识是「逻辑模型」，与上游解耦
+
+对外暴露的是**能力型标识**（如「文生图-高质量」），内部再路由到具体上游渠道与 `provider_model`。
+调用方**不感知**实际渠道。
+
+### D2：降级只允许「换渠道」，不允许「换模型」
+
+失败切换只在**同一逻辑模型**的候选渠道之间进行。
+**不得**因为某渠道不可用就改用另一个能力不同的模型 —— 否则"同一请求产出不同"，
+会破坏可复现性，而可复现性正是审计与审批流程的前提。
+
+### D3：渠道归属 = 自带优先 + 平台兜底（可配置）
+
+- 租户自带渠道（`user_channels`）与平台渠道（`model_channels`）并存
+- 租户可开启「**自带渠道优先**」：先试自己的渠道
+- 租户可开启「**平台渠道作为兜底**」：自己的渠道都不可用时，落到平台渠道
+- 两者都是**租户级策略**，默认值在实现时给出（建议：自带优先=开，平台兜底=开）
+
+---
+
+## 3. 设计
+
+### 3.1 数据模型（最小改动，向后兼容）
+
+**新增 `logical_models`（production）** —— 对外唯一标识：
+
+```
+logical_models(
+  id            text primary key,      -- 对外稳定标识，如 "image-quality-high"
+  label         text not null,         -- 展示名，如 "文生图-高质量"
+  type          text not null,         -- image / video / audio / text（复用 model_catalog.type 取值）
+  capability    text,                  -- 复用既有 capability 语义
+  status        text not null default 'active',
+  sort          integer not null default 100,
+  note          text,
+  created_at, updated_at
+)
+```
+
+**`model_catalog` 增加两列** —— 让多行共享同一逻辑模型（即候选渠道集合）：
+
+```
+ALTER TABLE model_catalog ADD COLUMN logical_model_id text REFERENCES logical_models(id) ON DELETE SET NULL;
+ALTER TABLE model_catalog ADD COLUMN route_priority  integer NOT NULL DEFAULT 100;
+```
+
+**为什么这样设计**：
+
+- `model_catalog` 的一行**天然就是**一个"上游实现"（渠道 + 协议模板 + provider_model）
+  → 多个同 `logical_model_id` 的行 = 该逻辑模型的**候选渠道集合**
+- 无需引入新的绑定表；`route_priority` 决定尝试顺序（小者优先）
+- `logical_model_id IS NULL` 的行**保持现状**（外部仍按 `model_catalog.id` 直接调用）
+  → **完全向后兼容**，存量 68 条路由与执行器不受影响
+
+### 3.2 路由解析（每次请求）
+
+```
+请求(logical_model_id)
+  → 取该逻辑模型下 status=active 且渠道 enabled 的候选
+  → 按「渠道归属策略」分组：
+       ① 自带渠道组（若租户开启"自带优先"）
+       ② 平台渠道组（若租户开启"平台兜底"）
+  → 组内按 route_priority 升序
+  → 依次尝试；成功即返回，并把**实际命中的 channel_id 写入审计**
+  → 全部失败 → 返回失败（不跨逻辑模型降级，见 D2）
+```
+
+**关键不变量**：`gateway_audit_logs.channel_id` 必须记录**实际命中**的渠道，
+并且响应体/审计要能让用户回答"这次是谁生成的"。这是 D2"只换渠道"可复现性的前提。
+
+### 3.3 契约变更（需要改的地方）
+
+| 位置 | 变更 |
+|---|---|
+| `production` 目录快照 `GET /internal/v1/catalog` | 返回逻辑模型 → 候选渠道的有序列表（含 `route_priority`、渠道归属、`provider_model`、协议模板） |
+| `execution` 网关 `Run`/`RunAsync` | 由"单渠道单次调用"改为"按候选顺序尝试 + 失败切换"，并记录实际渠道 |
+| `execution` 审计写入 | `channel_id` 写实际命中渠道；建议增加"本次尝试过的候选序列"以便排障 |
+| BFF / 前端模型选择器 | 由"选渠道+模型"改为"选逻辑模型"（能力型标识） |
+| 租户策略 | 新增两个租户级开关：自带渠道优先 / 平台渠道兜底 |
+
+### 3.4 迁移规划
+
+按 `AGENTS.md` §12.3 的号段（模型中心 = production 024–039，`024` 已被
+`024_auth_type_token.sql` 占用）：
+
+| 文件 | 内容 |
+|---|---|
+| `production/025_logical_models.sql` | 建 `logical_models` 表 |
+| `production/026_model_catalog_routing.sql` | `model_catalog` 加 `logical_model_id` 与 `route_priority`；加 `(logical_model_id, status, route_priority)` 索引 |
+| `production/027_*.sql`（按需） | 为现有 4 个真实模型**不**预建逻辑模型（需 Owner 决定命名），仅在有必要时播种 |
+| `workspace/006_tenant_routing_policy.sql` | 租户级路由策略开关 |
+
+> 迁移**只增不改**；`logical_model_id` 可为 NULL 保证兼容。
+
+---
+
+## 4. 非目标（明确不做）
+
+- ❌ **不跨逻辑模型降级**（D2）—— 不做"高质量失败就换低质量"
+- ❌ 不做**按成本自动选最便宜渠道**的动态决策（先做确定性的优先级；成本优化需运营层数据，见第 5 节）
+- ❌ 不做分布式路由一致性（多实例各持快照；快照来自目录，本身是最终一致的）
+- ❌ 不引入服务网格/网关中间件（仍在 execution 进程内实现）
+- ❌ 不做"用户直接选渠道"的旧路径下线（保持兼容）
+
+## 5. 后续（本 ADR 不覆盖）
+
+| 项 | 说明 |
+|---|---|
+| 运营层报表 | 渠道成功率/延迟/错误码分布 + 用量成本（按渠道/模型/项目/成员）。**这是让 `route_priority` 从"拍脑袋"变成"有依据"的前提** |
+| 渠道级配额与熔断 | 现在配额是租户级；渠道连续失败应**自动降权/熔断**，避免每次请求都先撞坏渠道 |
+| 能力层前置校验 | `capabilities` 用于生成前端表单 + 提交前拦截不支持的参数组合 |
+| 模板试跑 | 让接入新模型从"找工程师"变成"用户自助" |
+
+## 6. 风险
+
+| 风险 | 缓解 |
+|---|---|
+| 失败切换会**放大**上游压力（重试风暴） | 复用已实现的退避重试与并发闸门；切换次数需计入 job 的 `attempt` 或单独字段，避免无界切换 |
+| 逻辑模型命名成为**对外契约**，改名即破坏兼容 | `id` 一经使用不得改名（用 `label` 承载展示名） |
+| 渠道切换导致产出**细微差异**（不同上游实现细节不同） | 审计记录实际渠道；未来可在响应中标注"由 X 渠道生成" |
+| 目录快照与租户策略不一致 | 策略在请求时读取；快照只描述候选，不描述优先级 |
+
+## 7. 验证计划（实现时）
+
+1. **单元**：路由解析顺序（自带优先组 → 平台兜底组；组内按 priority）
+2. **集成（真库）**：两候选渠道，首个返回 5xx → 断言自动切到第二个且**成功**；
+   断言审计中 `channel_id` 为**实际命中**者
+3. **负面**：全部候选失败 → 整体失败，且**未**跨逻辑模型降级
+4. **兼容**：`logical_model_id IS NULL` 的既有模型，行为与改动前**完全一致**
+5. **策略**：关闭"自带优先"时平台渠道先试；关闭"平台兜底"时自带渠道失败即失败
+
+---
+
+## 8. 待 Owner 确认的实现细节
+
+1. **逻辑模型的初始命名**：是否需要我按现有 4 个真实模型（openai/minimax/jimeng/grsai）
+   提出一版逻辑模型划分供你改？（涉及对外契约，故不擅自决定）
+2. **租户策略默认值**：自带优先 / 平台兜底，默认都开还是都关？
+3. **切换上限**：单次请求最多尝试几个候选渠道？（防止故障时放大上游压力）
