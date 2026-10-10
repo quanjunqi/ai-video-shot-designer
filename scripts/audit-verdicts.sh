@@ -38,8 +38,18 @@ SS="$SELF_DIR/scratch-stack.sh"
 # 否则场景会静默退化，"跑过了"却不代表验过了。
 grep -q 'SCRATCH_ENV_FILE' "$SS" || { echo "❌ $SS 不支持 SCRATCH_ENV_FILE（版本过旧）⇒ 场景会静默退化，拒绝继续"; exit 2; }
 SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
-# 同 scratch-stack.sh：用 ${VAR-}，否则显式设成空字符串会被默认值覆盖（本片真实踩到）
-PG_CONTAINER="${PG_CONTAINER-shotdesigner-postgres-1}"
+# ★ 连接方式由 scratch-stack.sh 统一决定，本套件**不再自己猜**。
+#
+#   这里原来写的是 `PG_CONTAINER="${PG_CONTAINER-shotdesigner-postgres-1}"` ——
+#   把容器名当默认值 ⇒ **CI（没有这个容器）被强行拉进 docker 模式**，报
+#     `Error response from daemon: No such container: shotdesigner-postgres-1`
+#   而本地因为容器确实在，看不出差异。典型的"在我机器上能跑"。
+#   现在与 scratch-stack.sh 保持一致：默认**空** ⇒ 直连（CI 的 Postgres service 场景）。
+# ★ 必须 **export**：下面所有 `bash "$SS" ...` 都是【子进程】，
+#   不导出的话子进程看不到这个（可能为空的）值，会用它自己的默认值（容器名）
+#   ⇒ 又回到 docker 模式。本片真实踩到：套件打印"直连"，而 A1 的 setup 输出 docker。
+PG_CONTAINER="${PG_CONTAINER-}"
+export PG_CONTAINER
 PG_USER="${PG_USER:-shotdesigner}"
 PORT="${SCRATCH_PORT:-8095}"
 # 口令：环境变量优先（CI），其次 .env.local。
@@ -50,6 +60,13 @@ if [ -z "$TOKEN" ]; then
     TOKEN="$(grep -E '^EXECUTION_INTERNAL_TOKEN=' "$cand" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'"'[:space:]')"
     [ -n "$TOKEN" ] && break
   done
+fi
+
+# 把实际连接模式说出来：这类"连错了地方"的错误，只有说出来才不会重演
+if [ -n "$PG_CONTAINER" ]; then
+  echo "── 连接方式：docker（容器 ${PG_CONTAINER}）──"
+else
+  echo "── 连接方式：直连（PG_CONTAINER 为空；由 EXECUTION_DATABASE_URL 推导）──"
 fi
 
 PASS=0; FAIL=0
@@ -97,7 +114,14 @@ assert_engine_configured() {
   if grep -q "execution engine partial config" "$log"; then
     echo "❌ 实例的执行引擎【未构建】—— 启动日志原文："
     grep -E "partial config|channel probe disabled" "$log" | sed 's/^/      /'
-    echo "   ⇒ 判据会全部失真（任务在第一道守卫就失败）。请检查 env file 是否真的生效。"
+    # ★ 失败时把【搭建过程】也打出来：否则 CI 上只有结论、没有证据，
+    #   而 setup 日志恰好记着"加载了哪个 env 文件 + 加载后生效的引擎地址"。
+    for sl in /tmp/verdict-setup-a1.log /tmp/verdict-setup-a2.log /tmp/verdict-setup.log /tmp/verdict-setup-c.log /tmp/verdict-setup-d.log; do
+      [ -f "$sl" ] || continue
+      echo "      ── 搭建日志 ${sl}（相关行）──"
+      grep -E "已加载额外环境|生效的引擎地址|构建来源|模式：|就绪" "$sl" | sed 's/^/         /'
+    done
+    echo "   ⇒ 判据会全部失真（任务在第一道守卫就失败）。请检查上面的生效值。"
     return 1
   fi
   grep -E "channel probe|worker 并发上限" "$log" | head -2 | sed 's/^/      （引擎就绪：/;s/$/）/' || true

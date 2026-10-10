@@ -250,14 +250,27 @@ jobs:
           echo "集成测试守卫通过：无 SKIP；本次通过 $ran 个用例（含真库集成）"
         working-directory: services/${{ matrix.service }}
 
-      # ⏸ ④ 审计判决套件【尚未接入 CI】—— 显式推迟，不假装已接入。
-      #   现状：scripts/audit-verdicts.sh 在本地两种模式（docker 与直连）下均 13/13 通过，
-      #   但同一脚本在 CI 上稳定失败于"执行引擎未被构建"：
-      #     审计 error_message = "execution engine not configured"
+      # ⏸ ④ 审计判决套件【仍未接入 CI】—— 显式推迟，不假装已接入。
+      #
+      #   套件本体已在 develop：scripts/audit-verdicts.sh（V1–V6），
+      #   **本地两种模式各 20/20 · 退出码 0**：docker 模式（默认容器）与直连模式（PG_CONTAINER 为空，模拟 CI）。
+      #
+      #   2026-10 的接入尝试（PR #133）已排掉【三层】环境问题，每层都有判据：
+      #     1) 套件硬编码 docker 假设：PG_CONTAINER 默认写成容器名 ⇒ CI 报
+      #        `No such container: shotdesigner-postgres-1`
+      #        ⇒ 已修：默认空，连接方式交回 scratch-stack.sh 统一决定，并打印实际模式
+      #     2) 子进程看不到"空值"：设了却没 export ⇒ 同一份日志里
+      #        "套件打印直连" 与 "A1 的 setup 打印 docker" 自相矛盾 ⇒ 已修：export PG_CONTAINER
+      #     3) 直连模式需要 psql 客户端（本地由 Homebrew 提供）⇒ 接入时需在步骤内显式确保
+      #
+      #   剩下【未解决】的一层（就是本注记最初写的那一件）：
       #     启动日志 = warning: execution engine partial config (catalog=false creds=false)
-      #   即 CI 里 EXECUTION_PRODUCTION_URL / EXECUTION_WORKSPACE_URL 未生效（本地因 .env.local
-      #   把引擎配齐而看不出差异）。下一步应先让脚本自证"实例实际看到的引擎配置"，
-      #   再谈接进 CI —— 否则只是把"本地绿"换成"CI 红"。
+      #     ⇒ CI 里 EXECUTION_PRODUCTION_URL / EXECUTION_WORKSPACE_URL **未在实例进程中生效**；
+      #     本地看不出差异，因为 .env.local 会把引擎配齐。
+      #   现已加入**诊断**（随本注记一并落地）：source 完额外 env 后打印"加载后实际生效的
+      #   引擎地址"，且引擎未构建时把搭建日志的相关行一并打到 CI 输出
+      #   ⇒ 下次接入时 CI 会【说出真相】，而不是只给一句结论。
+      #   启动条件：这条根因排清后再接（见 docs/development/backlog.md）。
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'

@@ -111,3 +111,16 @@ ADR-004 §8 的验证计划共 7 条；本片实现了 **§8.1–§8.4、§8.6 �
 
 **待完成**：第 2 轮（主流产品画布交互拆解）→ 第 3 轮（参考实现与许可证）→ 第 4 轮（我们的落地映射 + ADR）
 **Owner 已定**：第一版**不做全量对齐**，先把画布基础打好。
+
+### ④ 审计判决套件接入 CI（暂缓 2026-10）
+
+- **现状**：`scripts/audit-verdicts.sh`（V1–V6）**本地两模式各 20/20**，但**未接入 CI**。
+  `ci.yml` 里保留了 ⏸ 注记，写明排掉了哪三层、剩下哪一层。
+- **剩下的根因（判据）**：CI 里实例启动日志为
+  `warning: execution engine partial config (catalog=false creds=false)`
+  ⇒ `EXECUTION_PRODUCTION_URL` / `EXECUTION_WORKSPACE_URL` 未在**实例进程**中生效；
+  本地因 `.env.local` 把引擎配齐而看不出差异。
+- **已具备的诊断**：`scratch-stack.sh` 打印"加载后实际生效的引擎地址"；
+  套件在引擎未构建时打印搭建日志相关行 ⇒ 下一次接入时 CI 会直接给出证据。
+- **启动条件**：定位并修掉上述根因后，用**步骤级** `if: matrix.service == 'execution'`
+  接入（禁止 job 级 `if:`，见 `docs/development/ci.md` §3）。
