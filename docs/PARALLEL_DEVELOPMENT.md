@@ -18,11 +18,17 @@
 - `git add -A` 会把**别人的工作提交进你的 PR**（发生两次）
 
 ```bash
-git worktree add .worktrees/<线名> -b <分支> origin/master   # 优先放在 .worktrees/（已 gitignore）
-git worktree add ../mdp-<线名>   -b <分支> origin/master     # 或仓库外的兄弟目录
+git worktree add .worktrees/<线名> -b <分支> origin/develop  # 优先放在 .worktrees/（已 gitignore）
+git worktree add ../mdp-<线名>   -b <分支> origin/develop    # 或仓库外的兄弟目录
 git worktree list                                            # 确认
+cd <仓库根>                                                  # ★ 先离开被删目录（见下方警告）
 git worktree remove .worktrees/<线名>                        # 收工
 ```
+
+**★ 删除 worktree 前必须先离开它。** `git worktree remove` 会把当前目录整个删掉；
+若 shell 的 cwd 还在里面，**之后所有命令都会以 `Unable to read current working directory` 失败** ——
+而失败后的空输出极易被误读成"操作成功"（例如 `git worktree list | wc -l` 会返回 `0`，看着像"已清空"）。
+**本项目已踩 3 次**（见 §10 台账 #8）。
 
 **每条线独立配置本地栈**（否则容器/端口互相踩）：在各自 `deploy/local/.env` 用不同
 `COMPOSE_PROJECT_NAME` 与端口段。
@@ -128,7 +134,8 @@ git diff --cached --name-only                 # 提交前核对清单
 ## 8. 收工清单
 
 - [ ] 自己的远端分支已删除（合并后）
-- [ ] `git worktree remove .worktrees/<线名>`（先删软链的 `node_modules`）
+- [ ] **先 `cd` 回仓库根**，再 `git worktree remove .worktrees/<线名>`（先删软链的 `node_modules`）
+- [ ] 清理后**复核** `git worktree list` 与 `.worktrees/` 目录（失败命令会给出假读数）
 - [ ] 本地已合并分支删除，避免 `git branch -vv` 噪音
 - [ ] `git worktree list` 确认只剩应有项
 
@@ -155,3 +162,6 @@ git diff --cached --name-only                 # 提交前核对清单
 | 5 | 5 次用命令链"推断"git 成功，实际失败被静默 | 用表象代替校验 | §5 |
 | 6 | 软链 `node_modules` 前，worktree 内 pre-commit 因 `tsc not found` 失败 | worktree 无依赖 | §1 |
 | 7 | ADR 让号（006→007）、迁移号段冲突 | 编号是全局资源 | §3 |
+| 8 | **`git worktree remove` 时 shell 的 cwd 还在被删目录里** ⇒ 之后命令全部报 `Unable to read current working directory`，而 `git worktree list \| wc -l` 返回 `0` **被误读成"已清空"**（实际还有 2 个）| 删目录前未离开它；失败后的空输出被当成成功 | §1 / §8 |
+| 9 | **未等 CI 就调 merge**（API 返回 `merged: null`）→ **又未校验结果就删除分支** ⇒ PR 被 GitHub 自动关闭且**无法重开**，产物未入库（最终靠本地对象库 `cat-file` 找回并重建 PR）| 跳过 CI 判定；把"发出请求"当作"操作成功" | §5 / §8 |
+| 10 | 核验脚本里写 `2>/dev/null`，**吞掉了 `git pull` 的真实失败原因**（工作区有未提交改动挡路），一度误判为"已同步" | 用静默替代证据 | §5 |
