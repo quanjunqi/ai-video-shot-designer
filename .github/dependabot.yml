@@ -3,6 +3,7 @@ version: 2
 updates:
   # 前端依赖
   - package-ecosystem: npm
+    target-branch: develop
     directory: /apps/web
     schedule:
       interval: weekly
@@ -21,36 +22,42 @@ updates:
 
   # Go 依赖（每个服务一个模块）
   - package-ecosystem: gomod
+    target-branch: develop
     directory: /services/workspace
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
     labels: [dependencies, backend]
     commit-message: { prefix: "chore(deps)" }
   - package-ecosystem: gomod
+    target-branch: develop
     directory: /services/production
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
     labels: [dependencies, backend]
     commit-message: { prefix: "chore(deps)" }
   - package-ecosystem: gomod
+    target-branch: develop
     directory: /services/execution
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
     labels: [dependencies, backend]
     commit-message: { prefix: "chore(deps)" }
   - package-ecosystem: gomod
+    target-branch: develop
     directory: /services/asset
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
     labels: [dependencies, backend]
     commit-message: { prefix: "chore(deps)" }
   - package-ecosystem: gomod
+    target-branch: develop
     directory: /services/web-bff
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
     labels: [dependencies, backend]
     commit-message: { prefix: "chore(deps)" }
   - package-ecosystem: gomod
+    target-branch: develop
     directory: /services/outbox-relay
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
@@ -59,6 +66,7 @@ updates:
 
   # GitHub Actions 自身
   - package-ecosystem: github-actions
+    target-branch: develop
     directory: /
     schedule: { interval: weekly, day: monday }
     labels: [dependencies, ci]
