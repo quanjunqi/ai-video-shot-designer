@@ -58,9 +58,15 @@ ai-video-shot-designer/
 │   └── outbox-relay/          # 事务性消息投递
 ├── docs/                      # 项目文档
 │   ├── TECHNICAL_ARCHITECTURE.md  # 技术架构（权威）
-│   ├── DESIGN.md              # 设计规范
-│   └── adr/                   # 架构决策记录
+│   ├── DESIGN.md              # 产品与设计规范
+│   ├── FRONTEND_QUALITY_GATE.md   # 前端交付质量门禁（唯一权威，含规则库 R-*）
+│   ├── ITERATION_QA.md        # 迭代教训台账（追加式，只记事件）
+│   ├── branch-protection.md   # 分支保护规则（与线上配置一致）
+│   ├── adr/                   # 架构决策记录
+│   ├── architecture/          # 架构图集（C4/时序图/ER/状态机/部署）
+│   └── commercial-workbench/  # 商业规划
 ├── deploy/local/              # 本地 Compose（PostgreSQL/Redis/Kafka/Temporal/MinIO）
+├── deploy/site/               # 站点运维材料（备案页等）
 ├── .github/                   # CI、任务卡、PR 模板
 └── AGENTS.md                  # 本文档
 ```
