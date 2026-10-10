@@ -1,3 +1,0 @@
-interface:
-  display_name: "AI Video Shot Designer"
-  short_description: "Turn a Chinese or English script into batched, copy-ready MiniMax H3 reference-mode prompts (each under 15 seconds), with character/scene/prop assets, storyboard references and cross-segment continuity. MiniMax H3 only."
