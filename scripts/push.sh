@@ -17,11 +17,13 @@ cd "$ROOT"
 branch="${1:-$(git rev-parse --abbrev-ref HEAD)}"
 if [ "$branch" = "HEAD" ]; then echo "❌ detached HEAD，请显式指定分支名"; exit 1; fi
 
-base_sha=$(git rev-parse HEAD)          # 推送前基线：用于验证「确实前进了」
+# 注意：必须取【指定分支】的 SHA，不能用 HEAD —— 否则从主库
+# 推送别的分支时会拿当前分支（如 develop）去比对，判据失效（真实缺陷 5）。
+base_sha=$(git rev-parse "refs/heads/${branch}")   # 推送前基线：验证「确实前进了」
 echo "   推送 ${branch}（推送前基线 ${base_sha:0:7}）"
 git push -u origin "$branch"
 
-local_sha=$(git rev-parse HEAD)
+local_sha=$(git rev-parse "refs/heads/${branch}")
 remote_sha=$(git ls-remote --heads origin "$branch" | awk '{print $1}')
 printf "   本地=%s 远端=%s\n" "${local_sha:0:7}" "${remote_sha:0:7}"
 

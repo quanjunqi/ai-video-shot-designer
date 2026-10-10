@@ -26,7 +26,7 @@ case "${1:-}" in
     git fetch -q origin "${base#origin/}" || true
     dir=".worktrees/$name"
     if [ -f "$dir/.git" ]; then
-      echo "❌ 已存在: ${dir}（收工请用: scripts/wt.sh done $name）"; exit 1
+      echo "❌ 已存在: ${dir}（收工请用: scripts/wt.sh done ${name}）"; exit 1
     fi
     git worktree add "$dir" -b "chore/$name-$(date +%Y-%m-%d)" "$base"
     # 判据：.git 文件确实存在（不是看命令退出码）
