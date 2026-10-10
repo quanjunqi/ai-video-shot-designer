@@ -2,7 +2,7 @@
 
 - **状态**：提议（待 Owner 确认 §9）
 - **日期**：2026-10-10
-- **相关**：ADR-003（路由层）、ADR-004（中转站与供给池）、`docs/FRONTEND_QUALITY_GATE.md`
+- **相关**：ADR-003（路由层）、ADR-004（中转站与供给池）、`docs/development/frontend-quality-gate.md`
 
 ---
 

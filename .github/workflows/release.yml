@@ -104,7 +104,7 @@ jobs:
 
             ## 发布前请确认
 
-            - [ ] `CHANGELOG.md` 已更新（见 `docs/RELEASE.md` §2 检查清单）
+            - [ ] `CHANGELOG.md` 已更新（见 `docs/development/release.md` §2 检查清单）
             - [ ] schema 变更已在预发环境从零跑通迁移
             - [ ] 回滚方案已明确
 

@@ -75,4 +75,4 @@ docker rm -f mdpjob
 |---|---|---|
 | 1 | 无配额/限流 → 成本失控 | TASK-SEC-002（阶段 1 第 3 项） |
 | 2 | worker 与 HTTP 同进程，无法独立伸缩 | 阶段 2 |
-| 3 | 无任务级指标（队列深度/最老待处理时长） | 阶段 3（docs/OBSERVABILITY.md 已定义指标） |
+| 3 | 无任务级指标（队列深度/最老待处理时长） | 阶段 3（docs/development/observability.md 已定义指标） |

@@ -56,15 +56,15 @@ ai-video-shot-designer/
 │   ├── asset/                 # 资产上传、媒体校验
 │   ├── web-bff/               # BFF网关（前端唯一入口）
 │   └── outbox-relay/          # 事务性消息投递
-├── docs/                      # 项目文档
-│   ├── TECHNICAL_ARCHITECTURE.md  # 技术架构（权威）
-│   ├── DESIGN.md              # 产品与设计规范
-│   ├── FRONTEND_QUALITY_GATE.md   # 前端交付质量门禁（唯一权威，含规则库 R-*）
-│   ├── ITERATION_QA.md        # 迭代教训台账（追加式，只记事件）
-│   ├── branch-protection.md   # 分支保护规则（与线上配置一致）
+├── docs/                      # 项目文档（索引见 docs/README.md）
+│   ├── README.md              # 文档索引：按受众导航（唯一入口）
+│   ├── architecture/          # 技术架构权威（00-technical-architecture.md）+ 架构图集
 │   ├── adr/                   # 架构决策记录
-│   ├── architecture/          # 架构图集（C4/时序图/ER/状态机/部署）
-│   └── commercial-workbench/  # 商业规划
+│   ├── development/           # 开发规范：门禁/测试/CI/发布/可观测/并行/待办/教训台账
+│   ├── product/               # 产品与设计规范
+│   ├── commercial/            # 商业规划
+│   ├── research/              # 竞品与 UX 调研（**非决策依据**）
+│   └── archive/               # 历史与一次性产物（**非当前事实**）
 ├── deploy/local/              # 本地 Compose（PostgreSQL/Redis/Kafka/Temporal/MinIO）
 ├── deploy/site/               # 站点运维材料（备案页等）
 ├── .github/                   # CI、任务卡、PR 模板
@@ -128,7 +128,7 @@ ai-video-shot-designer/
 - **HTTP 处理**：`httpapi.Handler` 模式，路由注册在 `Routes()`
 - **数据库**：pgxpool，迁移文件在 `migrations/`，命名 `NNN_description.sql`
 - **配置**：环境变量，`os.Getenv`，禁止硬编码
-- **日志**：`log/slog` 结构化日志（Go 1.21+ 标准库），键值对字段规范见 `docs/OBSERVABILITY.md`；
+- **日志**：`log/slog` 结构化日志（Go 1.21+ 标准库），键值对字段规范见 `docs/development/observability.md`；
   存量 `log.*` 随改动逐步替换，**新代码一律用 `slog`**
 
 ### 4.3 数据库迁移
@@ -295,7 +295,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 ### 9.1 任务开始前
 
 - [ ] 阅读任务卡，明确目标和验收标准
-- [ ] 阅读相关文档：`docs/TECHNICAL_ARCHITECTURE.md`、`docs/DESIGN.md`
+- [ ] 阅读相关文档：`docs/architecture/00-technical-architecture.md`、`docs/product/design.md`
 - [ ] 检查是否有相关 ADR
 - [ ] 创建 feature 分支
 
@@ -331,18 +331,18 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 
 | 文档 | 定位 | 何时必须同步 |
 |---|---|---|
-| `docs/TECHNICAL_ARCHITECTURE.md` | 技术架构权威 | 架构变更 |
-| `docs/DESIGN.md` | 产品与设计规范 | UI/组件变更 |
+| `docs/architecture/00-technical-architecture.md` | 技术架构权威 | 架构变更 |
+| `docs/product/design.md` | 产品与设计规范 | UI/组件变更 |
 | `docs/architecture/` | 架构图集（C4/时序/ER/状态机/部署） | 服务边界、表结构、状态、端口、部署形态变更 |
 | `docs/adr/NNN-title.md` | 架构决策记录 | 重要决策必须记录 |
-| `docs/FRONTEND_QUALITY_GATE.md` | 前端交付质量门禁（唯一权威） | 规则/反例库变更 |
-| `docs/ITERATION_QA.md` | 迭代教训台账（追加式） | 每个迭代发现教训时追加 |
-| `docs/TESTING.md` | 测试策略与覆盖率目标 | 测试分层/门禁变更 |
-| `docs/CI.md` | CI 结构与**核心不变量**（必需检查不可被 job 级 `if:` 跳过） | 改动 CI 前必读；新增检查时同步 |
-| `docs/OBSERVABILITY.md` | 日志/指标/追踪/健康检查规范 | 可观测性约定变更 |
-| `docs/RELEASE.md` | 版本、发布、回滚、热修 | 发布流程变更 |
+| `docs/development/frontend-quality-gate.md` | 前端交付质量门禁（唯一权威） | 规则/反例库变更 |
+| `docs/development/iteration-qa.md` | 迭代教训台账（追加式） | 每个迭代发现教训时追加 |
+| `docs/development/testing.md` | 测试策略与覆盖率目标 | 测试分层/门禁变更 |
+| `docs/development/ci.md` | CI 结构与**核心不变量**（必需检查不可被 job 级 `if:` 跳过） | 改动 CI 前必读；新增检查时同步 |
+| `docs/development/observability.md` | 日志/指标/追踪/健康检查规范 | 可观测性约定变更 |
+| `docs/development/release.md` | 版本、发布、回滚、热修 | 发布流程变更 |
 | `SECURITY.md` | 安全策略与已知缺口 | 安全基线或信任模型变更 |
-| `docs/BACKLOG.md` | **待办清单（暂缓项 + 启动条件）** | 决定暂缓/启动某项工作时 |
+| `docs/development/backlog.md` | **待办清单（暂缓项 + 启动条件）** | 决定暂缓/启动某项工作时 |
 | `CHANGELOG.md` | 变更记录 | 每个用户可见变更 |
 | `AGENTS.md` | 本文档 | 规则变更必须更新并通知所有 Agent |
 
@@ -457,7 +457,7 @@ feature/* ← 开发分支：**统一从 develop 拉取**，完成后 PR 回 dev
 - [ ] 确认要改的"热点文件"当前没有他人未合并的改动
 - [ ] 收工后 `git worktree remove`，并删除已合并分支
 
-### 12.7 联合并行开发规范（细则见 `docs/PARALLEL_DEVELOPMENT.md`）
+### 12.7 联合并行开发规范（细则见 `docs/development/parallel-development.md`）
 
 本节为摘要，**细则以后者为准**。三条最容易被违反、且都有真实事故的硬规则：
 

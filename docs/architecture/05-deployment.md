@@ -144,7 +144,7 @@ flowchart TB
     SVCP -.-> IAMM
 ```
 
-`docs/TECHNICAL_ARCHITECTURE.md` §17 与 `deploy/local/README.md` 均已声明**当前仅交付 web 与 production
+`docs/architecture/00-technical-architecture.md` §17 与 `deploy/local/README.md` 均已声明**当前仅交付 web 与 production
 的镜像构建文件，不能据此宣称生产容器化或高可用已完成**。目标态要求补齐：
 Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间件或服务必须同时提供可版本化镜像、
 健康检查、迁移与容器部署描述，不能依赖宿主机常驻进程。
@@ -159,7 +159,7 @@ Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间�
 | 身份 | 固定开发身份 | OIDC + 短期凭证 |
 | worker | 与 execution 同进程 goroutine | 独立可伸缩 Worker Pod |
 | 事件/长任务 | 未接入 Kafka / Temporal | 事件驱动 + 持久化工作流 |
-| 可观测 | 标准 `log` 输出 | 指标/追踪/告警（见 `docs/OBSERVABILITY.md`，待补） |
+| 可观测 | 标准 `log` 输出 | 指标/追踪/告警（见 `docs/development/observability.md`，待补） |
 
 ---
 

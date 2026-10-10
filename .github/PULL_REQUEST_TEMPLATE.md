@@ -129,8 +129,8 @@
 
 ## 📝 文档更新
 
-- [ ] `docs/TECHNICAL_ARCHITECTURE.md` 已更新（如涉及架构）
-- [ ] `docs/DESIGN.md` 已更新（如涉及设计）
+- [ ] `docs/architecture/00-technical-architecture.md` 已更新（如涉及架构）
+- [ ] `docs/product/design.md` 已更新（如涉及设计）
 - [ ] `docs/adr/` 已新增 ADR（如涉及架构决策）
 - [ ] `AGENTS.md` 已更新（如涉及规则变更）
 - [ ] README 已更新（如涉及使用方式）

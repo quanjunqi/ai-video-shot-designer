@@ -126,7 +126,7 @@
 
 ## 参考资料
 
-- `docs/TECHNICAL_ARCHITECTURE.md` — 项目技术架构
+- `docs/architecture/00-technical-architecture.md` — 项目技术架构
 - `AGENTS.md` — AI 协作开发规范
 
 ---

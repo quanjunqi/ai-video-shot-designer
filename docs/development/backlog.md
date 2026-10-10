@@ -39,7 +39,7 @@
 | 5 | **AutoDL 云端 ComfyUI 接入** | 前置已就绪，但依赖底座 | 底座可用 + 提供 `workflow_id` 与工作流入参示例 | ✅ `auth_type=token`（PR #37）已支持裸 Token；异步三要素已核实可表达（`statusField=data.status`、`doneValue=SUCCESS`、`failValue=FAILED`、`pollPath=…/result/{task_id}`） |
 | 6 | **媒体处理**（缩略图/转码/时长/封面/EXIF） | 必须有产物落盘（#4）才有输入 | #4 完成 | 实测：thumbnail/resize/transcode/ffmpeg/exif **0 命中** |
 | 7 | **Agent 双入口**（LibTV 式 Skill 接口） | 战略项，需底座提供稳定能力面 | 底座稳定 + 单独调研 | 已有雏形：`ai-video-shot-design-designer-skill` 仓库 + 本仓库 Agent 规范 |
-| 8 | **可观测性 / 测试分层 / 前端首屏** | 阶段 3 | 底座与主要功能稳定 | `docs/OBSERVABILITY.md` 已定义指标；`lazy()` 计数实测为 **0** |
+| 8 | **可观测性 / 测试分层 / 前端首屏** | 阶段 3 | 底座与主要功能稳定 | `docs/development/observability.md` 已定义指标；`lazy()` 计数实测为 **0** |
 
 ---
 
@@ -49,7 +49,7 @@
 
 | # | 缺口 | 实测证据 | 启动条件 |
 |---|---|---|---|
-| 9 | **音频没有模型类型** | `model_catalog.type` 的 CHECK 仅允许 `('text','image','video')`（`004_catalog.sql:23`）→ 音频模型**无法入库**；execution provider resolver 硬拒绝非三类（`provider.go:85`，且有测试断言 `Type:"audio"` 报 `ErrUnsupportedModelType`）→ 音频**无法执行**。而 `DESIGN.md` §3.4 要求"音频首期支持语音合成…其他音频能力由模型目录声明" | Owner 决定是否把 `audio` 纳入 `type` 枚举（需 production 迁移 + execution 适配器）。在此之前，音频工作台**只做 composer 重构并如实标注"未接入执行链路"** |
+| 9 | **音频没有模型类型** | `model_catalog.type` 的 CHECK 仅允许 `('text','image','video')`（`004_catalog.sql:23`）→ 音频模型**无法入库**；execution provider resolver 硬拒绝非三类（`provider.go:85`，且有测试断言 `Type:"audio"` 报 `ErrUnsupportedModelType`）→ 音频**无法执行**。而 `docs/product/design.md` §3.4 要求"音频首期支持语音合成…其他音频能力由模型目录声明" | Owner 决定是否把 `audio` 纳入 `type` 枚举（需 production 迁移 + execution 适配器）。在此之前，音频工作台**只做 composer 重构并如实标注"未接入执行链路"** |
 | 10 | **协议模板 `capabilities` 仅 2/9 有声明** | `021_protocol_capabilities.sql` 只为 `pt_builtin_openai_img`、`pt_builtin_openai` 写入；其余 7 个内置模板为 `{}` | 补齐 7 个模板的能力声明（模板级 `param_mapping` + `required_params`），使"提交前必填校验"与"协议字段映射"能在前端生效 |
 | 11 | **`capability` 表达力不足：无"条件支持"，且比例/清晰度只有数量没有清单** | 可灵官方能力地图含"**条件支持**"（如「仅 1080P 且仅无声视频」），我们只能表达支持/不支持；`capability.aspectRatioCount`/`qualityTiers` 是**数字**，目录里**没有任何地方**声明具体是哪些比例/档位取值 | 随 ADR-006 D3-B / 待确认问题 8 一起做：`capability` **追加** `aspectRatios: string[]`、`qualityOptions: string[]` 与条件能力表达（保留原字段向后兼容） |
 | 12 | **积分账本（credits ledger）缺失** | 全仓 `grep -rln "credits\|ledger\|wallet\|balance" services/*/internal services/*/migrations` **命中为 0**；`cost_estimate` 只是展示用字符串。而竞品范式是「生成前可见 + **失败退回** + 明细可查」（可灵：生成即扣、失败退回、登录值当日清零、结构化 `billing[]`；Vidu：`credits` 回执、错峰更低、失败返还） | 需要积分/额度账本（扣费、退回、明细、并发额度与余额分离）。**在此之前，智能创作只能"预估展示"而不能"退回"**，UI 必须如实声明口径（ADR-006 D10） |

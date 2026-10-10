@@ -112,4 +112,4 @@ go vet ./...
 - [ ] 分支：`feature/executor-interface-1010`
 - [ ] PR 链接：
 - [ ] 测试结果：
-- [ ] 文档更新：`docs/TECHNICAL_ARCHITECTURE.md` 执行器章节
+- [ ] 文档更新：`docs/architecture/00-technical-architecture.md` 执行器章节
