@@ -49,6 +49,15 @@
 
 ### Fixed
 
+- **状态模型三处不一致（约束层）**：全部以**新增迁移**修复，未修改任何已执行文件。
+  - `execution/007_job_timeout_status.sql` —— `jobs`/`job_attempts` 的 `CHECK` 由 5 值放宽为 6 值，
+    使 Go 的 `TaskStatusTimeout`（`IsTerminal()` 视其为终态）能如实落库。
+  - `production/022_projects_status_machine.sql` —— `projects.status` 的
+    `CHECK (status = 'pending_parse')` 放宽为前端 6 态，解除项目状态推进的约束阻塞。
+  - `production/023_episodes_state_checks.sql` —— `episodes.status` 默认值由 `draft` 归一为
+    `pending`（对齐 Go/TS 实际使用的取值），并为 `status`（6 值）与 `stage`（8 值）补 `CHECK`；
+    存在未预期取值时抛出**可操作**的错误信息且**不静默改写**数据。
+  - 实测覆盖接受路径、拒绝路径、历史数据归一、响亮失败与幂等性五类。
 - **`project_characters` 缺失建表迁移（P0 阻塞级）**：该表被 Go 代码读写、被迁移 `020` 写入，
   但全仓库无 `CREATE TABLE`；迁移执行器 `psql -v ON_ERROR_STOP=1` + `sh -e` 首个错误即中止，
   故**全新数据库上 `app` profile 无法启动、021 永不执行**。
@@ -98,10 +107,9 @@
   **实测第二次执行在 006 报 `column "response_params" ... already exists`**。
   根治办法是让执行器改为版本跟踪（`schema_migrations` 表）。见 `.github/tasks/TASK-FIX-001` 附表。
 - **审计写入失败被静默忽略**：`_ = h.AuditStore.Insert(...)` 与「审计日志不异步丢失」冲突。
-- **`TaskStatus.timeout` 无法落库**：Go 有 6 个状态，`jobs`/`job_attempts` 的 `CHECK` 仅 5 个。
-- **`projects.status` 被 `CHECK` 冻结**为 `pending_parse`，且无任何更新代码 → 服务端状态机未实现。
-- **`episodes.status` 与前端枚举不一致**：DB 默认 `draft`，前端 `EpisodeStatus` 无此值；
-  `stage`/`status` 均缺 `CHECK`。
+- **状态跃迁未校验**：`022`/`023` 只保证状态**取值**合法，不保证**跃迁**合法
+  （如 `archived → parsing` 仍会被允许）；且 `project.Update` 的 `sets` 不含 `status`，
+  项目状态仍无法由 API 推进。需在服务层实现（含权限与审计）。
 - **中间件未接入**：Redis / Kafka / Temporal / Keycloak 容器已提供但业务代码零接入。
 - **信任模型仅适用于本地开发**：浏览器到 BFF 无真实身份校验（无 OIDC），
   服务间使用静态共享令牌。
