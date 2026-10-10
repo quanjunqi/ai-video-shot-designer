@@ -160,7 +160,13 @@ cmd_up() {
   if [ -n "${SCRATCH_ENV_FILE:-}" ]; then
     [ -f "$SCRATCH_ENV_FILE" ] || die "SCRATCH_ENV_FILE=$SCRATCH_ENV_FILE 不存在"
     set -a; . "$SCRATCH_ENV_FILE"; set +a
-    echo "   已加载额外环境：$SCRATCH_ENV_FILE"
+    # ★ 把【加载后实际生效】的引擎地址打出来。
+    #   为什么：CI 里曾出现"实例报 partial config (catalog=false creds=false)"，
+    #   而本地看不出差异（.env.local 把引擎配齐了）⇒ 光看"加载了哪个文件"不够，
+    #   要看"加载之后这两个变量到底是什么"。这类"环境没生效"的错误，
+    #   只有把生效值说出来才能一眼定位（值本身不是秘密：要么是死地址，要么是本地桩）。
+    echo "   已加载额外环境：${SCRATCH_ENV_FILE}"
+    echo "   生效的引擎地址：PRODUCTION_URL=${EXECUTION_PRODUCTION_URL:-<空>} WORKSPACE_URL=${EXECUTION_WORKSPACE_URL:-<空>}"
   fi
   local dsn; dsn="$(dsn_for_scratch)"
   env EXECUTION_DATABASE_URL="$dsn" EXECUTION_LISTEN_ADDR="127.0.0.1:$port" \
