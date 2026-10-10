@@ -513,23 +513,36 @@
 
 ## 8. 分片落地计划
 
-按 AGENTS.md §5.2（单片 30–90 分钟、改动 < 300 行、每片一个 PR）：
+按 AGENTS.md §5.2（单片 30–90 分钟、改动 < 300 行）：
 
-| 片 | 任务卡 | 内容 | 依赖 |
-|---|---|---|---|
-| 1 | `TASK-CREATE-001`（已建卡） | 能力驱动的控件 schema + 校验 + 费用预估（纯前端，不改布局） | 无 —— **今天可开工** |
-| 2 | TASK-CREATE-002 | Composer 布局与结果主舞台（D1）：`GenWorkbench` → `CreateWorkbench` | 1 |
-| 3 | TASK-CREATE-003 | 结果元数据 / 复用参数 / 取消·重试·删除 / 轮询优化（D6） | 2 |
-| 4 | TASK-CREATE-004 | 草稿持久化 + `⌘Enter` + 空/加载/失败态（D6） | 2 |
-| 5 | TASK-CREATE-005 | 风格库 + 镜头语言库接入（D7） | 2 |
-| 6 | TASK-CREATE-006 | `capability.aspectRatios` 追加（D3-B）：迁移 + 后端 + 设置页 | Owner 确认 + 迁移号段 |
-| 7 | TASK-CREATE-007 | 个人素材（project 可空）+ 结果提升为资产（D4） | Owner 确认 + asset 迁移 |
-| 8 | —（登记 BACKLOG） | 音频模型类型缺口（D8） | Owner 确认 |
-| 9 | —（登记 BACKLOG） | 补齐其余 7 个内置协议模板的 `capabilities` | 底座线排期 |
-| 10 | TASK-CREATE-008 | 队列与取消：状态区分 + 计费口径文案 + 队列抽屉（D10） | 2（需要结果/队列区） |
-| 11 | TASK-CREATE-009 | 「同一提示词横向比多个模型」并排视图（待确认问题 11） | 3 + 10 |
-| 12 | —（登记 BACKLOG） | 积分账本与并发额度（待确认问题 10 的账本部分） | 底座线排期 |
-| 9 | —（登记 BACKLOG） | 补齐其余 7 个内置协议模板的 `capabilities` | 底座线排期 |
+| 片 | 任务卡 | 内容 | 依赖 | 状态（2026-10-10） |
+|---|---|---|---|---|
+| 1 | `TASK-CREATE-001` | 能力驱动的控件 schema + 校验 + 费用预估（纯前端，不改布局） | 无 | ✅ 已交付 |
+| 2 | `TASK-CREATE-002` | Composer 布局与结果主舞台（D1）：`GenWorkbench` → `CreateWorkbench` | 1 | ✅ 已交付 |
+| 3 | `TASK-CREATE-003` | 结果元数据 / 复用参数 / 取消·重试 / 轮询优化（D6·D10） | 2 | ✅ 已交付（**删除不做**：execution 无 DELETE 接口 → BACKLOG #15） |
+| 4 | `TASK-CREATE-004` | 草稿持久化 + `⌘Enter` + 空/加载/失败态（D6） | 2 | ✅ 已交付 |
+| 5 | `TASK-CREATE-005` | 风格库 + 镜头语言库接入（D7） | 2 | ✅ 已交付 |
+| 6 | `TASK-CREATE-006` | `capability.aspectRatios` 追加（D3-B）：迁移 + 后端 + 设置页 | **Owner 确认 + 迁移号段** | ⏳ 待 Owner 确认（AGENTS.md §12.3 需先认领号段） |
+| 7 | `TASK-CREATE-007` | 个人素材（project 可空）+ 结果提升为资产（D4） | **Owner 确认 + asset 迁移** | ⏳ 待 Owner 确认 |
+| 8 | —（登记 BACKLOG #9） | 音频模型类型缺口（D8） | Owner 确认 | ⏳ 本次按"只重构 composer + 如实标注"交付，底座缺口已登记 |
+| 9 | —（登记 BACKLOG #10） | 补齐其余 7 个内置协议模板的 `capabilities` | 底座线排期 | ⏳ 已登记 |
+| 10 | TASK-CREATE-008 | 队列抽屉（暂停/恢复/清空/位置） | 片 2 + BACKLOG #13 | ⏳ **UI 侧的取消状态区分已在片 3 交付**；队列抽屉待后端状态机 |
+| 11 | TASK-CREATE-009 | 「同一提示词横向比多个模型」并排视图 | 片 3 + 10 | ⏳ 待确认问题 11 |
+| 12 | —（登记 BACKLOG #12） | 积分账本与并发额度 | 底座线排期 | ⏳ 已登记 |
+| 13 | —（登记 BACKLOG #14/#15） | 结果写回链路 + 任务删除接口 | 底座线排期 | ⏳ 片 3 期间发现并登记 |
+
+**逐片验证证据**（每片提交前均执行，与基线对照）：
+
+| 片 | `npm run gate` | eslint warning | quality-gate | `npm test` | `npm run build` |
+|---|---|---|---|---|---|
+| 基线（改造前） | exit 0 | 37 | 0 error / 5 warning | 20/20 | — |
+| 1 | exit 0 | 37（新增文件 0） | 0 error / 5 warning | 35/35 | — |
+| 2 | exit 0 | 37 | 0 error / 5 warning | 35/35 | ✅ |
+| 3 | exit 0 | 37 | 0 error / 5 warning | 45/45 | ✅ |
+| 4 | exit 0 | 37 | 0 error / 5 warning | 50/50 | ✅ |
+| 5 | exit 0 | 37 | 0 error / 5 warning | 57/57 | ✅ |
+
+> **L3 浏览器实测未执行**：本执行环境无浏览器工具。各任务卡 §5 已写明手动步骤，待人工或具备浏览器能力时执行。
 
 **需同步的文档**：`docs/DESIGN.md` §3.4（智能创作段落改写）、`CHANGELOG.md`、
 `docs/BACKLOG.md`（#2 改为"已启动" + 新增音频缺口条目）、`docs/architecture/*`（若涉及表结构）。
