@@ -82,8 +82,8 @@ test('all legacy settings paths keep an explicit destination', () => {
       ['/settings/logical-models', '/settings/models'],
       ['/settings/channels', '/settings/channels'],
       ['/settings/protocols', '/settings/channels/protocols'],
-      ['/settings/audit', '/tasks'],
-      ['/settings/usage', '/tasks'],
+      ['/settings/audit', '/tasks?tab=ledger'],
+      ['/settings/usage', '/tasks?tab=ledger'],
       ['/settings/preferences', '/settings/preferences'],
     ],
   );

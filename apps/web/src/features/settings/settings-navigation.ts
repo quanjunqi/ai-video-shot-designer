@@ -100,12 +100,12 @@ export const SETTINGS_LEGACY_PATHS: readonly SettingsLegacyPath[] = [
   },
   {
     from: '/settings/audit',
-    to: '/tasks',
-    why: '「调用审计」= 运行数据，不是配置。方案 A 把它移出设置中心、归入任务中心（设置只放「我在配置什么」）',
+    to: '/tasks?tab=ledger',
+    why: '「调用审计」= 运行数据，不是配置。方案 A 把它移出设置中心、归入任务中心的「账目」页签（设置只放「我在配置什么」）',
   },
   {
     from: '/settings/usage',
-    to: '/tasks',
+    to: '/tasks?tab=ledger',
     why: '「用量」按方案 A 移出设置中心：原先它只列逐次调用/失败/耗时 —— 那正是任务中心在做的事，两处重复且数据源不同（jobs vs gateway_audit_logs）。深链改指任务中心，保证不 404',
   },
   {
@@ -128,7 +128,7 @@ export const SETTINGS_LEGACY_REDIRECTS: readonly SettingsLegacyPath[] = SETTINGS
  * 但「落点必须是真实存在的路由（不能 404）」这条**不能丢** ——
  * 所以改为：落点须在 SETTINGS_ROUTES（仍在设置内）**或**本白名单（已迁出的 app 路由）之内。
  */
-export const SETTINGS_EXTERNAL_TARGETS: readonly string[] = ['/tasks'];
+export const SETTINGS_EXTERNAL_TARGETS: readonly string[] = ['/tasks?tab=ledger'];
 
 /** 设置中心所有可导航路由：用来校验旧路径的落点确实存在，防止跳转到不存在的路由 */
 export const SETTINGS_ROUTES: readonly string[] = [
