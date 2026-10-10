@@ -4,7 +4,7 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
-版本策略、发布流程与回滚见 [`docs/RELEASE.md`](docs/RELEASE.md)。
+版本策略、发布流程与回滚见 [`docs/RELEASE.md`](docs/development/release.md)。
 
 > **状态说明**：仓库当前**尚无 git tag**（无正式发布）。下列条目按合并时间倒序记录，
 > 待首次正式发布时归入对应版本号。
@@ -131,7 +131,7 @@
   必需状态检查对应的 job 始终运行并上报，否则被跳过的 job 不上报会让必需检查
   永远停在 `Expected`，**卡死所有 PR**。判定异常一律 **fail-safe 到全量**、
   检测失败时各检查 **fail-closed 失败**（不给假绿）；`.github/**` 与 `deploy/**`
-  改动触发全量。设计约束与排障见 [`docs/CI.md`](docs/CI.md)。
+  改动触发全量。设计约束与排障见 [`docs/CI.md`](docs/development/ci.md)。
 - **shell 检查**：禁止 `$var` 紧跟非 ASCII 字符（bash 会把多字节字符并入变量名，
   在 `set -u` 下报 unbound variable）—— 本仓库已因此踩坑两次，故固化为 CI 检查。
 
