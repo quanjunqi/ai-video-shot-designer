@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -297,7 +298,32 @@ type AggregateResult struct {
 	// P50/P95：任务卡 §2.3「故障定位」明确要求「P50/P95 耗时」（此前只有平均值）。
 	P50LatencyMs int
 	P95LatencyMs int
+	// TopErrors：任务卡 §2.3 的「按错误文本聚类」。
+	TopErrors []ErrorCluster
 }
+
+// ErrorCluster 是一簇错误文本。
+//
+// 库里**没有错误码列**（判据：gateway_audit_logs 只有 error_message text），但实测形状很稳定：
+// **稳定前缀 + ':' + 变量尾部**，例如
+//
+//	"required parameter missing: messages" / "required parameter missing: model"
+//	"catalog unavailable: catalog: Get \"http://…\": dial tcp …"
+//
+// 且**大小写不一致**（"model not found in directory" vs "invalid generate request JSON"）。
+// ⇒ 最小忠实的"聚类"= 取**第一个冒号之前**的部分、trim、**转小写**作为簇键。
+// **不引入相似度算法**：那会让"同一簇"变成说不清的东西，而这里要的是**可解释**的归类。
+type ErrorCluster struct {
+	// Key 规范化后的簇键（小写、去变量尾部）——用于分组/去重
+	Key string
+	// Sample 该簇里字典序最小的原始前缀（保留原大小写，供人阅读）
+	Sample string
+	Count  int
+}
+
+// topErrorsLimit：界面一屏能看几条。刻意取小 —— 聚合用来看"形状"，
+// 不是用来导出的（导出走 CSV，含全部原始 error_message）。
+const topErrorsLimit = 5
 
 // Aggregate 返回【筛选后全集】的按状态计数、平均耗时与耗时百分位（D7a）。
 //
@@ -354,6 +380,41 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 		WHERE workspace_id = $1 AND latency_ms > 0`+f.whereClause(),
 		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until).
 		Scan(&out.P50LatencyMs, &out.P95LatencyMs); err != nil {
+		return AggregateResult{}, err
+	}
+
+	// ④ §2.3「按错误文本聚类」。与上面**同一套筛选条件与同一租户**（口径一致）。
+	//   key    = 第一个冒号之前、trim、转小写（分组用）
+	//   sample = 同簇里"最小"的原始前缀（展示用）
+	//
+	// ★ 两处显式 COLLATE "C"：text 的 min()/ORDER BY 结果依赖**数据库排序规则** ——
+	//   字节序（C）下 'M'(0x4D) < 'm'(0x6D)，而 UTF-8/ICU 排序会得出相反结果。
+	//   实测：本机（C）取到 "Model Not Found…"，CI 取到 "model not found…"。
+	//   显式指定 C 后，同一份数据的返回**在任何环境都相同**（可复现），
+	//   而不是"取决于这台机器怎么排序"。
+	errRows, err := s.Pool.Query(ctx, `
+		SELECT lower(btrim(split_part(error_message, ':', 1))) AS key,
+		       min(btrim(split_part(error_message, ':', 1)) COLLATE "C") AS sample,
+		       count(*)::int                                  AS n
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1 AND error_message <> ''`+f.whereClause()+`
+		GROUP BY key
+		ORDER BY n DESC, lower(btrim(split_part(error_message, ':', 1))) COLLATE "C" ASC
+		LIMIT `+strconv.Itoa(topErrorsLimit),
+		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
+	if err != nil {
+		return AggregateResult{}, err
+	}
+	defer errRows.Close()
+	out.TopErrors = make([]ErrorCluster, 0, topErrorsLimit)
+	for errRows.Next() {
+		var c ErrorCluster
+		if err := errRows.Scan(&c.Key, &c.Sample, &c.Count); err != nil {
+			return AggregateResult{}, err
+		}
+		out.TopErrors = append(out.TopErrors, c)
+	}
+	if err := errRows.Err(); err != nil {
 		return AggregateResult{}, err
 	}
 	return out, nil

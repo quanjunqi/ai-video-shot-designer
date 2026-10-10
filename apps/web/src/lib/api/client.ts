@@ -773,6 +773,8 @@ export const api = {
         // ④ §2.3 故障定位的聚合：耗时中位数与 P95（服务端算，排除 latency_ms=0 的行）
         p50LatencyMs: number;
         p95LatencyMs: number;
+        // ④ §2.3「按错误文本聚类」：cluster key + 代表样本 + 计数（服务端算）
+        topErrors: { key: string; sample: string; count: number }[];
         aggregateOn: string;
       };
     }>(

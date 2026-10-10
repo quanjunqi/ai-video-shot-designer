@@ -32,7 +32,7 @@ function formatLatency(ms: number) {
  * D7b：把服务端返回的 stats 归一化为界面计数。
  * 缺失时回退 0 —— 【不假装有数据】：与服务端未聚合时的行为一致（stats 为 undefined）。
  */
-function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number; p50LatencyMs?: number; p95LatencyMs?: number } }) {
+function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number; p50LatencyMs?: number; p95LatencyMs?: number; topErrors?: { key: string; sample: string; count: number }[] } }) {
   return {
     total: res.total,
     success: res.stats?.byStatus?.success ?? 0,
@@ -41,6 +41,7 @@ function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, num
     // 缺失时回退 0：与服务端未聚合时的行为一致（【不假装有数据】）
     p50LatencyMs: res.stats?.p50LatencyMs ?? 0,
     p95LatencyMs: res.stats?.p95LatencyMs ?? 0,
+    topErrors: res.stats?.topErrors ?? [],
   };
 }
 
@@ -50,7 +51,7 @@ export default function SettingsAuditPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
   // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
-  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number } | null>(null);
+  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number; topErrors: { key: string; sample: string; count: number }[] } | null>(null);
   // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
   const [status, setStatus] = useState('');
 
@@ -170,6 +171,22 @@ export default function SettingsAuditPage() {
           <div className="mt-1 text-xl font-bold text-amber-400">{p95Latency > 0 ? formatLatency(p95Latency) : '—'}</div>
         </div>
       </div>
+
+      {/* ④ §2.3「按错误文本聚类」：失败原因的形状比单条错误更有用。
+          数据全部来自服务端 stats（护栏测试钉住了这一点）；无数据时整块不渲染。 */}
+      {(stats?.topErrors?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">错误分布 Top {stats?.topErrors?.length}</div>
+          <ul className="mt-2 space-y-1">
+            {stats?.topErrors?.map((e) => (
+              <li key={e.key} className="flex items-baseline gap-2 text-xs">
+                <span className="min-w-0 flex-1 truncate font-mono text-foreground" title={e.sample}>{e.sample}</span>
+                <span className="shrink-0 font-mono text-muted-foreground">{e.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="relative">
