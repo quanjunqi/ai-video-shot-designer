@@ -56,7 +56,7 @@ function userChannelToLocal(c: UserChannelItem): ChannelConfig {
   return { id: c.id, name: c.name, kind: c.kind, protocol: c.protocol === 'local' ? 'local' : 'api', baseUrl: c.baseUrl, authType: c.authType as ChannelConfig['authType'], enabled: c.enabled, note: c.note, sort: c.sort ?? 0 };
 }
 function serverTemplateToLocal(t: ServerCatalogDirectory['templates'][number]): ProtocolTemplate {
-  return { id: t.id, label: t.label, desc: t.desc, type: (t as { type?: ProtocolTemplate['type'] }).type ?? 'all', method: t.method, requestPath: t.requestPath, params: (t.params ?? []).map((p) => ({ ...p, type: (p as { type?: ModelParam['type'] }).type })), responseParams: (t.responseParams ?? []).map((p) => ({ ...p, type: (p as { type?: ModelParam['type'] }).type })), async: t.async ? { ...t.async } : undefined, builtin: t.builtin, enabled: t.enabled, refCount: t.refCount, version: t.version };
+  return { id: t.id, label: t.label, desc: t.desc, type: (t as { type?: ProtocolTemplate['type'] }).type ?? 'all', method: t.method, requestPath: t.requestPath, params: (t.params ?? []).map((p) => ({ ...p, type: (p as { type?: ModelParam['type'] }).type })), responseParams: (t.responseParams ?? []).map((p) => ({ ...p, type: (p as { type?: ModelParam['type'] }).type })), async: t.async ? { ...t.async } : undefined, builtin: t.builtin, enabled: t.enabled, refCount: t.refCount, version: t.version, docRef: t.docRef, observedEvidence: t.observedEvidence };
 }
 function serverModelToLocal(m: ServerCatalogDirectory['models'][number]): CatalogModel {
   return {
