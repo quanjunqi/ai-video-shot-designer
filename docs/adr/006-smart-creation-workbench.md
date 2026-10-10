@@ -130,7 +130,142 @@
 | **平台停运** | 文心一格 2025-04-01 并入文心一言，2026-07-26 再迁百度文心，原域名 302 到迁移指引页 | 多模型聚合的长期性风险；也说明**目录/协议必须是可替换的配置**而不是写死的代码 |
 | **时长上限是成本放大器** | 海螺 Hailuo 2.3 一次最长 6s，要 15s 得生成三次 | `maxDurationSeconds` 必须来自模型能力（我们已有），且要影响费用预估（D2） |
 
-### 3.5 结论：我们的差距与差异化机会
+### 3.5 国际产品：问题相同，做法更激进
+
+> **覆盖率与限制**：国际站的正文抓取受出口 IP 拦截限制（Cloudflare/Akamai 403、JS challenge），
+> 因此**只采信实际抓到正文的官方文档**：完整覆盖 **Midjourney、Runway、Krea、Recraft、
+> ChatGPT Images、Higgsfield**；Adobe Firefly 仅信息架构级；
+> **Sora / Pika / Leonardo / Ideogram / Freepik / Luma / Playground / Google Flow 本轮完全未覆盖**（不编造）。
+
+**主流共识（国际）**：
+
+| 共识 | 证据 |
+|---|---|
+| **参数内联进 prompt 区，取代左侧长参数栏** | Midjourney 的 **prompt pills**（version/sref/moodboard pill + `+N more` 折叠，hover 解释每个 flag，右键 context menu）；Krea 图像模式 = 底部 prompt + 左下模型选择器；Runway 生成面板底部模型下拉；Recraft 左栏生成 + 右栏改图 |
+| **参数三层可见性** | Runway：常驻 `Aspect Ratio` + `Duration` → **Advanced 里放 FPS** → **输出格式（ProRes/PNG）在生成时选择且 +5 credits/秒**（证据直接支持 D1 的"常驻 3–4 个 + 高级浮层"，并提示存在第三层"生成时锁定"） |
+| **参考图是"有角色的挂载点"，不是单一上传框** | Midjourney 拖拽图片为**每种 reference role 打开独立 drop target**、Omni-Reference 强度滑块（`--ow` 0–1000，默认 100）、视频模式 Start/End Frame 也是可接收拖放的 pill；Runway 拖放到 prompt window；Recraft 文档有 "Attaching references" 专章 |
+| **结果 → 下一轮输入的闭环是一等动作** | **Runway 的「Use」菜单**最完整：Use as Character / Retime（**不耗 credits**）/ Expand / **Use Current Frame（当前帧载回为图像输入）**/ Upscale to 4K；Recraft 把 "**bring back the prompt and settings behind any image**" 当卖点；**Midjourney 提交后保留 pills 与参考图、只清空文本** |
+| **能力冲突必须显式报错，不静默处理** | Midjourney：`--tile` 与附图冲突时**明确告知不兼容**；受限账号改为 **dimmed controls + 说明 + Appeal 按钮** |
+| **失败要有 SLA** | Midjourney："**stalled submits fail cleanly within 2 minutes**" |
+| **生成是非阻塞作业** | ChatGPT Images 生成不阻塞对话；结果自动进侧栏 Images 库 |
+| **成本分化为模型级 / 时长级 / 分辨率级** | Runway 分模型 per-second 计价（Gen-4 12 / Turbo 5 / Gen-4.5 12 credits 每秒）；Higgsfield 按「模型 × 分辨率档」定价，**quality toggle 改分辨率时价格实时更新** |
+| **并发上限公开** | Higgsfield：视频 **1 路**、图像 **2 路**；Unlimited 走标准队列、credits 走优先队列 |
+
+**两个值得单独记下的做法**：
+
+1. **Higgsfield 把"计费模式"做成生成面板里的一个开关**（Unlimited toggle；关掉即 Credit Mode →
+   走优先队列）。这说明**成本模式本身可以是 composer 里的控件**，而不是躲在账户页里。
+2. **Midjourney Thinking Mode（2026-10）**：生成后**自动诊断 prompt 未命中处**（错物体/布局/结构/文字）
+   再重跑 —— 「生成 → 自检 → 重生成」成为新范式，可用于后续的"提示词质量诊断"。
+
+**国际侧的分歧**（与国内一致地没有唯一答案）：
+
+| 分歧 | 路线 A | 路线 B |
+|---|---|---|
+| 入口形态 | 工作台/控制台（Midjourney Create、Runway、Krea、Recraft） | 对话式（ChatGPT Images） |
+| 模型选择 | 下拉/搜索（Runway 面板底部下拉 + Apps View 搜索） | **胶囊即模型**（Midjourney 删 version pill 即换模型）／**无选择器**（ChatGPT 只按套餐分档） |
+| 批量语义 | 模式决定（Midjourney Draft 固定 24 图网格） | 模态决定（Krea：图 2–4 张/次、视频 1 段/次） |
+| 多模型集成 | 平台自研为主 | **第三方 marketplace**（Firefly 把 FLUX / Gemini / GPT Image / Imagen / Ideogram / Runway 各做成一页） |
+| 队列商业化 | 买断走标准队列 + credits 走优先队列（Higgsfield） | 未核实到其他产品的队列分层表述 |
+
+**可直接引用的官方自曝缺陷（Midjourney changelog，罕见的官方来源）**：
+
+- 输入卡顿：「lag across the site: **prompt input typing, settings sliders**, and the slowdown after scrolling deep into your gallery」
+- **设置不持久**：「Settings now stick: values no longer reset on their own」→ 直接支持本 ADR 的 D6 草稿持久化
+- 提交卡死、快捷键在弹窗下误触
+- 语义不清：moodboard 卡片 copy/select 行为不符；`+N more` pill 点击后才正确应用
+- 错误文案不准：受限用户此前只看到 moderator error → 改为 dimmed controls + 解释 + Appeal
+
+**对我们的两条纠正性启示**：
+
+- **「不展示不可用控件」要区分两种情形**：**能力不匹配**（该模型不支持图生图）→ **不渲染**；
+  **权限/账号受限** → **置灰 + 说明原因 + 申诉入口**（Midjourney 的做法）。
+  一刀切"隐藏"会让用户不知道自己缺什么。本 ADR 的 D2(b) 只覆盖了第一种，第二种在实现时一并处理。
+- **ChatGPT Images 的反面**：**删除一张图必须删整个会话**（库内无单图删除）→ 我们的结果库必须支持**单条删除**。
+
+### 3.6 专业工具
+
+> **覆盖率**：ComfyUI（含 APP mode / Cloud 并发）、fal.ai、Replicate、InvokeAI、A1111 WebUI、
+> SwarmUI、Fooocus、Krita AI Diffusion、Forge / reForge、ThinkDiffusion / RunDiffusion、
+> Topaz（Gigapixel / Photo）、Magnific、Upscayl、Civitai 元数据、W&B。
+> 完整事实卡（7 维度 × 15 工具 + 12 条横向模式 + 反模式表 + 57 条来源）见
+> [`docs/research/pro-tools-generation-workbench-ux-2026-10.md`](../research/pro-tools-generation-workbench-ux-2026-10.md)；
+> 该报告同样列了 8 条「未核实」。
+
+这类「超能力用户」工具的价值不在于照抄界面（它们多数对创意用户过于专家化），
+而在于**把工程细节想清楚了**，正好补上我们缺的那部分：
+
+**对本 ADR 影响最大的五条**：
+
+1. **参数表单应当由 schema 生成，并且表单只是 schema 的一个视图**（P3）
+   fal.ai 的 Playground 表单**由模型 input schema 自动生成**，同一份值可在
+   **Form / JSON / Python / JS / cURL** 之间切换，API tab 展示完整 input/output schema 与类型
+   （[fal Playground](https://fal.ai/docs/documentation/model-apis/playground)）；
+   A1111 的 `PasteField` 把每个 UI 组件映射到 API 字段名，**同一张参数表同时服务 UI、PNG info 与 API**。
+   → 直接印证 D2：`Catalog.capabilities` 应是唯一参数事实源，**表单/JSON/元数据都是它的投影**。
+2. **「取消」必须区分状态，并且与计费口径绑定**（P6）
+   fal 定义得最清楚：`IN_QUEUE` 取消=**立即移除、永不执行**；`IN_PROGRESS` 取消=**只发信号，"may still
+   complete if the app does not handle cancellation"**（[fal Queue](https://fal.ai/docs/documentation/model-apis/inference/queue)）；
+   Replicate：`aborted`（从未开始）**不计费**，`canceled`（已开始）**按已运行时间计费**
+   （[Replicate Lifecycle](https://replicate.com/docs/topics/predictions/lifecycle)）。
+   → 新增 **D10**。
+3. **「沿用设置」与「沿用全部」必须是两个不同的按钮**（P8）
+   InvokeAI 的右键菜单同时提供 `Remix Image`（载入全部设置**但不含 seed**）与 `Use All`，
+   另有 `Use Prompt` / `Use Seed` / `Send to Image to Image` / `Send to Unified Canvas`
+   （[InvokeAI Gallery](https://invoke.ai/features/gallery/)）；A1111 的 img2img 甚至可勾选
+   "Parameters to take from png info"（Prompt/Negative/Seed/CFG/Sampler/Steps/Model hash）。
+   → 并入 D6：**「换 seed 重跑」与「完全照抄」是两种意图，不能合成一个按钮**。
+4. **生成元数据要随产物走，并且能"再注入"**（P7）
+   A1111 写 PNG tEXt 参数块 + `PNG Info` 页；ComfyUI 把 `workflow` 与 `prompt` 两个 JSON 写进
+   PNG tEXt / 动画 WebP EXIF / MP4·WebM 容器 tag / safetensors；Civitai 写 `copyMetadata`
+   专门解决"缩放/转码静默丢元数据"，并警告**"三个不同的东西都叫 workflow"**
+   （[ComfyUI Workflow Metadata](https://docs.comfy.org/development/api-development/workflow-metadata)）。
+   → 反向约束：**任何"元数据只在数据库、不随文件走"的架构，会在导出、转发、二次编辑时断链**。
+   并入 D4/D6：结果库要存参数快照（与 execution「锁定计划」一致），并把"元数据随产物"作为
+   落盘（BACKLOG #4）与媒体处理（#6）的设计前提。
+5. **"并发额度"与"积分余额"是两件事**（P11）
+   Comfy Cloud 专门用 FAQ 解释这个混淆：**Partner Node 并发（按终身付费分档）与 Cloud job 并发是
+   两套独立限制**，"有效吞吐受先到者约束"（[ComfyUI Partner Node 并发](https://docs.comfy.org/tutorials/partner-nodes/concurrency-limits)）；
+   fal 的并发随充值提升（新号 2 → 自助上限 40），且**排队时间与服务端 5xx 不计费**
+   （[fal Pricing](https://fal.ai/docs/documentation/model-apis/pricing)）。
+   → 新增 §7 待确认问题 10。
+
+**值得借鉴但排在后面的**：队列即工作区（分段 + 位置 + 逐项取消 + 暂停/恢复 + 全部清空 + 保留原参数重试）；
+三种超时分离（`start_timeout` / `request_timeout` / `client_timeout`）；seed 做成**策略枚举**
+（固定 / 随机 / 递增 / 微调 ±N / 沿用父任务）而不是裸数字框；**比较视图**（同一提示词跑 N 个模型并排 +
+可配置"轴"的网格）；意图命名动作（Krita：strength<100% 时按钮从 `Generate` 变 `Refine`，
+有选区且 100% 时变 `Fill`）。
+
+**明确不要抄的（过于专家化）**：节点图编辑器作为默认视图（我们已有无限画布，智能创作只给"模板 + 表单"）；
+30+ 参数全平铺；显存/精度/卸载开关（云网关里对用户无意义，改暴露"质量/速度/成本"三档）；
+文本 DSL（`BREAK`/`ADDROW`/`[a:b:0.5]`/`<random:>`）；原始 XY/Z 三轴网格与 `1-10 [5]` 区间语法；
+自定义 Python 与依赖安装；多后端/GPU ID 选择；默认展开的 runner 日志。
+
+**反模式（专业人士真正抱怨的，可直接引为设计红线）**：
+
+| 反模式 | 证据 |
+|---|---|
+| 把关键队列操作藏进二级菜单 | ComfyUI `Clear All Queue` 被移进 `view job history` 引发 issue |
+| **同一个"取消"按钮对不同状态调同一 API → 部分状态静默失败** | ComfyUI PR #7788：pending 取消无声失败，只在日志写原因 |
+| 停止批处理产生不完整/尺寸错误的产物且无提示 | Upscayl FAQ："just wait" |
+| UI 被内置扩展塞满 | reForge 把内置扩展拆出主仓库，原文 "the UI got really cluttered" |
+| **同一概念多个名字** | Civitai 警告"三个不同的东西都叫 workflow" |
+| 封闭式 allowlist 静默丢扩展参数 | Civitai 因此选 denylist |
+| 重编码/缩放静默丢元数据 | Civitai `copyMetadata` 的存在理由 |
+| 兼容性靠口口相传 | Regional Prompter 需要 ○/△/× 支持表；Forge 需要逐组件 Status 表 |
+| **成本不透明 / 不前置** | 反例正解：fal 成本三色徽章、Comfy 节点价格徽章 |
+| 冷启动无提示 | Replicate 必须用文档解释"有时要几分钟" |
+| **取消后仍计费/仍产出却不告知** | fal `IN_PROGRESS` 取消 "may still complete"；Replicate canceled 仍按已运行时间计费 |
+| 平台更新默认值后与用户自定义配置冲突 | ThinkDiffusion 需删自定义 `config.json` 才能拿到新默认 |
+
+其中**第 2 条与第 11 条直接命中我们当前的实现**：`services/execution/internal/job/store.go:143`
+的 `Cancel` 对 `queued` 与 `running` 用**同一条 SQL**（`status IN ('queued','running')`）处理，
+前端 `Tasks.tsx` 也用同一个按钮调用同一个 `cancelTask`；并且**全仓不存在积分账本**
+（`grep -rln "credits|ledger|wallet|balance" services/*/internal services/*/migrations` 命中为 0，
+`cost_estimate` 目前只是展示用字符串）→ 因此"失败退回 / 明细可查"（范式 G）**当前无法实现**，需登记底座缺口。
+
+
+### 3.7 结论：我们的差距与差异化机会
 
 **已具备但没被用起来的**（这正是 §2 的诊断）：
 
@@ -143,7 +278,7 @@
 **最值得做的三件事**：① 能力当 UI 契约（范式 B）；② 主体/风格/镜头语言一级可 `@` 复用（范式 F）；
 ③ 积分可见性三件套（范式 G：模型档位标价 + 批量前确认总额 + 失败退回/明细可查）。
 
-### 3.6 证据 → 决策：逐条映射
+### 3.8 证据 → 决策：逐条映射
 
 | 证据（来源） | 对本项目的直接影响 |
 |---|---|
@@ -234,6 +369,10 @@
 - (d) **已知表达力缺口**：可灵能力地图的三态里有一档是「**条件支持**」（如「仅 1080P 且仅无声视频」、
   「二次编辑仅支持可灵 1.6」），而我们的 `capability` 只能表达**支持/不支持**。
   这意味着「条件支持」目前无法如实呈现 —— 记为缺口，见 §7 待确认问题 8
+- (e) **同一份 schema 允许多种投影**：除表单外提供 `JSON` 视图（同一数据源的只读投影，便于集成与排障复现，
+   fal 的 Playground 就是这么做的）；`cURL / Python` 代码视图在确有集成方需求时再做
+- (f) **费用展示**：模型档位旁标单价 + 提交前预估 + 三色阈值（低/中/高成本），
+  并明确声明**排队等待不计费**（口径见 D10）
 
 ### D3 · 比例清单：目录当前只声明「数量」，不声明「清单」（**需 Owner 决策**）
 
@@ -279,7 +418,15 @@
   多行输入需明确「Enter 提交 / Shift+Enter 换行」，避免与提示词换行冲突
 - **提交前总额确认**：批量（数量 > 1，或未来分镜级批量）必须弹窗告知总消耗（范式 G：MOKI「30 镜 × 4 = 120 积分」）
 - **轮询**：有 `queued/running` 时 2s；无运行中任务时**停止轮询**；`document.hidden` 时暂停，回前台立即拉一次
-- **结果卡操作**：hover 出 下载 / **复用参数**（通义万相叫「复用创意」）/ 作为参考图 / 生成变体 / 删除 / 取消 / 重试
+- **结果卡操作**：hover 出 下载 / **复用参数** / 作为参考图 / 生成变体 / 删除 / 取消 / 重试
+  - **「沿用设置（换 seed）」与「完全照抄」必须是两个不同按钮**（InvokeAI 的 `Remix Image` vs `Use All`）：
+    前者迭代构图，后者复现同一张图，合成一个按钮会让两者都做不好
+- **种子（seed）不是裸数字框，而是策略枚举**：固定 / 随机 / 递增 / 微调 ±N / 沿用父任务
+  （A1111 的 `🎲/♻️/⇅`、SwarmUI 的 `<random:>` 由主 seed 播种）
+  —— 前提是上游返回 seed；未返回时如实标注"该模型未返回种子"，不编造
+- **单条删除必须支持**（ChatGPT Images 的反面：删一张图必须删整个会话）
+- **元数据随产物走**：参数快照不仅存数据库，也要能随导出文件携带与重新注入
+  （否则导出/转码后溯源断链）；此项与 BACKLOG #4（落盘）/#6（媒体处理）联动
 - **详情抽屉**：展示模型 · 渠道 · 全部参数 · 种子（若上游返回）· 耗时 · 费用，并支持**一键回填到 composer**（范式 E）
 - **失败态**：渲染 `ServerTask.error` 原文（当前只显示"失败"两字）
 - **跨字段校验**：除单字段范围外，还需支持一致性校验（如"上传了参考图时，画面比例需与参考图一致"，堆友先例）
@@ -316,13 +463,40 @@
 - 图标按钮带 `title`/`aria-label`；grid 列加 `min-w-0`（R2）；页面容器不用 `max-w-xl/2xl`（R3）
 - 交付前执行六步硬门禁，`npm run gate` 必须 GATE=0
 
+### D10 · 队列与取消：区分状态，并且现在就把计费口径定义清楚
+
+**为什么这是一个独立决策**：专业工具的教训表明，「取消」是多模型 + 积分平台**纠纷的源头**，
+而我们的实现目前没有任何状态区分（§3.6 末尾的实测）。
+
+**决策**：
+
+- **取消分状态**：
+  - `queued`（排队中）→ 取消 = **立即移除，永不执行**，不产生任何费用
+  - `running`（执行中）→ 取消 = **只发中断信号**，上游可能仍会完成；
+    UI 必须如实告知「任务可能仍会完成」，而不能假装已停止
+- **计费口径前置声明**（即使当前还没有积分账本，也要先把契约写进 UI 文案与字段）：
+  - 排队等待**不计费**（fal 的做法）
+  - 已开始执行后取消 → **按已运行时长/已产出计费**（Replicate 的 `canceled` 口径）
+  - 从未开始（`aborted`）→ **不计费**
+- **UI 承载**：取消的二次确认里写明该状态下的扣费口径；结果/任务卡上区分展示
+  「已取消（未开始，未扣费）」与「已取消（已执行 N 秒，按已运行计费）」
+- **队列是可管理对象**，不是一根进度条：`排队中 / 运行中 / 已完成 / 失败` 分段，
+  支持逐项取消、全部清空、暂停/恢复、**保留原参数重试**与**改参数再跑**（复制到 composer）
+  - 但**关键队列操作不允许藏在二级菜单里**（ComfyUI 的 `Clear All Queue` 教训）
+- **三种超时分离**：`start_timeout`（服务端绝对截止）／单次尝试超时／客户端等待，
+  避免「点了一次没反应」与「任务被莫名杀掉」两类投诉
+
+**依赖缺口**：本决策的计费部分**依赖一个尚不存在的积分账本**（全仓 `credits/ledger/wallet/balance`
+命中为 0，`cost_estimate` 只是展示字符串）→ 已登记 `docs/BACKLOG.md` 第 12 项。
+在账本落地前，UI 只做「口径声明」与状态区分，**不假装已经退款**。
+
 ---
 
 ## 7. 待 Owner 确认
 
 | # | 决策点 | 我的建议 |
 |---|---|---|
-| 1 | **D1 布局**：是否认可 composer（底部提示词工作区）+ 结果主舞台，替代"左参数栏 + 右网格"？ | 认可——见 §3 对标 |
+| 1 | **D1 布局**：是否认可「**保留左输入 / 右结果两栏骨架，把参数收敛为输入区内的胶囊**」，替代"左参数长表单 + 右窄网格"？（我最初的"底部 composer"提议已按对标证据自行推翻） | 认可——国内主流是左右结构，趋势是把参数内联而非换骨架 |
 | 2 | **D2 红线**：是否认可"默认控件 schema 可兜底 UI 语法，但协议字段映射必须来自目录/模板"？ | 认可——这是 AGENTS.md 禁区与"7/9 模板无声明"现实的唯一自洽解 |
 | 3 | **D3 比例清单**：是否认可"先 C 过渡、紧随 B 补 `aspectRatios`"？ | 认可，且 B 不应拖过本次迭代 |
 | 4 | **D4 个人素材**：是否认可"本次先落本地结果库，个人素材（project 可空）另开任务卡"？ | 认可 |
@@ -331,6 +505,9 @@
 | 7 | **候选数默认值**：`count` 默认 1 还是 4？（无界默认 4；万相/即梦一次 4 张消耗 1 额度） | 建议默认 **1**，但在下拉里把 4 作为显眼预设——漫剧场景多为单张精修，且 4 张会放大积分消耗，需先确认计费口径 |
 | 8 | **`capability` 是否需要「条件支持」**：可灵三态表含"仅 1080P 且仅无声视频"这类条件能力，我们只能表达支持/不支持 | 现阶段靠 `note` 文字说明兜底；若要精确表达需扩展 capability 结构（与 D3-B 同一批后端改动） |
 | 9 | **镜头语言/风格词条是否要做成服务端资产**：D7 先接本地 store（`useLensStore`/`useStyleStore`），但 `BACKLOG.md` #3 记录这两个 store **0 个 API 调用** | 本次接本地；「接后端」沿用 BACKLOG #3 的启动条件，不并入本次 |
+| 10 | **「积分余额」与「并发额度」是否要在 UI 上分开表述**（Comfy Cloud 专门用 FAQ 解释这个混淆；fal 的并发随充值提升、排队不计费） | 建议**分开**：余额=能不能做，并发=同时能做几个。但**当前全仓没有积分账本**（`cost_estimate` 只是展示字符串），所以本次只做口径声明与状态区分，账本落地见 BACKLOG #12 |
+| 11 | **「同一提示词横向比多个模型」是否作为本页的正式功能**（范式：fal Sandbox 的结果标 Fastest/Cheapest/Free；SwarmUI Grid Generator 的轴） | 建议**列为后续独立任务卡**而不是本次——它是聚合网关真正的差异化卖点，但需要队列+成本+并排视图三件套就位 |
+| 12 | **D10 队列与取消**：是否认可"取消分 `queued`/`running` 两种语义并前置声明计费口径"，以及队列作为可管理对象（分段/逐项取消/暂停恢复/清空/保留原参数重试）？ | 认可——这是积分平台纠纷的源头，且我们当前的实现在专业工具圈里是已被记录过的缺陷模式 |
 
 ---
 
@@ -349,6 +526,10 @@
 | 7 | TASK-CREATE-007 | 个人素材（project 可空）+ 结果提升为资产（D4） | Owner 确认 + asset 迁移 |
 | 8 | —（登记 BACKLOG） | 音频模型类型缺口（D8） | Owner 确认 |
 | 9 | —（登记 BACKLOG） | 补齐其余 7 个内置协议模板的 `capabilities` | 底座线排期 |
+| 10 | TASK-CREATE-008 | 队列与取消：状态区分 + 计费口径文案 + 队列抽屉（D10） | 2（需要结果/队列区） |
+| 11 | TASK-CREATE-009 | 「同一提示词横向比多个模型」并排视图（待确认问题 11） | 3 + 10 |
+| 12 | —（登记 BACKLOG） | 积分账本与并发额度（待确认问题 10 的账本部分） | 底座线排期 |
+| 9 | —（登记 BACKLOG） | 补齐其余 7 个内置协议模板的 `capabilities` | 底座线排期 |
 
 **需同步的文档**：`docs/DESIGN.md` §3.4（智能创作段落改写）、`CHANGELOG.md`、
 `docs/BACKLOG.md`（#2 改为"已启动" + 新增音频缺口条目）、`docs/architecture/*`（若涉及表结构）。
@@ -366,3 +547,7 @@
 | composer 改动大、触及 3 个路由页 | 回归风险 | 分片交付，每片独立 PR + gate；新组件通过验收前保留旧组件 |
 | 本线若做 D3-B 需要新迁移号 | 与并行线撞号 | 按 AGENTS.md §12.3 先在 PR 中声明并更新号段表 |
 | 音频工作台仍无真实链路 | 与 DESIGN.md 的承诺不一致 | D8 显式标注 + 登记 BACKLOG，消除"文档已承诺、代码做不到"的隐性债务 |
+| **没有积分账本，D10 的计费口径无法真正执行** | 用户看到"按已运行计费"却查不到扣费明细 → 正是 LibTV「黑盒未明码标价」投诉的成因 | 账本落地前**只做口径声明与状态区分，不假装已退款**；账本登记 BACKLOG #12 |
+| 元数据"只在数据库、不随产物走" | 导出/转码/转发后溯源断链（Civitai 写 `copyMetadata` 就是为解决这个） | D6 要求参数快照随产物可携带/可再注入；与 BACKLOG #4/#6 联动 |
+| 队列切片（D10）依赖结果区先成型 | 排片顺序若颠倒会返工 | 严格按 §8 顺序：片 2（结果区）→ 片 10（队列抽屉） |
+| 「横向比多模型」（待确认 11）被过早拉进本次 | 范围膨胀，三件套（队列/成本/并排视图）缺一不可 | 明确列为后续独立任务卡，不并入本次 |
