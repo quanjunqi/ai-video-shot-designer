@@ -41,7 +41,9 @@ ADR-007 §1 的结论是：
    而"核对"必须有"**应该是什么**"的基准 —— 那个基准就是**上游开发文档**。
    ⇒ 文档对齐不是附属功能，**它是契约核对的前提**。
 3. **它能防止已经踩过的坑**：`pt_builtin_minimax_video` 的完成/失败值写成
-   `Success`/`Failed`，官方枚举是 `completed`/`failed` ⇒ **该模板 100% 失败**，且成功失败都检测不到。
+   迁移 008 曾写 `Success`/`Failed`；030 依**国际站**文档改成 `completed`/`failed`；
+   而**我们实际轮询的端点**（`pt_builtin_minimax_video.pollPath = /v1/query/video_generation`，legacy）
+   官方文档写的是 `Success` / `Fail` ⇒ **同一产品、不同文档页给出不同枚举**。
    若录入时必须标注「**对应文档哪一节、哪一版、何时核对**」，该错误在**录入当时**就会被发现。
 
 ---
@@ -52,7 +54,10 @@ ADR-007 §1 的结论是：
 
 | 反例 | 事实 |
 |---|---|
-| 1 ✅ | 照文档写结果是错的：模板写 `Success`/`Failed`，官方枚举是 `completed`/`failed` |
+| 1 | **同一产品的不同文档页给出互相冲突的枚举**：我们轮询的 legacy 端点
+（`/v1/query/video_generation`）文档写 `Success`/`Fail`；国际站另一套写 `completed`/`failed`。
+⇒ 迁移 008 取 `Success`/`Failed`（半对：`Fail` 写成了 `Failed`），030 又依据另一页改成
+`completed`/`failed`（对本端点可能**都不匹配**）。**照任何一页取值都可能与实际端点不符。** |
 | 2 ✅ | **同一家文档里有互相矛盾的两套枚举**：MiniMax 顶层 `status` = `queued/in_progress/completed/failed`；另一套接口嵌套 `task.status` = `queued/running/succeeded/failed/cancelled`。**光看文档分不清该用哪个**，要靠"我们实际轮询的是哪个字段"判断 |
 
 ⇒ 因此协议定义必须**两类证据并列**，而非文档覆盖实测：
@@ -177,3 +182,24 @@ observedEvidence  ← 实测证据（我们自己跑出来的，是事实）
 **特别提示（来自实施编排）**：本 ADR §5 的「**实测巡检**」与「**接入验证（零成本级）**」
 是**同一套能力**，必须合流实现，不得各写一套 —— 否则会复现本 ADR §2 所批评的
 "同一动作多处实现"（现状 `probe` 已有 production 与 BFF 两套等价实现）。
+
+---
+
+## 10. 勘误（2026-10-10，本 ADR 自身的一处错误）
+
+**§2 第 3 条与 §3 反例 1 的初版写法不准确**，原文为：
+
+> 「模板照文档写 `Success`/`Failed`，官方枚举是 `completed`/`failed` ⇒ 该模板 100% 失败」
+
+**问题**：`completed`/`failed` 并非"我们这条链路的官方枚举" —— 它来自**另一套/另一代接口的文档页**。
+本项目实际轮询的端点（见 `pt_builtin_minimax_video.pollPath`）是 legacy 的
+`GET /v1/query/video_generation`，其官方 OpenAPI 枚举为
+**`Preparing | Queueing | Processing | Success | Fail`**。
+
+**已按事实改写**（见上表）。**该错误由 AI 助手引入**：它采信了一份未经核实的取证台账并
+写入本 ADR，属「宣称未验证」——正是本 ADR 与 `AGENTS.md §5.5` 要防的事。
+
+**真实失效模式也不是"100% 失败"**：若终态值与实际不符，**失败无法被及时识别，任务会空转到轮询上限**
+（`engine.go` 的 `maxPolls`），成功与失败在语义及重试策略上不同。
+
+**教训**：**"文档"必须指明是哪一份、对应哪个端点** —— 只写"官方文档"不足以成为判据。
