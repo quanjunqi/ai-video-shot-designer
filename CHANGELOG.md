@@ -15,6 +15,12 @@
 
 ### Added
 
+- **模型聚合网关·路由层 schema（ADR-003 第 1 步）**：新增 `logical_models`（对外统一标识），
+  `model_catalog` 增加 `logical_model_id` 与 `route_priority` —— 同一逻辑模型的多行即为
+  **候选渠道集合**（`provider_model` 为行级字段，各渠道模型 id 可互不相同，无需新绑定表）；
+  新增租户级 `workspace_routing_policies`（默认平台渠道启用、自带渠道关闭、最多尝试 3 个）。
+  `logical_model_id IS NULL` 的行**行为完全不变**，向后兼容。
+
 - **`docs/BACKLOG.md` 待办清单**：记录已识别但**暂缓**的工作及其**启动条件**，并记入
   「先做模型中心底座」的决策依据。与 `.github/tasks/`（正在做的事）区分。
 

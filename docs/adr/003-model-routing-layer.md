@@ -57,9 +57,9 @@
 logical_models(
   id            text primary key,      -- 对外稳定标识，如 "image-quality-high"
   label         text not null,         -- 展示名，如 "文生图-高质量"
-  type          text not null,         -- image / video / audio / text（复用 model_catalog.type 取值）
+  type          text not null,         -- 实测 model_catalog.type 仅 text/image/video
   capability    text,                  -- 复用既有 capability 语义
-  status        text not null default 'active',
+  status        text not null default 'enabled',   -- 与 model_catalog 一致（enabled/disabled）
   sort          integer not null default 100,
   note          text,
   created_at, updated_at
