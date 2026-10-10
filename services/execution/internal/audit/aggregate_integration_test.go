@@ -270,3 +270,63 @@ func TestIntegrationAggregateTopErrorsLimit(t *testing.T) {
 		t.Errorf("第 5 簇应为 e4×3，实际 %+v", got.TopErrors[4])
 	}
 }
+
+// 任务卡 §2.1：按【人/项目】筛选必须是服务端行为 —— 否则用户看到的是筛过的列表，
+// 而 total/stats 仍是全集（本片之前前端只能在【当前页】上做文本过滤，正是这个问题）。
+func TestIntegrationAggregateFiltersByUserAndProject(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	ins := func(user, project, status string) {
+		if _, err := s.Pool.Exec(ctx, `
+			INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, project_id, product, model_id, channel_id,
+				mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+			-- project_id 是 NOT NULL（默认 ''）⇒ 不能 NULLIF；空串就是"无项目"的表示
+			VALUES ($1,'ws_f',$2,$3,'image','m','','text-chat',$4,10,0,0,0,0,'CNY', now())`,
+			fmt.Sprintf("req_f_%d", seedSeq.Add(1)), user, project, status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ins("alice", "proj_1", "success")
+	ins("alice", "proj_2", "failed")
+	ins("bob", "proj_1", "success")
+	ins("bob", "", "success")
+
+	got, err := s.Aggregate(ctx, "ws_f", Filter{UserID: "alice"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["success"] != 1 || got.ByStatus["failed"] != 1 {
+		t.Fatalf("alice 的行应只有 2 条，实际 %v", got.ByStatus)
+	}
+	got, err = s.Aggregate(ctx, "ws_f", Filter{ProjectID: "proj_1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["success"] != 2 || got.ByStatus["failed"] != 0 {
+		t.Fatalf("proj_1 应只有 2 条且都成功，实际 %v", got.ByStatus)
+	}
+	got, err = s.Aggregate(ctx, "ws_f", Filter{UserID: "alice", ProjectID: "proj_1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["success"] != 1 || len(got.ByStatus) != 1 {
+		t.Fatalf("alice+proj_1 应只有 1 条，实际 %v", got.ByStatus)
+	}
+	// 列表与 total 也必须同步收窄（这正是"服务端筛选"的意义）
+	logs, total, err := s.ListByWorkspace(ctx, "ws_f", Filter{UserID: "bob"}, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// bob 共 2 行（proj_1 一条 + 无项目一条）
+	if total != 2 || len(logs) != 2 {
+		t.Fatalf("bob 的 total/行数应为 2，实际 total=%d len=%d", total, len(logs))
+	}
+	// 百分位与错误聚类同样遵循这两个筛选（口径一致）
+	got, err = s.Aggregate(ctx, "ws_f", Filter{UserID: "alice", ProjectID: "proj_2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["failed"] != 1 {
+		t.Fatalf("alice+proj_2 应只匹配失败那条，实际 %v", got.ByStatus)
+	}
+}

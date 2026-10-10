@@ -741,11 +741,16 @@ export const api = {
     channel_id?: string;
     since?: string;
     until?: string;
+    // 任务卡 §2.1：按人/项目的操作清单（导出与列表共用同一套筛选口径）
+    user_id?: string;
+    project_id?: string;
   }) =>
     `/api/v1/audit/export?${new URLSearchParams({
       ...(params?.status ? { status: params.status } : {}),
       ...(params?.model_id ? { model_id: params.model_id } : {}),
       ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+      ...(params?.user_id ? { user_id: params.user_id } : {}),
+      ...(params?.project_id ? { project_id: params.project_id } : {}),
       ...(params?.since ? { since: params.since } : {}),
       ...(params?.until ? { until: params.until } : {}),
     }).toString()}`,
@@ -757,6 +762,8 @@ export const api = {
     channel_id?: string;
     since?: string;
     until?: string;
+    user_id?: string;
+    project_id?: string;
   }) =>
     request<{
       items: AuditLog[];
@@ -784,6 +791,8 @@ export const api = {
         ...(params?.status ? { status: params.status } : {}),
         ...(params?.model_id ? { model_id: params.model_id } : {}),
         ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+      ...(params?.user_id ? { user_id: params.user_id } : {}),
+      ...(params?.project_id ? { project_id: params.project_id } : {}),
         ...(params?.since ? { since: params.since } : {}),
         ...(params?.until ? { until: params.until } : {}),
       }).toString()}`,

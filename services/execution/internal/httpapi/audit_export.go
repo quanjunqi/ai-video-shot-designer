@@ -27,6 +27,9 @@ func auditFilterFrom(r *http.Request) (audit.Filter, string) {
 		Status:    r.URL.Query().Get("status"),
 		ModelID:   r.URL.Query().Get("model_id"),
 		ChannelID: r.URL.Query().Get("channel_id"),
+		// 任务卡 §2.1：按人/项目的操作清单（列表与导出共用本函数 ⇒ 口径必然一致）
+		UserID:    r.URL.Query().Get("user_id"),
+		ProjectID: r.URL.Query().Get("project_id"),
 	}
 	if v := r.URL.Query().Get("since"); v != "" {
 		ts, err := time.Parse(time.RFC3339, v)

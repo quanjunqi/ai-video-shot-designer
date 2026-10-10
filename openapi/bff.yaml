@@ -928,6 +928,14 @@ paths:
           in: query
           schema: {type: string, format: date-time}
           description: 结束时间（RFC3339，含）。非法值返回 400 INVALID_UNTIL。
+        - name: user_id
+          in: query
+          schema: {type: string}
+          description: 按操作者筛选（任务卡 §2.1「按人/项目的操作清单」）。与导出共用同一口径。
+        - name: project_id
+          in: query
+          schema: {type: string}
+          description: 按项目筛选（同上）。
       responses:
         '200':
           description: 审计日志分页
