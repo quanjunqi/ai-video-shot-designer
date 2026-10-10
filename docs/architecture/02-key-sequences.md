@@ -136,8 +136,10 @@ sequenceDiagram
 | 执行分流 | 按模板决定 `engine.RunAsync` 或 `engine.Run`（`cmd/server/main.go:223/225`） |
 | 幂等 | `jobs.idempotency_key` + `request_hash` 唯一约束，重复提交不产生重复任务 |
 
-> ⚠️ **待确认项**：worker 以「每 Job 一个 goroutine」方式执行，代码中未见显式并发上限。
-> 若上游为长任务（视频），高并发提交可能耗尽外部配额与连接。建议在 Phase 3「限流配额」中引入并发闸门。
+> ✅ **已修复（阶段 1 第 2 项）**：worker 现有**并发闸门**（`EXECUTION_MAX_CONCURRENT_JOBS`，
+> 默认 8）；闸门满时本轮不派发，任务保持 `running` 由下一轮 ticker 重试，不会永久滞留。
+> 失败也不再是终态：`Store.FailOrRetry` 做**指数退避重试**（5s 起、上限 5min、20% 抖动），
+> 达 `max_attempts` 才进**死信**（`dead_lettered_at`）。
 
 ---
 
