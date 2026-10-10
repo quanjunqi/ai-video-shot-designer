@@ -92,6 +92,7 @@ type Handler struct {
 	RuleTemplateStore     RuleTemplateStore
 	IntentStore           IntentStore
 	CatalogStore          CatalogStore
+	LogicalModelStore     LogicalModelStore
 	ProbeStore            ProbeStore
 	Token                 string
 	Ready                 func(context.Context) error
@@ -147,6 +148,14 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("PUT /internal/v1/catalog/protocol-templates/{id}", h.updateProtocolTemplate)
 	mux.HandleFunc("DELETE /internal/v1/catalog/protocol-templates/{id}", h.deleteProtocolTemplate)
 	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
+	// Logical Models（ADR-003：对外统一标识 + 候选渠道集合）
+	mux.HandleFunc("GET /internal/v1/logical-models", h.listLogicalModels)
+	mux.HandleFunc("POST /internal/v1/logical-models", h.createLogicalModel)
+	mux.HandleFunc("GET /internal/v1/logical-models/{id}", h.getLogicalModel)
+	mux.HandleFunc("PATCH /internal/v1/logical-models/{id}", h.updateLogicalModel)
+	mux.HandleFunc("GET /internal/v1/logical-models/{id}/candidates", h.listLogicalModelCandidates)
+	mux.HandleFunc("POST /internal/v1/logical-models/{id}/candidates", h.bindLogicalModelCandidates)
+	mux.HandleFunc("DELETE /internal/v1/logical-models/{id}/candidates/{modelId}", h.unbindLogicalModelCandidate)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()

@@ -15,6 +15,12 @@
 
 ### Added
 
+- **逻辑模型与候选绑定 API（production，ADR-003 第 2 步）**：新增 7 个内部端点，
+  支持逻辑模型 CRUD 与"把 `model_catalog` 行绑为候选 + 设 `route_priority`"。
+  `id` 不可修改（400 `ID_IMMUTABLE`）、候选已被占用返回 409 且整体回滚、
+  解绑置 NULL 不删行、并发绑定用 `SELECT … FOR UPDATE` 保证不静默抢占。
+  含真库集成测试（env 门控）。
+
 - **模型聚合网关·路由层 schema（ADR-003 第 1 步）**：新增 `logical_models`（对外统一标识），
   `model_catalog` 增加 `logical_model_id` 与 `route_priority` —— 同一逻辑模型的多行即为
   **候选渠道集合**（`provider_model` 为行级字段，各渠道模型 id 可互不相同，无需新绑定表）；
