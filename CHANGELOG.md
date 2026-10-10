@@ -77,6 +77,13 @@
 
 ### Fixed
 
+- **协议模板补齐异步轮询路径 `pollPath`**：实测该 UI **完全无法配置** `pollPath`
+  （而其它 4 个 async 字段均可编辑），导致内置视频模板漏配，引擎退化到**硬编码**的
+  `/v1/images/tasks/{task_id}` 兜底 —— 对多数渠道是错的（PearAPI 实测应为
+  `GET /v1/video/generations/{task_id}`）。现补齐字段，并加两道校验（必填、
+  必须含 `{task_id}` 占位符），预览区未声明时显式报警。
+  另修正 `model-catalog.ts` 中「按提交端点兜底轮询」这一与实现不符的注释。
+
 - **配额与限流（阶段 1 第 3 项 P0）**：此前 `ratelimit`/`quota`/`budget`/`throttle` 全仓库
   零命中，`gateway_audit_logs.cost_amount` 只被写入、**从未用于拦截** ——
   单个用户或一次脚本错误即可无限刷上游付费模型。现新增

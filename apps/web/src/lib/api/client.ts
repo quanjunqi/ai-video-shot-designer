@@ -402,7 +402,7 @@ export interface ServerProtocolTemplate {
   requestPath: string;
   params: { key: string; value: string }[];
   responseParams: { key: string; value: string; type?: string }[];
-  async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string };
+  async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string; pollPath?: string };
   builtin: boolean;
   enabled: boolean;
   refCount: number;
@@ -608,9 +608,9 @@ export const api = {
   deleteUserChannel: (channelId: string) =>
     request<void>(`/api/v1/workspace/channels/${encodeURIComponent(channelId)}`, { method: 'DELETE' }),
   getCatalog: () => request<ServerCatalogDirectory>('/api/v1/catalog'),
-  createProtocolTemplate: (input: { label: string; desc: string; requestPath: string; method: 'POST' | 'GET'; params: { key: string; value: string }[]; responseParams: { key: string; value: string; type?: string }[]; async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string } }) =>
+  createProtocolTemplate: (input: { label: string; desc: string; requestPath: string; method: 'POST' | 'GET'; params: { key: string; value: string }[]; responseParams: { key: string; value: string; type?: string }[]; async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string; pollPath?: string } }) =>
     request<ServerProtocolTemplate>('/api/v1/catalog/protocol-templates', { method: 'POST', body: JSON.stringify(input) }),
-  updateProtocolTemplate: (id: string, patch: Partial<{ label: string; desc: string; requestPath: string; method: 'POST' | 'GET'; params: { key: string; value: string }[]; responseParams: { key: string; value: string; type?: string }[]; async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string }; enabled: boolean }>) =>
+  updateProtocolTemplate: (id: string, patch: Partial<{ label: string; desc: string; requestPath: string; method: 'POST' | 'GET'; params: { key: string; value: string }[]; responseParams: { key: string; value: string; type?: string }[]; async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string; pollPath?: string }; enabled: boolean }>) =>
     request<ServerProtocolTemplate>(`/api/v1/catalog/protocol-templates/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(patch) }),
   deleteProtocolTemplate: (id: string) => request<void>(`/api/v1/catalog/protocol-templates/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   createCatalogModel: (input: Omit<ServerCatalogModel, 'id' | 'version'>) =>

@@ -70,6 +70,14 @@ export function ProtocolPreview({
           <div className="mt-1 space-y-1 rounded-md border border-primary/25 bg-primary/5 px-2.5 py-2 font-mono text-[11px] leading-5">
             <div><span className="text-muted-foreground">提交</span> → 取 <span className="text-primary">{async.taskIdField || 'task_id'}</span></div>
             <div><span className="text-muted-foreground">轮询</span> <span className="text-primary">{async.statusField || 'status'}</span>：</div>
+            <div>
+              <span className="text-muted-foreground">轮询地址</span>{' '}
+              {async.pollPath ? (
+                <span className="font-mono text-primary">{async.pollPath}</span>
+              ) : (
+                <span className="text-destructive">未声明 → 执行器将退化到 /v1/images/tasks/{'{'}task_id{'}'}（对多数渠道是错的）</span>
+              )}
+            </div>
             <div className="pl-3 text-success">= {async.doneValue || 'SUCCESS'} → 完成，按响应映射取成品（间隔/超时由执行器内置）</div>
             <div className="pl-3 text-destructive">= {async.failValue || 'FAILED'} → 失败，取错误信息</div>
           </div>

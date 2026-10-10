@@ -86,6 +86,17 @@ export default function SettingsProtocolsPage() {
   };
   const submit = () => {
     if (!form.label.trim() || !form.requestPath.trim()) {
+      if (form.async?.enabled) {
+        const pp = form.async.pollPath?.trim() ?? '';
+        if (!pp) {
+          toast.error('启用异步任务时必须填写轮询路径');
+          return;
+        }
+        if (!pp.includes('{task_id}')) {
+          toast.error('轮询路径必须包含 {task_id} 占位符');
+          return;
+        }
+      }
       toast.error('协议名称与请求路径必填');
       return;
     }
@@ -320,7 +331,7 @@ export default function SettingsProtocolsPage() {
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   {form.async?.enabled && <Badge className="bg-primary/10 font-mono text-[9px] text-primary">已启用</Badge>}
-                  <Switch checked={!!form.async?.enabled} onCheckedChange={(v) => setForm({ ...form, async: { enabled: v, taskIdField: form.async?.taskIdField ?? '', statusField: form.async?.statusField ?? '', doneValue: form.async?.doneValue ?? '', failValue: form.async?.failValue ?? '' } })} className="h-4 w-7" />
+                  <Switch checked={!!form.async?.enabled} onCheckedChange={(v) => setForm({ ...form, async: { enabled: v, taskIdField: form.async?.taskIdField ?? '', statusField: form.async?.statusField ?? '', doneValue: form.async?.doneValue ?? '', failValue: form.async?.failValue ?? '', pollPath: form.async?.pollPath ?? '' } })} className="h-4 w-7" />
                 </span>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 px-2.5 pb-2.5">
@@ -331,20 +342,28 @@ export default function SettingsProtocolsPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="min-w-0 space-y-1">
                       <Label className="text-[10px] text-muted-foreground">任务 ID 字段</Label>
-                      <Input className="h-8 text-xs" value={form.async?.taskIdField ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '' }), taskIdField: e.target.value } })} placeholder="如 task_id" />
+                      <Input className="h-8 text-xs" value={form.async?.taskIdField ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), taskIdField: e.target.value } })} placeholder="如 task_id" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] text-muted-foreground">状态字段</Label>
-                      <Input className="h-8 text-xs" value={form.async?.statusField ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '' }), statusField: e.target.value } })} placeholder="如 status" />
+                      <Input className="h-8 text-xs" value={form.async?.statusField ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), statusField: e.target.value } })} placeholder="如 status" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] text-muted-foreground">完成判定值</Label>
-                      <Input className="h-8 text-xs" value={form.async?.doneValue ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '' }), doneValue: e.target.value } })} placeholder="如 SUCCESS" />
+                      <Input className="h-8 text-xs" value={form.async?.doneValue ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), doneValue: e.target.value } })} placeholder="如 SUCCESS" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] text-muted-foreground">失败判定值</Label>
-                      <Input className="h-8 text-xs" value={form.async?.failValue ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '' }), failValue: e.target.value } })} placeholder="如 FAILED" />
+                      <Input className="h-8 text-xs" value={form.async?.failValue ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), failValue: e.target.value } })} placeholder="如 FAILED" />
                     </div>
+                      <div className="col-span-2 min-w-0 space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">轮询路径（必填）</Label>
+                        <Input className="h-8 text-xs" value={form.async?.pollPath ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), pollPath: e.target.value } })} placeholder="如 /v1/video/generations/{task_id}" />
+                        <p className="text-[10px] text-muted-foreground">
+                          必须包含 <span className="font-mono">{"{task_id}"}</span> 占位符 —— 执行器用 ReplaceAll 替换它；
+                          留空或不含占位符会静默指向错误地址（曾导致视频异步任务全部轮询失败）
+                        </p>
+                      </div>
                   </div>
                 )}
               </CollapsibleContent>
