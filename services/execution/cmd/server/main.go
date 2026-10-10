@@ -126,7 +126,27 @@ func main() {
 // failOrRetry 自己知道，需要它回报终态性 —— 属 D2b。
 func auditTerminal(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte) {
 	// 无用量场景（早退失败、panic 等）：用量本就为 0
-	auditTerminalT(ctx, as, jobID, ok, errMsg, result, 0, 0, 0)
+	auditTerminalT(ctx, as, jobID, ok, errMsg, result, 0, 0, 0, 0)
+}
+
+// auditStatusFor 决定【审计行】里的终态词。
+//
+// ★ 这里必须写 "success"，而不是任务表的 "succeeded"（本项目真实缺陷）：
+//
+//	同步路径写的是 "success"（httpapi/handler.go 的 writeAudit），
+//	契约与前端也只认 "success"（openapi：如 success/failed/queued；
+//	apps/web SettingsAudit 的「成功」卡片与「成功」筛选项都取 success）。
+//	而本函数原来返回 "succeeded" ⇒ **异步成功从不计入成功/成功率，
+//	也不会被「成功」筛选显示**；失败态两条路径同名（failed）⇒
+//	于是**成功率被系统性低估**（端到端验收实测：byStatus={succeeded:1} 而 successRate=0）。
+//
+// 任务表（jobs）继续用它自己的 "succeeded" —— 两套词汇各归其位，
+// 审计行的词汇由**读者**决定，不由写者随手决定。
+func auditStatusFor(ok bool) string {
+	if ok {
+		return "success"
+	}
+	return "failed"
 }
 
 // auditTerminalUsage 在【引擎已返回】的终态上额外记录用量（D4c）。
@@ -139,25 +159,25 @@ func auditTerminal(ctx context.Context, as *audit.Store, jobID string, ok bool, 
 // 为什么必须补（D4a 的缺口）：D4a 只在同步路径记录了 token，worker 传的是
 //
 //	0,0,0 ⇒ **异步任务的 token 恒为 0**，而异步主要是视频类长任务（主要付费路径）。
-func auditTerminalUsage(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, ex map[string]any) {
+func auditTerminalUsage(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int) {
 	in, out, cached := engine.UsageFromExtracted(ex)
-	auditTerminalT(ctx, as, jobID, ok, errMsg, result, in, out, cached)
+	auditTerminalT(ctx, as, jobID, ok, errMsg, result, in, out, cached, elapsedMs)
 }
 
 // auditTerminalT 是两条入口的公共实现。
-func auditTerminalT(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached int) {
+func auditTerminalT(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int) {
 	if as == nil {
 		return
 	}
-	status := "failed"
-	if ok {
-		status = "succeeded"
-	}
+	status := auditStatusFor(ok)
 	var payload json.RawMessage
 	if len(result) > 0 {
 		payload = json.RawMessage(result)
 	}
-	n, err := as.UpdateResultByJobID(ctx, jobID, status, payload, errMsg, 0, tokenIn, tokenOut, tokenCached, 0, "")
+	// 第 6 个参数是 latency_ms：原来硬编码 0 ⇒ 异步任务的耗时**永远是 0**，
+	// 而 P50/P95 与平均耗时都只统计 latency_ms > 0 的行 ⇒ **异步长任务（主要付费路径）
+	// 被整体排除在耗时分布之外**。引擎本来就测了 Duration，这里把它传下去。
+	n, err := as.UpdateResultByJobID(ctx, jobID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, 0, "")
 	if err != nil {
 		log.Printf("execution worker: audit update failed for job %s: %v", jobID, err)
 		return
@@ -361,12 +381,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
-		auditTerminalUsage(ctx, as, j.ID, false, "model returned no image URL", resultBytes, result.Extracted)
+		auditTerminalUsage(ctx, as, j.ID, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
 	}
 
-	auditTerminalUsage(ctx, as, j.ID, true, "", resultBytes, result.Extracted)
+	auditTerminalUsage(ctx, as, j.ID, true, "", resultBytes, result.Extracted, result.ElapsedMs)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
