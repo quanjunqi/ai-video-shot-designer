@@ -67,6 +67,7 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/tasks/run", h.runModel)
 	mux.HandleFunc("POST /v1/generate", h.generate)
 	mux.HandleFunc("GET /internal/v1/audit/logs", h.listAuditLogs)
+	mux.HandleFunc("GET /internal/v1/audit/export", h.exportAuditLogs)
 	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
 	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -744,26 +745,11 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// D7a：筛选条件（status / model_id / channel_id / since / until）
-	f := audit.Filter{
-		Status:    r.URL.Query().Get("status"),
-		ModelID:   r.URL.Query().Get("model_id"),
-		ChannelID: r.URL.Query().Get("channel_id"),
-	}
-	if v := r.URL.Query().Get("since"); v != "" {
-		if ts, err := time.Parse(time.RFC3339, v); err == nil {
-			f.Since = &ts
-		} else {
-			writeError(w, 400, "INVALID_SINCE", "since must be RFC3339")
-			return
-		}
-	}
-	if v := r.URL.Query().Get("until"); v != "" {
-		if ts, err := time.Parse(time.RFC3339, v); err == nil {
-			f.Until = &ts
-		} else {
-			writeError(w, 400, "INVALID_UNTIL", "until must be RFC3339")
-			return
-		}
+	// 筛选解析抽成 auditFilterFrom，列表与导出【共用同一口径】——避免两处漂移
+	f, ferr := auditFilterFrom(r)
+	if ferr != "" {
+		writeError(w, 400, ferr, "since/until must be RFC3339")
+		return
 	}
 	logs, total, err := h.AuditStore.ListByWorkspace(r.Context(), ws, f, limit, offset)
 	if err != nil {
