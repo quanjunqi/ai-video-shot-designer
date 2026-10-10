@@ -199,8 +199,8 @@ export default function CreateWorkbench({
     [jobs, selectedId, activeTask, succeeded],
   );
 
-  // 产物地址：当前没有写回链路 → 多数情况为 undefined，调用方如实回退到占位图。
-  // 一旦上游结果被写回 intent_payload.result，这里即可直接显示真实产物。
+  // 产物地址：统一由 parseTaskPayload/extractResultUrl 读取（优先 result_payload，
+  // 回退历史行的 intent_payload.result）；取不到就为 undefined，调用方如实回退到占位图。
   const previewUrl = useMemo(() => (preview ? extractResultUrl(parseTaskPayload(preview)) : undefined), [preview]);
   const detailPayload = useMemo(() => (detailJob ? parseTaskPayload(detailJob) : {}), [detailJob]);
   const detailResultUrl = useMemo(() => (detailJob ? extractResultUrl(parseTaskPayload(detailJob)) : undefined), [detailJob]);

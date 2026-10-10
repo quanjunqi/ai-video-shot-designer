@@ -31,6 +31,7 @@ import { useStyleStore } from '@/stores/useStyleStore';
 import { DEFAULT_STYLE_OPTIONS } from '@/mocks/styles';
 import { useShallow } from 'zustand/react/shallow';
 import { api } from '@/lib/api/client';
+import { resolveTaskResult } from '@/features/genworkbench/result-utils';
 import type { ProjectCharacter, ProjectCharacterForm } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -212,7 +213,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
         }
       }
 
-      // Step 3: 处理结果（原子性已保证：succeeded时intent_payload一定包含result）
+      // Step 3: 处理结果（原子性已保证：succeeded时结果已经可读）
       if (finalTask.status !== 'succeeded') {
         const rawError = finalTask.error || '生成任务未完成（可能超时）';
         const error = friendlyError(rawError);
@@ -223,7 +224,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
         return;
       }
 
-      // 从intent_payload中提取图片URL（带重试：防止极端时序下result尚未可读）
+      // 提取图片URL（带重试：防止极端时序下result尚未可读）
       let url: string | undefined;
       for (let retry = 0; retry < 10; retry++) {
         if (retry > 0) {
@@ -242,7 +243,8 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
           payload = finalTask.intent_payload as { result?: Record<string, unknown> } | undefined;
         }
 
-        const result = payload?.result || {};
+        // 结果优先读 result_payload（execution 010 起与意图分离），回退历史行的 intent_payload.result
+        const result = resolveTaskResult(finalTask);
         const payloadKeys = payload ? Object.keys(payload) : [];
         const resultKeys = Object.keys(result);
         const payloadLen = typeof finalTask.intent_payload === 'string' ? finalTask.intent_payload.length : JSON.stringify(finalTask.intent_payload || '').length;

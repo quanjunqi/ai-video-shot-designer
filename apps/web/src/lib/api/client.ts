@@ -299,6 +299,11 @@ export interface ServerTask {
   attempt: number;
   steps?: { label: string; done: boolean }[];
   intent_payload?: Record<string, unknown> | string | null;
+  /**
+   * 任务结果（execution 010 起与意图分离存放，服务端 jsonb，可能返回对象或 JSON 字符串）。
+   * 010 之前的历史任务结果被覆盖写在 `intent_payload.result` 里，读取时须回退（见 result-utils.ts）。
+   */
+  result_payload?: Record<string, unknown> | string | null;
   cost_estimate?: string;
   error?: string;
   context_path?: string;
