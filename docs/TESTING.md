@@ -122,3 +122,21 @@ docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml \
 - 质量门禁执行口径：[`FRONTEND_QUALITY_GATE.md`](FRONTEND_QUALITY_GATE.md)
 - 关键链路（决定该测什么）：[`architecture/02-key-sequences.md`](architecture/02-key-sequences.md)
 - 跨库数据隔离（集成测试前提）：[`architecture/03-data-model.md`](architecture/03-data-model.md)
+
+
+---
+
+## 测试不得依赖本地时区 / 时钟（2026-10-10 追加）
+
+**背景（真实事故）**：`create-result-utils.test.ts` 断言
+`formatTaskTime('...T18:04:19+08:00').includes('18:04')` —— 该作者机器是 UTC+8 故通过，
+但 **CI 跑 UTC** 会渲染成 `10:04`，导致「本地全绿、CI 单点红」。
+
+**规则**：
+
+1. **禁止**对 `toLocaleString` / `getHours()` / `Date` 格式化结果**硬编码具体数字**（小时、日期、相对时间如"3 分钟前"）
+2. 需要时间断言时，用以下任一方式：
+   - **同一时刻的多种表示必须等价**：`assert.equal(f('...T18:04:19+08:00'), f('...T10:04:19Z'))`
+   - **形状断言**：`assert.match(f(...), /^\d{2}:\d{2}/)`
+   - **注入时钟**：让被测函数接受 `now`/`clock` 参数（纯函数化），测试传入固定时间
+3. 同一原则适用于：随机数（注入随机源）、并发（不依赖调度顺序）、网络（必须 mock）
