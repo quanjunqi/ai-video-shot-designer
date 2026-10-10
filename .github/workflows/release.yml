@@ -1,0 +1,112 @@
+name: Release
+
+# 打 tag 时构建并推送镜像、生成 GitHub Release。
+# 只在 tag 上运行，不影响 PR 门禁。
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write    # 创建 Release
+  packages: write    # 推送镜像到 GHCR
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  # 构建并推送 6 个 Go 服务镜像
+  build-services:
+    name: Build image (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [workspace, production, execution, asset, web-bff, outbox-relay]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: services/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.ref_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 构建并推送前端镜像
+  build-web:
+    name: Build image (web)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/web:${{ github.ref_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 生成 GitHub Release（变更说明取 CHANGELOG 与自动生成提交列表）
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-services, build-web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          body: |
+            ## 镜像
+
+            本次发布推送了以下镜像到 GHCR（tag `${{ github.ref_name }}` 与 `latest`）：
+
+            `web`、`workspace`、`production`、`execution`、`asset`、`web-bff`、`outbox-relay`
+
+            ## 发布前请确认
+
+            - [ ] `CHANGELOG.md` 已更新（见 `docs/RELEASE.md` §2 检查清单）
+            - [ ] schema 变更已在预发环境从零跑通迁移
+            - [ ] 回滚方案已明确
+
+            > 当前**尚无生产部署自动化**：镜像构建完成后，部署仍需人工执行。
+            > 目标形态见 `docs/architecture/05-deployment.md`。
