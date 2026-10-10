@@ -28,11 +28,16 @@
 - 各服务 `.dockerignore`（此前仅 production 有）。
 - **BFF 接口契约**（`openapi/`）：OpenAPI 3.1，38 path / 57 operation，
   覆盖前端 53 个 API 方法 100%、BFF 21 个路由模式 100%；含离线校验脚本与破坏性变更规则。
-- **CI 增强**：`gofmt` 格式门禁；覆盖率**棘轮**门禁（`.github/coverage-baseline.txt`
+- **CI 增强**：`gofmt` 格式门禁；`golangci-lint`（**仅新问题**模式，避免存量告警堵死 PR）；
+  覆盖率**棘轮**门禁（`.github/coverage-baseline.txt`
   + `.github/scripts/check-coverage.sh`，覆盖率不得低于基线）；Dependabot
   （npm + 6 个 Go 模块 + GitHub Actions）；CI 校验 OpenAPI 契约可解析性；
   文档存在性检查扩展到全部关键文档。
 - **`npm audit` 分级门禁**：生产依赖高危/严重**阻断**，全量（含 dev）先报告不阻断。
+- **贡献治理**：`CONTRIBUTING.md`（导航入口，规则指向 AGENTS.md）、
+  `.github/INCIDENT_TEMPLATE.md`（事故复盘模板）、Conventional Commits
+  三级强制（husky 钩子 / 校验脚本 / CI）、`release.yml`
+  （tag 触发构建 7 个镜像到 GHCR + 生成 GitHub Release）。
 
 ### Changed
 

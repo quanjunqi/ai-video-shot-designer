@@ -79,6 +79,18 @@ jobs:
           fi
         working-directory: services/${{ matrix.service }}
 
+      # golangci-lint：比 go vet 更宽的静态检查。
+      # only-new-issues=true 是**刻意选择**：存量代码有大量历史告警，全量开启会一次性堵死所有 PR。
+      # 该模式只报告本 PR 改动行上的问题 —— 增量从严、存量从宽（与覆盖率棘轮同一思路）。
+      # 未提供 .golangci.yml：使用官方默认 linter 集（errcheck/gosimple/govet/ineffassign/staticcheck/unused），
+      # 避免自定义配置与 action 安装的 golangci-lint 版本产生 schema 冲突。
+      - name: Run golangci-lint (new issues only)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: services/${{ matrix.service }}
+          only-new-issues: true
+          args: --timeout=5m
+
       - name: Test
         run: go test ./... -v -race -coverprofile=coverage.out
         working-directory: services/${{ matrix.service }}
