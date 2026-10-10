@@ -14,7 +14,6 @@ import (
 	"shotdesigner/services/production/internal/episodeasset"
 	"shotdesigner/services/production/internal/httpapi"
 	"shotdesigner/services/production/internal/intent"
-	"shotdesigner/services/production/internal/probe"
 	"shotdesigner/services/production/internal/project"
 	"shotdesigner/services/production/internal/projectcharacter"
 	"shotdesigner/services/production/internal/ruletemplate"
@@ -45,7 +44,6 @@ func main() {
 		IntentStore:           intent.PostgresStore{Pool: pool},
 		CatalogStore:          catalog.PostgresStore{Pool: pool},
 		LogicalModelStore:     catalog.PostgresStore{Pool: pool},
-		ProbeStore:            probe.Store{Pool: pool},
 		Token:                 token,
 		Ready:                 pool.Ping,
 	}

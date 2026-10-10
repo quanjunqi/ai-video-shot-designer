@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,6 +22,7 @@ import (
 	"shotdesigner/services/execution/internal/engine"
 	"shotdesigner/services/execution/internal/job"
 	"shotdesigner/services/execution/internal/mapping"
+	"shotdesigner/services/execution/internal/probe"
 	"shotdesigner/services/execution/internal/quota"
 )
 
@@ -34,6 +36,8 @@ type Handler struct {
 	AuditStore   *audit.Store
 	// Quota 为 nil 时不做限流与成本判定（便于渐进启用与测试）
 	Quota *quota.Limiter
+	// Probe 是渠道连通性探测（全仓唯一实现，TASK-INFRA-004）。为 nil 时该路由 503。
+	Probe *probe.Prober
 }
 
 type Store interface {
@@ -63,6 +67,8 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/tasks/run", h.runModel)
 	mux.HandleFunc("POST /v1/generate", h.generate)
 	mux.HandleFunc("GET /internal/v1/audit/logs", h.listAuditLogs)
+	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
+	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 同步测试端点 /tasks/run 会真实等待上游生成（文本 ~5s、图片 30-120s、视频异步不在此同步执行），
 		// 超时按上游长任务放宽，避免图片/视频生成被掐断。
@@ -681,6 +687,43 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 		"offset": offset,
 	})
 }
+
+// probeChannel 是渠道连通性探测的内部端点（POST /internal/v1/channels/{id}/probe）。
+//
+// 只接受 workspaceID + actorID + channelID：base URL 由 probe 包从服务端来源解析
+// （工作区用户渠道 / 凭据行 / 平台目录），**不接受请求体里的地址**——那正是原来的
+// SSRF 面。返回结构与旧 probe.Result 一致（前端 ProbeResult 不变）。
+func (h Handler) probeChannel(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
+		return
+	}
+	ws, actor, ok := ctxOf(r)
+	if !ok {
+		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
+		return
+	}
+	if h.Probe == nil {
+		writeError(w, 503, "PROBE_UNAVAILABLE", "channel probe is unavailable")
+		return
+	}
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, 400, "INVALID_PATH", "channel id is required")
+		return
+	}
+	out, err := h.Probe.Probe(r.Context(), ws, actor, id)
+	if errors.Is(err, probe.ErrChannelNotFound) {
+		writeError(w, 404, "NOT_FOUND", "channel not found")
+		return
+	}
+	if err != nil {
+		slog.Error("probe channel", "channel_id", id, "workspace_id", ws, "error", err)
+		writeError(w, 503, "PROBE_UNAVAILABLE", "channel probe could not be executed")
+		return
+	}
+	writeJSON(w, 200, out)
+}
+
 func writeError(w http.ResponseWriter, status int, code, msg string) {
 	writeJSON(w, status, map[string]string{"code": code, "message": msg})
 }

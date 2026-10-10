@@ -17,7 +17,6 @@ import (
 	"shotdesigner/services/production/internal/episode"
 	"shotdesigner/services/production/internal/episodeasset"
 	"shotdesigner/services/production/internal/intent"
-	"shotdesigner/services/production/internal/probe"
 	"shotdesigner/services/production/internal/project"
 	"shotdesigner/services/production/internal/projectcharacter"
 	"shotdesigner/services/production/internal/ruletemplate"
@@ -80,10 +79,6 @@ type CatalogStore interface {
 	DeleteTemplate(context.Context, string) error
 }
 
-type ProbeStore interface {
-	Probe(context.Context, string, string) (probe.Result, error)
-}
-
 type Handler struct {
 	Store                 Store
 	EpisodeStore          EpisodeStore
@@ -93,7 +88,6 @@ type Handler struct {
 	IntentStore           IntentStore
 	CatalogStore          CatalogStore
 	LogicalModelStore     LogicalModelStore
-	ProbeStore            ProbeStore
 	Token                 string
 	Ready                 func(context.Context) error
 }
@@ -147,7 +141,6 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/catalog/protocol-templates", h.createProtocolTemplate)
 	mux.HandleFunc("PUT /internal/v1/catalog/protocol-templates/{id}", h.updateProtocolTemplate)
 	mux.HandleFunc("DELETE /internal/v1/catalog/protocol-templates/{id}", h.deleteProtocolTemplate)
-	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
 	// Logical Models（ADR-003：对外统一标识 + 候选渠道集合）
 	mux.HandleFunc("GET /internal/v1/logical-models", h.listLogicalModels)
 	mux.HandleFunc("POST /internal/v1/logical-models", h.createLogicalModel)
@@ -617,33 +610,6 @@ func (h Handler) updateCatalogChannel(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("update catalog channel", "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "INVALID_CHANNEL", "channel validation failed")
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
-}
-
-func (h Handler) probeChannel(w http.ResponseWriter, r *http.Request) {
-	workspace, _, ok := h.identity(w, r)
-	if !ok {
-		return
-	}
-	if h.ProbeStore == nil {
-		writeError(w, http.StatusServiceUnavailable, "PROBE_UNAVAILABLE", "channel probe is unavailable")
-		return
-	}
-	id := r.PathValue("id")
-	if !strings.HasPrefix(id, "chan_") && id != "jimeng" && id != "minimax" && id != "grsai" && id != "google" && id != "openai" && id != "comfy" {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "channel not found")
-		return
-	}
-	out, err := h.ProbeStore.Probe(r.Context(), workspace, id)
-	if errors.Is(err, probe.ErrChannelNotFound) {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "channel not found")
-		return
-	}
-	if err != nil {
-		slog.Error("probe channel", "error", err)
-		writeError(w, http.StatusServiceUnavailable, "PROBE_UNAVAILABLE", "channel probe could not be executed")
 		return
 	}
 	writeJSON(w, http.StatusOK, out)
