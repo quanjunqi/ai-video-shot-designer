@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { ParamEditor } from '@/components/ParamEditor';
 import { ProtocolPreview } from '@/components/ProtocolPreview';
+import { ProtocolEvidence } from '@/components/ProtocolEvidence';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import type { ProtocolTemplate, ModelParam, ProtocolAsync } from '@/config/models/model-catalog';
 
@@ -255,6 +256,8 @@ export default function SettingsProtocolsPage() {
                   <span>响应映射 {t.responseParams.length} 项</span>
                   <span>引用模型 {refs} 个</span>
                 </div>
+                {/* ADR-008 §3：两类证据并列呈现（无证据时不渲染） */}
+                <ProtocolEvidence template={t} />
               </div>
             </div>
           );

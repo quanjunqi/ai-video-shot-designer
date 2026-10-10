@@ -102,6 +102,10 @@ export interface ProtocolTemplate {
   refCount: number; // 引用该模板的模型数
   version: number; // 版本号（每次编辑 +1）
   async?: ProtocolAsync; // 异步任务模式（默认不启用）
+  // ADR-008 §3：两类证据并列 —— docRef 是【外部输入/线索】，observedEvidence 是【实测/事实】。
+  // 冲突时以实测为准，且差异必须保留可见（客户端不做"取其一"的合并）。
+  docRef?: Record<string, unknown>;
+  observedEvidence?: Record<string, unknown>;
 }
 
 export const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [

@@ -412,6 +412,10 @@ export interface ServerProtocolTemplate {
   enabled: boolean;
   refCount: number;
   version: number;
+  // ADR-008 §3 两类证据并列：docRef 是【外部输入/线索】，observedEvidence 是【实测/事实】。
+  // 服务端为 NULL 时字段缺席（omitempty）⇒ 两者都是可选。
+  docRef?: Record<string, unknown>;
+  observedEvidence?: Record<string, unknown>;
 }
 
 export interface ServerCatalogModelPatch {

@@ -3016,6 +3016,20 @@ components:
         builtin: {type: boolean, description: 内置模板受保护，不可改/删（`400 BUILTIN_PROTECTED`）。}
         enabled: {type: boolean}
         refCount: {type: integer, description: 被模型引用次数；>0 时不可删（`409 TEMPLATE_IN_USE`）。}
+        docRef:
+          type: object
+          nullable: true
+          description: >-
+            ADR-008 文档依据（**外部输入**，可能过期或本身有误）：source(official|cloud|relay) /
+            url / docVersion|verifiedAt / sections / authDoc / statusEnumDoc / referenceRuleDoc。
+            NULL = 尚未对齐文档。
+        observedEvidence:
+          type: object
+          nullable: true
+          description: >-
+            ADR-008 实测证据（**事实**）：lastProbedAt / observedStatusCodes / observedStatusEnum /
+            observedEndpoints / discrepancies[]。冲突时以本列为准，且**差异必须保留可见**。
+            NULL = 尚未实测。
         version: {type: integer}
         capabilities:
           type: object
