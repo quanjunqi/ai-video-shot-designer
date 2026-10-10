@@ -1,0 +1,96 @@
+# Changelog
+
+本文件记录**漫剧导演工坊**的显著变更。
+
+格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
+版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
+版本策略、发布流程与回滚见 [`docs/RELEASE.md`](docs/RELEASE.md)。
+
+> **状态说明**：仓库当前**尚无 git tag**（无正式发布）。下列条目按合并时间倒序记录，
+> 待首次正式发布时归入对应版本号。
+
+---
+
+## [Unreleased]
+
+### Added
+
+- **架构图集**（`docs/architecture/`）：C4 上下文/容器、4 条关键链路时序图、4 库 23 张表 ER 图、
+  状态机、部署拓扑 —— 共 18 张 Mermaid 图，每张注明事实来源。
+- **环境变量权威清单**（`.env.example`）：39 个变量，覆盖 5 个服务 + 本地基础设施，
+  并以脚本校验「模板覆盖全部代码读取的变量」。
+- **前端质量门禁权威文档**（`docs/FRONTEND_QUALITY_GATE.md`）：合并原三份重叠文档，
+  保留全部 14 条规则编号（R-UI / R-DATA / R-CRUD / R-HOOK）与反例库 R1–R10。
+- **测试策略**（`docs/TESTING.md`）、**可观测性规范**（`docs/OBSERVABILITY.md`）、
+  **发布规范**（`docs/RELEASE.md`）、**安全策略**（`SECURITY.md`）。
+- **统一 Executor 接口与 API Connector**（TASK-P2-001）：`Submit/Poll/Cancel/GetResult`
+  抽象 + 把既有 `Run`/`RunAsync` 适配为 `APIConnector`，含 11 个测试。
+- 各服务 `.dockerignore`（此前仅 production 有）。
+
+### Changed
+
+- **服务工程结构统一**：`outbox-relay` 的 `main.go` 迁入 `cmd/server/`，与其余 5 个服务一致。
+- **站点运维材料归位**：`beian-page/` → `deploy/site/`。
+- **权威文档归位**：根 `TECHNICAL_ARCHITECTURE.md`（706 行）与 `DESIGN.md`（547 行）移入 `docs/`；
+  修复 `docs/adr/*`、CI、`AGENTS.md` 中长期失效的 `docs/` 引用。
+- `RunResult` 新增 `ProviderTaskID`；`engine.Run` / `RunAsync` 标记 `Deprecated`（向后兼容）。
+
+### Fixed
+
+- **文档与实现不符 8 处**：含 workspace 启动命令用错环境变量（`EXECUTION_DATABASE_URL`
+  → 实际应为 `WORKSPACE_DATABASE_URL`，按原文执行会启动失败）、技术栈版本（React 18 → 19）、
+  目录树、数据库清单、ADR 位置冲突等。
+- **分支保护门禁空转**：`required_status_checks.contexts` 为空导致规则无约束力，
+  已补齐 9 项必需检查。
+- **分支保护死锁**：单账号仓库下 `require approvals = 1` + `enforce_admins = true`
+  使任何人都无法合并 PR；审批数调整为 0，保留 PR + CI + 管理员不可绕过。
+- **仓库体积**：清除历史中的 8.5MB 编译产物（`services/web-bff/server`），
+  `.git` 由 9.1M 降至 2.5M；`.gitignore` 增加 Go 产物规则。
+- 前端 TypeScript 遗留类型错误 77 处、ESLint 错误 7 处清零。
+- CI 的 Node 版本 20 → 22（`npm test` 使用 Node 22.6+ 的 `--experimental-strip-types`，
+  在 Node 20 下以 exit code 9 失败）。
+- 后端测试修复：production 的 stub 缺失接口方法、`DefaultTextModel` 缺失、
+  execution 引擎包因缺失 `api_connector.go` 无法编译。
+
+### Removed
+
+- Python 规则/校验线迁出为独立仓库
+  [ai-video-shot-designer-skill](https://github.com/quanjunqi/ai-video-shot-designer-skill)
+  （`SKILL.md`、`references/`、`scripts/`、`tests/`、`config/`）。
+- `SELF_CHECK_RULES.md`、`docs/development-rules.md`（内容合并入
+  `docs/FRONTEND_QUALITY_GATE.md`）；`ITERATION_QA.md` 降级为追加式教训台账并移入 `docs/`。
+
+### Known Issues
+
+> 以下为已确认、**尚未修复**的缺陷，均需人类决策后以新增迁移/新任务处理。
+
+- **`project_characters` 表无建表迁移**：迁移 `020` 向该表 `INSERT`，但全仓库无
+  `CREATE TABLE`。迁移执行器为 `psql -v ON_ERROR_STOP=1` + `sh -e`，**首个错误即中止**
+  → 全新数据库上 `deploy/local` 的 `app` profile 无法启动，且 `021` 永不执行。
+- **审计写入失败被静默忽略**：`_ = h.AuditStore.Insert(...)` 与「审计日志不异步丢失」冲突。
+- **`TaskStatus.timeout` 无法落库**：Go 有 6 个状态，`jobs`/`job_attempts` 的 `CHECK` 仅 5 个。
+- **`projects.status` 被 `CHECK` 冻结**为 `pending_parse`，且无任何更新代码 → 服务端状态机未实现。
+- **`episodes.status` 与前端枚举不一致**：DB 默认 `draft`，前端 `EpisodeStatus` 无此值；
+  `stage`/`status` 均缺 `CHECK`。
+- **中间件未接入**：Redis / Kafka / Temporal / Keycloak 容器已提供但业务代码零接入。
+- **信任模型仅适用于本地开发**：浏览器到 BFF 无真实身份校验（无 OIDC），
+  服务间使用静态共享令牌。
+- **可观测性缺失**：无指标、无追踪；日志混用 `log` 与 `slog`；仅 1 个健康端点。
+- **测试覆盖薄弱**：前端仅 1 个测试文件（3 用例）；CI 覆盖率无阈值。
+
+---
+
+## [0.1.0] - 初始导入
+
+### Added
+
+- 全栈应用首次导入：`apps/web`（Vite + React + TypeScript）+ 6 个 Go 服务
+  （workspace / production / execution / asset / web-bff / outbox-relay）。
+- 模型聚合网关：统一 `/v1/generate` 入口、能力校验、动态参数透传、异步任务。
+- 审计日志：`gateway_audit_logs` 表（23 字段 + 5 索引）+ 网关拦截层 + BFF 转发 + 前端查看页。
+- 项目级角色库（Character Bible）：引用而非复制，单集只存状态变体（见
+  [`docs/adr/002`](docs/adr/002-project-character-library.md)）。
+- AI 协作开发规范（`AGENTS.md`）与架构决策记录（`docs/adr/`）。
+- 本地 Compose 栈：PostgreSQL / Redis / Kafka / Temporal / MinIO / Keycloak。
+
+[Unreleased]: https://github.com/quanjunqi/ai-video-shot-designer/commits/master

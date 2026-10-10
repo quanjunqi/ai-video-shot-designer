@@ -128,7 +128,8 @@ ai-video-shot-designer/
 - **HTTP 处理**：`httpapi.Handler` 模式，路由注册在 `Routes()`
 - **数据库**：pgxpool，迁移文件在 `migrations/`，命名 `NNN_description.sql`
 - **配置**：环境变量，`os.Getenv`，禁止硬编码
-- **日志**：标准 `log` 包，结构化键值对
+- **日志**：`log/slog` 结构化日志（Go 1.21+ 标准库），键值对字段规范见 `docs/OBSERVABILITY.md`；
+  存量 `log.*` 随改动逐步替换，**新代码一律用 `slog`**
 
 ### 4.3 数据库迁移
 
@@ -318,10 +319,20 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 
 ## 10. 文档维护
 
-- `docs/TECHNICAL_ARCHITECTURE.md` — 技术架构权威文档，架构变更必须同步
-- `docs/DESIGN.md` — 设计规范，UI 组件变更必须同步
-- `docs/adr/NNN-title.md` — 架构决策记录，重要决策必须记录
-- `AGENTS.md` — 本文档，规则变更必须更新并通知所有 Agent
+| 文档 | 定位 | 何时必须同步 |
+|---|---|---|
+| `docs/TECHNICAL_ARCHITECTURE.md` | 技术架构权威 | 架构变更 |
+| `docs/DESIGN.md` | 产品与设计规范 | UI/组件变更 |
+| `docs/architecture/` | 架构图集（C4/时序/ER/状态机/部署） | 服务边界、表结构、状态、端口、部署形态变更 |
+| `docs/adr/NNN-title.md` | 架构决策记录 | 重要决策必须记录 |
+| `docs/FRONTEND_QUALITY_GATE.md` | 前端交付质量门禁（唯一权威） | 规则/反例库变更 |
+| `docs/ITERATION_QA.md` | 迭代教训台账（追加式） | 每个迭代发现教训时追加 |
+| `docs/TESTING.md` | 测试策略与覆盖率目标 | 测试分层/门禁变更 |
+| `docs/OBSERVABILITY.md` | 日志/指标/追踪/健康检查规范 | 可观测性约定变更 |
+| `docs/RELEASE.md` | 版本、发布、回滚、热修 | 发布流程变更 |
+| `SECURITY.md` | 安全策略与已知缺口 | 安全基线或信任模型变更 |
+| `CHANGELOG.md` | 变更记录 | 每个用户可见变更 |
+| `AGENTS.md` | 本文档 | 规则变更必须更新并通知所有 Agent |
 
 ---
 
