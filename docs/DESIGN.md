@@ -520,7 +520,7 @@ ComfyUI 官方服务端提供 `/prompt` 提交、`/ws` 状态推送、`/history/
 
 ### 开发质量红线（Awwwards 级自检清单 · 每轮交付前必查）
 
-> **单一权威**：开发质量门禁与反例黑名单以 `ITERATION_QA.md` 为准——顶部「交付门禁」三层六步强制流程（L1 组件基类根治 → L2 `npm run gate` 静态扫描 → L3 浏览器兜底）+ 反例库 R1-R10。本节为速查索引，交付前必须按 ITERATION_QA.md 执行，不得以本节代替。
+> **单一权威**：开发质量门禁与反例黑名单以 `docs/FRONTEND_QUALITY_GATE.md` 为准——「交付门禁」三层六步强制流程（L1 组件基类根治 → L2 `npm run gate` 静态扫描 → L3 浏览器兜底）+ 反例库 R1-R10 + 规则库 R-UI/R-DATA/R-CRUD/R-HOOK。本节为速查索引，交付前必须按 `docs/FRONTEND_QUALITY_GATE.md` 执行，不得以本节代替（迭代教训流水记入 `docs/ITERATION_QA.md`）。
 
 > **静态门禁优先**：任何前端交付必须先 `cd apps/web && npm run gate` 达 GATE=0（严格 typecheck `tsconfig.app.json` + eslint + `quality-gate.mjs` 静态扫描反模式）。代码层面可静态判定的问题（类型错误、未用 import、`||/&&` 与 `??` 混用、grid 列缺 `min-w-0`、Select 基类 `w-fit`、页面级 `max-w-xl/2xl`、纯图标按钮缺可访问性标注）一律在开发期拦截；浏览器（L3）只验静态测不到的事实（最终渲染、真实请求链路、服务探活、交互反馈）。禁止把静态可判问题拖到浏览器验收（反例 R10）。
 

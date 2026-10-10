@@ -17,9 +17,9 @@
 
 ### 技术栈
 
-- **前端**：Vite + React 18 + TypeScript + Tailwind CSS + React Router + Zustand
+- **前端**：Vite 8 + React 19 + TypeScript 5.9 + Tailwind CSS 4 + React Router + Zustand
 - **后端**：Go 1.22+ 微服务，pgx 数据库驱动
-- **数据库**：PostgreSQL 15+
+- **数据库**：PostgreSQL 15+（本地 Compose 用 16.8）
 - **服务架构**：6 个微服务 + BFF 网关
 - **AI 网关**：execution-service 内置模型聚合网关（支持中转站API/官方API/ComfyUI）
 
@@ -37,9 +37,17 @@ ai-video-shot-designer/
 │   │   │   ├── canvas/        # 无限画布
 │   │   │   ├── genworkbench/  # 智能创造
 │   │   │   ├── settings/      # 设置中心
-│   │   │   └── rules/         # 规则中心
-│   │   ├── lib/               # 通用库（api client、utils、store）
-│   │   └── components/        # 通用UI组件
+│   │   │   ├── rules/         # 规则中心
+│   │   │   └── home/          # 首页
+│   │   ├── components/        # 通用 UI 组件（components/ui/ 为 Radix 封装）
+│   │   ├── config/            # 前端配置（提取规则、模型目录、镜头语言等）
+│   │   ├── stores/            # Zustand store（按领域拆分）
+│   │   ├── hooks/             # 自定义 hooks
+│   │   ├── layouts/           # 布局组件
+│   │   ├── lib/               # 通用库（api client、utils）
+│   │   ├── mocks/             # 演示数据（**非生产事实源**）
+│   │   └── types/             # 领域类型定义
+│   ├── tests/                 # 前端单元测试
 │   └── package.json
 ├── services/                  # 后端微服务
 │   ├── workspace/             # 租户、成员、授权、渠道凭据
@@ -224,42 +232,17 @@ go vet ./...         # 静态分析
 # 前端开发
 cd apps/web && npm run dev          # http://localhost:5173
 
-# 后端服务启动（各服务独立终端）
-# workspace (18082)
-EXECUTION_DATABASE_URL="postgres://shotdesigner:local-postgres-password-2026@127.0.0.1:5432/workspace?sslmode=disable" \
-WORKSPACE_INTERNAL_TOKEN="local-workspace-token-2026" \
-WORKSPACE_LISTEN_ADDR="0.0.0.0:18082" \
-./bin/workspace
+# 后端服务启动（各服务独立终端，在仓库根目录执行）
+# 环境变量统一由根目录 .env.example 提供（唯一权威清单，含各服务全部变量）
+cp .env.example .env.local           # 首次：按需修改（.env.local 已被 gitignore）
+set -a && . ./.env.local && set +a   # 每个终端启动服务前都要先注入
 
-# production (18081)
-PRODUCTION_DATABASE_URL="postgres://shotdesigner:local-postgres-password-2026@127.0.0.1:5432/production?sslmode=disable" \
-PRODUCTION_INTERNAL_TOKEN="local-internal-token-2026" \
-PRODUCTION_LISTEN_ADDR="0.0.0.0:18081" \
-./bin/production
-
-# execution (8085)
-EXECUTION_DATABASE_URL="postgres://shotdesigner:local-postgres-password-2026@127.0.0.1:5432/execution?sslmode=disable" \
-EXECUTION_PRODUCTION_URL="http://127.0.0.1:18081" \
-PRODUCTION_INTERNAL_TOKEN="local-internal-token-2026" \
-EXECUTION_WORKSPACE_URL="http://127.0.0.1:18082" \
-WORKSPACE_INTERNAL_TOKEN="local-workspace-token-2026" \
-EXECUTION_INTERNAL_TOKEN="local-execution-token-2026" \
-EXECUTION_LISTEN_ADDR="0.0.0.0:8085" \
-./bin/execution
-
-# BFF (8080)
-BFF_WORKSPACE_URL="http://127.0.0.1:18082" \
-WORKSPACE_INTERNAL_TOKEN="local-workspace-token-2026" \
-BFF_PRODUCTION_URL="http://127.0.0.1:18081" \
-PRODUCTION_INTERNAL_TOKEN="local-internal-token-2026" \
-BFF_EXECUTION_URL="http://127.0.0.1:8085" \
-EXECUTION_INTERNAL_TOKEN="local-execution-token-2026" \
-BFF_ASSET_URL="http://127.0.0.1:18084" \
-ASSET_INTERNAL_TOKEN="local-asset-token-2026" \
-BFF_LISTEN_ADDR="0.0.0.0:8080" \
-BFF_DEV_WORKSPACE_ID="ws_dev" \
-BFF_DEV_ACTOR_ID="actor_local" \
-./bin/bff
+# 二进制编译见 §8.3，之后按端口启动：
+/tmp/mdp-bin/workspace    # 18082  租户、成员、授权、渠道凭据
+/tmp/mdp-bin/production   # 18081  项目、剧集、分镜、模型目录
+/tmp/mdp-bin/execution    # 8085   Job 调度、模型网关、审计日志
+/tmp/mdp-bin/asset        # 18084   资产上传、媒体校验
+/tmp/mdp-bin/bff          # 8080   前端唯一入口
 ```
 
 ### 8.2 数据库
@@ -271,8 +254,11 @@ docker exec -it shotdesigner-postgres-1 psql -U shotdesigner -d <dbname>
 # 执行迁移
 docker exec -i shotdesigner-postgres-1 psql -U shotdesigner -d <dbname> < migration.sql
 
-# 常用数据库
-# workspace, production, execution, asset, bff
+# 常用数据库（由 deploy/local Compose 初始化）
+# workspace、production、execution、asset —— 各自归属一个服务，服务间不共享表
+# production_test        —— 集成测试专用（compose `test` profile）
+# temporal、temporal_visibility、keycloak —— 平台中间件
+# 注意：BFF 是无状态聚合层，没有自己的数据库
 ```
 
 ### 8.3 编译
