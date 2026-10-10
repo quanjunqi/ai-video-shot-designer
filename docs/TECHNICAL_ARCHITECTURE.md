@@ -596,7 +596,7 @@ Trace 贯穿 request -> source/run/intent -> Job -> Attempt -> Provider/Agent ->
 
 ## 17. 仓库结构与工程实施
 
-在当前仓库渐进落地，不重建或删除用户前端：
+以下为**目标仓库结构**（在本仓库渐进落地，不重建或删除用户前端）。标注「规划中」的目录尚未建立，属后续 Phase 的交付物：
 
 ```text
 apps/web/                         React 前端
@@ -625,7 +625,8 @@ deploy/
   helm/
   environments/
   infrastructure/
-docs/architecture/                ADR、时序、威胁模型、Runbook
+docs/adr/                         架构决策记录（ADR，权威位置）
+docs/architecture/                架构图、时序图、ER 图、威胁模型、Runbook
 ```
 
 > **仓库边界（2026-10-10 拆分）**：原 `scripts/shotdesigner/`、`config/`、`tests/`（Python 规则与校验线）
@@ -633,7 +634,9 @@ docs/architecture/                ADR、时序、威胁模型、Runbook
 > 作为迁移对照与离线工具保留，**不参与本仓库的部署与请求链路**。
 > 本仓库的 `tests/` 由 `apps/web/tests/`（前端）与各 Go 服务 `internal/**/..._test.go`（后端）承载。
 
-各 Go 服务标准结构：`cmd`、`internal/domain`、`internal/application`、`internal/adapters`、`api`、`migrations`、`tests`；HTTP handler 不写领域事务，Repository 不直接调用外部 Provider。
+各 Go 服务**目标**标准结构：`cmd`、`internal/domain`、`internal/application`、`internal/adapters`、`api`、`migrations`、`tests`；HTTP handler 不写领域事务，Repository 不直接调用外部 Provider。
+
+> **当前实现（2026-10-10 核实）**：服务采用 `cmd/<service>/` + `internal/<业务域>`（如 `internal/engine`、`internal/project`、`internal/httpapi`）的扁平结构；`api/`、`internal/domain|application|adapters` 分层与服务级 `tests/` 目录**尚未建立**。分层收敛随 Phase 推进按需进行，不要求一次性重构，但**新代码不得跨服务直连数据库**（此条已生效）。
 
 所有中间件在本地/私有化开发环境均通过容器启动，不要求开发机逐项安装。现有 `deploy/local/compose.yaml` 提供 PostgreSQL、Redis，以及 `platform` profile 下的单节点 Kafka + Schema Registry、Temporal、MinIO 和 Keycloak；`app` profile 为 Workspace、Production、Asset、Web BFF 与前端提供独立 OCI 镜像，并执行 Production/Asset 数据库迁移；`test` profile 使用独立测试库运行 Go 集成测试。浏览器通过 Web/Nginx -> Web BFF -> Workspace/Production/Asset 访问 `/api/v1/comic-projects` 与 `/api/v1/assets`，项目和首版资产上传/查询已使用真实 PostgreSQL，Production/Asset 不直接向浏览器开放。详细启动方式及边界见 `deploy/local/README.md`。当前 Compose 是开发/单机验证配置，不是 HA；任务中心、Temporal 业务 Workflow 和 Provider 模拟器尚未实现。后续新增中间件或服务必须同步增加可版本化镜像、健康检查、迁移与容器部署描述，不能依赖宿主机常驻进程。Provider 模拟器未来应覆盖限流、接单后超时、重复回调、部分输出、未知结果和费用，而不只有成功路径。
 
