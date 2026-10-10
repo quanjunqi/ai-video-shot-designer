@@ -19,6 +19,9 @@
 #   SCRATCH_PORT   实例端口，默认 8095
 #   PG_CONTAINER   PostgreSQL 容器名，默认 shotdesigner-postgres-1
 #   PG_USER        PostgreSQL 用户，默认 shotdesigner
+#   SCRATCH_ENV_FILE  额外环境变量文件（KEY=VALUE 每行一条），启动实例前 source
+#                     例：把 EXECUTION_PRODUCTION_URL 指向死地址以迫使 failOrRetry；
+#                         或开启 EXECUTION_AUDIT_RETENTION_DAYS 以验证清理器
 #
 # ★★ 安全约束（硬断言，不是注释里的提醒）★★
 #   本脚本只允许操作 SCRATCH_DB。若它与真实库同名（execution/workspace/production/asset），
@@ -87,6 +90,11 @@ cmd_up() {
   [ -n "$old" ] && { kill "$old"; sleep 2; echo "   已停旧实例 PID=$old"; }
 
   set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  if [ -n "${SCRATCH_ENV_FILE:-}" ]; then
+    [ -f "$SCRATCH_ENV_FILE" ] || die "SCRATCH_ENV_FILE=$SCRATCH_ENV_FILE 不存在"
+    set -a; . "$SCRATCH_ENV_FILE"; set +a
+    echo "   已加载额外环境：$SCRATCH_ENV_FILE"
+  fi
   local dsn; dsn="$(dsn_for_scratch)"
   env EXECUTION_DATABASE_URL="$dsn" EXECUTION_LISTEN_ADDR="127.0.0.1:$port" \
     nohup "$BIN_DIR/$service" > "$LOG" 2>&1 < /dev/null &
