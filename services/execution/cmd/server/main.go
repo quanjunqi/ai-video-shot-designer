@@ -216,7 +216,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// Get model directory (use dev workspace/actor)
 	dir, err := cat.Get(ctx, "ws_dev", "user_dev")
 	if err != nil {
-		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error())
+		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as)
 		return
 	}
 	var model *catalog.Model
@@ -306,7 +306,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 
 	if err != nil {
-		failOrRetry(ctx, s, j, err.Error())
+		failOrRetry(ctx, s, j, err.Error(), as)
 		return
 	}
 
@@ -356,17 +356,23 @@ func envInt(key string, def int) int {
 // 未达上限则退避重排，达到上限则进入死信。
 // 配置类/永久性错误不走这里，而是直接 Complete(false) —— 否则会白白消耗尝试次数
 // （例如「model not found」重试 3 次毫无意义）。
-func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string) {
+func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store) {
 	cfg := job.DefaultRetryConfig()
 	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
 	switch {
 	case err != nil:
 		log.Printf("execution worker: FailOrRetry job=%s err=%v（回退为标记失败）", j.ID, err)
+		// D2b：这是【终态】（回退为标记失败）
+		auditTerminal(ctx, as, j.ID, false, msg, nil)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 	case retried:
 		log.Printf("execution worker: job=%s 第 %d 次失败，%s 后重试: %s", j.ID, j.Attempt, backoff.Round(time.Second), msg)
 	default:
 		log.Printf("execution worker: job=%s 重试耗尽（attempt=%d），进入死信: %s", j.ID, j.Attempt, msg)
+		// D2b：这是【终态】（重试耗尽 → 死信）。
+		// 上面的 case retried 分支【不写】—— 那个任务还会重试，不是终态；
+		// 提前写会把"还在重试"记成"已失败"。
+		auditTerminal(ctx, as, j.ID, false, msg, nil)
 	}
 }
