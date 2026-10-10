@@ -3,7 +3,7 @@
 # 下限当前都设在实测值略低处（留取整余量），目的是**先禁止回退**；
 # 随测试补齐逐步上调（见 docs/development/testing.md §3.3）。
 # 实测日期：2026-10-10
-workspace      15
+workspace      30
 production      17
 execution      34
 asset          23
