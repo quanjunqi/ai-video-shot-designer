@@ -32,12 +32,15 @@ function formatLatency(ms: number) {
  * D7b：把服务端返回的 stats 归一化为界面计数。
  * 缺失时回退 0 —— 【不假装有数据】：与服务端未聚合时的行为一致（stats 为 undefined）。
  */
-function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number } }) {
+function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number; p50LatencyMs?: number; p95LatencyMs?: number } }) {
   return {
     total: res.total,
     success: res.stats?.byStatus?.success ?? 0,
     failed: res.stats?.byStatus?.failed ?? 0,
     avgLatencyMs: res.stats?.avgLatencyMs ?? 0,
+    // 缺失时回退 0：与服务端未聚合时的行为一致（【不假装有数据】）
+    p50LatencyMs: res.stats?.p50LatencyMs ?? 0,
+    p95LatencyMs: res.stats?.p95LatencyMs ?? 0,
   };
 }
 
@@ -47,7 +50,7 @@ export default function SettingsAuditPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
   // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
-  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number } | null>(null);
+  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number } | null>(null);
   // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
   const [status, setStatus] = useState('');
 
@@ -92,6 +95,9 @@ export default function SettingsAuditPage() {
   const successCount = stats?.success ?? 0;
   const failedCount = stats?.failed ?? 0;
   const avgLatency = stats?.avgLatencyMs ?? 0;
+  // ④ §2.3：耗时百分位（服务端在筛选后全集上算，排除 latency_ms=0）
+  const p50Latency = stats?.p50LatencyMs ?? 0;
+  const p95Latency = stats?.p95LatencyMs ?? 0;
 
   return (
     <div className="space-y-5">
@@ -151,6 +157,17 @@ export default function SettingsAuditPage() {
         <div className="rounded-xl border border-border bg-card p-3">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">平均耗时</div>
           <div className="mt-1 text-xl font-bold text-blue-400">{formatLatency(avgLatency)}</div>
+        </div>
+        {/* ④ §2.3 故障定位：耗时中位数与 P95，紧挨平均值（三者是同一类度量），
+            好让人一眼看出长尾：P95 远高于平均值 = 少数调用拖慢了整体。
+            数据全部来自服务端 stats（护栏测试钉住了这一点）。 */}
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">耗时中位数 P50</div>
+          <div className="mt-1 text-xl font-bold text-foreground">{p50Latency > 0 ? formatLatency(p50Latency) : '—'}</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">耗时 P95</div>
+          <div className="mt-1 text-xl font-bold text-amber-400">{p95Latency > 0 ? formatLatency(p95Latency) : '—'}</div>
         </div>
       </div>
 
