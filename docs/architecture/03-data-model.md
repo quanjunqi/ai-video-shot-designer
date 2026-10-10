@@ -66,6 +66,18 @@ erDiagram
 
 ## 2 · production 库（项目、剧集、资产、模型目录）
 
+> **供给池（`channel_models` / `channel_model_syncs`，迁移 034–037，ADR-004 已确认）**
+>
+> - **平台级、非租户级**：这两张表**不带 `workspace_id`**，与其父表 `model_channels` 一致
+>   （见上方 ER 图 —— `model_channels` 同样没有该列）。故「`workspace_id` 必带」这条惯例
+>   对**渠道级/平台级**表不适用；本文在此显式记录该例外。
+> - **只写不读**（ADR-004 §9 第 4 项）：同步只写供给池；**任何前端与执行路径都不得读取它**。
+>   只有经人工**策展**写入 `model_catalog` 后，模型才可能对外可见。
+> - `channel_models.model_type` **刻意不加 CHECK**：它存**上游原样**标签，约束在策展时施加，
+>   否则上游多一个 `audio` 标签就会让同步整批失败（ADR-004 §3.1）。
+> - 同批迁移还增列：`model_channels`（同步配置 + `trust_note`）与
+>   `model_catalog`（`cost_*` / `price_*` 分离 + `price_source` CHECK，ADR-004 D3 与 §9 决策 1）。
+
 ```mermaid
 erDiagram
     projects ||--o{ source_versions : "不可变源版本"
@@ -76,6 +88,8 @@ erDiagram
     episode_assets }o--o| project_props : "引用（变体）"
     episode_assets }o--o| project_scenes : "引用（变体）"
     model_channels ||--o{ model_catalog : "渠道下的模型"
+    model_channels ||--o{ channel_models : "渠道同步的模型（供给池）"
+    model_channels ||--o{ channel_model_syncs : "同步记录"
     model_catalog ||--o{ model_catalog_versions : "目录变更历史"
     protocol_templates ||--o{ model_catalog : "协议模板"
     projects ||--o{ generation_intents : "生成意向"
@@ -150,6 +164,28 @@ erDiagram
         text base_url
         text auth_type
         boolean enabled
+        text sync_kind
+        text sync_models_path
+        text sync_pricing_path
+        text trust_note
+    }
+    channel_models {
+        text channel_id PK
+        text provider_model PK
+        text model_type
+        jsonb endpoint_types
+        jsonb pricing
+        timestamptz last_seen_at
+        timestamptz missing_since
+    }
+    channel_model_syncs {
+        bigint id PK
+        text channel_id FK
+        text status
+        integer added
+        integer missing
+        jsonb diff
+        text error
     }
     model_catalog {
         text id PK
