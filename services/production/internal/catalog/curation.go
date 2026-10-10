@@ -1,0 +1,185 @@
+package catalog
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+)
+
+// ADR-004 §4 的中间两步（**永远是人**）：列出未策展的供给 → 人工绑定进 model_catalog。
+//
+// 边界（ADR-004 §9 第 4 项）：
+//   - `channel_models` 不被任何前端或执行路径读取；**本文件的 ListSupply 是"人工策展"这条
+//     管理路径**，它读供给池是为了让人做决定。
+//   - 对外可见性只发生在 `Curate` 写进 `model_catalog` 之后。
+//   - ADR §3.1 的约束在这里落地：供给池存**上游原样**标签（可能多出 audio 等），
+//     而 `model_catalog.type` 只允许 text|image|video ⇒ **策展这一步必须拦住它**。
+//
+// 一处 ADR 未规定、由我定并写明的约定（**不是**从文档抄的）：
+//   供给池的 `pricing` 是上游原样 jsonb，形状各家不同 ⇒ 本文件只认一种窄约定
+//   `{"amount": <number>, "unit": "<per_call|per_second|per_mtok_input|per_mtok_output>"}`；
+//   认不出就**不猜**，交回给人工填。
+
+// SupplyItem 是供给池里的一行，供人工策展时查看。
+type SupplyItem struct {
+	ChannelID       string
+	ProviderModel   string
+	DisplayName     string
+	UpstreamType    string // 上游原样标签（可能无法映射到 text|image|video）
+	Tags            string
+	EndpointTypes   json.RawMessage
+	Pricing         json.RawMessage
+	PricingAmount   *float64 // 按上面的窄约定解析；认不出则 nil
+	PricingUnit     string
+	LastSeenAt      time.Time
+	MissingSince    *time.Time // 非 NULL = 已下架（仍保留行）
+	PriceIsEstimate bool
+}
+
+// ListSupply 列出某个渠道的供给。includeMissing=true 时连已下架的也列出来。
+func (store PostgresStore) ListSupply(ctx context.Context, channelID string, includeMissing bool) ([]SupplyItem, error) {
+	rows, err := store.Pool.Query(ctx, `
+		SELECT channel_id, provider_model, COALESCE(display_name,''), COALESCE(model_type,''),
+		       COALESCE(tags,''), endpoint_types, pricing, last_seen_at, missing_since
+		  FROM channel_models
+		 WHERE ($1 = '' OR channel_id = $1)
+		   AND ($2 OR missing_since IS NULL)
+		 ORDER BY channel_id, provider_model`, channelID, includeMissing)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]SupplyItem, 0)
+	for rows.Next() {
+		var it SupplyItem
+		if err := rows.Scan(&it.ChannelID, &it.ProviderModel, &it.DisplayName, &it.UpstreamType,
+			&it.Tags, &it.EndpointTypes, &it.Pricing, &it.LastSeenAt, &it.MissingSince); err != nil {
+			return nil, err
+		}
+		if amt, unit, ok := parsePricing(it.Pricing); ok {
+			it.PricingAmount, it.PricingUnit = &amt, unit
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
+// parsePricing 只认一种窄约定；认不出就返回 false（**不猜**）。
+func parsePricing(raw json.RawMessage) (float64, string, bool) {
+	if len(raw) == 0 {
+		return 0, "", false
+	}
+	var p struct {
+		Amount *float64 `json:"amount"`
+		Unit   string   `json:"unit"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil || p.Amount == nil || p.Unit == "" {
+		return 0, "", false
+	}
+	return *p.Amount, p.Unit, true
+}
+
+// CuratedModel 是策展结果。**刻意不复用产品面的 Model**：
+// 后者是目录接口的响应契约，策展字段（logical_model_id / route_priority / cost_* / price_*）
+// 属于管理路径；混在一起会悄悄改变对外 JSON 形状。
+type CuratedModel struct {
+	ID                 string
+	ChannelID          string
+	Family             string
+	Name               string
+	ProviderModel      string
+	Type               string
+	Status             string
+	Sort               int
+	Note               string
+	ProtocolTemplateID string
+	LogicalModelID     string
+	RoutePriority      int
+	CostAmount         *float64
+	CostUnit           string
+	PriceAmount        *float64
+	PriceUnit          string
+	PriceSource        string
+	Version            int
+}
+
+// CurateInput 是人工策展时给出的决定。凡"来自供给池"的字段都不在这里 ——
+// 它们由 Curate 从供给池行读取，避免人工誊抄出错。
+type CurateInput struct {
+	ID                 string // 产品面模型 id
+	Family             string
+	Name               string
+	Type               string // text | image | video（与上游标签无关，由此处施加约束）
+	ChannelID          string
+	ProviderModel      string
+	LogicalModelID     string
+	ProtocolTemplateID string
+	RoutePriority      int
+	Note               string
+	// 人工成本（我们付出）。留空表示"未定价"，不是 0。
+	CostAmount *float64
+	CostUnit   string
+	// 售价：若留空且供给池能解析出价格，则取供给池的（price_source=synced）；
+	// 否则保持人工值（price_source=manual）。
+	PriceAmount *float64
+	PriceUnit   string
+}
+
+// Curate 把一条供给策展成产品面的模型。**只有走到这里，模型才可能对外可见。**
+func (store PostgresStore) Curate(ctx context.Context, actor string, in CurateInput) (CuratedModel, error) {
+	var out CuratedModel
+	if in.ID == "" || in.Family == "" || in.Name == "" || in.ChannelID == "" || in.ProviderModel == "" {
+		return out, errors.New("id, family, name, channel_id and provider_model are required")
+	}
+	switch in.Type {
+	case "text", "image", "video":
+	default:
+		// ADR §3.1 的约束在这里落地：上游可以有任意标签，但产品面只有这三类。
+		return out, fmt.Errorf("unsupported model type %q: model_catalog only allows text|image|video", in.Type)
+	}
+
+	// 从供给池取上游价格（窄约定；认不出就不猜）
+	var rawPricing json.RawMessage
+	err := store.Pool.QueryRow(ctx,
+		`SELECT pricing FROM channel_models WHERE channel_id=$1 AND provider_model=$2`,
+		in.ChannelID, in.ProviderModel).Scan(&rawPricing)
+	if err != nil {
+		return out, fmt.Errorf("supply row %s/%s: %w", in.ChannelID, in.ProviderModel, err)
+	}
+
+	priceAmount, priceUnit, priceSource := in.PriceAmount, in.PriceUnit, "manual"
+	if priceAmount == nil {
+		if amt, unit, ok := parsePricing(rawPricing); ok {
+			priceAmount, priceUnit, priceSource = &amt, unit, "synced"
+		}
+	}
+
+	err = store.Pool.QueryRow(ctx, `
+		INSERT INTO model_catalog (id, channel_id, family, name, provider_model, type, status, sort,
+			note, protocol_template_id, logical_model_id, route_priority,
+			cost_amount, cost_unit, price_amount, price_unit, price_source, price_synced_at, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,'enabled',100,$7,NULLIF($8,''),NULLIF($9,''),$10,
+			$11,NULLIF($12,''),$13,NULLIF($14,''),$15,
+			CASE WHEN $15 = 'synced' THEN now() ELSE NULL END, $16)
+		ON CONFLICT (family, channel_id) DO UPDATE SET
+			name = EXCLUDED.name, provider_model = EXCLUDED.provider_model, type = EXCLUDED.type,
+			note = EXCLUDED.note, protocol_template_id = EXCLUDED.protocol_template_id,
+			logical_model_id = EXCLUDED.logical_model_id, route_priority = EXCLUDED.route_priority,
+			cost_amount = EXCLUDED.cost_amount, cost_unit = EXCLUDED.cost_unit,
+			price_amount = EXCLUDED.price_amount, price_unit = EXCLUDED.price_unit,
+			price_source = EXCLUDED.price_source, price_synced_at = EXCLUDED.price_synced_at,
+			version = model_catalog.version + 1, updated_at = now()
+		RETURNING id, channel_id, family, name, COALESCE(provider_model,''), type, status, sort,
+			note, COALESCE(protocol_template_id,''), COALESCE(logical_model_id,''), route_priority,
+			cost_amount, COALESCE(cost_unit,''), price_amount, COALESCE(price_unit,''), price_source, version`,
+		in.ID, in.ChannelID, in.Family, in.Name, in.ProviderModel, in.Type, in.Note,
+		in.ProtocolTemplateID, in.LogicalModelID, in.RoutePriority,
+		in.CostAmount, in.CostUnit, priceAmount, priceUnit, priceSource, actor).
+		Scan(&out.ID, &out.ChannelID, &out.Family, &out.Name, &out.ProviderModel, &out.Type, &out.Status,
+			&out.Sort, &out.Note, &out.ProtocolTemplateID, &out.LogicalModelID, &out.RoutePriority,
+			&out.CostAmount, &out.CostUnit, &out.PriceAmount, &out.PriceUnit, &out.PriceSource, &out.Version)
+	return out, err
+}
