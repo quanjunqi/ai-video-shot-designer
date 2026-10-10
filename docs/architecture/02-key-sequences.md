@@ -34,7 +34,7 @@ sequenceDiagram
         S-->>B: 拒绝
         B-->>U: 403
     else 授权通过
-        B->>X: POST /internal/v1/generate<br/>Bearer EXECUTION_INTERNAL_TOKEN<br/>X-Workspace-Id / X-Actor-Id
+        B->>X: POST /v1/generate<br/>Bearer EXECUTION_INTERNAL_TOKEN<br/>X-Workspace-Id / X-Actor-Id
     end
 
     Note over X: 校验内部令牌（常量时间比较）
@@ -71,6 +71,7 @@ sequenceDiagram
 | 上游失败返回 **200 + ok:false** | 不是 5xx：这是「调用已完成但业务失败」，避免调用方误判为网关不可用 |
 | 参数映射**模板驱动** | `mapping.NewEngine(tmpl.Capabilities)`；无硬编码映射，符合 AGENTS.md §3.2 |
 | 路径优先级 | model 覆盖 > capability 配置 > 模板默认（`handler.go:555`） |
+| ⚠️ 路径约定不一致 | 网关路由是 `POST /v1/generate`（`services/execution/internal/httpapi/handler.go:61`），**不在** execution 其余路由所用的 `/internal/v1/*` 约定内。契约已按代码如实记录，但建议统一（改名属破坏性变更，见 [`openapi/README.md`](../../openapi/README.md)） |
 
 > ⚠️ **已知缺陷（待修）**：审计写入的返回值被丢弃 —— `_ = h.AuditStore.Insert(...)`，注释为「audit failure should not block main flow」。
 > 这使「审计日志同步写入、不异步丢失」（AGENTS.md §3.4）在**写入失败时退化为静默丢失**。
@@ -95,7 +96,7 @@ sequenceDiagram
     participant A as 外部 AI 后端
 
     U->>B: POST /api/v1/generate（异步模板）
-    B->>X: POST /internal/v1/generate
+    B->>X: POST /v1/generate
     X->>P: 取 Catalog 快照
     P-->>X: dir
     X->>X: 参数映射 + 必填校验
