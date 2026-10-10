@@ -21,6 +21,7 @@ import (
 	"shotdesigner/services/execution/internal/httpapi"
 	"shotdesigner/services/execution/internal/job"
 	"shotdesigner/services/execution/internal/netguard"
+	"shotdesigner/services/execution/internal/probe"
 	"shotdesigner/services/execution/internal/quota"
 )
 
@@ -76,6 +77,13 @@ func main() {
 	engineClient := upstreamPolicy.NewClient(600 * time.Second)
 	log.Printf("execution: upstream SSRF policy allow_private=%v allowed_hosts=%d",
 		upstreamPolicy.AllowPrivate, len(upstreamPolicy.AllowedHosts))
+	// 渠道探测（TASK-INFRA-004）：全仓唯一实现，base URL 只从服务端来源解析
+	// （工作区用户渠道 / 凭据行 / 平台目录），出站走同一套 SSRF 防护。
+	prober := probe.New(catalogClient, credsClient, upstreamPolicy, 5*time.Second)
+	if catalogClient == nil && credsClient == nil {
+		prober = nil
+		log.Printf("warning: channel probe disabled (neither catalog nor workspace configured)")
+	}
 	// 并发闸门：原先每任务直接起 goroutine、**无上限**，一次批量提交就会同时
 	// 打满上游配额并耗尽本进程连接/内存。容量可配，默认 8。
 	// 配额与限流：QPS 令牌桶 + 日/月成本上限（默认 QPS 宽松、成本不限制）
@@ -89,7 +97,7 @@ func main() {
 	log.Printf("execution: worker 并发上限 = %d", gate.Cap())
 	go runWorker(store, catalogClient, credsClient, engineClient, gate)
 	log.Printf("execution service listening on %s", addr)
-	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.

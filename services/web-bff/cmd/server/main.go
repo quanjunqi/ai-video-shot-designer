@@ -7,10 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -113,10 +113,12 @@ func (s *server) generationIntents(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, resp.Body)
 }
 
-// channelProbe runs the real connectivity check by orchestrating the
-// platform directory (production catalog base URL) and the tenant credential
-// status (workspace credentials), then performing the actual HTTP round trip
-// here at the edge. Results are always the truth of a real request.
+// channelProbe forwards the real connectivity check to the execution service,
+// which owns the single probe implementation (TASK-INFRA-004).
+//
+// 请求体被**刻意忽略**：base URL 只由 execution 从服务端来源解析
+// （工作区用户渠道定义 / 凭据行 / 平台目录）。此前 BFF 接受 body 里的 baseUrl
+// 并直接在边缘发起请求，这正是 SSRF 面的来源。
 func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/api/v1/channels/") || !strings.HasSuffix(r.URL.Path, "/probe") {
 		http.NotFound(w, r)
@@ -139,122 +141,24 @@ func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_PATH", "channel id is required")
 		return
 	}
-
-	// 0) optional request body: custom channels carry their own baseUrl/authType
-	// (they live in the user workspace, not the platform directory)
-	body, _ := io.ReadAll(io.LimitReader(r.Body, 16*1024))
-	var reqInfo struct {
-		BaseURL  string `json:"baseUrl"`
-		AuthType string `json:"authType"`
-	}
-	if len(body) > 0 {
-		_ = json.Unmarshal(body, &reqInfo)
-	}
-
-	// 1) base URL: request body first (custom channel), platform directory as
-	// the source of truth for builtin channels (prevents tampering)
-	baseURL := strings.TrimSpace(reqInfo.BaseURL)
-	if baseURL == "" {
-		catalogReq, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, s.productionURL+"/internal/v1/catalog", nil)
-		catalogReq.Header.Set("Authorization", "Bearer "+s.productionToken)
-		catalogReq.Header.Set("X-Workspace-Id", s.devWorkspace)
-		catalogReq.Header.Set("X-Actor-Id", s.devActor)
-		catalogResp, err := s.httpClient.Do(catalogReq)
-		if err != nil {
-			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "catalog service unavailable")
-			return
-		}
-		var dir struct {
-			Channels []struct {
-				ID      string `json:"id"`
-				BaseURL string `json:"baseUrl"`
-			} `json:"channels"`
-		}
-		_ = json.NewDecoder(catalogResp.Body).Decode(&dir)
-		catalogResp.Body.Close()
-		for _, c := range dir.Channels {
-			if c.ID == channelID {
-				baseURL = c.BaseURL
-				break
-			}
-		}
-	}
-	if baseURL == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_CHANNEL", "渠道未配置 Base URL（请先在编辑渠道中填写接口地址）")
-		return
-	}
-	// 2) tenant credential status (hasKey + authType; never the key itself)
-	credReq, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, s.workspaceURL+"/internal/v1/workspaces/"+s.devWorkspace+"/credentials", nil)
-	credReq.Header.Set("Authorization", "Bearer "+s.workspaceToken)
-	credResp, err := s.httpClient.Do(credReq)
-	authType, hasKey := reqInfo.AuthType, false
-	if authType == "" {
-		authType = "none"
-	}
-	if err == nil {
-		var creds struct {
-			Items []struct {
-				ChannelID string `json:"channelId"`
-				AuthType  string `json:"authType"`
-				HasKey    bool   `json:"hasKey"`
-			} `json:"items"`
-		}
-		_ = json.NewDecoder(credResp.Body).Decode(&creds)
-		credResp.Body.Close()
-		for _, it := range creds.Items {
-			if it.ChannelID == channelID {
-				authType, hasKey = it.AuthType, it.HasKey
-				break
-			}
-		}
-	}
-
-	// 3) real HTTP probe of the base URL
-	result := map[string]any{"channelId": channelID, "authConfigured": hasKey, "probedAt": time.Now().UTC().Format(time.RFC3339)}
-	probeURL := strings.TrimRight(baseURL, "/")
-	if !strings.HasPrefix(probeURL, "http://") && !strings.HasPrefix(probeURL, "https://") {
-		// 本地端口渠道（ComfyUI/Ollama）允许 host:port 形式，探测时补全 http://
-		probeURL = "http://" + probeURL
-	}
-	probeReq, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, probeURL+"/", nil)
-	probeReq.Header.Set("User-Agent", "JingxuStudio/probe")
-	if hasKey {
-		switch authType {
-		case "bearer":
-			probeReq.Header.Set("Authorization", "Bearer <REDACTED>")
-		case "apikey":
-			probeReq.Header.Set("X-API-Key", "<REDACTED>")
-		case "sign":
-			probeReq.Header.Set("Authorization", "Sign <REDACTED>")
-		}
-	}
-	probeResp, err := s.httpClient.Do(probeReq)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost,
+		s.executionURL+"/internal/v1/channels/"+url.PathEscape(channelID)+"/probe", nil)
 	if err != nil {
-		result["reachable"] = false
-		result["detail"] = "网络不可达：" + err.Error()
-		writeJSON(w, http.StatusOK, result)
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
 		return
 	}
-	defer probeResp.Body.Close()
-	result["reachable"] = true
-	result["statusCode"] = probeResp.StatusCode
-	if hasKey {
-		ok := probeResp.StatusCode == http.StatusOK || probeResp.StatusCode == http.StatusCreated || probeResp.StatusCode == http.StatusAccepted
-		result["authOk"] = ok
-		switch probeResp.StatusCode {
-		case http.StatusOK, http.StatusCreated, http.StatusAccepted:
-			result["detail"] = "网络可达，鉴权探测通过（占位凭据；正式调用由 provider 客户端解密执行）"
-		case http.StatusUnauthorized:
-			result["detail"] = "网络可达，鉴权被拒（401：凭据无效或需正式签名）"
-		case http.StatusForbidden:
-			result["detail"] = "网络可达，鉴权被拒（403：无权访问该端点）"
-		default:
-			result["detail"] = "网络可达，鉴权端点返回 " + fmt.Sprintf("%d", probeResp.StatusCode) + "（真实状态如实上报）"
-		}
-	} else {
-		result["detail"] = "网络可达（HTTP " + fmt.Sprintf("%d", probeResp.StatusCode) + "）；未配置凭据，真实鉴权待配置 API Key"
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
 }
 
 // workspaceChannels forwards user-scoped channel CRUD (tenant-owned, NOT the

@@ -21,49 +21,156 @@ func testServer(workspace, production *httptest.Server) *server {
 	}
 }
 
-func TestChannelProbeOrchestratesRealCheck(t *testing.T) {
-	// the probed channel's real HTTP endpoint
-	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+// TestChannelProbeForwardsToExecutionWithoutBody 锁定本片的两条关键变化：
+//  1. BFF 不再自己在边缘发探测请求，而是转发给 execution 的唯一实现；
+//  2. 请求体里的 baseUrl **不被接受、也不被转发** —— 那正是原来的 SSRF 面。
+//
+// production 目录不再被 BFF 触碰（catalogCalls 必须为 0）。
+func TestChannelProbeForwardsToExecutionWithoutBody(t *testing.T) {
+	var (
+		seenPath, seenMethod, seenAuth, seenWorkspace, seenActor, seenBody string
+		seenContentType                                                    string
+		catalogCalls                                                       int
+	)
+	execution := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenPath, seenMethod = r.URL.Path, r.Method
+		seenAuth = r.Header.Get("Authorization")
+		seenWorkspace, seenActor = r.Header.Get("X-Workspace-Id"), r.Header.Get("X-Actor-Id")
+		seenContentType = r.Header.Get("Content-Type")
+		raw, _ := io.ReadAll(r.Body)
+		seenBody = string(raw)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"channelId":"chan-muo4b9zo","reachable":true,"authConfigured":true,"detail":"网络可达","probedAt":"2026-10-10T00:00:00Z"}`)
 	}))
-	defer target.Close()
+	defer execution.Close()
 
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/internal/v1/workspaces/ws_dev/authorize":
-			w.WriteHeader(http.StatusNoContent)
-		case "/internal/v1/workspaces/ws_dev/credentials":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = io.WriteString(w, `{"items":[{"channelId":"minimax","authType":"bearer","hasKey":false}]}`)
-		default:
-			http.NotFound(w, r)
-		}
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/internal/v1/catalog" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"channels":[{"id":"minimax","baseUrl":"`+target.URL+`"}],"models":[]}`)
+		catalogCalls++
+		w.WriteHeader(http.StatusOK)
 	}))
 	defer production.Close()
 
 	s := testServer(workspace, production)
+	s.executionURL = execution.URL
+	s.executionToken = "execution-secret"
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
-	r := httptest.NewRequest(http.MethodPost, "/api/v1/channels/minimax/probe", nil)
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/channels/chan-muo4b9zo/probe",
+		strings.NewReader(`{"baseUrl":"http://169.254.169.254/latest/meta-data/","authType":"bearer"}`))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, r)
+
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if seenPath != "/internal/v1/channels/chan-muo4b9zo/probe" || seenMethod != http.MethodPost {
+		t.Fatalf("forwarded %s %s", seenMethod, seenPath)
+	}
+	if seenAuth != "Bearer execution-secret" {
+		t.Fatalf("execution token not forwarded: %q", seenAuth)
+	}
+	if seenWorkspace != "ws_dev" || seenActor != "user_dev" {
+		t.Fatalf("trusted context not forwarded: workspace=%q actor=%q", seenWorkspace, seenActor)
+	}
+	if seenBody != "" {
+		t.Fatalf("请求体必须被丢弃（SSRF 面），实际转发 %q", seenBody)
+	}
+	if seenContentType != "" {
+		t.Fatalf("转发请求不应带 Content-Type: %q", seenContentType)
+	}
+	if catalogCalls != 0 {
+		t.Fatalf("BFF 不得再触碰 production 目录，实际 %d 次", catalogCalls)
 	}
 	if !strings.Contains(rec.Body.String(), `"reachable":true`) {
-		t.Fatalf("expected real reachability result, got %q", rec.Body.String())
+		t.Fatalf("execution 的结果必须原样透传: %s", rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), `"authConfigured":false`) {
-		t.Fatalf("expected authConfigured false, got %q", rec.Body.String())
+}
+
+// TestChannelProbeForwardsExecutionErrorStatus：execution 的错误码与状态码原样透传
+// （不再出现旧的 400 INVALID_CHANNEL 之类边缘判定）。
+func TestChannelProbeForwardsExecutionErrorStatus(t *testing.T) {
+	execution := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"code":"NOT_FOUND","message":"channel not found"}`)
+	}))
+	defer execution.Close()
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("production must not be called")
+	}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	s.executionURL = execution.URL
+	s.executionToken = "execution-secret"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/channels/nope/probe", nil))
+
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "NOT_FOUND") {
+		t.Fatalf("expected 404 passthrough, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestChannelProbeUnavailableWhenExecutionDown：execution 不可用时如实 503。
+func TestChannelProbeUnavailableWhenExecutionDown(t *testing.T) {
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	s.executionURL = "http://127.0.0.1:1"
+	s.executionToken = "execution-secret"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/channels/comfy/probe", nil))
+
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "UPSTREAM_UNAVAILABLE") {
+		t.Fatalf("expected 503, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestChannelProbeRejectsWhenWorkspaceAuthorizationFails：授权失败不得触达 execution。
+func TestChannelProbeRejectsWhenWorkspaceAuthorizationFails(t *testing.T) {
+	executionCalls := 0
+	execution := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		executionCalls++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer execution.Close()
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	s.executionURL = execution.URL
+	s.executionToken = "execution-secret"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/channels/comfy/probe", nil))
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", rec.Code)
+	}
+	if executionCalls != 0 {
+		t.Fatalf("授权失败时不得转发到 execution，实际 %d 次", executionCalls)
 	}
 }
 
@@ -490,5 +597,40 @@ func TestLogicalModelsRejectsUnsupportedMethod(t *testing.T) {
 	}
 	if productionCalls != 0 {
 		t.Fatalf("expected no upstream call, got %d", productionCalls)
+	}
+}
+
+// TestChannelProbeRejectsEarlyWithoutUpstreamCalls 覆盖前转函数在触达 execution **之前**
+// 的两条拒绝路径：路由不匹配（404）与 方法不是 POST（405）。
+//
+// 为什么要补这些用例（可复现的原因）：
+//
+//	B3a 用一段 41 行的前转函数替换了 BFF 内联探测（约 140 行、原本有测试覆盖）。
+//	**删除"有覆盖的代码"会让总覆盖率下降** —— 实测 22.5% < 下限 23%，
+//	触发了覆盖率棘轮门禁（.github/coverage-baseline.txt）。
+//	相比调低下限（= 放松门禁），更正确的做法是把新代码的分支测全。
+//
+// 这些用例刻意**不注入任何上游 server**：两条拒绝都发生在 authorize 之前，
+// 因此若将来实现被改成"先调用上游再校验"，本用例会因空 URL / 超时而失败。
+func TestChannelProbeRejectsEarlyWithoutUpstreamCalls(t *testing.T) {
+	cases := []struct {
+		name   string
+		path   string
+		method string
+		want   int
+	}{
+		{"path prefix mismatch", "/api/v1/other/minimax/probe", http.MethodPost, http.StatusNotFound},
+		{"path suffix mismatch", "/api/v1/channels/minimax/probeX", http.MethodPost, http.StatusNotFound},
+		{"method is get", "/api/v1/channels/minimax/probe", http.MethodGet, http.StatusMethodNotAllowed},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &server{httpClient: &http.Client{Timeout: time.Second}}
+			w := httptest.NewRecorder()
+			s.channelProbe(w, httptest.NewRequest(tc.method, tc.path, nil))
+			if w.Code != tc.want {
+				t.Fatalf("path=%s method=%s: got %d, want %d", tc.path, tc.method, w.Code, tc.want)
+			}
+		})
 	}
 }
