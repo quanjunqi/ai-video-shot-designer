@@ -5,7 +5,7 @@
 # 实测日期：2026-10-10
 workspace      30
 production      17
-execution      34
+execution      47
 asset          23
 web-bff        23
 outbox-relay   14
