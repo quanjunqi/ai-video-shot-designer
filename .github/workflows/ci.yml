@@ -269,7 +269,12 @@ jobs:
           # 直连模式由 scratch-stack.sh 依据 PG_CONTAINER 是否为空自动选择（CI 无容器 ⇒ 直连）。
           EXECUTION_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
           EXECUTION_INTERNAL_TOKEN: ci-verdict-token
-        run: bash scripts/audit-verdicts.sh
+        run: |
+          # 直连模式需要 psql 客户端（本地由 Homebrew 提供；CI runner 上显式确保）
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          fi
+          bash scripts/audit-verdicts.sh
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
