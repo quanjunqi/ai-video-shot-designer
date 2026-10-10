@@ -27,3 +27,20 @@ Before Docker is available, `python3 -m unittest discover -s deploy/local -p 'te
 - `platform` processes are single-node development instances without production TLS, secret management, backup, retention or HA. Production deployment will use the same independently built OCI application images with Helm/Kubernetes and managed or separately containerized HA middleware. No production Helm release has been delivered yet.
 
 Check status with `docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml ps`. If another service uses a host port, change it in `deploy/local/.env`; do not expose this stack on a public interface.
+
+## 集成测试库（已有数据卷时需手工补建）
+
+`postgres/init/001-databases.sql` **只在数据卷首次初始化时执行**。如果你已经有数据卷
+（`docker volume ls` 里能看到本项目的数据卷），需要手工补建这四个库 ——
+它们与根目录 `.env.example` 的 `*_TEST_DATABASE_URL` 一一对应：
+
+```bash
+for db in production_test execution_test workspace_test asset_test; do
+  docker exec shotdesigner-postgres-1 psql -U shotdesigner -d postgres \
+    -c "SELECT 'CREATE DATABASE $db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\\gexec"
+done
+```
+
+各服务的集成测试会**自建随机 schema 并就地应用 migrations**、结束时清理，
+因此这些库只需**存在且允许建 schema**（不需要预先应用任何迁移）。
+`scripts/preflight.sh` 的集成测试门会在这些库可用时才判定「真跑过」；否则明确标注为**未验证**。
