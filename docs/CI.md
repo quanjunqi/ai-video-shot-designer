@@ -71,6 +71,12 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 | shell 步骤报 unbound variable | `$var` 紧跟了非 ASCII 字符（bash 会并入变量名）—— 改用 `${var}`；CI 已有专门检查 |
 | 步骤报 `working directory ... No such file or directory` | 该 job 设了 `defaults.run.working-directory`，而某个 `run` 步骤在 **Checkout 之前**执行 —— 那时工作目录还不存在。给该步骤显式加 `working-directory: .`（本仓库已真实踩过：frontend job 的判定断言步骤） |
 
+## 6. 生效验证
+
+本设计已用「仅改文档」的 PR 实证：前端/后端/安全步骤被跳过，
+但 `Frontend Quality Gate`、6 个 `Backend Build & Test (<svc>)`、`Security Scan`
+仍**如实上报成功**，PR 可正常合并。
+
 ## 相关文档
 
 - 分支与必需检查：[branch-protection.md](branch-protection.md)
