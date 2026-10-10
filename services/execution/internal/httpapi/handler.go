@@ -743,16 +743,57 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			offset = n
 		}
 	}
-	logs, err := h.AuditStore.ListByWorkspace(r.Context(), ws, limit, offset)
+	// D7a：筛选条件（status / model_id / channel_id / since / until）
+	f := audit.Filter{
+		Status:    r.URL.Query().Get("status"),
+		ModelID:   r.URL.Query().Get("model_id"),
+		ChannelID: r.URL.Query().Get("channel_id"),
+	}
+	if v := r.URL.Query().Get("since"); v != "" {
+		if ts, err := time.Parse(time.RFC3339, v); err == nil {
+			f.Since = &ts
+		} else {
+			writeError(w, 400, "INVALID_SINCE", "since must be RFC3339")
+			return
+		}
+	}
+	if v := r.URL.Query().Get("until"); v != "" {
+		if ts, err := time.Parse(time.RFC3339, v); err == nil {
+			f.Until = &ts
+		} else {
+			writeError(w, 400, "INVALID_UNTIL", "until must be RFC3339")
+			return
+		}
+	}
+	logs, total, err := h.AuditStore.ListByWorkspace(r.Context(), ws, f, limit, offset)
 	if err != nil {
 		writeError(w, 500, "AUDIT_QUERY_FAILED", err.Error())
 		return
 	}
+	// D7a：统计由【服务端】在【筛选后全集】上算 —— 前端此前在"当前页"上算，是假统计。
+	byStatus, avgLatency, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
+	if aggErr != nil {
+		// 统计失败不该让列表也不可用：如实标注，便于排查。
+		slog.Error("audit aggregate failed", "error", aggErr)
+		byStatus, avgLatency = nil, 0
+	}
+	success := byStatus["success"]
+	successRate := 0.0
+	if total > 0 {
+		successRate = float64(success) / float64(total)
+	}
 	writeJSON(w, 200, map[string]any{
 		"items":  logs,
-		"total":  len(logs),
+		"total":  total,
 		"limit":  limit,
 		"offset": offset,
+		"stats": map[string]any{
+			"byStatus":     byStatus,
+			"success":      success,
+			"successRate":  successRate,
+			"avgLatencyMs": avgLatency,
+			"aggregateOn":  "filtered_total",
+		},
 	})
 }
 

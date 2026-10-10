@@ -133,24 +133,53 @@ func (s Store) Spend(ctx context.Context, workspace string) (day float64, month 
 }
 
 // ListByWorkspace 按租户查询审计日志
-func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, limit, offset int) ([]Log, error) {
+// Filter 是审计查询的筛选条件（D7a）。零值表示不筛该项。
+type Filter struct {
+	Status    string
+	ModelID   string
+	ChannelID string
+	Since     *time.Time // created_at >= Since
+	Until     *time.Time // created_at <= Until
+}
+
+// whereClause 生成筛选条件（参数从 $2 起，$1 固定为 workspace_id）。
+func (f Filter) whereClause() string {
+	return `
+		AND ($2 = '' OR status = $2)
+		AND ($3 = '' OR model_id = $3)
+		AND ($4 = '' OR channel_id = $4)
+		AND ($5::timestamptz IS NULL OR created_at >= $5)
+		AND ($6::timestamptz IS NULL OR created_at <= $6)`
+}
+
+// ListByWorkspace 返回一页审计日志与【筛选后的总数】（D7a）。
+//
+// 改动原因（判据）：此前签名没有筛选，返回也没有总数，而 handler 用 len(logs) 当 total
+// ⇒ 「total」实际是【当前页条数】；且查询无法按 status/model/channel/时间筛选，
+// 尽管表上为 status/model/project 建过索引（索引在场却没有查询使用）。
+//
+// total 用 COUNT(*) OVER() 在【同一条查询】里取，避免第二次往返；
+// 注意：offset 之后 total 仍是筛选后的全集条数（窗口函数在 LIMIT 之前计算）。
+func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, f Filter, limit, offset int) ([]Log, int, error) {
 	rows, err := s.Pool.Query(ctx, `
 		SELECT id, request_id, workspace_id, project_id, episode_id, asset_id, user_id,
 			product, model_id, channel_id, provider_model, mode,
 			request_payload, response_payload, error_message, status,
 			latency_ms, token_input, token_output, token_cached,
-			cost_amount, cost_currency, job_id, provider_task_id, created_at
+			cost_amount, cost_currency, job_id, provider_task_id, created_at,
+			COUNT(*) OVER() AS total_count
 		FROM gateway_audit_logs
-		WHERE workspace_id = $1
+		WHERE workspace_id = $1`+f.whereClause()+`
 		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`, workspaceID, limit, offset)
+		LIMIT $7 OFFSET $8
+	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
 	var logs []Log
+	total := 0
 	for rows.Next() {
 		var l Log
 		err := rows.Scan(
@@ -159,11 +188,53 @@ func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, limit, o
 			&l.RequestPayload, &l.ResponsePayload, &l.ErrorMessage, &l.Status,
 			&l.LatencyMs, &l.TokenInput, &l.TokenOutput, &l.TokenCached,
 			&l.CostAmount, &l.CostCurrency, &l.JobID, &l.ProviderTaskID, &l.CreatedAt,
+			&total,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		logs = append(logs, l)
 	}
-	return logs, rows.Err()
+	return logs, total, rows.Err()
+}
+
+// Aggregate 返回【筛选后全集】的按状态计数与平均耗时（D7a）。
+//
+// 为什么要服务端算：前端此前在【当前页】（limit:100）上算成功率与平均耗时
+// ⇒ 翻页/筛选后"统计"会变，是【假统计】。
+func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (map[string]int, int, error) {
+	rows, err := s.Pool.Query(ctx, `
+		SELECT status, count(*)::int, COALESCE(AVG(latency_ms), 0)::int
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1`+f.whereClause()+`
+		GROUP BY status
+	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	byStatus := map[string]int{}
+	total, latSum, latN := 0, 0, 0
+	for rows.Next() {
+		var st string
+		var n, avg int
+		if err := rows.Scan(&st, &n, &avg); err != nil {
+			return nil, 0, err
+		}
+		byStatus[st] = n
+		total += n
+		if avg > 0 {
+			latSum += avg * n
+			latN += n
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	avgLatency := 0
+	if latN > 0 {
+		avgLatency = latSum / latN
+	}
+	return byStatus, avgLatency, nil
 }
