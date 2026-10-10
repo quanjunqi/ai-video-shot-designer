@@ -96,7 +96,7 @@ master    生产分支：只接受来自 develop 的验收通过合并 + hotfix
 
 | 操作 | 正确的校验 |
 |---|---|
-| `commit` | `git log --oneline -1` 并确认是**新**提交（与 `origin/master` 不同） |
+| `commit` | `git log --oneline -1` 并确认是**新**提交（与 `origin/develop` 不同） |
 | `push` | **比对本地 HEAD 与远端分支 SHA 是否相等**（`git ls-remote --heads origin <branch>`）—— 不是"分支存在" |
 | `worktree add` / 目录创建 | 校验 `.git` 文件/目录**确实存在** |
 | `merge` | `merged: true` + 记录新 SHA |
@@ -125,7 +125,7 @@ git diff --cached --name-only                 # 提交前核对清单
 ## 7. 交接与冲突
 
 - **需要别人未合并的工作**：不要复制文件。基于它的分支（并接受堆叠风险），或等它合并
-- **热点文件冲突**：先 `git rebase origin/master`，再改
+- **热点文件冲突**：先 `git rebase origin/develop`，再改
 - **编号/路径被别人占用**：让号或让位，不要抢
 - **发现别人线里有疑似缺陷**：只在报告/任务卡里记录，**不代改**
 
@@ -143,9 +143,10 @@ git diff --cached --name-only                 # 提交前核对清单
 
 ## 9. 开工清单
 
-- [ ] `git fetch origin master` → 基于 `origin/master` 建 worktree + 分支
+- [ ] `git fetch origin develop` → 基于 `origin/develop` 建 worktree + 分支
+      （hotfix 例外：基于 `origin/master` 并**合回 develop**，见 §2）
 - [ ] 在任务卡登记：**迁移号段** / **ADR 编号**（若涉及）
-- [ ] 确认要改的热点文件**没有他人未合并的改动**（`git log origin/master..origin/<他人分支> -- <文件>`）
+- [ ] 确认要改的热点文件**没有他人未合并的改动**（`git log origin/develop..origin/<他人分支> -- <文件>`）
 - [ ] `node_modules` 就绪（否则 pre-commit 会失败）
 - [ ] 记下本线要改的文件清单 —— 提交时按此清单 `git add`
 
