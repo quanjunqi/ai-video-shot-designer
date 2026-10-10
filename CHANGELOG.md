@@ -15,6 +15,12 @@
 
 ### Added
 
+- **`auth_type=token`（无前缀 Authorization）**：为对接要求 `Authorization: <Token>`
+  的上游（如 AutoDL 的 ComfyUI 工作流 API）而新增。engine 中原先三处硬编码
+  `Bearer ` 前缀，现统一走 `applyAuth`；`workspace/005` 与 `production/024`
+  放宽 `auth_type` 的 CHECK 以允许 `token`。**既有 `bearer/apikey/sign` 行为不变**
+  （default 分支仍为 Bearer）。
+
 - **并行开发规范**（`AGENTS.md` §12）：明确「一个工作目录只能在一个分支」的硬约束与
   `git worktree` 用法、分支基线（禁止堆叠/禁止 squash）、**迁移文件号段分配表**、
   热点文件「只追加不重排」规则、每条线的本地栈端口隔离、以及开工前检查清单。

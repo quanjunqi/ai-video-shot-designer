@@ -425,9 +425,7 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 		if err != nil {
 			return fail(fmt.Errorf("engine: poll request build: %w", err))
 		}
-		if creds.AuthType != "none" && creds.AuthType != "" {
-			pollReq.Header.Set("Authorization", "Bearer "+creds.APIKey)
-		}
+		applyAuth(pollReq, creds)
 		pollResp, err := client.Do(pollReq)
 		if err != nil {
 			// Transient poll error, retry
@@ -547,4 +545,23 @@ func buildRequest(creds Credentials, req RunRequest) (string, []byte, error) {
 		return "", nil, fmt.Errorf("engine: body marshal: %w", err)
 	}
 	return url, raw, nil
+}
+
+// applyAuth 按 auth_type 写入鉴权头。
+//
+//	none / ""     → 不写（本地或无鉴权渠道）
+//	token         → Authorization: <key>（**无前缀**）
+//	                AutoDL 的 ComfyUI 工作流 API 即此形态
+//	其余（bearer/apikey/sign）→ Authorization: Bearer <key>
+//
+// 刻意让 default 保持 Bearer：新增 token 分支不得静默改变既有渠道的行为。
+func applyAuth(req *http.Request, creds Credentials) {
+	switch creds.AuthType {
+	case "none", "":
+		return
+	case "token":
+		req.Header.Set("Authorization", creds.APIKey)
+	default:
+		req.Header.Set("Authorization", "Bearer "+creds.APIKey)
+	}
 }
