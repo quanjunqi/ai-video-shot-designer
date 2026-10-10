@@ -78,12 +78,28 @@ echo "── 场景 A1：仍在重试（单变量 —— 只播一个任务）�
 #   在 CI 上连红两轮：本地有 .env.local 把引擎配齐了，CI 没有。
 #   两侧都指向死地址，正是场景 A 想要的：跨过守卫、在 catalog 调用处失败 ⇒ failOrRetry。
 printf 'EXECUTION_PRODUCTION_URL=http://127.0.0.1:1\nEXECUTION_PRODUCTION_TOKEN=ci-dead\nEXECUTION_WORKSPACE_URL=http://127.0.0.1:1\nEXECUTION_WORKSPACE_TOKEN=ci-dead\n' > /tmp/verdict-deadcatalog.env
+# ★ 自证：实例【实际看到的】引擎配置。main.go:69 要求 catalog 与 creds 两侧都非 nil，
+#   否则引擎保持 nil ⇒ 任务在 main.go:229 直接 Complete(false)，永远走不到 failOrRetry。
+#   此前套件从不检查这一点，于是 CI 里"引擎没配起来"被表现成"判据失败"（红了一轮又一轮）。
+assert_engine_configured() {
+  local log=/tmp/scratch-stack.log
+  if grep -q "execution engine partial config" "$log"; then
+    echo "❌ 实例的执行引擎【未构建】—— 启动日志原文："
+    grep -E "partial config|channel probe disabled" "$log" | sed 's/^/      /'
+    echo "   ⇒ 判据会全部失真（任务在第一道守卫就失败）。请检查 env file 是否真的生效。"
+    return 1
+  fi
+  grep -E "channel probe|worker 并发上限" "$log" | head -2 | sed 's/^/      （引擎就绪：/;s/$/）/' || true
+  return 0
+}
+
 setup_log=/tmp/verdict-setup-a1.log
 if ! SCRATCH_ENV_FILE=/tmp/verdict-deadcatalog.env bash "$SS" up execution "$PORT" >"$setup_log" 2>&1; then
   echo "❌ 无法建立场景 A1 —— 输出如下（原文）："
   tail -30 "$setup_log" | sed 's/^/      /'
   exit 2
 fi
+assert_engine_configured || { bad "场景 A1：实例引擎未构建（见上）"; exit 2; }
 # 日志必须真的有内容：否则"日志里没有该任务"这类判断全是假象（本项目踩过）
 if [ ! -s /tmp/scratch-stack.log ]; then
   echo "❌ 场景 A1 的 worker 日志为空或不存在 ⇒ 后续诊断会失真，拒绝继续"
@@ -131,6 +147,7 @@ if ! SCRATCH_ENV_FILE=/tmp/verdict-deadcatalog.env bash "$SS" up execution "$POR
   tail -30 "$setup_log" | sed 's/^/      /'
   exit 2
 fi
+assert_engine_configured || { bad "场景 A2：实例引擎未构建（见上）"; exit 2; }
 seed job_v_dead 5 5
 if waitfor "SELECT count(*) FROM jobs WHERE id='job_v_dead' AND dead_lettered_at IS NOT NULL" 30 "死信落库"; then
   ok "V3c 重试耗尽：dead_lettered_at 已写入"
