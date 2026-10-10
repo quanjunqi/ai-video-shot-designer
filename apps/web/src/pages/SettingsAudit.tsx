@@ -54,10 +54,17 @@ export default function SettingsAuditPage() {
   const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number; topErrors: { key: string; sample: string; count: number }[] } | null>(null);
   // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
   const [status, setStatus] = useState('');
+  // 任务卡 §2.1：按【人/项目】筛选 —— 必须是**服务端**筛选（否则列表看着筛过了、
+  // 而 total 与 stats 仍是全集，是误导）。文本输入用"草稿 + 已应用"两态：
+  // 只有按 Enter 或失焦才应用，避免每敲一个字符就打一次请求。
+  const [userIdDraft, setUserIdDraft] = useState('');
+  const [projectIdDraft, setProjectIdDraft] = useState('');
+  const [userId, setUserId] = useState('');
+  const [projectId, setProjectId] = useState('');
 
   const loadLogs = async () => {
     try {
-      const res = await api.listAuditLogs({ limit: 100, status: status || undefined });
+      const res = await api.listAuditLogs({ limit: 100, status: status || undefined, user_id: userId || undefined, project_id: projectId || undefined });
       setLogs(res.items || []);
       setStats(statsFrom(res));
     } catch (e) {
@@ -70,12 +77,12 @@ export default function SettingsAuditPage() {
   useEffect(() => {
     let cancelled = false;
     // 初始加载：setState 全部落在异步回调中，避免 effect 内同步 setState 触发级联渲染
-    api.listAuditLogs({ limit: 100, status: status || undefined })
+    api.listAuditLogs({ limit: 100, status: status || undefined, user_id: userId || undefined, project_id: projectId || undefined })
       .then((res) => { if (!cancelled) { setLogs(res.items || []); setStats(statsFrom(res)); } })
       .catch((e) => console.error('Failed to load audit logs', e))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [status]);
+  }, [status, userId, projectId]);
 
   const filteredLogs = logs.filter((log) => {
     if (!filter) return true;
@@ -110,6 +117,24 @@ export default function SettingsAuditPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* D8c：状态筛选 —— 与 stats、导出【同一口径】 */}
+          <input
+            value={userIdDraft}
+            onChange={(e) => setUserIdDraft(e.target.value)}
+            onBlur={() => setUserId(userIdDraft.trim())}
+            onKeyDown={(e) => { if (e.key === 'Enter') setUserId(userIdDraft.trim()); }}
+            placeholder="按操作者（回车应用）"
+            aria-label="按操作者筛选"
+            className="w-40 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          />
+          <input
+            value={projectIdDraft}
+            onChange={(e) => setProjectIdDraft(e.target.value)}
+            onBlur={() => setProjectId(projectIdDraft.trim())}
+            onKeyDown={(e) => { if (e.key === 'Enter') setProjectId(projectIdDraft.trim()); }}
+            placeholder="按项目（回车应用）"
+            aria-label="按项目筛选"
+            className="w-40 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          />
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -124,7 +149,7 @@ export default function SettingsAuditPage() {
           {/* D8c：导出用原生链接交给浏览器下载 —— 才能用上服务端的 Content-Disposition
               文件名（D8b 修的那个头）。筛选条件与页面【一致】。 */}
           <a
-            href={api.auditExportUrl({ status: status || undefined })}
+            href={api.auditExportUrl({ status: status || undefined, user_id: userId || undefined, project_id: projectId || undefined })}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
             <Download className="h-3.5 w-3.5" />
@@ -193,7 +218,7 @@ export default function SettingsAuditPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="搜索模型ID、产品、模式、请求ID、项目ID..."
+          placeholder="在**当前页**内搜索：模型ID、产品、模式、请求ID…（服务端筛选请用上方条件）"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
