@@ -236,7 +236,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	req := engine.RunRequest{
 		ChannelID:        model.ChannelID,
 		ProviderModel:    model.ProviderModel,
-		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async},
+		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
 		ModelParams:      model.Params,
 		ModelRequestPath: finalRequestPath,
 		Runtime:          payload.Runtime,

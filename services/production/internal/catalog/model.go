@@ -77,6 +77,11 @@ type ProtocolTemplate struct {
 	// Source 标识模板来源（builtin=内置/注册表，custom=用户自定义），
 	// 由读取路径（Directory 合并）填充；写入路径返回时省略，保持既有 JSON 消费者兼容。
 	Source string `json:"source,omitempty"`
+	// RequestTemplate 是 ADR-007 D3 的请求模板（{{占位符}} 语法，迁移 028 新增列）。
+	// 非空时执行器渲染它作为请求体（params[] 仍用于解析占位符取值）；空则沿用 params[] 组装。
+	// 追加式 + omitempty：既有 JSON 消费者不受影响（空值不出现该键）。
+	// 转义责任在模板作者：字符串值原样插入，模板里需要自己写引号（见执行器 RenderRequestTemplate）。
+	RequestTemplate string `json:"requestTemplate,omitempty"`
 }
 
 type ProtocolTemplatePatch struct {
@@ -90,6 +95,8 @@ type ProtocolTemplatePatch struct {
 	Async          json.RawMessage `json:"async,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
 	Enabled        *bool           `json:"enabled,omitempty"`
+	// RequestTemplate 为指针：nil = 不变；非 nil = 整体替换（含清空为 ""，回到 params[] 组装）。
+	RequestTemplate *string `json:"requestTemplate,omitempty"`
 }
 
 func (t *ProtocolTemplatePatch) Validate() error {

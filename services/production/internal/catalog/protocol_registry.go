@@ -63,6 +63,9 @@ type ProtocolDefinition struct {
 	Builtin        bool            `json:"builtin"`
 	Enabled        bool            `json:"enabled"`
 	Version        int             `json:"version"`
+	// RequestTemplate 是 ADR-007 D3 的请求模板（{{占位符}} 语法，迁移 028 的列）。
+	// 空 = 未迁移，执行器沿用 params[] 组装（既有行为）。可选字段，不影响既有定义。
+	RequestTemplate string `json:"requestTemplate,omitempty"`
 }
 
 // Template 把注册表定义转成与 DB 行同形的 ProtocolTemplate。
@@ -83,6 +86,8 @@ func (d ProtocolDefinition) Template() ProtocolTemplate {
 		Enabled:        true,
 		Version:        d.Version,
 		Source:         TemplateSourceBuiltin,
+
+		RequestTemplate: d.RequestTemplate,
 	}
 }
 
@@ -175,6 +180,18 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Version:      1,
 		},
 		// 迁移 007 播种 + 008 重写响应 + 012 定类型（text）。
+		//
+		// ADR-007 D3：本定义是**唯一**改用「请求模板」形态的内置定义，用作等价性证明的样本
+		// （它只有一个静态参数，模板能完整表达请求体且不依赖可选 runtime 字段，因此可以做到
+		// 全输入空间等价）。params 保留：模板里的 {{stream}} 仍由 params 的三分类解析取值。
+		//   - 旧形态组装结果： {"stream":false,"task_type":"sync"}（task_type 由执行器按 async
+		//     声明非空注入；异步路径会覆盖为 "async"，与旧行为一致——模板里写 sync 只是把
+		//     请求体写成一眼可见的完整形状）。
+		//   - 等价性断言： services/execution/internal/engine/request_template_test.go
+		//     的 TestRequestTemplateEquivalenceBuiltinMinimaxText（两边 json.Unmarshal 后
+		//     reflect.DeepEqual，避免键序/空白误报）。
+		// 注意：DB 行优先于注册表（MergeTemplates），而迁移 028 按规格不回填任何行，因此本行
+		// 在存量库上仍是「能力已就绪但未生效」；生效需要后续切片的回填/新建迁移。
 		{
 			ID:          "pt_builtin_minimax_text",
 			Label:       "MiniMax 文本",
@@ -188,11 +205,12 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			ResponseParams: []Param{
 				{Key: "choices.0.message.content", Type: "string", Value: "文本正文"},
 			},
-			Async:        ProtocolAsync{},
-			Capabilities: nil, // DB 默认 '{}'
-			Builtin:      true,
-			Enabled:      true,
-			Version:      1,
+			Async:           ProtocolAsync{},
+			Capabilities:    nil, // DB 默认 '{}'
+			Builtin:         true,
+			Enabled:         true,
+			Version:         1,
+			RequestTemplate: `{"stream":{{stream}},"task_type":"sync"}`,
 		},
 		// 迁移 007 播种 + 008 重写响应与 async + 012 定类型（video）。
 		// 已知缺陷（本切片不改数据）：async 缺 pollPath；见测试台账。

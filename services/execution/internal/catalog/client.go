@@ -59,6 +59,8 @@ type Template struct {
 	ResponseParams []engine.Param  `json:"responseParams"`
 	Async          json.RawMessage `json:"async"`
 	Capabilities   json.RawMessage `json:"capabilities"`
+	// RequestTemplate 是 ADR-007 D3 的请求模板（production 迁移 028）。空 = 沿用 params[]。
+	RequestTemplate string `json:"requestTemplate"`
 }
 
 // Get fetches the directory for a tenant context.

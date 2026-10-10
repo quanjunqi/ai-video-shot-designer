@@ -48,7 +48,7 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 		return dir, err
 	}
 
-	templates, err := store.Pool.Query(ctx, `SELECT t.id, t.label, t.description, t.type, t.method, t.request_path, t.params, t.response_params, t.async, t.capabilities, t.builtin, t.enabled, t.version,
+	templates, err := store.Pool.Query(ctx, `SELECT t.id, t.label, t.description, t.type, t.method, t.request_path, t.params, t.response_params, t.async, t.capabilities, t.builtin, t.enabled, t.version, COALESCE(t.request_template, ''),
 	        (SELECT count(*) FROM model_catalog mc WHERE mc.protocol_template_id = t.id) AS ref_count
 	        FROM protocol_templates t ORDER BY t.builtin DESC, t.label`)
 	if err != nil {
@@ -57,7 +57,7 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 	defer templates.Close()
 	for templates.Next() {
 		var t ProtocolTemplate
-		if err := templates.Scan(&t.ID, &t.Label, &t.Desc, &t.Type, &t.Method, &t.RequestPath, &t.Params, &t.ResponseParams, &t.Async, &t.Capabilities, &t.Builtin, &t.Enabled, &t.Version, &t.RefCount); err != nil {
+		if err := templates.Scan(&t.ID, &t.Label, &t.Desc, &t.Type, &t.Method, &t.RequestPath, &t.Params, &t.ResponseParams, &t.Async, &t.Capabilities, &t.Builtin, &t.Enabled, &t.Version, &t.RequestTemplate, &t.RefCount); err != nil {
 			return dir, err
 		}
 		dir.Templates = append(dir.Templates, t)
@@ -260,9 +260,9 @@ func (store PostgresStore) CreateTemplate(ctx context.Context, actor string, inp
 	if input.Type == "" {
 		input.Type = "all"
 	}
-	_, err := store.Pool.Exec(ctx, `INSERT INTO protocol_templates (id, label, description, type, method, request_path, params, response_params, async, capabilities, builtin, enabled, version, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 1, $13)`,
-		input.ID, input.Label, input.Desc, input.Type, input.Method, input.RequestPath, input.Params, input.ResponseParams, input.Async, input.Capabilities, false, true, actor)
+	_, err := store.Pool.Exec(ctx, `INSERT INTO protocol_templates (id, label, description, type, method, request_path, params, response_params, async, capabilities, request_template, builtin, enabled, version, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 1, $14)`,
+		input.ID, input.Label, input.Desc, input.Type, input.Method, input.RequestPath, input.Params, input.ResponseParams, input.Async, input.Capabilities, nullableString(input.RequestTemplate), false, true, actor)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -297,6 +297,11 @@ func (store PostgresStore) UpdateTemplate(ctx context.Context, actor string, id 
 	if len(patch.Capabilities) > 0 && string(patch.Capabilities) != "null" {
 		capabilitiesVal = patch.Capabilities
 	}
+	// request_template 用指针区分「不变」（nil）与「整体替换/清空」（含空串 → 回到 params[] 组装）。
+	var requestTemplateVal any
+	if patch.RequestTemplate != nil {
+		requestTemplateVal = *patch.RequestTemplate
+	}
 	row := store.Pool.QueryRow(ctx, `UPDATE protocol_templates SET
             label           = COALESCE(NULLIF($2, ''), label),
             description     = COALESCE(NULLIF($3, ''), description),
@@ -308,10 +313,11 @@ func (store PostgresStore) UpdateTemplate(ctx context.Context, actor string, id 
             async           = COALESCE($9, async),
             capabilities    = COALESCE($10, capabilities),
             enabled         = COALESCE($11, enabled),
+            request_template = CASE WHEN $12::text IS NULL THEN request_template ELSE $12 END,
             version         = version + 1,
             updated_at      = now()
         WHERE id = $1
-        RETURNING id, label, description, type, method, request_path, params, response_params, async, capabilities, builtin, enabled, version`,
+        RETURNING id, label, description, type, method, request_path, params, response_params, async, capabilities, builtin, enabled, version, COALESCE(request_template, '')`,
 		id,
 		nullableString(patch.Label),
 		nullableString(patch.Desc),
@@ -322,9 +328,10 @@ func (store PostgresStore) UpdateTemplate(ctx context.Context, actor string, id 
 		responseParams,
 		asyncVal,
 		capabilitiesVal,
-		patch.Enabled)
+		patch.Enabled,
+		requestTemplateVal)
 	var t ProtocolTemplate
-	if err := row.Scan(&t.ID, &t.Label, &t.Desc, &t.Type, &t.Method, &t.RequestPath, &t.Params, &t.ResponseParams, &t.Async, &t.Capabilities, &t.Builtin, &t.Enabled, &t.Version); err != nil {
+	if err := row.Scan(&t.ID, &t.Label, &t.Desc, &t.Type, &t.Method, &t.RequestPath, &t.Params, &t.ResponseParams, &t.Async, &t.Capabilities, &t.Builtin, &t.Enabled, &t.Version, &t.RequestTemplate); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return t, ErrNotFound
 		}
