@@ -2698,7 +2698,7 @@ components:
           description: |
             在**筛选后全集**上的统计（D7a）。前端必须用它，不得在"当前页"上自行统计。
             聚合失败时 `byStatus` 为 null（`success`/`avgLatencyMs` 为 0）—— 契约如实反映这一点。
-          required: [byStatus, success, successRate, avgLatencyMs, aggregateOn]
+          required: [byStatus, success, successRate, avgLatencyMs, p50LatencyMs, p95LatencyMs, aggregateOn]
           properties:
             byStatus:
               type: object
@@ -2708,6 +2708,14 @@ components:
             success: {type: integer}
             successRate: {type: number, description: 'success / total（服务端算）'}
             avgLatencyMs: {type: integer}
+            p50LatencyMs:
+              type: integer
+              description: >-
+                筛选后全集上的耗时中位数（④ §2.3）。**排除 latency_ms = 0 的行** ——
+                0 表示"没有测量到"而不是"瞬时完成"；计入会把 P50 拉成 0，让耗时分布成为假象。
+            p95LatencyMs:
+              type: integer
+              description: 筛选后全集上的耗时 P95（同上，排除 0）。空集时为 0。
             aggregateOn: {type: string, description: '固定为 filtered_total'}
           additionalProperties: false
       additionalProperties: false

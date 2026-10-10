@@ -715,12 +715,13 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// D7a：统计由【服务端】在【筛选后全集】上算 —— 前端此前在"当前页"上算，是假统计。
-	byStatus, avgLatency, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
+	agg, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
 	if aggErr != nil {
 		// 统计失败不该让列表也不可用：如实标注，便于排查。
 		slog.Error("audit aggregate failed", "error", aggErr)
-		byStatus, avgLatency = nil, 0
+		agg = audit.AggregateResult{ByStatus: nil}
 	}
+	byStatus := agg.ByStatus
 	success := byStatus["success"]
 	successRate := 0.0
 	if total > 0 {
@@ -735,7 +736,10 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			"byStatus":     byStatus,
 			"success":      success,
 			"successRate":  successRate,
-			"avgLatencyMs": avgLatency,
+			"avgLatencyMs": agg.AvgLatencyMs,
+			// ④ §2.3「故障定位」要求的耗时百分位（此前只有平均值）
+			"p50LatencyMs": agg.P50LatencyMs,
+			"p95LatencyMs": agg.P95LatencyMs,
 			"aggregateOn":  "filtered_total",
 		},
 	})
