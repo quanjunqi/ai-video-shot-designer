@@ -15,6 +15,13 @@
 
 ### Added
 
+- **逻辑模型管理与候选绑定界面（ADR-003 第 2 步）**：设置中心新增「逻辑模型管理」
+  （列表 / type·status 过滤 / 新建 / 编辑 / 启用停用 / 右侧候选绑定面板）。
+  `id` 只读并说明它是对外契约；**不提供删除**（后端无该端点，避免"点了必失败"），
+  下线用停用；解绑文案明确为"解除绑定"而非删除（语义是置 NULL 不删行）；
+  候选优先级明确"小者优先"；业务错误码（`ID_IMMUTABLE` / `MODEL_ALREADY_BOUND` 等）
+  分门别类展示且不吞服务端根因。含 11 个纯函数单测。
+
 - **BFF 暴露逻辑模型与候选绑定（ADR-003 第 2 步后半）**：新增 `/api/v1/logical-models*`
   代理（4 个 path / 7 个 operation），照抄既有 `catalogProxy`/`ruleTemplates` 模式，
   状态码与业务错误码**原样透传**（`ID_IMMUTABLE` / `MODEL_ALREADY_BOUND` /
