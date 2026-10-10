@@ -18,6 +18,7 @@ import (
 	"shotdesigner/services/execution/internal/engine"
 	"shotdesigner/services/execution/internal/httpapi"
 	"shotdesigner/services/execution/internal/job"
+	"shotdesigner/services/execution/internal/netguard"
 )
 
 // jobPayload is the structured payload stored in job.intent_payload for model execution jobs.
@@ -64,7 +65,14 @@ func main() {
 	if catalogClient == nil || credsClient == nil {
 		log.Printf("warning: execution engine partial config (catalog=%v creds=%v); /run unavailable", catalogClient != nil, credsClient != nil)
 	}
-	engineClient := &http.Client{Timeout: 600 * time.Second}
+	// 模型网关的 client 会请求「渠道凭据里的 base_url」——该 URL 由用户提供，
+	// 因此必须带 SSRF 防护（见 internal/netguard 的威胁模型说明）。
+	// 注意：catalog/creds 的内部调用走各自的 client，目标是私网内部服务，
+	// **不能**套用本防护，否则会自断链路。
+	upstreamPolicy := netguard.FromEnv(os.Getenv)
+	engineClient := upstreamPolicy.NewClient(600 * time.Second)
+	log.Printf("execution: upstream SSRF policy allow_private=%v allowed_hosts=%d",
+		upstreamPolicy.AllowPrivate, len(upstreamPolicy.AllowedHosts))
 	go runWorker(store, catalogClient, credsClient, engineClient)
 	log.Printf("execution service listening on %s", addr)
 	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())

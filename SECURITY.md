@@ -55,6 +55,7 @@
 | 日志脱敏 | 已有先例：探测请求打印 `Bearer <REDACTED>` |
 | 依赖扫描 | CI 执行 gosec（Go）与 `npm audit`（前端） |
 | 审计留痕 | 所有 AI 调用经 execution 网关写入 `gateway_audit_logs` |
+| **出站 SSRF 防护** | 模型网关会请求「渠道凭据里的 `base_url`」（用户可控）。`execution/internal/netguard` 在 **`net.Dialer.Control`**（DNS 解析后、连接前）校验**真实拨号 IP**：默认拒绝环回/私网/链路本地（含云元数据 `169.254.169.254`）/保留网段，并还原 IPv4-mapped 地址防绕过；重定向复用同一 Transport 故仍受校验，另限 5 跳。默认**拒绝**私网，本地开发用 `EXECUTION_ALLOW_PRIVATE_UPSTREAM=1` 显式放开（该开关仍不放开云元数据）。支持 `EXECUTION_ALLOWED_UPSTREAM_HOSTS` 主机白名单 |
 | 分支保护 | master 禁止直接 push、禁止 force push / 删除；需 PR + 9 项 CI 检查；管理员不可绕过 |
 
 ### 3.2 ⚠️ 已知缺口（**不要误认为已具备**）
