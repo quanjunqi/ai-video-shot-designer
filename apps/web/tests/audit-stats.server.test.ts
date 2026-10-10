@@ -21,6 +21,9 @@ test('审计统计来自服务端 stats，而不是在前端对当前页做 filt
   assert.match(SRC, /stats\?\.p50LatencyMs/, '耗时 P50 必须来自服务端 stats');
   assert.match(SRC, /stats\?\.p95LatencyMs/, '耗时 P95 必须来自服务端 stats');
   assert.match(SRC, /stats\?\.topErrors/, '错误分布必须来自服务端 stats（不得在前端对当前页聚类）');
+  // ④ §2.2：token 用量同样是服务端聚合的结果，不得在前端对当前页求和
+  assert.match(SRC, /stats\?\.tokensByModel/, 'token 用量（按模型）必须来自服务端 stats');
+  assert.match(SRC, /stats\?\.tokensByChannel/, 'token 用量（按渠道）必须来自服务端 stats');
   // 任务卡 §2.1：按人/项目筛选必须是【服务端】的 —— 前端只允许在【当前页】上做文本搜索，
   // 那会让"列表看着筛过了、而 total/stats 仍是全集"。钉住这两项被送进服务端查询。
   assert.match(SRC, /user_id: userId \|\| undefined/, '操作者筛选必须送服务端（否则是假筛选）');
