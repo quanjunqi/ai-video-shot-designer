@@ -16,19 +16,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, AudioLines, ChevronDown, Download, History, Image as ImageIcon,
-  Info, Loader2, RefreshCw, Settings2, Sparkles, Video, Wallet,
+  AlertTriangle, AudioLines, Ban, ChevronDown, Download, History, Image as ImageIcon,
+  Info, Loader2, RefreshCw, RotateCw, Settings2, Sparkles, Video, Wallet, Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
 import EmptyState from '@/components/common/EmptyState';
 import MentionTextarea from '@/features/genworkbench/MentionTextarea';
 import ReferenceBar, { type RefItem } from '@/features/genworkbench/ReferenceBar';
+import {
+  attemptsNote, canCancel, canRetry, cancelPlan, extractResultUrl, formatTaskTime,
+  mediaKind, parseTaskPayload, reusableDraft,
+} from '@/features/genworkbench/result-utils';
 import { useCreateControls } from '@/hooks/useCreateControls';
 import { GENERATION_MODE_LABEL, type ControlDef, type CreateKind } from '@/config/create/control-schema';
 import { useAssetStore } from '@/stores/useAssetStore';
@@ -109,6 +120,9 @@ export default function CreateWorkbench({
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [detailJob, setDetailJob] = useState<ServerTask>();
+  const [cancelTarget, setCancelTarget] = useState<ServerTask>();
+  const [busyId, setBusyId] = useState<string>();
 
   // ---- 结果区：拉取 + 空闲即停的轮询 ----
   const loadJobs = useCallback(async (mode: 'boot' | 'manual' | 'poll' = 'poll') => {
@@ -155,6 +169,12 @@ export default function CreateWorkbench({
     () => jobs.find((j) => j.id === selectedId) ?? activeTask ?? succeeded[0] ?? jobs[0],
     [jobs, selectedId, activeTask, succeeded],
   );
+
+  // 产物地址：当前没有写回链路 → 多数情况为 undefined，调用方如实回退到占位图。
+  // 一旦上游结果被写回 intent_payload.result，这里即可直接显示真实产物。
+  const previewUrl = useMemo(() => (preview ? extractResultUrl(parseTaskPayload(preview)) : undefined), [preview]);
+  const detailPayload = useMemo(() => (detailJob ? parseTaskPayload(detailJob) : {}), [detailJob]);
+  const detailResultUrl = useMemo(() => (detailJob ? extractResultUrl(parseTaskPayload(detailJob)) : undefined), [detailJob]);
 
   // ---- 提交 ----
   const promptText = values.prompt ?? '';
@@ -219,6 +239,69 @@ export default function CreateWorkbench({
       toast.error(first?.status === 'rejected' && first.reason instanceof Error ? first.reason.message : '部分任务提交失败');
     }
   }, [canSubmit, refs, promptText, assets, values, meta.title, model, projectId, episodeId, assetId, kind, scopeEpoch, cost, loadJobs]);
+
+  // ---- 结果复用：把历史任务的提示词/参数套回 composer ----
+  // 两种意图必须分开（ADR-006 D6：InvokeAI 的 Remix vs Use All）：
+  //   「沿用全部参数」= 连参数一起复现；「仅用提示词」= 保留当前参数、只换提示词
+  const reuse = useCallback(
+    (job: ServerTask, mode: 'all' | 'prompt-only') => {
+      const allowedKeys = schema.controls.map((c) => c.key);
+      const draft = reusableDraft(job, allowedKeys);
+      if (mode === 'prompt-only') {
+        if (draft.prompt === undefined) {
+          toast.error('该任务没有可复用的提示词');
+          return;
+        }
+        controls.applyDraft({ prompt: draft.prompt });
+        toast.success('已套用该任务的提示词（参数保持不变）');
+        return;
+      }
+      const { skippedKeys } = controls.applyDraft({
+        prompt: draft.prompt,
+        parameters: draft.parameters,
+        modelId: draft.modelId,
+      });
+      const applied = Object.keys(draft.parameters).length;
+      if (draft.modelId !== undefined && draft.modelId !== controls.model?.id) {
+        const exists = controls.models.some((m) => m.id === draft.modelId);
+        if (!exists) toast.warning(`原模型「${draft.modelId}」当前不可用，已保留当前模型`);
+      }
+      if (skippedKeys.length > 0) {
+        toast.warning(`已套用 ${applied} 项参数；${skippedKeys.length} 项在当前模型不存在，已忽略：${skippedKeys.join('、')}`);
+      } else {
+        toast.success(`已套用该任务的提示词与 ${applied} 项参数`);
+      }
+    },
+    [schema.controls, controls],
+  );
+
+  // ---- 取消 / 重试（真实接口）----
+  const doCancel = useCallback(async (job: ServerTask) => {
+    setBusyId(job.id);
+    try {
+      const updated = await api.cancelTask(job.id);
+      setJobs((current) => current.map((item) => (item.id === job.id ? updated : item)));
+      toast.success(cancelPlan(job.status)?.mayStillComplete ? '已发出中断信号' : '已取消');
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : '取消失败');
+    } finally {
+      setBusyId(undefined);
+      setCancelTarget(undefined);
+    }
+  }, []);
+
+  const doRetry = useCallback(async (job: ServerTask) => {
+    setBusyId(job.id);
+    try {
+      const updated = await api.retryTask(job.id);
+      setJobs((current) => current.map((item) => (item.id === job.id ? updated : item)));
+      toast.success('已重新排队（沿用原参数）');
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : '重试失败');
+    } finally {
+      setBusyId(undefined);
+    }
+  }, []);
 
   // Enter 提交 / Shift+Enter 换行；⌘/Ctrl+Enter 亦提交。
   // 只在事件源确实是 textarea 时拦截，避免影响 @ 下拉里的按钮。
@@ -513,18 +596,22 @@ export default function CreateWorkbench({
                       </span>
                     </div>
                   ) : preview.status === 'succeeded' ? (
-                    <>
-                      <img
-                        src={placeholderUrl(`gen-${preview.id}`)}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-contain"
-                      />
-                      <span className="absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-px text-[10px] text-muted-foreground">
-                        演示占位图（真实产物未接入）
-                      </span>
-                    </>
+                    previewUrl ? (
+                      <ResultMedia url={previewUrl} />
+                    ) : (
+                      <>
+                        <img
+                          src={placeholderUrl(`gen-${preview.id}`)}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-contain"
+                        />
+                        <span className="absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-px text-[10px] text-muted-foreground">
+                          演示占位图（该任务未返回真实产物地址）
+                        </span>
+                      </>
+                    )
                   ) : (
                     <div className="max-w-[80%] space-y-2 text-center">
                       <AlertTriangle className="mx-auto h-5 w-5 text-destructive" />
@@ -545,16 +632,81 @@ export default function CreateWorkbench({
                     {preview.status}
                   </Badge>
                   <span className="font-mono text-[9px] text-muted-foreground">{preview.cost_estimate ?? '—'}</span>
-                  {preview.status === 'succeeded' && (
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 border-t border-border p-2">
+                  {/* 复用：两种意图分开（沿用全部参数 / 仅用提示词），不合成一个按钮 */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-6 gap-1 text-[10px]"
+                    title="把该任务的提示词与参数套回左侧输入区"
+                    onClick={() => reuse(preview, 'all')}
+                  >
+                    <Wand2 className="h-3 w-3" />
+                    沿用参数
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 gap-1 text-[10px]"
+                    title="只把提示词套回左侧，保留当前参数"
+                    onClick={() => reuse(preview, 'prompt-only')}
+                  >
+                    仅用提示词
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px]"
+                    onClick={() => setDetailJob(preview)}
+                  >
+                    详情
+                  </Button>
+
+                  {canCancel(preview.status) && (
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       className="h-6 gap-1 text-[10px]"
-                      onClick={() => toast.success('演示：已加入下载队列')}
+                      disabled={busyId === preview.id}
+                      onClick={() => setCancelTarget(preview)}
+                    >
+                      {busyId === preview.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Ban className="h-3 w-3" />}
+                      取消
+                    </Button>
+                  )}
+                  {canRetry(preview.status) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 gap-1 text-[10px]"
+                      disabled={busyId === preview.id}
+                      title="沿用原参数重新排队"
+                      onClick={() => void doRetry(preview)}
+                    >
+                      {busyId === preview.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
+                      重试
+                    </Button>
+                  )}
+                  {preview.status === 'succeeded' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="ml-auto h-6 gap-1 text-[10px]"
+                      disabled={!previewUrl}
+                      title={previewUrl ? '打开产物地址' : '该任务未返回真实产物地址'}
+                      onClick={() => {
+                        if (previewUrl) window.open(previewUrl, '_blank', 'noopener,noreferrer');
+                      }}
                     >
                       <Download className="h-3 w-3" />
-                      下载
+                      {previewUrl ? '打开产物' : '无产物地址'}
                     </Button>
                   )}
                 </div>
@@ -577,7 +729,7 @@ export default function CreateWorkbench({
                     {isActive(job) ? (
                       <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     ) : job.status === 'succeeded' ? (
-                      <img src={placeholderUrl(`gen-${job.id}`)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      <JobThumb job={job} />
                     ) : (
                       <span className="text-[10px] text-muted-foreground">{job.status === 'cancelled' ? '已取消' : '失败'}</span>
                     )}
@@ -589,11 +741,161 @@ export default function CreateWorkbench({
 
             <p className="flex items-start gap-1 text-[10px] leading-relaxed text-muted-foreground">
               <Info className="mt-px h-3 w-3 shrink-0" />
-              结果历史与任务中心同源；参数复用、取消与重试将在下一片（TASK-CREATE-003）接上。
+              结果历史与任务中心同源；「沿用参数」读的是该任务落库的提交负载。
+              产物预览需要上游结果写回链路（当前缺失，已登记 BACKLOG），因此未返回地址时以占位图如实标注。
             </p>
           </>
         )}
       </div>
+
+      {/* ============ 结果详情（右侧抽屉）============ */}
+      <Sheet open={detailJob !== undefined} onOpenChange={(open) => { if (!open) setDetailJob(undefined); }}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+          {detailJob && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="pr-6 text-sm">{detailJob.label}</SheetTitle>
+                <SheetDescription className="font-mono text-[10px]">任务 {detailJob.id}</SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 space-y-4 px-4 pb-6">
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <DetailRow label="状态" value={detailJob.status} />
+                  <DetailRow label="类型" value={detailJob.kind} />
+                  <DetailRow label="费用" value={detailJob.cost_estimate ?? '—'} />
+                  <DetailRow label="尝试" value={attemptsNote(detailJob.attempt) ?? '1 次'} />
+                  <DetailRow label="创建" value={formatTaskTime(detailJob.created_at)} />
+                  <DetailRow label="更新" value={formatTaskTime(detailJob.updated_at)} />
+                  <DetailRow label="模型" value={detailPayload.model_id ?? '未记录'} />
+                  <DetailRow label="参考图" value={String(detailPayload.reference_count ?? 0)} />
+                </div>
+
+                {detailJob.error && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-[11px] text-destructive">
+                    {detailJob.error}
+                  </div>
+                )}
+
+                {detailResultUrl && (
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-medium">产物地址</div>
+                    <a
+                      href={detailResultUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate font-mono text-[10px] text-primary underline"
+                    >
+                      {detailResultUrl}
+                    </a>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-medium">提交时的参数快照</div>
+                  {Object.keys(detailPayload.parameters ?? {}).length === 0 ? (
+                    <p className="text-[10px] text-muted-foreground">该任务没有记录参数快照。</p>
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      {Object.entries(detailPayload.parameters ?? {}).map(([key, value]) => (
+                        <div key={key} className="flex gap-2 border-b border-border px-2 py-1 text-[10px] last:border-b-0">
+                          <span className="w-24 shrink-0 truncate font-mono text-muted-foreground">{key}</span>
+                          <span className="min-w-0 flex-1 break-words">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => reuse(detailJob, 'all')}>
+                    <Wand2 className="h-3 w-3" /> 沿用全部参数
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => reuse(detailJob, 'prompt-only')}>
+                    仅用提示词
+                  </Button>
+                  {canCancel(detailJob.status) && (
+                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setCancelTarget(detailJob)}>
+                      <Ban className="h-3 w-3" /> 取消
+                    </Button>
+                  )}
+                  {canRetry(detailJob.status) && (
+                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => void doRetry(detailJob)}>
+                      <RotateCw className="h-3 w-3" /> 重试
+                    </Button>
+                  )}
+                </div>
+
+                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  「沿用全部参数」复现同一组设置；「仅用提示词」保留当前参数只换提示词 ——
+                  两者是不同意图，故不做成一个按钮。种子若上游未返回则不在快照中。
+                </p>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* ============ 取消确认：按状态区分语义与计费口径（ADR-006 D10）============ */}
+      <AlertDialog open={cancelTarget !== undefined} onOpenChange={(open) => { if (!open) setCancelTarget(undefined); }}>
+        <AlertDialogContent>
+          {cancelTarget && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{cancelPlan(cancelTarget.status)?.title}</AlertDialogTitle>
+                <AlertDialogDescription className="space-y-2">
+                  <span className="block">{cancelPlan(cancelTarget.status)?.description}</span>
+                  <span className="block font-mono text-[11px]">{cancelPlan(cancelTarget.status)?.billNote}</span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>保留任务</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void doCancel(cancelTarget)}>
+                  {cancelPlan(cancelTarget.status)?.confirmLabel}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="min-w-0 truncate font-mono">{value}</span>
+    </div>
+  );
+}
+
+/** 按产物媒体类型渲染，避免把视频/音频地址塞进 <img> 变成裂图 */
+function ResultMedia({ url }: { url: string }) {
+  const kind = mediaKind(url);
+  if (kind === 'video') {
+    return <video src={url} controls className="h-full w-full object-contain" />;
+  }
+  if (kind === 'audio') {
+    return <audio src={url} controls className="w-[80%]" />;
+  }
+  return <img src={url} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain" />;
+}
+
+/** 缩略图：图片直接显示；视频/音频只显示类型标记，避免小格子里的裂图与播放器 */
+function JobThumb({ job }: { job: ServerTask }) {
+  const url = extractResultUrl(parseTaskPayload(job));
+  if (!url) {
+    return <img src={placeholderUrl(`gen-${job.id}`)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />;
+  }
+  const kind = mediaKind(url);
+  if (kind === 'video' || kind === 'audio') {
+    const Icon = kind === 'video' ? Video : AudioLines;
+    return (
+      <span className="flex flex-col items-center gap-1 text-muted-foreground">
+        <Icon className="h-4 w-4" />
+        <span className="text-[9px]">{kind === 'video' ? '视频' : '音频'}</span>
+      </span>
+    );
+  }
+  return <img src={url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />;
 }

@@ -41,6 +41,12 @@ export interface UseCreateControls {
   /** 当前生效值（schema 默认值 + 用户改动） */
   values: Record<string, string>;
   setValue(key: string, value: string): void;
+  /**
+   * 批量套用一份草稿（用于「复用历史任务的参数」）。
+   * 只接受 schema 认识的键；modelId 在当前可运行模型里才会切换。
+   * 返回被忽略的键，供 UI 如实告知用户。
+   */
+  applyDraft(input: { prompt?: string; parameters?: Record<string, string>; modelId?: string }): { skippedKeys: string[] };
   /** 已挂载的参考图 / 参考音频数量（由引用条维护，用于前置校验） */
   refCount: number;
   setRefCount(count: number): void;
@@ -91,6 +97,29 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
     setOverrides((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  const applyDraft = useCallback(
+    (input: { prompt?: string; parameters?: Record<string, string>; modelId?: string }) => {
+      const known = new Set(schema.controls.map((c) => c.key));
+      const accepted: Record<string, string> = {};
+      const skippedKeys: string[] = [];
+      for (const [key, value] of Object.entries(input.parameters ?? {})) {
+        if (known.has(key)) accepted[key] = value;
+        else skippedKeys.push(key);
+      }
+      if (input.prompt !== undefined) {
+        if (known.has('prompt')) accepted.prompt = input.prompt;
+        else skippedKeys.push('prompt');
+      }
+      setOverrides((prev) => ({ ...prev, ...accepted }));
+      // 只有在当前可运行模型里存在时才切换，避免切到一个已停用/已删除的模型
+      if (input.modelId !== undefined && available.some((m) => m.id === input.modelId)) {
+        setSelectedId(input.modelId);
+      }
+      return { skippedKeys };
+    },
+    [schema.controls, available],
+  );
+
   const resetDraft = useCallback(() => {
     setOverrides({});
     setRefCount(0);
@@ -127,6 +156,7 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
     schema,
     values,
     setValue,
+    applyDraft,
     refCount,
     setRefCount,
     audioRefCount,
