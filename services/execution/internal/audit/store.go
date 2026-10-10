@@ -82,6 +82,18 @@ func (s Store) UpdateResult(ctx context.Context, requestID string, status string
 	return err
 }
 
+// Spend 返回某 workspace 的**当日/当月**累计花费（用于成本上限判定）。
+// 依赖 (workspace_id, created_at) 索引（见迁移 009）。
+func (s Store) Spend(ctx context.Context, workspace string) (day float64, month float64, err error) {
+	err = s.Pool.QueryRow(ctx, `
+		SELECT
+			COALESCE(SUM(cost_amount) FILTER (WHERE created_at >= date_trunc('day', now())), 0),
+			COALESCE(SUM(cost_amount) FILTER (WHERE created_at >= date_trunc('month', now())), 0)
+		FROM gateway_audit_logs WHERE workspace_id = $1
+	`, workspace).Scan(&day, &month)
+	return day, month, err
+}
+
 // ListByWorkspace 按租户查询审计日志
 func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, limit, offset int) ([]Log, error) {
 	rows, err := s.Pool.Query(ctx, `

@@ -7,8 +7,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"shotdesigner/services/execution/internal/catalog"
+	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/job"
+	"shotdesigner/services/execution/internal/quota"
 )
 
 type fakeStore struct {
@@ -131,5 +135,59 @@ func TestTaskCreateReplayReturnsOK(t *testing.T) {
 	h.ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200 replay, got %d", w.Code)
+	}
+}
+
+// TestGenerateRejectsWhenRateLimited 验证「超限拒绝并返回 429」作用于真实 HTTP 路径。
+// 配额检查位于任何下游调用（Catalog/Creds/Engine）之前，因此这里只需非 nil 的零值客户端 ——
+// 若检查位置被后人挪到下游之后，本用例会因 nil 报错或非 429 而失败。
+func TestGenerateRejectsWhenRateLimited(t *testing.T) {
+	lim := quota.New(quota.Config{QPS: 1, Burst: 1}, nil)
+	// 先耗尽令牌桶
+	if d := lim.Check(context.Background(), "workspace-1"); !d.Allowed {
+		t.Fatalf("预置令牌应放行: %s", d.Reason)
+	}
+
+	h := Handler{
+		Store:        &fakeStore{},
+		Token:        "test-token",
+		Catalog:      &catalog.Client{},
+		Creds:        &creds.Client{},
+		EngineClient: &http.Client{},
+		Quota:        lim,
+	}.Routes()
+
+	r := executionRequest(http.MethodPost, "/v1/generate", `{"modelId":"m","mode":"text-to-image","input":{"prompt":"x"}}`)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("超限应返回 429，实际 %d，body=%s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "RATE_LIMITED") {
+		t.Fatalf("响应应带 RATE_LIMITED 标记，实际 %s", w.Body.String())
+	}
+}
+
+// TestGenerateUnaffectedWhenQuotaDisabled 对照：未启用配额时**不得**被 429 拦截。
+// 这里刻意把 Catalog 指向一个必然连不上的地址：请求应当**穿过**配额门、
+// 在下游以 503 CATALOG_UNAVAILABLE 失败 —— 由此证明「未被限流」，
+// 而不是像零值客户端那样直接 panic。
+func TestGenerateUnaffectedWhenQuotaDisabled(t *testing.T) {
+	h := Handler{
+		Store:        &fakeStore{},
+		Token:        "test-token",
+		Catalog:      catalog.NewClient("http://127.0.0.1:1", "t"),
+		Creds:        creds.NewClient("http://127.0.0.1:1", "t"),
+		EngineClient: &http.Client{Timeout: 2 * time.Second},
+	}.Routes()
+	r := executionRequest(http.MethodPost, "/v1/generate", `{"modelId":"m","mode":"text-to-image","input":{"prompt":"x"}}`)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code == http.StatusTooManyRequests {
+		t.Fatalf("未启用配额时不应返回 429，body=%s", w.Body.String())
+	}
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("应穿过配额门并在下游失败(503)，实际 %d，body=%s", w.Code, w.Body.String())
 	}
 }
