@@ -118,7 +118,14 @@ test('mediaKind 由扩展名/MIME 判定渲染方式，避免视频塞进 img', 
 });
 
 test('时间与尝试次数展示', () => {
-  assert.equal(formatTaskTime('2026-10-10T18:04:19+08:00').includes('18:04'), true);
+  // 同一时刻的两种表示 → 必须格式化为同一结果（**不依赖本地时区**：
+  // 本地常为 UTC+8 而 CI 跑 UTC，硬编码小时数会「本地过、CI 红」）
+  assert.equal(
+    formatTaskTime('2026-10-10T18:04:19+08:00'),
+    formatTaskTime('2026-10-10T10:04:19Z'),
+  );
+  // 形状断言（不绑定具体时区）。注意实现返回 'M/D HH:MM'（月/日在前），故锚在**行尾**
+  assert.match(formatTaskTime('2026-10-10T18:04:19+08:00'), /\d{2}:\d{2}$/);
   assert.equal(formatTaskTime('bad'), '—');
   assert.equal(attemptsNote(1), undefined);
   assert.match(attemptsNote(3) ?? '', /已尝试 3 次/);
