@@ -188,6 +188,11 @@ type Filter struct {
 	Status    string
 	ModelID   string
 	ChannelID string
+	// 任务卡 §2.1「合规留痕」要求「按**人/项目**/时间的操作清单」
+	// ⇒ 这两项必须能服务端筛（此前前端只能在【当前页】上做文本过滤，
+	//   于是用户看到筛过的列表、而 total/stats 仍是全集 —— 是误导）。
+	UserID    string
+	ProjectID string
 	Since     *time.Time // created_at >= Since
 	Until     *time.Time // created_at <= Until
 }
@@ -199,7 +204,9 @@ func (f Filter) whereClause() string {
 		AND ($3 = '' OR model_id = $3)
 		AND ($4 = '' OR channel_id = $4)
 		AND ($5::timestamptz IS NULL OR created_at >= $5)
-		AND ($6::timestamptz IS NULL OR created_at <= $6)`
+		AND ($6::timestamptz IS NULL OR created_at <= $6)
+		AND ($7 = '' OR user_id = $7)
+		AND ($8 = '' OR project_id = $8)`
 }
 
 // ListByWorkspace 返回一页审计日志与【筛选后的总数】（D7a）。
@@ -221,8 +228,8 @@ func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, f Filter
 		FROM gateway_audit_logs
 		WHERE workspace_id = $1`+f.whereClause()+`
 		ORDER BY created_at DESC
-		LIMIT $7 OFFSET $8
-	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, limit, offset)
+		LIMIT $9 OFFSET $10
+	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -265,8 +272,8 @@ func (s Store) ExportAll(ctx context.Context, workspaceID string, f Filter, maxR
 		FROM gateway_audit_logs
 		WHERE workspace_id = $1`+f.whereClause()+`
 		ORDER BY created_at DESC
-		LIMIT $7
-	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, maxRows)
+		LIMIT $9
+	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, maxRows)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +348,7 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 		FROM gateway_audit_logs
 		WHERE workspace_id = $1`+f.whereClause()+`
 		GROUP BY status
-	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
+	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID)
 	if err != nil {
 		return AggregateResult{}, err
 	}
@@ -378,7 +385,7 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 			COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms), 0)::int
 		FROM gateway_audit_logs
 		WHERE workspace_id = $1 AND latency_ms > 0`+f.whereClause(),
-		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until).
+		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID).
 		Scan(&out.P50LatencyMs, &out.P95LatencyMs); err != nil {
 		return AggregateResult{}, err
 	}
@@ -401,7 +408,7 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 		GROUP BY key
 		ORDER BY n DESC, lower(btrim(split_part(error_message, ':', 1))) COLLATE "C" ASC
 		LIMIT `+strconv.Itoa(topErrorsLimit),
-		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
+		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID)
 	if err != nil {
 		return AggregateResult{}, err
 	}
