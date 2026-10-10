@@ -73,9 +73,21 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 
 ## 6. 生效验证
 
-本设计已用「仅改文档」的 PR 实证：前端/后端/安全步骤被跳过，
-但 `Frontend Quality Gate`、6 个 `Backend Build & Test (<svc>)`、`Security Scan`
-仍**如实上报成功**，PR 可正常合并。
+本设计已用「仅改文档」的 PR 实证（依据 Actions jobs API 的 **step conclusion**，
+不是靠推断）：
+
+| 作业 | 结果 | 实际执行的步骤 | 被跳过的步骤 |
+|---|---|---|---|
+| `Detect Changes` | ✅ success，约 4s | Checkout、Detect changed paths | — |
+| `Documentation Check` | ✅ success，约 6s | Commit messages、AGENTS.md 存在性… | — |
+| `Frontend Quality Gate` | ✅ success，约 3s | 判定断言 + 跳过说明 | **7 个**（npm ci / typecheck / eslint / gate / test …） |
+| `Backend Build & Test (<svc>)` ×6 | ✅ success，各约 3–6s | Relevance 判定 | **各 9 个**（go build / vet / gofmt / golangci-lint / test / coverage …） |
+| `Security Scan` | ✅ success | 判定断言 + 跳过说明 | gosec、npm audit |
+| `Merge Check` | ✅ success | 汇总 | — |
+
+对比：`Backend Build & Test` 真正干活时需数分钟，跳过后仅 **3–6 秒**。
+关键点是**必需检查全部如实上报成功**，因此 PR 可正常合并 —— 这正是
+§3 那条不变量的意义。
 
 ## 相关文档
 
