@@ -1,16 +1,82 @@
 #!/usr/bin/env sh
-# 前端质量门禁：提交前强制 npm run gate（严格 typecheck + eslint + quality-gate 静态扫描）
+# 提交前门禁：**按暂存内容选择要跑的门**，而不是"一律跑前端"。
+#
+# 为什么改（本仓库真实发生两次）：
+#   旧实现无论提交什么文件都执行 `npm run gate`，而它需要 apps/web/node_modules。
+#   于是一个【纯 Go 改动】的提交会因为 `tsc: command not found` 而失败 ——
+#   门禁报的像是"前端坏了"，而实际前端一行未改，只是 worktree 里没装依赖。
+#   两次都被迫先软链 node_modules 才能提交 ⇒ "与改动无关的门在拦人"。
+#
+# 现在的规则（按暂存文件判定）：
+#   · 暂存含 apps/web/** → 跑前端门禁；缺 node_modules 时给【可行动的】提示
+#   · 暂存含 **/*.go      → 只跑 gofmt（快）；这正是 CI 六道门里真实拦过的那道
+#   · 两者都没有          → 跳过并说明
+#
+# 注意：pre-commit 只是【快速自检】，不是质量保证；真正的门是 CI。
+# 完整的本地六道门（含覆盖率棘轮）：bash scripts/preflight.sh
 # 跳过方式（仅紧急场景）：SKIP_GATE=1 git commit
-if [ "$SKIP_GATE" = "1" ]; then
+set -u
+
+if [ "${SKIP_GATE:-}" = "1" ]; then
   echo "[pre-commit] SKIP_GATE=1，跳过质量门禁"
   exit 0
 fi
-echo "[pre-commit] 运行前端质量门禁（npm run gate）..."
-cd "$(dirname "$0")/../apps/web" || exit 1
-npm run gate
-status=$?
-if [ $status -ne 0 ]; then
-  echo "[pre-commit] ✗ GATE 未通过：请修复后重新提交（或 SKIP_GATE=1 紧急跳过）"
-  exit $status
+
+ROOT="$(git rev-parse --show-toplevel)"
+STAGED="$(git diff --cached --name-only --diff-filter=ACM)"
+if [ -z "$STAGED" ]; then
+  echo "[pre-commit] 无暂存文件，跳过"
+  exit 0
 fi
-echo "[pre-commit] ✓ GATE 通过"
+
+want_frontend=0
+go_list=""
+for f in $STAGED; do
+  case "$f" in apps/web/*) want_frontend=1 ;; esac
+  case "$f" in *.go) go_list="$go_list$f
+" ;; esac
+done
+
+status=0
+
+if [ -n "$go_list" ]; then
+  if command -v gofmt >/dev/null 2>&1; then
+    echo "[pre-commit] Go 格式检查（gofmt）…"
+    unformatted="$(cd "$ROOT" && printf '%s' "$go_list" | xargs gofmt -l 2>/dev/null)"
+    if [ -n "$unformatted" ]; then
+      echo "[pre-commit] ✗ 以下 Go 文件未格式化（CI 会因此失败）："
+      printf '%s\n' "$unformatted" | sed 's/^/    /'
+      echo "[pre-commit]   修复：gofmt -w <上述文件>"
+      status=1
+    else
+      echo "[pre-commit] ✓ gofmt 通过"
+    fi
+  else
+    echo "[pre-commit] ⚠️  gofmt 不在 PATH ⇒ 这道门【未验证】（CI 会跑）"
+  fi
+fi
+
+if [ "$want_frontend" = "1" ]; then
+  if [ ! -d "$ROOT/apps/web/node_modules" ]; then
+    echo "[pre-commit] ✗ 暂存里有 apps/web 改动，但 apps/web/node_modules 不存在。"
+    echo "[pre-commit]   修复：cd apps/web && npm install"
+    echo "[pre-commit]   （worktree 里可软链主目录：ln -sfn <主目录>/apps/web/node_modules apps/web/node_modules）"
+    status=1
+  else
+    echo "[pre-commit] 运行前端质量门禁（npm run gate）…"
+    ( cd "$ROOT/apps/web" && npm run gate ) || status=1
+    if [ "$status" = "0" ]; then echo "[pre-commit] ✓ 前端门禁通过"; else echo "[pre-commit] ✗ 前端门禁未通过"; fi
+  fi
+fi
+
+if [ -z "$go_list" ] && [ "$want_frontend" = "0" ]; then
+  echo "[pre-commit] 暂存内容不涉及 Go 或 apps/web，跳过门禁"
+fi
+
+if [ "$status" != "0" ]; then
+  echo "[pre-commit] ✗ 未通过：请修复后重新提交（或 SKIP_GATE=1 紧急跳过）"
+  echo "[pre-commit]   完整六道门（含覆盖率棘轮）：bash scripts/preflight.sh"
+  exit "$status"
+fi
+echo "[pre-commit] ✓ 通过（完整门禁见 scripts/preflight.sh）"
+exit 0
