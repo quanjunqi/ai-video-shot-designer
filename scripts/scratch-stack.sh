@@ -59,7 +59,24 @@ SCRATCH_PORT="${SCRATCH_PORT:-8095}"
 # ★ 用 ${VAR-默认} 而不是 ${VAR:-默认}：后者会把"已显式设为空字符串"也当成未设置，
 #   于是 CI 里的 `PG_CONTAINER: ''` 会静默退回 docker 模式（本片真实踩到，
 #   而且它伪装成了一次"直连模式 11/11 通过"的假绿）。
-PG_CONTAINER="${PG_CONTAINER-shotdesigner-postgres-1}"
+# ★ PG_CONTAINER 的默认值【不猜，而是探测】：
+#   · 显式给出（含显式空 ⇒ 直连）⇒ 一律尊重 —— 显式设置必须能覆盖一切
+#   · 未给出 ⇒ 本地探测得到那个容器就用 docker，探测不到就直连
+#   为什么不能写死默认值（两个方向都踩过）：
+#     · 默认写容器名 ⇒ CI（没有容器）走进 docker 模式，报 `No such container`
+#     · 默认写空     ⇒ 本地（有容器、但没有 psql 客户端）反而跑不起来
+#   **环境假设必须被探测，而不是被写死。**
+if [ "${PG_CONTAINER+set}" = "set" ]; then
+  PG_CONTAINER="${PG_CONTAINER}"
+  PG_MODE_WHY="PG_CONTAINER 已显式设置"
+elif command -v docker >/dev/null 2>&1 && docker inspect -f '{{.State.Running}}' shotdesigner-postgres-1 >/dev/null 2>&1; then
+  PG_CONTAINER="shotdesigner-postgres-1"
+  PG_MODE_WHY="未设置，探测到该容器在运行"
+else
+  PG_CONTAINER=""
+  PG_MODE_WHY="未设置，且探测不到容器"
+fi
+export PG_CONTAINER
 PG_USER="${PG_USER:-shotdesigner}"
 REAL_DBS="execution workspace production asset"
 BIN_DIR="${BIN_DIR:-/tmp/mdp-scratch-bin}"
@@ -120,9 +137,9 @@ cmd_up() {
   [ -d "services/$service/migrations" ] || die "services/$service/migrations 不存在"
 
   if [ -n "$PG_CONTAINER" ]; then
-    echo "── 模式：docker（容器 ${PG_CONTAINER}）· 建库 $SCRATCH_DB ──"
+    echo "── 模式：docker（容器 ${PG_CONTAINER}）· 建库 $SCRATCH_DB ──（${PG_MODE_WHY}）"
   else
-    echo "── 模式：直连 psql（PG_CONTAINER 为空）· 建库 $SCRATCH_DB ──"
+    echo "── 模式：直连 psql（PG_CONTAINER 为空）· 建库 $SCRATCH_DB ──（${PG_MODE_WHY}）"
   fi
   psql_ -d postgres -q -c "DROP DATABASE IF EXISTS $SCRATCH_DB;" || die "drop 失败"
   psql_ -d postgres -q -c "CREATE DATABASE $SCRATCH_DB;" || die "create 失败"
