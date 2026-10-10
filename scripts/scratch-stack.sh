@@ -23,6 +23,10 @@
 #                    没有 docker 容器）。两种模式共用同一个 SCRATCH_DB 命名与安全断言。
 #   PG_USER        直连/docker 两模式下的数据库用户，默认 shotdesigner
 #   PG_USER        PostgreSQL 用户，默认 shotdesigner
+#   SCRATCH_SKIP_ENV_LOCAL  设为 1 则【不读 .env.local】—— 用于复现 CI 的条件：
+#                           CI 里没有 .env.local，很多配置不会被隐式补齐
+#                           （本项目真实教训：本地因 .env.local 把执行引擎配齐，
+#                            于是"引擎两侧配置缺失"这类问题在本地永远看不出来）
 #   SCRATCH_ENV_FILE  额外环境变量文件（KEY=VALUE 每行一条），启动实例前 source
 #                     例：把 EXECUTION_PRODUCTION_URL 指向死地址以迫使 failOrRetry；
 #                         或开启 EXECUTION_AUDIT_RETENTION_DAYS 以验证清理器
@@ -82,7 +86,9 @@ assert_scratch_name() {
 dsn_for_scratch() {
   # 环境变量优先，其次 .env.local（本地约定）—— CI 里没有 .env.local。
   local saved="${EXECUTION_DATABASE_URL:-}"
-  set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  if [ "${SCRATCH_SKIP_ENV_LOCAL:-0}" != "1" ]; then
+    set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  fi
   if [ -n "$saved" ]; then EXECUTION_DATABASE_URL="$saved"; fi
   [ -n "${EXECUTION_DATABASE_URL:-}" ] || die "EXECUTION_DATABASE_URL 未设置（导出它，或准备 .env.local）"
   # 只替换【库名】，其余（用户/口令/主机/参数）沿用真实配置
@@ -128,7 +134,11 @@ cmd_up() {
   [ -n "$old" ] && { kill "$old"; sleep 2; echo "   已停旧实例 PID=$old"; }
 
   local saved_dsn="${EXECUTION_DATABASE_URL:-}" saved_tok="${EXECUTION_INTERNAL_TOKEN:-}"
-  set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  if [ "${SCRATCH_SKIP_ENV_LOCAL:-0}" = "1" ]; then
+    echo "   （SCRATCH_SKIP_ENV_LOCAL=1：跳过 .env.local ⇒ 复现 CI 的条件）"
+  else
+    set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  fi
   [ -n "$saved_dsn" ] && EXECUTION_DATABASE_URL="$saved_dsn"
   [ -n "$saved_tok" ] && EXECUTION_INTERNAL_TOKEN="$saved_tok"
   if [ -n "${SCRATCH_ENV_FILE:-}" ]; then
