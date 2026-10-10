@@ -414,3 +414,40 @@ func TestIntegrationTokenUsageRespectsFilters(t *testing.T) {
 		t.Fatalf("按 alice 筛后只应有 7，实际 %+v", got.TokensByModel)
 	}
 }
+
+// 写侧已把 worker 的成功终态归一为 "success"（main.go 的 auditStatusFor），
+// 但**历史行**里还有 "succeeded"：读侧必须仍然认它们，
+// 否则老数据的成功会在「成功」计数与「成功」筛选里凭空消失。
+func TestIntegrationSuccessCountsHistoricalSucceededRows(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	seedAudit(t, s, "ws_hist", "success", 10)   // 归一新写法
+	seedAudit(t, s, "ws_hist", "succeeded", 20) // 历史写法
+	seedAudit(t, s, "ws_hist", "failed", 30)
+
+	got, err := s.Aggregate(ctx, "ws_hist", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// byStatus 保留原始键（如实呈现），归一由 handler 做
+	if got.ByStatus["success"] != 1 || got.ByStatus["succeeded"] != 1 || got.ByStatus["failed"] != 1 {
+		t.Fatalf("byStatus 应保留原始键，实际 %v", got.ByStatus)
+	}
+
+	// 「成功」筛选必须同时命中两种写法
+	logs, total, err := s.ListByWorkspace(ctx, "ws_hist", Filter{Status: "success"}, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 2 || len(logs) != 2 {
+		t.Fatalf("按 success 筛选应命中 2 行（success + 历史 succeeded），实际 total=%d len=%d", total, len(logs))
+	}
+	// 其它状态名不受影响
+	_, failedTotal, err := s.ListByWorkspace(ctx, "ws_hist", Filter{Status: "failed"}, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if failedTotal != 1 {
+		t.Fatalf("按 failed 筛选应命中 1 行，实际 %d", failedTotal)
+	}
+}

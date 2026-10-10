@@ -201,7 +201,10 @@ type Filter struct {
 // whereClause 生成筛选条件（参数从 $2 起，$1 固定为 workspace_id）。
 func (f Filter) whereClause() string {
 	return `
-		AND ($2 = '' OR status = $2)
+		-- ★ 读侧兼容历史行：审计表里曾同时存在 "success"（同步路径）与
+		-- "succeeded"（worker 旧写法）。写侧已归一为 "success"，
+		-- 但**历史行不能因此从「成功」筛选里消失** ⇒ 这里把两者都当作 success。
+		AND ($2 = '' OR status = $2 OR ($2 = 'success' AND status = 'succeeded'))
 		AND ($3 = '' OR model_id = $3)
 		AND ($4 = '' OR channel_id = $4)
 		AND ($5::timestamptz IS NULL OR created_at >= $5)

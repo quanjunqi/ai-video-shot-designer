@@ -46,12 +46,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MAIN_ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
 cd "$ROOT" || exit 2
 
-# .env.local 解析：显式指定 → 本树 → 主 checkout（与 preflight.sh 同一套回退规则）
-ENV_FILE="${SCRATCH_ENV_FILE:-}"
-if [ -z "$ENV_FILE" ]; then
-  if [ -f "$ROOT/.env.local" ]; then ENV_FILE="$ROOT/.env.local"
-  elif [ -n "$MAIN_ROOT" ] && [ -f "$MAIN_ROOT/.env.local" ]; then ENV_FILE="$MAIN_ROOT/.env.local"; fi
-fi
+# 基础环境文件解析：本树 → 主 checkout（与 preflight.sh 同一套回退规则）。
+# ★ 它与 SCRATCH_ENV_FILE 是【两个不同的东西】——ENV_FILE 是基础配置（.env.local：DSN/口令），
+#   SCRATCH_ENV_FILE 只用于**追加/覆盖**。我曾把两者混为一谈 ⇒ 一旦设了 SCRATCH_ENV_FILE，
+#   .env.local 就再也不会被加载，实例因缺 EXECUTION_INTERNAL_TOKEN 直接退出。
+ENV_FILE=""
+if [ -f "$ROOT/.env.local" ]; then ENV_FILE="$ROOT/.env.local"
+elif [ -n "$MAIN_ROOT" ] && [ -f "$MAIN_ROOT/.env.local" ]; then ENV_FILE="$MAIN_ROOT/.env.local"; fi
 
 SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
 SCRATCH_PORT="${SCRATCH_PORT:-8095}"

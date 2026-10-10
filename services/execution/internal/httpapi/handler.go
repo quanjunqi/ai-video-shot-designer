@@ -722,7 +722,9 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 		agg = audit.AggregateResult{ByStatus: nil}
 	}
 	byStatus := agg.ByStatus
-	success := byStatus["success"]
+	// ★ 成功数必须把历史行的 "succeeded" 也算上（写侧已归一为 "success"）：
+	//   否则老数据的成功会在界面上凭空消失。失败态两条路径同名，无需兼容。
+	success := byStatus["success"] + byStatus["succeeded"]
 	successRate := 0.0
 	if total > 0 {
 		successRate = float64(success) / float64(total)
