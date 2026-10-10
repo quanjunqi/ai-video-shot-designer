@@ -288,11 +288,28 @@ func (s Store) ExportAll(ctx context.Context, workspaceID string, f Filter, maxR
 	return logs, rows.Err()
 }
 
-// Aggregate 返回【筛选后全集】的按状态计数与平均耗时（D7a）。
+// AggregateResult 是【筛选后全集】的聚合结果（D7a + ④ §2.3 的耗时百分位）。
+//
+// 用结构体而不是多返回值：聚合维度会增加，多返回值很快就会变成"位置参数猜谜"。
+type AggregateResult struct {
+	ByStatus     map[string]int
+	AvgLatencyMs int
+	// P50/P95：任务卡 §2.3「故障定位」明确要求「P50/P95 耗时」（此前只有平均值）。
+	P50LatencyMs int
+	P95LatencyMs int
+}
+
+// Aggregate 返回【筛选后全集】的按状态计数、平均耗时与耗时百分位（D7a）。
 //
 // 为什么要服务端算：前端此前在【当前页】（limit:100）上算成功率与平均耗时
 // ⇒ 翻页/筛选后"统计"会变，是【假统计】。
-func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (map[string]int, int, error) {
+//
+// ★ 零耗时的处理（与既有平均值保持一致，不是新决定）：
+//
+//	`latency_ms` 是 NOT NULL DEFAULT 0，0 表示"没有测量到"而不是"瞬时完成"。
+//	下面算平均值时本来就跳过了 avg=0 的状态组；百分位因此同样用 `latency_ms > 0` 排除零 ——
+//	否则 2 行未测量的数据会把 P50 直接拉到 0，把"耗时分布"变成假象。
+func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (AggregateResult, error) {
 	rows, err := s.Pool.Query(ctx, `
 		SELECT status, count(*)::int, COALESCE(AVG(latency_ms), 0)::int
 		FROM gateway_audit_logs
@@ -300,19 +317,20 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (map
 		GROUP BY status
 	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
 	if err != nil {
-		return nil, 0, err
+		return AggregateResult{}, err
 	}
 	defer rows.Close()
 
-	byStatus := map[string]int{}
+	var out AggregateResult
+	out.ByStatus = map[string]int{}
 	total, latSum, latN := 0, 0, 0
 	for rows.Next() {
 		var st string
 		var n, avg int
 		if err := rows.Scan(&st, &n, &avg); err != nil {
-			return nil, 0, err
+			return AggregateResult{}, err
 		}
-		byStatus[st] = n
+		out.ByStatus[st] = n
 		total += n
 		if avg > 0 {
 			latSum += avg * n
@@ -320,11 +338,23 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (map
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return nil, 0, err
+		return AggregateResult{}, err
 	}
-	avgLatency := 0
 	if latN > 0 {
-		avgLatency = latSum / latN
+		out.AvgLatencyMs = latSum / latN
 	}
-	return byStatus, avgLatency, nil
+
+	// 耗时百分位：在同一次筛选条件、同一个 workspace 上算（语义与 byStatus 一致：filtered_total）。
+	// percentile_cont 是连续插值；空集返回 NULL ⇒ COALESCE 归 0。
+	if err := s.Pool.QueryRow(ctx, `
+		SELECT
+			COALESCE(percentile_cont(0.50) WITHIN GROUP (ORDER BY latency_ms), 0)::int,
+			COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms), 0)::int
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1 AND latency_ms > 0`+f.whereClause(),
+		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until).
+		Scan(&out.P50LatencyMs, &out.P95LatencyMs); err != nil {
+		return AggregateResult{}, err
+	}
+	return out, nil
 }
