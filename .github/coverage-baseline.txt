@@ -4,7 +4,7 @@
 # 随测试补齐逐步上调（见 docs/development/testing.md §3.3）。
 # 实测日期：2026-10-10
 workspace      15
-production      8
+production      17
 execution      34
 asset          23
 web-bff        23
