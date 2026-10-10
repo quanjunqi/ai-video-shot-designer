@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# 前端质量门禁：提交前强制 npm run gate（严格 typecheck + eslint + quality-gate 静态扫描）
+# 跳过方式（仅紧急场景）：SKIP_GATE=1 git commit
+if [ "$SKIP_GATE" = "1" ]; then
+  echo "[pre-commit] SKIP_GATE=1，跳过质量门禁"
+  exit 0
+fi
+echo "[pre-commit] 运行前端质量门禁（npm run gate）..."
+cd "$(dirname "$0")/../apps/web" || exit 1
+npm run gate
+status=$?
+if [ $status -ne 0 ]; then
+  echo "[pre-commit] ✗ GATE 未通过：请修复后重新提交（或 SKIP_GATE=1 紧急跳过）"
+  exit $status
+fi
+echo "[pre-commit] ✓ GATE 通过"
