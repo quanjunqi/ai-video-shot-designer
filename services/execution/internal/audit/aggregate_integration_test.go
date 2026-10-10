@@ -137,16 +137,25 @@ func TestIntegrationAggregatePercentilesRespectFilters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// ★ 这里刻意钉住【连续插值】的语义：样本是 10,20,…,100（10 个等距点），
-	//   percentile_cont(0.5) = 55（第 5/6 个样本之间），percentile_cont(0.95) = 96。
-	//   若哪天换成 percentile_disc（取实际存在的样本）或换算法，这条会失败并提醒——
-	//   这正是我们想要的：**语义变化必须是有意识的**，而不是悄悄漂移。
-	if got.P50LatencyMs != 55 || got.P95LatencyMs != 96 {
-		t.Fatalf("ws_a 的 P50/P95 应为 55/96（percentile_cont 连续插值），实际 %d/%d", got.P50LatencyMs, got.P95LatencyMs)
+	// ★ 钉住【连续插值】的语义：样本是 10,20,…,100（10 个等距点），P50 落在第 5/6 个样本之间。
+	//   P50=55 是【二进制可精确表示】的值，所以它稳定可钉。
+	if got.P50LatencyMs != 55 {
+		t.Fatalf("ws_a 的 P50 应为 55（连续插值），实际 %d", got.P50LatencyMs)
 	}
-	// 顺带锁住"不是取样本"这一点：55 并不存在于样本集合 {10,20,…,100} 中
+	//   但 P95 不能钉死：0.95 处插值得 95.5，而 percentile_cont 返回 double precision，
+	//   `::int` 对 95.5 的取整受浮点表示影响 —— **实测按平台不同**：
+	//     本地 arm64 → 96 ；CI x86_64 → 95 。
+	//   ⇒ 断言【语义区间】而不是那个数：换成 percentile_disc 会落到 90/100 上，仍会被这条抓住。
+	if got.P95LatencyMs < 95 || got.P95LatencyMs > 96 {
+		t.Fatalf("ws_a 的 P95 应落在 [95,96]（95.5 的取整平台相关），实际 %d", got.P95LatencyMs)
+	}
+	// 锁住"不是取样本"这一点：55 并不存在于样本集合 {10,20,…,100} 中
 	if got.P50LatencyMs%10 == 0 {
 		t.Errorf("P50=%d 恰好落在样本上，看起来像 percentile_disc 而非连续插值", got.P50LatencyMs)
+	}
+	// 顺序性：P95 必须不小于 P50（这条与平台无关）
+	if got.P95LatencyMs < got.P50LatencyMs {
+		t.Errorf("P95(%d) 不应小于 P50(%d)", got.P95LatencyMs, got.P50LatencyMs)
 	}
 	if got.ByStatus["success"] != 10 {
 		t.Fatalf("只应统计 ws_a 的 10 行，实际 %v", got.ByStatus)
