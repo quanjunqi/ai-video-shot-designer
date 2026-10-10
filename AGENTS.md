@@ -146,10 +146,14 @@ ai-video-shot-designer/
 ### 5.1 分支策略
 
 ```
-master (保护分支，禁止直接push)
-  └── feature/xxx (AI工作分支)
+master    (生产分支，受保护、禁止直推)  ← 只接受 develop 的验收通过合并 + hotfix
+  ↑
+develop   (集成分支，受保护)            ← feature 合入 → 在此验收 → 通过后合并到 master
+  ↑
+feature/* (开发分支)                    ← 统一从 develop 拉取
        └── PR → CI → 人类Review → 合并
 ```
+> 三层模型的完整规则见 §12.2；集成分支的存在意义是承载「测试验收」环节。
 
 - **AI 只能在 feature 分支工作**，禁止直接 push master
 - 分支命名：`feature/<任务缩写>-<日期>`，如 `feature/audit-log-1010`
@@ -412,12 +416,6 @@ feature/* ← 开发分支：**统一从 develop 拉取**，完成后 PR 回 dev
 | 合并后删除自己的分支 | 安全；但不影响他人 |
 | **hotfix 例外** | 从 `master` 拉，修完**必须同时合回 `develop`** —— 否则下次 `develop → master` 会覆盖该修复（最常见的生产事故） |
 
-| 规则 | 原因 |
-|---|---|
-| 所有并行线基于 `master` | 堆叠 PR 在有人先合并后会大面积冲突 |
-| **合并方式必须用 merge commit，禁止 squash** | squash 生成新 SHA，会让孩子 PR 的 diff 重新变回全量 |
-| 不要删除他人尚未合并分支的基线分支 | GitHub 会**自动关闭**以它为基线的 PR，且**无法重开**（只能重建 PR） |
-| 合并后删除自己的分支 | 安全；但不影响他人 |
 
 ### 12.3 迁移文件号段分配（必须提前约定）
 
