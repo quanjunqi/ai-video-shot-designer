@@ -560,6 +560,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !hasRef {
+			writeAudit("failed", nil, "image-to-image/image-to-video requires reference_images", "", "")
+			// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 			writeError(w, 422, "MISSING_REFERENCE", "image-to-image/image-to-video requires reference_images")
 			return
 		}
@@ -568,6 +570,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Build runtime using dynamic parameter mapping engine (template-driven, no hardcoding)
 	mappingEngine, err := mapping.NewEngine(tmpl.Capabilities)
 	if err != nil {
+		writeAudit("failed", nil, fmt.Sprintf("failed to create mapping engine: %v", err), "", "")
+		// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 		writeError(w, 500, "MAPPING_ENGINE_ERROR", fmt.Sprintf("failed to create mapping engine: %v", err))
 		return
 	}
@@ -588,6 +592,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Validate required parameters (if template has capability config)
 	if mappingEngine.HasCapability(in.Mode) {
 		if err := mappingEngine.ValidateRequired(in.Mode, mergeInput); err != nil {
+			writeAudit("failed", nil, err.Error(), "", "")
+			// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 			writeError(w, 422, "MISSING_PARAM", err.Error())
 			return
 		}
@@ -596,6 +602,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Apply parameter mapping: unified API params -> model-specific params
 	mappedParams, err := mappingEngine.ApplyMapping(mergeInput, in.Mode)
 	if err != nil {
+		writeAudit("failed", nil, fmt.Sprintf("failed to apply parameter mapping: %v", err), "", "")
+		// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 		writeError(w, 500, "MAPPING_ERROR", fmt.Sprintf("failed to apply parameter mapping: %v", err))
 		return
 	}
@@ -624,6 +632,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 
 	creds, err := h.Creds.Reveal(r.Context(), ws, model.ChannelID)
 	if err != nil {
+		writeAudit("failed", nil, err.Error(), "", "")
+		// D1b：中段失败分支此前【不经过任何 writeAudit】⇒ 不留痕（真机实测 MISSING_PARAM 增量为 0）。
 		writeError(w, 422, "CREDENTIALS_MISSING", err.Error())
 		return
 	}
