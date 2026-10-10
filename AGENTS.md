@@ -338,6 +338,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 | `docs/OBSERVABILITY.md` | 日志/指标/追踪/健康检查规范 | 可观测性约定变更 |
 | `docs/RELEASE.md` | 版本、发布、回滚、热修 | 发布流程变更 |
 | `SECURITY.md` | 安全策略与已知缺口 | 安全基线或信任模型变更 |
+| `docs/BACKLOG.md` | **待办清单（暂缓项 + 启动条件）** | 决定暂缓/启动某项工作时 |
 | `CHANGELOG.md` | 变更记录 | 每个用户可见变更 |
 | `AGENTS.md` | 本文档 | 规则变更必须更新并通知所有 Agent |
 

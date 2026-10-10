@@ -15,6 +15,9 @@
 
 ### Added
 
+- **`docs/BACKLOG.md` 待办清单**：记录已识别但**暂缓**的工作及其**启动条件**，并记入
+  「先做模型中心底座」的决策依据。与 `.github/tasks/`（正在做的事）区分。
+
 - **`auth_type=token`（无前缀 Authorization）**：为对接要求 `Authorization: <Token>`
   的上游（如 AutoDL 的 ComfyUI 工作流 API）而新增。engine 中原先三处硬编码
   `Bearer ` 前缀，现统一走 `applyAuth`；`workspace/005` 与 `production/024`
