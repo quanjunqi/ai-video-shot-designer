@@ -721,9 +721,39 @@ export const api = {
       body: JSON.stringify(params),
     }),
   // Gateway audit logs
-  listAuditLogs: (params?: { limit?: number; offset?: number }) =>
-    request<{ items: AuditLog[]; total: number; limit: number; offset: number }>(
-      `/api/v1/audit/logs${params ? `?limit=${params.limit ?? 50}&offset=${params.offset ?? 0}` : ''}`,
+  listAuditLogs: (params?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    model_id?: string;
+    channel_id?: string;
+    since?: string;
+    until?: string;
+  }) =>
+    request<{
+      items: AuditLog[];
+      total: number;
+      limit: number;
+      offset: number;
+      // D7a/D7b：统计由【服务端】在【筛选后全集】上算。
+      // 此前前端在"当前页"(limit:100) 上算 success/failed/avgLatency ⇒ 翻页或筛选后"统计"会变，是假统计。
+      stats?: {
+        byStatus: Record<string, number>;
+        success: number;
+        successRate: number;
+        avgLatencyMs: number;
+        aggregateOn: string;
+      };
+    }>(
+      `/api/v1/audit/logs?${new URLSearchParams({
+        limit: String(params?.limit ?? 50),
+        offset: String(params?.offset ?? 0),
+        ...(params?.status ? { status: params.status } : {}),
+        ...(params?.model_id ? { model_id: params.model_id } : {}),
+        ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+        ...(params?.since ? { since: params.since } : {}),
+        ...(params?.until ? { until: params.until } : {}),
+      }).toString()}`,
     ),
   // Episodes
   listEpisodes: (projectId: string) =>
