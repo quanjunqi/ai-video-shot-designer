@@ -370,10 +370,11 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
 		return
 	}
-	if h.Catalog == nil || h.Creds == nil || h.EngineClient == nil {
-		writeError(w, 503, "EXECUTION_UNAVAILABLE", "execution engine not configured")
-		return
-	}
+	// D1：审计骨架【前移】到所有早退守卫之前。
+	// 原先 requestID/startTime 与 writeAudit 都定义在 4 个早退守卫【之后】，
+	// 于是任何早退都不留痕（实测：71 个 jobs 只对应 4 条审计，且全停在 queued）。
+	requestID := genRequestID()
+	startTime := time.Now()
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 	var in struct {
 		ModelID    string         `json:"modelId"`
@@ -383,22 +384,53 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		Parameters map[string]any `json:"parameters"`
 		Metadata   map[string]any `json:"metadata"`
 	}
+	var (
+		product   string
+		projectID string
+		episodeID string
+		assetID   string
+	)
+	// auditChannelID 在渠道解析之后填入；解析前为空 —— 这是【诚实】的结果：
+	// 那一刻系统确实还不知道渠道，写空串比事后回填/猜测更可信。
+	var auditChannelID string
+	// writeAudit 写一条审计。审计失败不得阻断主流程，但【必须可见】（D1：不再用 _ = 丢弃）。
+	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
+		if h.AuditStore == nil {
+			return
+		}
+		reqBytes, _ := json.Marshal(map[string]any{"input": in.Input, "parameters": in.Parameters})
+		auditLog := audit.Log{
+			RequestID: requestID, WorkspaceID: ws, ChannelID: auditChannelID,
+			ProjectID: projectID, EpisodeID: episodeID, AssetID: assetID,
+			UserID: actor, Product: product, ModelID: in.ModelID, Mode: in.Mode,
+			RequestPayload: reqBytes, ResponsePayload: respPayload, ErrorMessage: errMsg,
+			Status: status, LatencyMs: int(time.Since(startTime).Milliseconds()),
+			JobID: jobID, ProviderTaskID: providerTaskID, CostCurrency: "CNY",
+		}
+		if err := h.AuditStore.Insert(r.Context(), auditLog); err != nil {
+			slog.Error("audit insert failed", "requestId", requestID, "status", status, "error", err)
+		}
+	}
+	if h.Catalog == nil || h.Creds == nil || h.EngineClient == nil {
+		writeAudit("failed", nil, "execution engine not configured", "", "")
+		writeError(w, 503, "EXECUTION_UNAVAILABLE", "execution engine not configured")
+		return
+	}
+	// Extract product context from metadata
+	product = ""
+	projectID = ""
+	episodeID = ""
+	assetID = ""
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeAudit("failed", nil, "invalid generate request JSON", "", "")
 		writeError(w, 400, "INVALID_BODY", "invalid generate request JSON")
 		return
 	}
 	if in.ModelID == "" {
+		writeAudit("failed", nil, "modelId is required", "", "")
 		writeError(w, 422, "INVALID_GENERATE", "modelId is required")
 		return
 	}
-	// Generate request ID for audit tracing
-	requestID := genRequestID()
-	startTime := time.Now()
-	// Extract product context from metadata
-	product := ""
-	projectID := ""
-	episodeID := ""
-	assetID := ""
 	if in.Metadata != nil {
 		if v, ok := in.Metadata["product"].(string); ok {
 			product = v
@@ -413,36 +445,6 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			assetID = v
 		}
 	}
-	// Helper to write audit log (audit failure should not block main flow)
-	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
-		if h.AuditStore == nil {
-			return
-		}
-		reqBytes, _ := json.Marshal(map[string]any{
-			"input":      in.Input,
-			"parameters": in.Parameters,
-		})
-		auditLog := audit.Log{
-			RequestID:       requestID,
-			WorkspaceID:     ws,
-			ProjectID:       projectID,
-			EpisodeID:       episodeID,
-			AssetID:         assetID,
-			UserID:          actor,
-			Product:         product,
-			ModelID:         in.ModelID,
-			Mode:            in.Mode,
-			RequestPayload:  reqBytes,
-			ResponsePayload: respPayload,
-			ErrorMessage:    errMsg,
-			Status:          status,
-			LatencyMs:       int(time.Since(startTime).Milliseconds()),
-			JobID:           jobID,
-			ProviderTaskID:  providerTaskID,
-			CostCurrency:    "CNY",
-		}
-		_ = h.AuditStore.Insert(r.Context(), auditLog)
-	}
 	// 配额与限流：超限**拒绝**并写审计（status=rate_limited / quota_exceeded），
 	// 让「被限流」「超预算」可查，而不是静默失败或无限放行。
 	if h.Quota != nil {
@@ -456,6 +458,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// Resolve model + template from catalog
 	dir, err := h.Catalog.Get(r.Context(), ws, actor)
 	if err != nil {
+		writeAudit("failed", nil, "catalog unavailable: "+err.Error(), "", "")
 		writeError(w, 503, "CATALOG_UNAVAILABLE", err.Error())
 		return
 	}
@@ -467,10 +470,14 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if model == nil {
+		writeAudit("failed", nil, "model not found in directory", "", "")
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
 	}
+	// 渠道已解析：从此之后的审计都能带上真实 channel_id。
+	auditChannelID = model.ChannelID
 	if model.ProtocolTemplateID == "" {
+		writeAudit("failed", nil, "model has no protocol template", "", "")
 		writeError(w, 422, "MODEL_NO_PROTOCOL", "model has no protocol template")
 		return
 	}
@@ -482,6 +489,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if tmpl == nil {
+		writeAudit("failed", nil, "protocol template not found", "", "")
 		writeError(w, 404, "TEMPLATE_NOT_FOUND", "protocol template not found")
 		return
 	}
