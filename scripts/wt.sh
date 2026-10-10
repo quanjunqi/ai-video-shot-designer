@@ -13,7 +13,10 @@
 #   scripts/wt.sh new <线名> [基线分支]    # 默认 origin/develop
 #   scripts/wt.sh done <线名>
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# ROOT 取【主 worktree】根：不能用 BASH_SOURCE/.. 推导 —— 本脚本自己也住在 worktree 里，
+# 那样算出来的会是 worktree 根（曾导致 worktree 被嵌套创建到 .worktrees/mech/.worktrees/…）。
+ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+if [ -z "$ROOT" ] || [ ! -d "$ROOT/.git" ]; then echo "❌ 无法定位主 worktree 根"; exit 1; fi
 
 case "${1:-}" in
   new)
@@ -23,7 +26,7 @@ case "${1:-}" in
     git fetch -q origin "${base#origin/}" || true
     dir=".worktrees/$name"
     if [ -f "$dir/.git" ]; then
-      echo "❌ 已存在: $dir（收工请用: scripts/wt.sh done $name）"; exit 1
+      echo "❌ 已存在: ${dir}（收工请用: scripts/wt.sh done $name）"; exit 1
     fi
     git worktree add "$dir" -b "chore/$name-$(date +%Y-%m-%d)" "$base"
     # 判据：.git 文件确实存在（不是看命令退出码）

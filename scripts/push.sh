@@ -11,14 +11,14 @@
 #
 # 用法: scripts/push.sh [分支名]     # 默认当前分支
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
 cd "$ROOT"
 
 branch="${1:-$(git rev-parse --abbrev-ref HEAD)}"
 if [ "$branch" = "HEAD" ]; then echo "❌ detached HEAD，请显式指定分支名"; exit 1; fi
 
 base_sha=$(git rev-parse HEAD)          # 推送前基线：用于验证「确实前进了」
-echo "   推送 $branch（推送前基线 ${base_sha:0:7}）"
+echo "   推送 ${branch}（推送前基线 ${base_sha:0:7}）"
 git push -u origin "$branch"
 
 local_sha=$(git rev-parse HEAD)
