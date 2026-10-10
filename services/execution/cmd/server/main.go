@@ -96,6 +96,18 @@ func main() {
 	gate := job.NewSemaphore(maxConcurrent)
 	log.Printf("execution: worker 并发上限 = %d", gate.Cap())
 	go runWorker(store, catalogClient, credsClient, engineClient, gate, auditStore)
+
+	// D6：审计保留期清理。**默认关闭**（天数未设置 = 0）—— 清理是破坏性操作，
+	// 在没有人类显式配置之前不启动，避免"部署一次就默默删掉历史审计"。
+	successDays := envInt("EXECUTION_AUDIT_RETENTION_DAYS", 0)
+	failureDays := envInt("EXECUTION_AUDIT_FAILURE_RETENTION_DAYS", 0)
+	if successDays > 0 || failureDays > 0 {
+		purgeInterval := envDuration("EXECUTION_AUDIT_PURGE_INTERVAL", 24*time.Hour)
+		log.Printf("execution: 审计保留期清理【已启用】成功=%d天 失败=%d天 间隔=%s", successDays, failureDays, purgeInterval)
+		go runAuditPurger(auditStore, successDays, failureDays, purgeInterval)
+	} else {
+		log.Printf("execution: 审计保留期清理【未启用】（需显式设置 EXECUTION_AUDIT_RETENTION_DAYS / EXECUTION_AUDIT_FAILURE_RETENTION_DAYS）")
+	}
 	log.Printf("execution service listening on %s", addr)
 	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
@@ -343,6 +355,57 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 }
 
 // envInt 读取整型环境变量，缺省或非法时返回 def。
+// runAuditPurger 按保留期定期清理审计（D6）。
+//
+// 为什么删除本身要写审计（审计的审计）：
+//
+//	审计系统必须能回答"谁在什么时候删掉了什么"。否则一旦有人打开开关，
+//	历史就会【无声消失】——那正是审计最不该发生的事。
+//	记录挂在 audit.SystemWorkspace 哨兵值下，不会污染任何租户的列表与聚合。
+//
+// 为什么清理失败不影响主流程：清理是后台维护动作，失败只记录并等下一轮；
+// 绝不能因为它让服务不可用。
+func runAuditPurger(as *audit.Store, successDays, failureDays int, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for range ticker.C {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		n, err := as.Purge(ctx, successDays, failureDays)
+		if err != nil {
+			log.Printf("execution: 审计清理失败（等下一轮）: %v", err)
+			cancel()
+			continue
+		}
+		if n > 0 {
+			rec := audit.Log{
+				RequestID:   fmt.Sprintf("req_purge_%d", time.Now().UnixNano()),
+				WorkspaceID: audit.SystemWorkspace,
+				UserID:      "system",
+				Product:     "system",
+				Mode:        "audit_purge",
+				Status:      "success",
+				ResponsePayload: json.RawMessage(fmt.Sprintf(
+					`{"deleted":%d,"successDays":%d,"failureDays":%d}`, n, successDays, failureDays)),
+			}
+			if err := as.Insert(ctx, rec); err != nil {
+				log.Printf("execution: 清理记录写入审计失败: %v", err)
+			}
+		}
+		log.Printf("execution: 审计清理完成，删除 %d 行（成功 >%d天 / 其他 >%d天）", n, successDays, failureDays)
+		cancel()
+	}
+}
+
+// envDuration 读一个 time.Duration 环境变量（如 24h / 30m）；非法或未设置时取默认值。
+func envDuration(key string, def time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			return d
+		}
+	}
+	return def
+}
+
 func envInt(key string, def int) int {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
