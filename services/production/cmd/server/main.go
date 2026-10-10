@@ -44,6 +44,7 @@ func main() {
 		RuleTemplateStore:     ruletemplate.PostgresStore{Pool: pool},
 		IntentStore:           intent.PostgresStore{Pool: pool},
 		CatalogStore:          catalog.PostgresStore{Pool: pool},
+		LogicalModelStore:     catalog.PostgresStore{Pool: pool},
 		ProbeStore:            probe.Store{Pool: pool},
 		Token:                 token,
 		Ready:                 pool.Ping,
