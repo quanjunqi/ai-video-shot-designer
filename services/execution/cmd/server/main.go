@@ -125,6 +125,27 @@ func main() {
 // 【本片明确未覆盖】failOrRetry 触发的终态（重试耗尽 / 死信）：那两处是否终态只有
 // failOrRetry 自己知道，需要它回报终态性 —— 属 D2b。
 func auditTerminal(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte) {
+	// 无用量场景（早退失败、panic 等）：用量本就为 0
+	auditTerminalT(ctx, as, jobID, ok, errMsg, result, 0, 0, 0)
+}
+
+// auditTerminalUsage 在【引擎已返回】的终态上额外记录用量（D4c）。
+//
+// 为什么单独一个函数、而不是给 auditTerminal 加三个参数：
+//
+//	auditTerminal 有 14 处调用点，而【只有引擎成功返回之后】才可能有用量
+//	⇒ 给全部调用点加三个恒为 0 的参数，只会让 12 处噪音掩盖 2 处真实。
+//
+// 为什么必须补（D4a 的缺口）：D4a 只在同步路径记录了 token，worker 传的是
+//
+//	0,0,0 ⇒ **异步任务的 token 恒为 0**，而异步主要是视频类长任务（主要付费路径）。
+func auditTerminalUsage(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, ex map[string]any) {
+	in, out, cached := engine.UsageFromExtracted(ex)
+	auditTerminalT(ctx, as, jobID, ok, errMsg, result, in, out, cached)
+}
+
+// auditTerminalT 是两条入口的公共实现。
+func auditTerminalT(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached int) {
 	if as == nil {
 		return
 	}
@@ -136,7 +157,7 @@ func auditTerminal(ctx context.Context, as *audit.Store, jobID string, ok bool, 
 	if len(result) > 0 {
 		payload = json.RawMessage(result)
 	}
-	n, err := as.UpdateResultByJobID(ctx, jobID, status, payload, errMsg, 0, 0, 0, 0, 0, "")
+	n, err := as.UpdateResultByJobID(ctx, jobID, status, payload, errMsg, 0, tokenIn, tokenOut, tokenCached, 0, "")
 	if err != nil {
 		log.Printf("execution worker: audit update failed for job %s: %v", jobID, err)
 		return
@@ -340,12 +361,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
-		auditTerminal(ctx, as, j.ID, false, "model returned no image URL", resultBytes)
+		auditTerminalUsage(ctx, as, j.ID, false, "model returned no image URL", resultBytes, result.Extracted)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
 	}
 
-	auditTerminal(ctx, as, j.ID, true, "", resultBytes)
+	auditTerminalUsage(ctx, as, j.ID, true, "", resultBytes, result.Extracted)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
