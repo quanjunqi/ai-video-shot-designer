@@ -120,6 +120,46 @@ func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, re
 	return tag.RowsAffected(), nil
 }
 
+// Purge 删除超出保留期的审计行，返回删除行数（D6）。
+//
+// 为什么必须"事务 + SET LOCAL"：
+//
+//	迁移 011 的 trg_audit_logs_guard 默认【拒绝 DELETE】，
+//	只认 `SET LOCAL app.allow_audit_purge = 'on'`；而 SET LOCAL 仅在事务内有效。
+//	⇒ 清理只能以这种方式进行，**"顺手删一条"仍然做不到**（这是刻意的双保险）。
+//
+// 两个窗口（调用方传入，<=0 表示该类不清理）：
+//
+//	success 行保留 successDays 天（合规留痕与成本归因的周期更长）
+//	非 success 行保留 failureDays 天（故障定位的时效更短）
+func (s Store) Purge(ctx context.Context, successDays, failureDays int) (int64, error) {
+	if successDays <= 0 && failureDays <= 0 {
+		return 0, nil // 两个窗口都关闭 ⇒ 什么也不做（绝不在默认状态下删数据）
+	}
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `SET LOCAL app.allow_audit_purge = 'on'`); err != nil {
+		return 0, err
+	}
+	tag, err := tx.Exec(ctx, `
+		DELETE FROM gateway_audit_logs
+		WHERE ($1 > 0 AND status = 'success'  AND created_at < now() - make_interval(days => $1))
+		   OR ($2 > 0 AND status <> 'success' AND created_at < now() - make_interval(days => $2))
+	`, successDays, failureDays)
+	if err != nil {
+		return 0, err
+	}
+	n := tag.RowsAffected()
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
 // Spend 返回某 workspace 的**当日/当月**累计花费（用于成本上限判定）。
 // 依赖 (workspace_id, created_at) 索引（见迁移 009）。
 func (s Store) Spend(ctx context.Context, workspace string) (day float64, month float64, err error) {
@@ -133,6 +173,15 @@ func (s Store) Spend(ctx context.Context, workspace string) (day float64, month 
 }
 
 // ListByWorkspace 按租户查询审计日志
+// SystemWorkspace 是"系统自身动作"（而非某个租户调用）的审计归属（D6）。
+//
+// 为什么用哨兵值而不是挑一个真实 workspace：
+//
+//	清理是【全库】动作，不属于任何租户。若挂到某个真实 workspace 下，
+//	那个租户的列表/聚合里就会凭空多出"删除了 N 行"——是误归因。
+//	用哨兵值则天然隔离：列表与聚合都按 workspace_id 过滤，永不会带出它。
+const SystemWorkspace = "__system__"
+
 // Filter 是审计查询的筛选条件（D7a）。零值表示不筛该项。
 type Filter struct {
 	Status    string
