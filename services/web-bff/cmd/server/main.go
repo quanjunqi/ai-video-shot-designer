@@ -1,0 +1,798 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+)
+
+type server struct {
+	httpClient                                                                                                                               *http.Client
+	workspaceURL, productionURL, assetURL, executionURL, workspaceToken, productionToken, assetToken, executionToken, devWorkspace, devActor string
+}
+
+var errAuthorizationDenied = errors.New("workspace authorization denied")
+
+func main() {
+	s := &server{httpClient: &http.Client{Timeout: 300 * time.Second}, workspaceURL: env("BFF_WORKSPACE_URL", "http://workspace:8082"), productionURL: env("BFF_PRODUCTION_URL", "http://production:8081"), assetURL: env("BFF_ASSET_URL", "http://asset:8084"), executionURL: env("BFF_EXECUTION_URL", "http://execution:8085"), workspaceToken: os.Getenv("WORKSPACE_INTERNAL_TOKEN"), productionToken: os.Getenv("PRODUCTION_INTERNAL_TOKEN"), assetToken: os.Getenv("ASSET_INTERNAL_TOKEN"), executionToken: os.Getenv("EXECUTION_INTERNAL_TOKEN"), devWorkspace: env("BFF_DEV_WORKSPACE_ID", "ws_dev"), devActor: env("BFF_DEV_ACTOR_ID", "user_dev")}
+	if s.workspaceToken == "" || s.productionToken == "" || s.assetToken == "" || s.executionToken == "" {
+		log.Fatal("WORKSPACE_INTERNAL_TOKEN, PRODUCTION_INTERNAL_TOKEN, ASSET_INTERNAL_TOKEN and EXECUTION_INTERNAL_TOKEN must be set")
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /live", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	mux.HandleFunc("GET /ready", s.ready)
+	mux.HandleFunc("/api/v1/comic-projects", s.projects)
+	// The collection and detail endpoints share the same authorization and
+	// trusted-context forwarding path.
+	mux.HandleFunc("/api/v1/comic-projects/", s.projects)
+	mux.HandleFunc("/api/v1/generation-intents", s.generationIntents)
+	mux.HandleFunc("/api/v1/generation-intents/", s.generationIntents)
+	mux.HandleFunc("/api/v1/assets", s.assets)
+	mux.HandleFunc("/api/v1/assets/", s.assets)
+	mux.HandleFunc("/api/v1/tasks", s.tasks)
+	mux.HandleFunc("/api/v1/tasks/", s.tasks)
+	mux.HandleFunc("/api/v1/audit/logs", s.auditLogs)
+	mux.HandleFunc("/api/v1/generate", s.generate)
+	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
+	mux.HandleFunc("/api/v1/catalog", s.catalogProxy)
+	mux.HandleFunc("/api/v1/catalog/", s.catalogProxy)
+	mux.HandleFunc("/api/v1/rule-templates", s.ruleTemplates)
+	mux.HandleFunc("/api/v1/rule-templates/", s.ruleTemplates)
+	mux.HandleFunc("/api/v1/workspace/credentials", s.workspaceCredentials)
+	mux.HandleFunc("/api/v1/workspace/credentials/", s.workspaceCredentials)
+	mux.HandleFunc("/api/v1/workspace/channels", s.workspaceChannels)
+	mux.HandleFunc("/api/v1/workspace/channels/", s.workspaceChannels)
+	addr := env("BFF_LISTEN_ADDR", "0.0.0.0:8080")
+	log.Printf("web bff listening on %s", addr)
+	log.Fatal((&http.Server{Addr: addr, Handler: withTimeout(mux), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+}
+
+func (s *server) generationIntents(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/generation-intents") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, 503, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 512*1024+4096))
+	if err != nil {
+		writeError(w, 400, "INVALID_BODY", "invalid body")
+		return
+	}
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
+	upstreamPath := "/internal/v1" + path
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, 500, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.productionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	for _, key := range []string{"Content-Type", "Idempotency-Key"} {
+		if value := r.Header.Get(key); value != "" {
+			req.Header.Set(key, value)
+		}
+	}
+	if r.Method == http.MethodPost && r.Header.Get("Idempotency-Key") == "" {
+		req.Header.Set("Idempotency-Key", newKey())
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "production service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// channelProbe runs the real connectivity check by orchestrating the
+// platform directory (production catalog base URL) and the tenant credential
+// status (workspace credentials), then performing the actual HTTP round trip
+// here at the edge. Results are always the truth of a real request.
+func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/channels/") || !strings.HasSuffix(r.URL.Path, "/probe") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	channelID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/channels/"), "/probe")
+	if channelID == "" {
+		writeError(w, http.StatusBadRequest, "INVALID_PATH", "channel id is required")
+		return
+	}
+
+	// 0) optional request body: custom channels carry their own baseUrl/authType
+	// (they live in the user workspace, not the platform directory)
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 16*1024))
+	var reqInfo struct {
+		BaseURL  string `json:"baseUrl"`
+		AuthType string `json:"authType"`
+	}
+	if len(body) > 0 {
+		_ = json.Unmarshal(body, &reqInfo)
+	}
+
+	// 1) base URL: request body first (custom channel), platform directory as
+	// the source of truth for builtin channels (prevents tampering)
+	baseURL := strings.TrimSpace(reqInfo.BaseURL)
+	if baseURL == "" {
+		catalogReq, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, s.productionURL+"/internal/v1/catalog", nil)
+		catalogReq.Header.Set("Authorization", "Bearer "+s.productionToken)
+		catalogReq.Header.Set("X-Workspace-Id", s.devWorkspace)
+		catalogReq.Header.Set("X-Actor-Id", s.devActor)
+		catalogResp, err := s.httpClient.Do(catalogReq)
+		if err != nil {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "catalog service unavailable")
+			return
+		}
+		var dir struct {
+			Channels []struct {
+				ID      string `json:"id"`
+				BaseURL string `json:"baseUrl"`
+			} `json:"channels"`
+		}
+		_ = json.NewDecoder(catalogResp.Body).Decode(&dir)
+		catalogResp.Body.Close()
+		for _, c := range dir.Channels {
+			if c.ID == channelID {
+				baseURL = c.BaseURL
+				break
+			}
+		}
+	}
+	if baseURL == "" {
+		writeError(w, http.StatusBadRequest, "INVALID_CHANNEL", "渠道未配置 Base URL（请先在编辑渠道中填写接口地址）")
+		return
+	}
+	// 2) tenant credential status (hasKey + authType; never the key itself)
+	credReq, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, s.workspaceURL+"/internal/v1/workspaces/"+s.devWorkspace+"/credentials", nil)
+	credReq.Header.Set("Authorization", "Bearer "+s.workspaceToken)
+	credResp, err := s.httpClient.Do(credReq)
+	authType, hasKey := reqInfo.AuthType, false
+	if authType == "" {
+		authType = "none"
+	}
+	if err == nil {
+		var creds struct {
+			Items []struct {
+				ChannelID string `json:"channelId"`
+				AuthType  string `json:"authType"`
+				HasKey    bool   `json:"hasKey"`
+			} `json:"items"`
+		}
+		_ = json.NewDecoder(credResp.Body).Decode(&creds)
+		credResp.Body.Close()
+		for _, it := range creds.Items {
+			if it.ChannelID == channelID {
+				authType, hasKey = it.AuthType, it.HasKey
+				break
+			}
+		}
+	}
+
+	// 3) real HTTP probe of the base URL
+	result := map[string]any{"channelId": channelID, "authConfigured": hasKey, "probedAt": time.Now().UTC().Format(time.RFC3339)}
+	probeURL := strings.TrimRight(baseURL, "/")
+	if !strings.HasPrefix(probeURL, "http://") && !strings.HasPrefix(probeURL, "https://") {
+		// 本地端口渠道（ComfyUI/Ollama）允许 host:port 形式，探测时补全 http://
+		probeURL = "http://" + probeURL
+	}
+	probeReq, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, probeURL+"/", nil)
+	probeReq.Header.Set("User-Agent", "JingxuStudio/probe")
+	if hasKey {
+		switch authType {
+		case "bearer":
+			probeReq.Header.Set("Authorization", "Bearer <REDACTED>")
+		case "apikey":
+			probeReq.Header.Set("X-API-Key", "<REDACTED>")
+		case "sign":
+			probeReq.Header.Set("Authorization", "Sign <REDACTED>")
+		}
+	}
+	probeResp, err := s.httpClient.Do(probeReq)
+	if err != nil {
+		result["reachable"] = false
+		result["detail"] = "网络不可达：" + err.Error()
+		writeJSON(w, http.StatusOK, result)
+		return
+	}
+	defer probeResp.Body.Close()
+	result["reachable"] = true
+	result["statusCode"] = probeResp.StatusCode
+	if hasKey {
+		ok := probeResp.StatusCode == http.StatusOK || probeResp.StatusCode == http.StatusCreated || probeResp.StatusCode == http.StatusAccepted
+		result["authOk"] = ok
+		switch probeResp.StatusCode {
+		case http.StatusOK, http.StatusCreated, http.StatusAccepted:
+			result["detail"] = "网络可达，鉴权探测通过（占位凭据；正式调用由 provider 客户端解密执行）"
+		case http.StatusUnauthorized:
+			result["detail"] = "网络可达，鉴权被拒（401：凭据无效或需正式签名）"
+		case http.StatusForbidden:
+			result["detail"] = "网络可达，鉴权被拒（403：无权访问该端点）"
+		default:
+			result["detail"] = "网络可达，鉴权端点返回 " + fmt.Sprintf("%d", probeResp.StatusCode) + "（真实状态如实上报）"
+		}
+	} else {
+		result["detail"] = "网络可达（HTTP " + fmt.Sprintf("%d", probeResp.StatusCode) + "）；未配置凭据，真实鉴权待配置 API Key"
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+// workspaceChannels forwards user-scoped channel CRUD (tenant-owned, NOT the
+// platform catalog) to the workspace service, rewriting
+// /api/v1/workspace/channels[...] onto the internal channels[...] shape.
+func (s *server) workspaceChannels(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/workspace/channels") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
+		return
+	}
+	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/workspace/channels")
+	upstreamPath := "/internal/v1/workspaces/" + s.devWorkspace + "/channels" + rel
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.workspaceURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.workspaceToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if value := r.Header.Get("Content-Type"); value != "" {
+		req.Header.Set("Content-Type", value)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// workspaceCredentials forwards credential write/read/delete to the workspace
+// service, rewriting /api/v1/workspace/credentials[...] onto the internal
+// /internal/v1/workspaces/{workspace_id}/credentials[...] shape.
+func (s *server) workspaceCredentials(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/workspace/credentials") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
+		return
+	}
+	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/workspace/credentials")
+	upstreamPath := "/internal/v1/workspaces/" + s.devWorkspace + "/credentials" + rel
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.workspaceURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.workspaceToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if value := r.Header.Get("Content-Type"); value != "" {
+		req.Header.Set("Content-Type", value)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// catalogProxy forwards the model directory CRUD to the production service
+// (platform-shared default directory). Paths align 1:1 with production routes.
+func (s *server) catalogProxy(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/catalog") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "production authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
+		return
+	}
+	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/catalog")
+	upstreamPath := "/internal/v1/catalog" + rel
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.productionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if value := r.Header.Get("Content-Type"); value != "" {
+		req.Header.Set("Content-Type", value)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// ruleTemplates forwards the rule template CRUD to the production service.
+func (s *server) ruleTemplates(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/rule-templates") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodPatch && r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "production authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
+		return
+	}
+	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/rule-templates")
+	upstreamPath := "/internal/v1/rule-templates" + rel
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.productionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if value := r.Header.Get("Content-Type"); value != "" {
+		req.Header.Set("Content-Type", value)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+func (s *server) ready(w http.ResponseWriter, r *http.Request) {
+	if err := s.check(r.Context(), s.workspaceURL+"/ready", s.workspaceToken); err != nil {
+		http.Error(w, "workspace unavailable", 503)
+		return
+	}
+	if err := s.check(r.Context(), s.productionURL+"/ready", s.productionToken); err != nil {
+		http.Error(w, "production unavailable", 503)
+		return
+	}
+	if err := s.check(r.Context(), s.assetURL+"/ready", s.assetToken); err != nil {
+		http.Error(w, "asset unavailable", 503)
+		return
+	}
+	if err := s.check(r.Context(), s.executionURL+"/ready", s.executionToken); err != nil {
+		http.Error(w, "execution unavailable", 503)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *server) tasks(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/tasks") {
+		http.NotFound(w, r)
+		return
+	}
+	allowed := r.Method == http.MethodGet || r.Method == http.MethodPost
+	if strings.HasSuffix(r.URL.Path, "/cancel") || strings.HasSuffix(r.URL.Path, "/retry") {
+		allowed = r.Method == http.MethodPost
+	}
+	if !allowed {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, 503, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
+	if err != nil {
+		writeError(w, 400, "INVALID_BODY", "invalid body")
+		return
+	}
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
+	upstreamPath := "/internal/v1" + path
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.executionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, 500, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	for _, key := range []string{"Content-Type", "Content-Length", "Idempotency-Key"} {
+		if value := r.Header.Get(key); value != "" {
+			req.Header.Set(key, value)
+		}
+	}
+	if r.Method == http.MethodPost && r.Header.Get("Idempotency-Key") == "" && strings.TrimSuffix(path, "/") == "/tasks" {
+		req.Header.Set("Idempotency-Key", newKey())
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	// 任务状态查询禁止缓存，确保前端轮询时始终拿到最新数据
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// generate forwards unified model gateway requests to execution /v1/generate.
+func (s *server) generate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, 503, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
+	if err != nil {
+		writeError(w, 400, "INVALID_BODY", "invalid body")
+		return
+	}
+	upstreamPath := "/v1/generate"
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.executionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, 500, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	for _, key := range []string{"Content-Type", "Content-Length"} {
+		if value := r.Header.Get(key); value != "" {
+			req.Header.Set(key, value)
+		}
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// auditLogs forwards audit log queries to execution /internal/v1/audit/logs.
+func (s *server) auditLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, 503, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	upstreamPath := "/internal/v1/audit/logs"
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.executionURL+upstreamPath, nil)
+	if err != nil {
+		writeError(w, 500, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+func (s *server) assets(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/assets") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodPut {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
+	upstreamPath := "/internal/v1" + path
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.assetURL+upstreamPath, r.Body)
+	if err != nil {
+		writeError(w, 500, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.assetToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	for _, key := range []string{"Content-Type", "Content-Length", "Idempotency-Key"} {
+		if value := r.Header.Get(key); value != "" {
+			req.Header.Set(key, value)
+		}
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "asset service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+func (s *server) projects(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/comic-projects") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodDelete && r.Method != http.MethodPatch {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
+	if err != nil {
+		http.Error(w, "invalid body", 400)
+		return
+	}
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
+	upstreamPath := "/internal/v1" + path
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		http.Error(w, "request failed", 500)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.productionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if key := r.Header.Get("Idempotency-Key"); key != "" {
+		req.Header.Set("Idempotency-Key", key)
+	} else if r.Method == http.MethodPost {
+		req.Header.Set("Idempotency-Key", newKey())
+	}
+	if r.Method == http.MethodPost || r.Method == http.MethodPatch {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "project service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+func (s *server) authorize(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.workspaceURL+"/internal/v1/workspaces/"+s.devWorkspace+"/authorize?actor_id="+s.devActor, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.workspaceToken)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusForbidden {
+		return errAuthorizationDenied
+	}
+	if resp.StatusCode >= 300 {
+		return errors.New("workspace authorization upstream failure")
+	}
+	return nil
+}
+func (s *server) check(ctx context.Context, url, token string) error {
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return io.EOF
+	}
+	return nil
+}
+func withTimeout(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 全局禁用缓存：所有API响应都不允许浏览器/代理缓存，确保轮询任务始终拿到最新数据
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		// 与 httpClient(180s) 对齐：tasks 同步测试会真实等待上游文本/图片生成（可达 120s+）
+		ctx, cancel := context.WithTimeout(r.Context(), 300*time.Second)
+		defer cancel()
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+func copyHeaders(dst, src http.Header) {
+	if v := src.Get("Content-Type"); v != "" {
+		dst.Set("Content-Type", v)
+	}
+	if v := src.Get("Location"); v != "" {
+		dst.Set("Location", v)
+	}
+}
+func writeError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"code": code, "message": message})
+}
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+func newKey() string {
+	var b [16]byte
+	_, _ = rand.Read(b[:])
+	return "bff_" + hex.EncodeToString(b[:])
+}
+func env(k, fallback string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return fallback
+}

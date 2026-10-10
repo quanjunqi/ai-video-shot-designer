@@ -1,0 +1,61 @@
+# 环境变量
+.env
+.env.local
+.env.*.local
+deploy/local/.env
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 依赖
+node_modules/
+**/node_modules/
+vendor/
+
+# 构建产物
+dist/
+build/
+out/
+.next/
+.nuxt/
+.turbo/
+**/dist/
+**/build/
+
+# Go 编译产物（AGENTS.md §8.3 约定输出到 /tmp/mdp-bin/，此处兜底本地误建）
+services/*/server
+services/*/outbox-relay
+services/*/*.test
+*.exe
+
+# 运行时
+outputs/
+runs/
+logs/
+*.log
+/tmp/
+/tmp/mdp-bin/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 临时文件
+*.tmp
+*.temp

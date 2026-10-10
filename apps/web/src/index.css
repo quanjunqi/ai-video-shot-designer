@@ -1,0 +1,5 @@
+@import url('https://miaoda.feishu.cn/fonts/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./tailwind-theme.css";
+@import "./typography.css";

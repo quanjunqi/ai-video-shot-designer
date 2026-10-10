@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  # 所有 PR 都跑门禁，不限基线分支：
+  # AGENTS.md §6.3 要求「PR 合并前必须通过 typecheck + lint + 单元测试」，
+  # 而 stacked PR（基线为另一个 feature 分支）此前被 branches 过滤掉、完全不跑 CI。
+  pull_request:
+
+jobs:
+  # 前端质量门禁
+  frontend:
+    name: Frontend Quality Gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint:eslint
+
+      - name: Quality gate
+        run: npm run gate
+
+      - name: Unit tests
+        run: npm test
+
+  # 后端编译和测试
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [workspace, production, execution, asset, web-bff, outbox-relay]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: services/${{ matrix.service }}/go.sum
+
+      - name: Build
+        run: go build ./...
+        working-directory: services/${{ matrix.service }}
+
+      - name: Vet
+        run: go vet ./...
+        working-directory: services/${{ matrix.service }}
+
+      - name: Test
+        run: go test ./... -v -race -coverprofile=coverage.out
+        working-directory: services/${{ matrix.service }}
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: services/${{ matrix.service }}/coverage.out
+
+  # 安全扫描
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./services/...
+
+      - name: NPM audit
+        run: npm audit --audit-level=high
+        working-directory: apps/web
+        continue-on-error: true
+
+  # 文档检查
+  docs:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check AGENTS.md exists
+        run: test -f AGENTS.md
+
+      - name: Check TECHNICAL_ARCHITECTURE.md exists
+        run: test -f docs/TECHNICAL_ARCHITECTURE.md
+
+      - name: Check ADR directory exists
+        run: test -d docs/adr
+
+  # 合并检查（所有检查通过后）
+  merge-check:
+    name: Merge Check
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, security, docs]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: All checks passed
+        run: echo "All CI checks passed. Ready for human review."

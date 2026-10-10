@@ -1,0 +1,237 @@
+// Package catalog owns the platform-shared model directory:
+// channels (L1 model sources) + model_catalog (L2 models, L3 capability/billing).
+// Capability/billing is stored as opaque JSONB (schema matches the web catalog),
+// so the web catalog stays the single source of truth for field shape.
+package catalog
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+)
+
+var (
+	ErrNotFound          = errors.New("catalog: not found")
+	ErrDuplicate         = errors.New("catalog: duplicate")
+	ErrInvalidChannel    = errors.New("catalog: invalid channel")
+	ErrInvalidType       = errors.New("catalog: invalid model type")
+	ErrInvalidStatus     = errors.New("catalog: invalid model status")
+	ErrInvalidCapability = errors.New("catalog: invalid capability json")
+	ErrBuiltinProtected  = errors.New("catalog: builtin template is protected")
+	ErrTemplateInUse     = errors.New("catalog: template referenced by models")
+)
+
+type Channel struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Kind     string `json:"kind"`
+	BaseURL  string `json:"baseUrl"`
+	AuthType string `json:"authType"`
+	Enabled  bool   `json:"enabled"`
+	Note     string `json:"note"`
+	Sort     int    `json:"sort"`
+}
+
+type Model struct {
+	ID                 string          `json:"id"`
+	ChannelID          string          `json:"channelId"`
+	Family             string          `json:"family"`
+	Name               string          `json:"name"`
+	ProviderModel      string          `json:"providerModel"`
+	Type               string          `json:"type"`
+	Status             string          `json:"status"`
+	Sort               int             `json:"sort"`
+	Note               string          `json:"note"`
+	ProtocolTemplateID string          `json:"protocolTemplateId"`
+	RequestPath        string          `json:"requestPath"`
+	Method             string          `json:"method"`
+	Params             json.RawMessage `json:"params"`
+	ResponseParams     json.RawMessage `json:"responseParams"`
+	Capability         json.RawMessage `json:"capability"`
+	Version            int             `json:"version"`
+}
+
+// ProtocolTemplate：协议模板实体（独立可管理）。
+// 模板修改一处生效于全部引用模型；模型级字段为覆盖层（模板默认值 → 模型覆盖值）。
+// Type 声明模板适用的模型类型：text / image / video / all（all 全类型通用，如聚合网关）。
+type ProtocolTemplate struct {
+	ID             string          `json:"id"`
+	Label          string          `json:"label"`
+	Desc           string          `json:"desc"`
+	Type           string          `json:"type"`
+	Method         string          `json:"method"`
+	RequestPath    string          `json:"requestPath"`
+	Params         json.RawMessage `json:"params"`
+	ResponseParams json.RawMessage `json:"responseParams"`
+	Async          json.RawMessage `json:"async,omitempty"`
+	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	Builtin        bool            `json:"builtin"`
+	Enabled        bool            `json:"enabled"`
+	RefCount       int             `json:"refCount"`
+	Version        int             `json:"version"`
+}
+
+type ProtocolTemplatePatch struct {
+	Label          string          `json:"label,omitempty"`
+	Desc           string          `json:"desc,omitempty"`
+	Type           string          `json:"type,omitempty"`
+	Method         string          `json:"method,omitempty"`
+	RequestPath    string          `json:"requestPath,omitempty"`
+	Params         json.RawMessage `json:"params,omitempty"`
+	ResponseParams json.RawMessage `json:"responseParams,omitempty"`
+	Async          json.RawMessage `json:"async,omitempty"`
+	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	Enabled        *bool           `json:"enabled,omitempty"`
+}
+
+func (t *ProtocolTemplatePatch) Validate() error {
+	if t.Type != "" && t.Type != "text" && t.Type != "image" && t.Type != "video" && t.Type != "all" {
+		return errors.New("catalog: invalid template type")
+	}
+	if t.Method != "" && t.Method != "POST" && t.Method != "GET" {
+		return errors.New("catalog: invalid method")
+	}
+	if len(t.Params) > 0 {
+		var probe any
+		if err := json.Unmarshal(t.Params, &probe); err != nil {
+			return errors.New("catalog: invalid params")
+		}
+	}
+	if len(t.ResponseParams) > 0 {
+		var probe any
+		if err := json.Unmarshal(t.ResponseParams, &probe); err != nil {
+			return errors.New("catalog: invalid response params")
+		}
+	}
+	if len(t.Async) > 0 && string(t.Async) != "null" {
+		var probe any
+		if err := json.Unmarshal(t.Async, &probe); err != nil {
+			return errors.New("catalog: invalid async declaration")
+		}
+	}
+	return nil
+}
+
+type Directory struct {
+	Channels  []Channel           `json:"channels"`
+	Models    []Model             `json:"models"`
+	Templates []ProtocolTemplate `json:"templates"`
+}
+
+type ModelPatch struct {
+	ChannelID     string          `json:"channelId,omitempty"`
+	Family        string          `json:"family,omitempty"`
+	Name          string          `json:"name,omitempty"`
+	ProviderModel string          `json:"providerModel,omitempty"`
+	Type          string          `json:"type,omitempty"`
+	Status        string          `json:"status,omitempty"`
+	Sort          *int            `json:"sort,omitempty"`
+	Note          string          `json:"note,omitempty"`
+	ProtocolTemplateID string     `json:"protocolTemplateId,omitempty"`
+	RequestPath   string          `json:"requestPath,omitempty"`
+	Method        string          `json:"method,omitempty"`
+	Params        json.RawMessage `json:"params,omitempty"`
+	ResponseParams json.RawMessage `json:"responseParams,omitempty"`
+	Capability    json.RawMessage `json:"capability,omitempty"`
+}
+
+type ChannelPatch struct {
+	Name     string `json:"name,omitempty"`
+	BaseURL  string `json:"baseUrl,omitempty"`
+	AuthType string `json:"authType,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+	Note     string `json:"note,omitempty"`
+	Sort     *int   `json:"sort,omitempty"`
+}
+
+func (m *ModelPatch) Validate() error {
+	if m.Type != "" && m.Type != "text" && m.Type != "image" && m.Type != "video" {
+		return ErrInvalidType
+	}
+	if m.Status != "" && m.Status != "enabled" && m.Status != "disabled" {
+		return ErrInvalidStatus
+	}
+	if len(m.Capability) > 0 {
+		var probe any
+		if err := json.Unmarshal(m.Capability, &probe); err != nil {
+			return ErrInvalidCapability
+		}
+	}
+	return nil
+}
+
+func (p *ChannelPatch) Validate() error {
+	if p.AuthType != "" && p.AuthType != "bearer" && p.AuthType != "apikey" && p.AuthType != "sign" && p.AuthType != "none" {
+		return errors.New("catalog: invalid auth type")
+	}
+	return nil
+}
+
+func isModelID(id string) bool {
+	return len(id) == 24 && strings.HasPrefix(id, "mod_")
+}
+
+func (m Model) Validate() error {
+	if m.Method != "" && m.Method != "POST" && m.Method != "GET" {
+		return fmt.Errorf("catalog: invalid method")
+	}
+	switch {
+	case !isModelID(m.ID):
+		return errors.New("catalog: id must be mod_ + 24 chars")
+	case m.ChannelID == "":
+		return ErrInvalidChannel
+	case strings.TrimSpace(m.Name) == "":
+		return errors.New("catalog: name is required")
+	case m.Type != "text" && m.Type != "image" && m.Type != "video":
+		return ErrInvalidType
+	case m.Status != "enabled" && m.Status != "disabled":
+		return ErrInvalidStatus
+	}
+	if len(m.Capability) == 0 {
+		m.Capability = []byte("{}")
+	}
+	var probe any
+	if err := json.Unmarshal(m.Capability, &probe); err != nil {
+		return ErrInvalidCapability
+	}
+	return nil
+}
+
+type Store interface {
+	Directory(context.Context) (Directory, error)
+	GetModel(context.Context, string) (Model, error)
+	CreateModel(context.Context, string, Model) (Model, bool, error) // (model, duplicate, err)
+	UpdateModel(context.Context, string, ModelPatch) (Model, error)
+	UpdateChannel(context.Context, string, ChannelPatch) (Channel, error)
+}
+
+func normalizeModelPatch(p ModelPatch) (ModelPatch, error) {
+	if p.Method != "" && p.Method != "POST" && p.Method != "GET" {
+		return p, fmt.Errorf("catalog: invalid method")
+	}
+	if p.Capability != nil && len(p.Capability) == 0 {
+		p.Capability = []byte("{}")
+	}
+	return p, p.Validate()
+}
+
+func randomHex(n int) string {
+	b := make([]byte, (n+1)/2)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%d", timeNowNanos())
+	}
+	return hex.EncodeToString(b)[:n]
+}
+
+func modelID() string {
+	return "mod_" + randomHex(20)
+}
+
+func timeNowNanos() int64 {
+	return time.Now().UnixNano()
+}
