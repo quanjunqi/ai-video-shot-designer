@@ -125,6 +125,7 @@ export default function CreateWorkbench({
   const [refs, setRefs] = useState<RefItem[]>([]);
   const [jobs, setJobs] = useState<ServerTask[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState<string>();
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
@@ -140,8 +141,14 @@ export default function CreateWorkbench({
     try {
       const result = await api.listTasks(undefined, kind);
       setJobs(result.items.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)));
+      setJobsError(undefined);
     } catch (cause) {
-      if (mode !== 'poll') toast.error(cause instanceof Error ? cause.message : '任务服务暂时不可用');
+      const message = cause instanceof Error ? cause.message : '任务服务暂时不可用';
+      // 轮询失败不打断用户，但要有可恢复的错误态可查（避免把"服务不可用"显示成"结果为空"）
+      if (mode !== 'poll') {
+        setJobsError(message);
+        toast.error(message);
+      }
     } finally {
       if (mode === 'boot') setLoadingJobs(false);
       if (mode === 'manual') setRefreshing(false);
@@ -685,9 +692,32 @@ export default function CreateWorkbench({
           </Button>
         </div>
 
+        {/* 已有结果但刷新失败：保留旧数据，同时如实提示 */}
+        {jobsError && jobs.length > 0 && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-[10px] text-destructive">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">刷新失败：{jobsError}（以下为上次成功获取的结果）</span>
+            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px]" onClick={() => void loadJobs('manual')}>
+              重试
+            </Button>
+          </div>
+        )}
+
         {loadingJobs ? (
           <div className="flex flex-1 items-center justify-center gap-2 py-20 text-xs text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> 正在加载任务
+          </div>
+        ) : jobsError && jobs.length === 0 ? (
+          /* 服务不可用必须与"结果为空"区分开：前者可重试，后者是真实空态 */
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-16 text-center">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-destructive">任务服务暂时不可用</div>
+              <div className="text-[11px] text-muted-foreground">{jobsError}</div>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => void loadJobs('manual')}>
+              <RefreshCw className="mr-1 h-3.5 w-3.5" /> 重试
+            </Button>
           </div>
         ) : jobs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
