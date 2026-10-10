@@ -65,7 +65,7 @@
 | **浏览器到 BFF 无真实身份校验**（无 OIDC/JWT） | 身份可伪造；BFF 使用 `BFF_DEV_WORKSPACE_ID`/`BFF_DEV_ACTOR_ID` 固定开发身份。越权仍会被 workspace 授权拦截，但**身份本身不可信** | 未实现 |
 | 服务间为**静态共享令牌** | 非 mTLS、非短期凭证；令牌泄露即横向可达 | 未实现 |
 | **审计写入失败被静默忽略** | `_ = h.AuditStore.Insert(...)` → 审计记录可能静默丢失，破坏可追溯性 | 未修复 |
-| 无速率限制 / 配额 | 网关无并发闸门，可能被刷爆上游配额 | 未实现（Phase 3） |
+| ~~无速率限制 / 配额~~ **已缓解** | 现按 workspace 做 QPS 令牌桶 + 日/月成本上限，超限返回 429 并写审计（`rate_limited` / `quota_exceeded`）；worker 并发有闸门。**注意成本上限默认不限制**，需按业务额度显式配置 `EXECUTION_DAILY_COST_LIMIT` / `EXECUTION_MONTHLY_COST_LIMIT` | 已实现（2026-10-10） |
 | 无 CDN/WAF/TLS 终止说明 | 生产边界尚未落地 | 未交付 |
 | 无备份与恢复流程 | 数据损坏无法回滚 | 未交付 |
 | **依赖漏洞门禁曾长期空转** | `apps/web/.npmrc` 指向 npmmirror，该镜像**未实现 audit 端点**（`NOT_IMPLEMENTED`）；CI 中该步骤又是 `continue-on-error: true`。两者叠加导致**依赖漏洞检查从未真正生效**。改用官方 registry 后实测：生产依赖 4 个 moderate（0 high / 0 critical），**开发构建链 2 critical + 20 high**（集中在 `concurrently`→`shell-quote`、eslint、vite、`@tailwindcss/node`） | 生产依赖已改为**阻断**；dev 链存量待修（见 `CHANGELOG.md` Known Issues） |

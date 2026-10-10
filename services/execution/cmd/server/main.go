@@ -21,6 +21,7 @@ import (
 	"shotdesigner/services/execution/internal/httpapi"
 	"shotdesigner/services/execution/internal/job"
 	"shotdesigner/services/execution/internal/netguard"
+	"shotdesigner/services/execution/internal/quota"
 )
 
 // jobPayload is the structured payload stored in job.intent_payload for model execution jobs.
@@ -77,12 +78,18 @@ func main() {
 		upstreamPolicy.AllowPrivate, len(upstreamPolicy.AllowedHosts))
 	// 并发闸门：原先每任务直接起 goroutine、**无上限**，一次批量提交就会同时
 	// 打满上游配额并耗尽本进程连接/内存。容量可配，默认 8。
+	// 配额与限流：QPS 令牌桶 + 日/月成本上限（默认 QPS 宽松、成本不限制）
+	quotaCfg := quota.FromEnv(os.Getenv)
+	quotaLimiter := quota.New(quotaCfg, auditStore)
+	log.Printf("execution: 配额 qps=%v burst=%d 日上限=%v 月上限=%v",
+		quotaCfg.QPS, quotaCfg.Burst, quotaCfg.DailyCostLimit, quotaCfg.MonthlyCostLimit)
+
 	maxConcurrent := envInt("EXECUTION_MAX_CONCURRENT_JOBS", 8)
 	gate := job.NewSemaphore(maxConcurrent)
 	log.Printf("execution: worker 并发上限 = %d", gate.Cap())
 	go runWorker(store, catalogClient, credsClient, engineClient, gate)
 	log.Printf("execution service listening on %s", addr)
-	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.

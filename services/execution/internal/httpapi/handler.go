@@ -21,6 +21,7 @@ import (
 	"shotdesigner/services/execution/internal/engine"
 	"shotdesigner/services/execution/internal/job"
 	"shotdesigner/services/execution/internal/mapping"
+	"shotdesigner/services/execution/internal/quota"
 )
 
 type Handler struct {
@@ -31,6 +32,8 @@ type Handler struct {
 	Creds        *creds.Client
 	EngineClient *http.Client
 	AuditStore   *audit.Store
+	// Quota 为 nil 时不做限流与成本判定（便于渐进启用与测试）
+	Quota *quota.Limiter
 }
 
 type Store interface {
@@ -434,6 +437,16 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = h.AuditStore.Insert(r.Context(), auditLog)
 	}
+	// 配额与限流：超限**拒绝**并写审计（status=rate_limited / quota_exceeded），
+	// 让「被限流」「超预算」可查，而不是静默失败或无限放行。
+	if h.Quota != nil {
+		if d := h.Quota.Check(r.Context(), ws); !d.Allowed {
+			writeAudit(d.Status, nil, d.Reason, "", "")
+			writeError(w, http.StatusTooManyRequests, strings.ToUpper(d.Status), d.Reason)
+			return
+		}
+	}
+
 	// Resolve model + template from catalog
 	dir, err := h.Catalog.Get(r.Context(), ws, actor)
 	if err != nil {
