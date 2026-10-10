@@ -37,6 +37,14 @@ func (s *fakeStore) List(_ context.Context, workspace string, _ int) (project.Li
 	return project.ListResult{Items: []project.Project{s.result}}, s.err
 }
 
+func (s *fakeStore) Delete(_ context.Context, _, _ string) error {
+	return s.err
+}
+
+func (s *fakeStore) Update(_ context.Context, _, _ string, _ project.UpdateInput) (project.Project, error) {
+	return s.result, s.err
+}
+
 func request(method, path, body string) *http.Request {
 	r := httptest.NewRequest(method, path, strings.NewReader(body))
 	r.Header.Set("Authorization", "Bearer test-token")
@@ -49,7 +57,7 @@ func request(method, path, body string) *http.Request {
 func validJSON() string {
 	data, _ := json.Marshal(project.CreateInput{
 		Title: "测试", StyleID: "style-1", StyleVersion: "v1", AspectRatio: "16:9",
-		DefaultImageModel: "image-1", DefaultVideoModel: "video-1", SourceText: strings.Repeat("字", 100),
+		DefaultTextModel: "text-1", DefaultImageModel: "image-1", DefaultVideoModel: "video-1", SourceText: strings.Repeat("字", 100),
 	})
 	return string(data)
 }

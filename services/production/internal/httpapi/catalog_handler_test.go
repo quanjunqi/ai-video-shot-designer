@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"shotdesigner/services/production/internal/catalog"
@@ -27,6 +28,15 @@ func (s stubCatalogStore) UpdateModel(context.Context, string, string, catalog.M
 }
 func (s stubCatalogStore) UpdateChannel(context.Context, string, catalog.ChannelPatch) (catalog.Channel, error) {
 	return catalog.Channel{}, catalog.ErrNotFound
+}
+func (s stubCatalogStore) CreateTemplate(context.Context, string, catalog.ProtocolTemplate) (catalog.ProtocolTemplate, bool, error) {
+	return catalog.ProtocolTemplate{}, false, nil
+}
+func (s stubCatalogStore) UpdateTemplate(context.Context, string, string, catalog.ProtocolTemplatePatch) (catalog.ProtocolTemplate, error) {
+	return catalog.ProtocolTemplate{}, catalog.ErrNotFound
+}
+func (s stubCatalogStore) DeleteTemplate(context.Context, string) error {
+	return catalog.ErrNotFound
 }
 
 func TestGetCatalog(t *testing.T) {
@@ -71,12 +81,10 @@ func TestGetCatalogUnauthenticated(t *testing.T) {
 func TestUpdateModelRejectsUnknownID(t *testing.T) {
 	h := Handler{Token: "secret", CatalogStore: stubCatalogStore{}}
 	body := `{"sort":9}`
-	req := httptest.NewRequest(http.MethodPut, "/internal/v1/catalog/models/not-a-model", nil)
+	req := httptest.NewRequest(http.MethodPut, "/internal/v1/catalog/models/not-a-model", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set("X-Workspace-Id", "ws_1")
 	req.Header.Set("X-Actor-Id", "usr_1")
-	req.Body = http.NoBody
-	_ = body
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {

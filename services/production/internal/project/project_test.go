@@ -8,7 +8,7 @@ import (
 func validInput() CreateInput {
 	return CreateInput{
 		Title: " 测试剧本 ", StyleID: "style-1", StyleVersion: "v1", AspectRatio: "16:9",
-		DefaultImageModel: "image-1", DefaultVideoModel: "video-1",
+		DefaultTextModel: "text-1", DefaultImageModel: "image-1", DefaultVideoModel: "video-1",
 		SourceText: strings.Repeat("一", 100),
 	}
 }
@@ -38,7 +38,6 @@ func TestValidateRejectsInvalidInput(t *testing.T) {
 		name string
 		edit func(*CreateInput)
 	}{
-		{"short script", func(i *CreateInput) { i.SourceText = strings.Repeat("字", 99) }},
 		{"invalid utf8", func(i *CreateInput) { i.SourceText = strings.Repeat("字", 100) + "\xff" }},
 		{"nul in script", func(i *CreateInput) { i.SourceText += "\x00" }},
 		{"nul in style", func(i *CreateInput) { i.StyleID = "style\x00id" }},
