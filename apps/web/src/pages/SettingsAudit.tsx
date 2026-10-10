@@ -32,7 +32,7 @@ function formatLatency(ms: number) {
  * D7b：把服务端返回的 stats 归一化为界面计数。
  * 缺失时回退 0 —— 【不假装有数据】：与服务端未聚合时的行为一致（stats 为 undefined）。
  */
-function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number; p50LatencyMs?: number; p95LatencyMs?: number; topErrors?: { key: string; sample: string; count: number }[] } }) {
+function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number; p50LatencyMs?: number; p95LatencyMs?: number; topErrors?: { key: string; sample: string; count: number }[]; tokensByModel?: { key: string; input: number; output: number; cached: number; calls: number }[]; tokensByChannel?: { key: string; input: number; output: number; cached: number; calls: number }[] } }) {
   return {
     total: res.total,
     success: res.stats?.byStatus?.success ?? 0,
@@ -42,6 +42,9 @@ function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, num
     p50LatencyMs: res.stats?.p50LatencyMs ?? 0,
     p95LatencyMs: res.stats?.p95LatencyMs ?? 0,
     topErrors: res.stats?.topErrors ?? [],
+    // ④ §2.2 成本归因的 SUM 维度（缺失回退空数组：不假装有数据）
+    tokensByModel: res.stats?.tokensByModel ?? [],
+    tokensByChannel: res.stats?.tokensByChannel ?? [],
   };
 }
 
@@ -51,7 +54,7 @@ export default function SettingsAuditPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
   // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
-  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number; topErrors: { key: string; sample: string; count: number }[] } | null>(null);
+  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number; topErrors: { key: string; sample: string; count: number }[]; tokensByModel: { key: string; input: number; output: number; cached: number; calls: number }[]; tokensByChannel: { key: string; input: number; output: number; cached: number; calls: number }[] } | null>(null);
   // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
   const [status, setStatus] = useState('');
   // 任务卡 §2.1：按【人/项目】筛选 —— 必须是**服务端**筛选（否则列表看着筛过了、
@@ -210,6 +213,39 @@ export default function SettingsAuditPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* ④ §2.2「成本归因」的 SUM 维度：token 用量。
+          金额 SUM 待计费单位确定（D4b）—— 现在做会恒定显示 0，反而误导，故此处只呈现 token。
+          数据全部来自服务端 stats（护栏测试钉住）；无用量时整块不渲染（不假装有数据）。 */}
+      {((stats?.tokensByModel?.length ?? 0) > 0 || (stats?.tokensByChannel?.length ?? 0) > 0) && (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Token 用量（输入 / 输出）</div>
+          <div className="mt-2 grid gap-3 md:grid-cols-2">
+            <div>
+              <div className="text-[10px] text-muted-foreground">按模型</div>
+              <ul className="mt-0.5 space-y-0.5">
+                {(stats?.tokensByModel ?? []).map((t) => (
+                  <li key={t.key} className="flex items-baseline gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-mono text-foreground" title={t.key}>{t.key}</span>
+                    <span className="shrink-0 font-mono text-muted-foreground">{t.input} / {t.output}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground">按渠道</div>
+              <ul className="mt-0.5 space-y-0.5">
+                {(stats?.tokensByChannel ?? []).map((t) => (
+                  <li key={t.key} className="flex items-baseline gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-mono text-foreground" title={t.key}>{t.key}</span>
+                    <span className="shrink-0 font-mono text-muted-foreground">{t.input} / {t.output}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 

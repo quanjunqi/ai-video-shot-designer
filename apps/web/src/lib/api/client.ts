@@ -782,6 +782,9 @@ export const api = {
         p95LatencyMs: number;
         // ④ §2.3「按错误文本聚类」：cluster key + 代表样本 + 计数（服务端算）
         topErrors: { key: string; sample: string; count: number }[];
+        // ④ §2.2「成本归因」的 SUM 维度：token 用量（服务端算；金额 SUM 待 D4b）
+        tokensByModel: { key: string; input: number; output: number; cached: number; calls: number }[];
+        tokensByChannel: { key: string; input: number; output: number; cached: number; calls: number }[];
         aggregateOn: string;
       };
     }>(
