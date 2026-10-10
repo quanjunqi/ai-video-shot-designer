@@ -32,6 +32,8 @@ export interface UseCreateControls {
   catalogSource: CatalogSource;
   /** 当前工作台可运行的模型（已排除停用模型与停用渠道） */
   models: CatalogModel[];
+  /** 全部渠道（用于在模型档位列表里标注渠道名） */
+  channels: ChannelConfig[];
   model?: CatalogModel;
   channel?: ChannelConfig;
   selectModel(id: string): void;
@@ -118,6 +120,7 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
     kind,
     catalogSource,
     models: available,
+    channels,
     model,
     channel: channels.find((c) => c.id === model?.channelId),
     selectModel: setSelectedId,
