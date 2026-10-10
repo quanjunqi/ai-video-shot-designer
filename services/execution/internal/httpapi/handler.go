@@ -340,7 +340,7 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 	out, err := engine.Run(r.Context(), creds, engine.RunRequest{
 		ChannelID:        model.ChannelID,
 		ProviderModel:    model.ProviderModel,
-		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async},
+		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
 		ModelParams:      model.Params,
 		ModelRequestPath: model.RequestPath,
 		Runtime:          in.Runtime,
@@ -575,7 +575,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	engineReq := engine.RunRequest{
 		ChannelID:        model.ChannelID,
 		ProviderModel:    model.ProviderModel,
-		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async},
+		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
 		ModelParams:      model.Params,
 		ModelRequestPath: finalRequestPath,
 		Runtime:          runtime,

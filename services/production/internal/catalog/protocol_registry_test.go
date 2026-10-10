@@ -459,6 +459,10 @@ func TestMergedTemplatesJSONCompatibility(t *testing.T) {
 		t.Fatalf("encoded %d templates, want %d", len(rows), len(builtinTemplateIDs))
 	}
 	for _, row := range rows {
+		var id string
+		if err := json.Unmarshal(row["id"], &id); err != nil {
+			t.Fatalf("template id invalid: %v (%s)", err, row["id"])
+		}
 		var source string
 		if err := json.Unmarshal(row["source"], &source); err != nil {
 			t.Fatalf("source missing or invalid: %v", err)
@@ -473,6 +477,72 @@ func TestMergedTemplatesJSONCompatibility(t *testing.T) {
 		if !async.Enabled && string(row["async"]) != "{}" {
 			t.Errorf("non-async template async = %s, want {}", row["async"])
 		}
+		// requestTemplate 是追加式 + omitempty：空模板不得出现该键（既有消费者不受影响），
+		// 非空模板必须出现且逐字等于注册表值。
+		raw, present := row["requestTemplate"]
+		def, ok := ProtocolDefinitionByID(id)
+		if !ok {
+			t.Fatalf("encoded template id not in registry: %s", id)
+		}
+		if def.RequestTemplate == "" {
+			if present {
+				t.Errorf("%s: empty requestTemplate must be omitted from JSON, got %s", def.ID, raw)
+			}
+			continue
+		}
+		if !present {
+			t.Errorf("%s: requestTemplate missing from JSON", def.ID)
+			continue
+		}
+		var decoded string
+		if err := json.Unmarshal(raw, &decoded); err != nil {
+			t.Fatalf("%s: requestTemplate invalid: %v", def.ID, err)
+		}
+		if decoded != def.RequestTemplate {
+			t.Errorf("%s: requestTemplate = %q, want %q", def.ID, decoded, def.RequestTemplate)
+		}
+	}
+}
+
+// TestProtocolDefinitionsRequestTemplate 是 ADR-007 D3（请求模板）的台账：
+// 本切片只迁移**一个**内置定义用于等价性证明，其余 7 个必须保持 params[] 形态（空模板）。
+//
+// 断言形式与 TestProtocolDefinitionsAsyncConsistency 一致：把当前允许的迁移集合写死，
+// 谁新增/删除一个模板形态都会失败并提示更新台账，避免「迁移悄悄扩散」。
+func TestProtocolDefinitionsRequestTemplate(t *testing.T) {
+	// 台账（唯一允许携带请求模板的内置定义 → 模板文本）。
+	// 文本必须与 services/execution/internal/engine/request_template_test.go 里
+	// 等价性用例使用的文本逐字一致：那边证明「渲染结果 ≡ params[] 组装结果」。
+	want := map[string]string{
+		"pt_builtin_minimax_text": `{"stream":{{stream}},"task_type":"sync"}`,
+	}
+
+	got := map[string]string{}
+	for _, def := range ProtocolDefinitions() {
+		if def.RequestTemplate == "" {
+			continue
+		}
+		got[def.ID] = def.RequestTemplate
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("请求模板迁移台账发生变化，请同步更新本表：\n got: %v\nwant: %v", got, want)
+	}
+
+	// Template() 必须把模板透出（否则执行器永远收不到它）；空模板保持空串。
+	for _, tmpl := range RegistryTemplates() {
+		if tmpl.RequestTemplate != want[tmpl.ID] {
+			t.Errorf("%s: Template().RequestTemplate = %q, want %q", tmpl.ID, tmpl.RequestTemplate, want[tmpl.ID])
+		}
+	}
+
+	// 迁移到模板形态的定义必须**保留** params：占位符取值仍由 params 的三分类解析
+	// （本切片不做「模板自带全部静态字面量」的形态）。
+	def, ok := ProtocolDefinitionByID("pt_builtin_minimax_text")
+	if !ok {
+		t.Fatal("pt_builtin_minimax_text missing from registry")
+	}
+	if len(def.Params) == 0 {
+		t.Error("pt_builtin_minimax_text: 迁移到请求模板后 params 不能为空（{{stream}} 取值来源）")
 	}
 }
 
