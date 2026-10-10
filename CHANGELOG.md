@@ -38,6 +38,15 @@
   `.github/INCIDENT_TEMPLATE.md`（事故复盘模板）、Conventional Commits
   三级强制（husky 钩子 / 校验脚本 / CI）、`release.yml`
   （tag 触发构建 7 个镜像到 GHCR + 生成 GitHub Release）。
+- **CI 按改动范围执行**：新增 `changes` 判定 job 与
+  `.github/scripts/detect-changes.sh` —— 仅 `apps/web/**` 改动时不再跑 6 个 Go 服务门禁；
+  仅某服务改动时只跑该服务。**关键设计**：只过滤**步骤**而不过滤**检查** ——
+  必需状态检查对应的 job 始终运行并上报，否则被跳过的 job 不上报会让必需检查
+  永远停在 `Expected`，**卡死所有 PR**。判定异常一律 **fail-safe 到全量**、
+  检测失败时各检查 **fail-closed 失败**（不给假绿）；`.github/**` 与 `deploy/**`
+  改动触发全量。设计约束与排障见 [`docs/CI.md`](docs/CI.md)。
+- **shell 检查**：禁止 `$var` 紧跟非 ASCII 字符（bash 会把多字节字符并入变量名，
+  在 `set -u` 下报 unbound variable）—— 本仓库已因此踩坑两次，故固化为 CI 检查。
 
 ### Changed
 

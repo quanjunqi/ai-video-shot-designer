@@ -334,6 +334,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 | `docs/FRONTEND_QUALITY_GATE.md` | 前端交付质量门禁（唯一权威） | 规则/反例库变更 |
 | `docs/ITERATION_QA.md` | 迭代教训台账（追加式） | 每个迭代发现教训时追加 |
 | `docs/TESTING.md` | 测试策略与覆盖率目标 | 测试分层/门禁变更 |
+| `docs/CI.md` | CI 结构与**核心不变量**（必需检查不可被 job 级 `if:` 跳过） | 改动 CI 前必读；新增检查时同步 |
 | `docs/OBSERVABILITY.md` | 日志/指标/追踪/健康检查规范 | 可观测性约定变更 |
 | `docs/RELEASE.md` | 版本、发布、回滚、热修 | 发布流程变更 |
 | `SECURITY.md` | 安全策略与已知缺口 | 安全基线或信任模型变更 |
