@@ -121,6 +121,27 @@ jobs:
     name: Backend Build & Test
     needs: changes
     runs-on: ubuntu-latest
+    # 测试库：随 job 起的一个【一次性】Postgres。口令是本地容器口令，不是任何真实凭据。
+    # 为什么必须有它：各服务的集成测试在无 DSN 时 t.Skip ⇒
+    #   与"跑过且通过"在 CI 输出里**无法区分**。本项目因此让 2 条与迁移脱节的断言
+    #   红着很久无人知晓（它们只在有测试库时才执行）。见 docs/development/ci.md §7。
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shotdesigner
+          POSTGRES_PASSWORD: shotdesigner
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shotdesigner"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      # 三个服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
+      # 它们都自建【随机 schema】并在结束时清理 ⇒ 共用同一个库是安全的。
+      EXECUTION_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
+      PRODUCTION_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
+      WORKSPACE_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
     strategy:
       # fail-fast: false —— 一个服务失败不应取消其余服务的检查，
       # 否则日志只显示 cancelled，会掩盖其它服务的真实结果。
@@ -195,7 +216,33 @@ jobs:
 
       - name: Test
         if: steps.rel.outputs.run == 'true'
-        run: go test ./... -v -race -coverprofile=coverage.out
+        # set -o pipefail：下面用了 tee，若不设，退出码会变成 tee 的而掩盖测试失败。
+        # tee 到文件是为了让紧跟其后的"集成测试守卫"复用同一份输出，不必重跑整套测试。
+        run: |
+          set -o pipefail
+          go test ./... -v -race -coverprofile=coverage.out 2>&1 | tee "$RUNNER_TEMP/test.log"
+        working-directory: services/${{ matrix.service }}
+
+      # ★ 集成测试守卫：已经提供了测试库，就**不允许**再出现 `--- SKIP`。
+      #   背景（真实事故）：集成测试在无 DSN 时整体跳过 ⇒ 与"跑过且通过"在 CI 输出里
+      #   无法区分，于是 2 条与迁移脱节的断言（030/032 的终态取值、015 的 DELETE 语义）
+      #   红着很久无人知晓。**"有测试但从不执行"是一种假防线**，本步骤把它变成失败。
+      #   实现上复用上一步 tee 出的日志，不重跑测试。
+      - name: Integration tests must not skip
+        if: steps.rel.outputs.run == 'true'
+        run: |
+          log="$RUNNER_TEMP/test.log"
+          if [ ! -f "$log" ]; then
+            echo "::error::找不到测试日志 $log（Test 步骤未产出）⇒ 无法确认集成测试是否真的跑了"
+            exit 1
+          fi
+          if grep -q -- '--- SKIP' "$log"; then
+            echo "::error::已提供测试库，但仍有用例被跳过 —— 集成测试必须真正执行（不得以 SKIP 冒充通过）"
+            grep -- '--- SKIP' "$log" | head -20
+            exit 1
+          fi
+          ran="$(grep -cE -- '^--- PASS' "$log" || true)"
+          echo "集成测试守卫通过：无 SKIP；本次通过 $ran 个用例（含真库集成）"
         working-directory: services/${{ matrix.service }}
 
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）

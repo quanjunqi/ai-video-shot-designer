@@ -89,6 +89,39 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 关键点是**必需检查全部如实上报成功**，因此 PR 可正常合并 —— 这正是
 §3 那条不变量的意义。
 
+## 7. 集成测试必须真正执行（不得以 SKIP 冒充通过）
+
+各服务的**真库集成测试**在未设置测试库 DSN 时会 `t.Skip` —— 于是
+**"跑过且通过"与"根本没跑"在 CI 输出里无法区分**。
+
+本项目因此**真实发生过**：2 条与迁移脱节的断言（终态取值 030/032、
+`source_versions` 的 DELETE 语义 015）**红着很久无人知晓** —— 它们只在有测试库时才执行。
+
+**对策（已落地）**：
+
+1. `backend` job 起一个**一次性 Postgres service**（本地容器口令，非任何真实凭据）；
+2. 通过 **job 级 `env`** 注入三个 DSN：
+   `EXECUTION_TEST_DATABASE_URL` / `PRODUCTION_TEST_DATABASE_URL` / `WORKSPACE_TEST_DATABASE_URL`
+   （判据：源码里 `os.Getenv` 的实际取值。三者都自建**随机 schema**并在结束时清理 ⇒ 共用一个库是安全的）；
+3. `Test` 步骤用 `tee` 落盘，并 `set -o pipefail` 保证**退出码不被管道吞掉**；
+4. 新增步骤 **`Integration tests must not skip`**：**已提供测试库时出现 `--- SKIP` 即失败**
+   （复用上一步的日志，不重跑测试）。
+
+**判据（本地复现，同一命令，唯一变量是 DSN）**：
+
+| 条件 | `--- SKIP` 行数 | `--- PASS` 行数 |
+|---|---|---|
+| 提供 DSN | **0** | **112** |
+| 未提供 | **4** | — |
+
+被跳过的正是 `TestIntegration_CompleteWritesResultPayloadAndKeepsIntent` /
+`TestIntegration_LegacyRowResultStillReadable` / `TestIntegration_FailOrRetryThenDeadLetter`
+—— 即"**有测试但从不执行**"的那一层。
+
+> **注意**：本节的守卫与 §3 的"必需检查必须上报"是两件事，互不冲突 ——
+> §3 说的是 **job 不得被 job 级 `if:` 跳过**；本节说的是 **job 内部不得用 SKIP 冒充通过**。
+> 新增的守卫是**步骤级** `if:`，符合 §3。
+
 ## 相关文档
 
 - 分支与必需检查：[docs/development/branch-protection.md](branch-protection.md)
