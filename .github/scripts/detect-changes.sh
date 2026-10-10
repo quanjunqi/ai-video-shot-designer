@@ -79,8 +79,11 @@ global_hit=""
 while IFS= read -r p; do
     [ -z "$p" ] && continue
     case "$p" in
-        # CI 自身与部署脚本：可能影响所有检查 → 全量
-        .github/*|deploy/*)
+        # CI 自身与部署脚本：可能影响所有检查 → 全量。
+        # 注意只把 workflows/ 与 scripts/ 视为「CI 相关」——.github/tasks/、
+        # PR/Issue 模板等改动不会影响任何检查，不应触发全量回退
+        # （否则「加一张任务卡也跑全套 CI」）。
+        .github/workflows/*|.github/scripts/*|deploy/*)
             global_hit="$p" ;;
         apps/web/*)
             frontend=true; security=true ;;

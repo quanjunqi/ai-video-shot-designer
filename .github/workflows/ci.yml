@@ -122,6 +122,9 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     strategy:
+      # fail-fast: false —— 一个服务失败不应取消其余服务的检查，
+      # 否则日志只显示 cancelled，会掩盖其它服务的真实结果。
+      fail-fast: false
       matrix:
         service: [workspace, production, execution, asset, web-bff, outbox-relay]
 
