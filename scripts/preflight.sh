@@ -31,7 +31,23 @@ ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT" || exit 2
 BASE="${PREFLIGHT_BASE:-origin/develop}"
 # 测试库 DSN 的来源文件（默认仓库约定的 .env.local）。设为 /dev/null 可模拟"无测试库"。
-ENV_FILE="${PREFLIGHT_ENV_FILE:-$ROOT/.env.local}"
+# .env.local 的定位：它被 gitignore，通常**只在主检出目录**里，worktree 里没有。
+# ★ 此前直接取 "$ROOT/.env.local" ⇒ 从 worktree 跑预检时 DSN 取不到
+#   ⇒ 集成门永远报「未验证」且**不会真跑**（本项目实测：我长期在 worktree 里工作，
+#     于是那道门一直没起作用 —— 这正是"标注了未验证"之外更该修的东西）。
+# 取值顺序：显式指定 → 当前目录 → **主检出目录**（git worktree 列表的第一个）。
+if [ -n "${PREFLIGHT_ENV_FILE:-}" ]; then
+  ENV_FILE="$PREFLIGHT_ENV_FILE"
+elif [ -f "$ROOT/.env.local" ]; then
+  ENV_FILE="$ROOT/.env.local"
+else
+  MAIN_WORKTREE="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+  ENV_FILE="$MAIN_WORKTREE/.env.local"
+fi
+# 无静默差异：用了回退文件时，在【真正取到 DSN】的那一步说出来
+# （放在顶部会被后续输出淹没，也不代表"这次真的用上了"）
+ENV_FILE_FALLBACK=0
+if [ "$ENV_FILE" != "$ROOT/.env.local" ]; then ENV_FILE_FALLBACK=1; fi
 SERVICES=(workspace production execution asset web-bff outbox-relay)
 
 TMP="$(mktemp -d)"
@@ -141,6 +157,10 @@ for svc in "${TARGETS[@]}"; do
   dsn="${!dsn_var:-}"
   if [ -z "$dsn" ] && [ -f "$ENV_FILE" ]; then
     dsn="$(grep -E "^${dsn_var}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')"
+    # 无静默差异：DSN 来自回退文件（worktree 无 .env.local）时明确说出来
+    if [ -n "$dsn" ] && [ "$ENV_FILE_FALLBACK" = "1" ]; then
+      say "      （$dsn_var 取自 ${ENV_FILE} —— 当前目录无 .env.local，已回退到主检出）"
+    fi
   fi
   gated=0
   grep -rqs "$dsn_var" "$dir" --include='*_test.go' && gated=1
