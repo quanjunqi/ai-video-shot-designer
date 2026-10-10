@@ -14,9 +14,15 @@
 #   —— 规则靠记忆必然复发，故做成可执行的门。
 #
 # 用法：
-#   bash scripts/check-shell-vars.sh                # 扫 scripts/*.sh 与 .husky/*
+#   bash scripts/check-shell-vars.sh                # 扫【仓库里全部】shell 脚本（默认）
 #   bash scripts/check-shell-vars.sh <文件>…        # 只扫给定文件（供 pre-commit 用）
 # 退出码：0 = 干净；1 = 命中；2 = 【无法检查】（例如缺 python3）—— 注意 2 不等于通过。
+#
+# ★ 默认范围为什么是"全仓"而不是某几个目录：
+#   此前有两份各自为政的实现 —— preflight 扫 `scripts/*.sh .husky/*`，
+#   CI 扫 `.github/scripts deploy/`（用 grep -P，macOS 上还不可用）。
+#   两者【互补】，也就是说【都有盲区】：谁都没扫对方的目录。
+#   规则一旦分叉，就总会有人漏掉。现在按 git 追踪的 shell 脚本来算全量。
 set -u
 
 if ! command -v python3 >/dev/null 2>&1; then
@@ -27,11 +33,24 @@ fi
 if [ "$#" -gt 0 ]; then
   FILES=("$@")
 else
+  # 默认：仓库里全部 shell 脚本（含 deploy/、.github/scripts/）与 .husky 下的钩子。
+  # 用 git 追踪清单而不是写死目录 —— 新增目录时不需要有人记得回来改这里。
   FILES=()
-  for f in scripts/*.sh .husky/*; do
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
     [ -f "$f" ] || continue
     FILES+=("$f")
-  done
+  #   ★ 必须把【未跟踪】的脚本也算进来：否则"刚写好、还没 git add"的坏脚本会被漏掉
+  #     —— 那恰恰是最该被抓的时刻。本片真实踩到：验收用的 deploy/local/__tmp_bad.sh
+  #     是未跟踪文件，扫描报 rc=0（"通过"），而它明明有 bug。
+  #     这与 preflight --changed 曾经"只看已提交历史"是同一族错误：
+  #     **检查忽略了工作区**。
+  done < <( {
+      git ls-files '*.sh' 2>/dev/null
+      git ls-files --others --exclude-standard '*.sh' 2>/dev/null
+      git ls-files '.husky/*' 2>/dev/null
+      git ls-files --others --exclude-standard '.husky/*' 2>/dev/null
+    } | sort -u )
 fi
 
 if [ "${#FILES[@]}" -eq 0 ]; then

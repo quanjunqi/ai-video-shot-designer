@@ -361,14 +361,22 @@ jobs:
       # 在 set -u 下报 "unbound variable"。本仓库已因此踩坑两次
       # （check-coverage.sh 与 detect-changes.sh），故固化为检查。
       # 正确写法：${var} 或 ${var}：
+      # ★ 规则只有一份实现：scripts/check-shell-vars.sh（预检的门 0 与 .husky/pre-commit 也用它）。
+      #   此前这里是**另一份**实现（grep -P，且只扫 .github/scripts 与 deploy/），
+      #   而 preflight 扫的是 scripts/ 与 .husky/ —— 两者互补，也就是说**都有盲区**。
+      #   现在由脚本按"git 追踪的全部 shell 脚本"来算，谁都不用记目录。
+      #   用 Python 而非 grep -P：后者在 macOS 上不可用，本地就复现不了 CI 的判定。
       - name: Check shell scripts for \$var followed by non-ASCII
         run: |
-          if grep -rnP '\$[A-Za-z_][A-Za-z0-9_]*(?=[^\x00-\x7F])' \
-               --include='*.sh' .github/scripts deploy/ 2>/dev/null; then
-            echo "::error::发现 \$var 紧跟非 ASCII 字符（会被 bash 并入变量名）；请改用 \${var}"
+          set +e
+          bash scripts/check-shell-vars.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::脚本自检【未验证】（缺 python3）—— 未验证不等于通过"
             exit 1
           fi
-          echo "✓ shell 脚本无 \$var 紧跟非 ASCII 的写法"
+          exit "$rc"
 
       # 关键文档与契约必须存在，防止被误删（新增文档时同步此处）
       - name: Check key docs and contract exist
