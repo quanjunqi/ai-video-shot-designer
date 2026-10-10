@@ -19,6 +19,7 @@ import SettingsModelsPage from '@/pages/SettingsModels';
 import SettingsProtocolsPage from '@/pages/SettingsProtocols';
 import SettingsAuditPage from '@/pages/SettingsAudit';
 import SettingsPreferencesPage from '@/pages/SettingsPreferences';
+import SettingsLogicalModelsPage from '@/pages/SettingsLogicalModels';
 import NotFoundPage from '@/pages/NotFoundPage/NotFoundPage';
 
 // 旧路由迁移：/drama/:projectId → /comic/projects/:projectId
@@ -51,6 +52,8 @@ export default function App() {
           <Route path="models" element={<SettingsModelsPage />} />
           <Route path="audit" element={<SettingsAuditPage />} />
           <Route path="preferences" element={<SettingsPreferencesPage />} />
+          {/* 追加：逻辑模型管理（ADR-003 §3.1，含候选绑定右侧面板） */}
+          <Route path="logical-models" element={<SettingsLogicalModelsPage />} />
         </Route>
 
         {/* 旧路由迁移跳转 */}
