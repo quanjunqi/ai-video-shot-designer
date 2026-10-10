@@ -135,6 +135,8 @@ ai-video-shot-designer/
 
 - 所有 schema 变更必须通过迁移文件
 - 迁移文件**只增不改**，已执行的迁移禁止修改
+  （**已由机制强制**：`deploy/local/migrate.sh` 记录每个已应用文件的校验和，
+  改动已应用文件会被拒绝执行 —— 见 `deploy/local/README.md`）
 - 迁移包含：CREATE TABLE、CREATE INDEX、COMMENT、初始数据
 
 ---
@@ -258,7 +260,11 @@ set -a && . ./.env.local && set +a   # 每个终端启动服务前都要先注�
 # 连接数据库
 docker exec -it shotdesigner-postgres-1 psql -U shotdesigner -d <dbname>
 
-# 执行迁移
+# 执行迁移（推荐方式：走带版本跟踪与校验和的执行器，见 §4.3 与 deploy/local/README.md）
+docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml \
+  --profile app up production-migrate
+
+# 手工执行单个迁移（仅排障时；不会写入 schema_migrations，可能导致跟踪记录与实际不一致）
 docker exec -i shotdesigner-postgres-1 psql -U shotdesigner -d <dbname> < migration.sql
 
 # 常用数据库（由 deploy/local Compose 初始化）

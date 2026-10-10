@@ -143,7 +143,9 @@ services:
       PGDATABASE: ${POSTGRES_DB:-production}
     volumes:
       - ../../services/production/migrations:/migrations:ro
-    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+      - ./migrate.sh:/migrate.sh:ro
+    # 带版本跟踪与校验和的执行器（见 migrate.sh 头部说明）
+    command: ["sh", "/migrate.sh"]
     restart: "no"
 
   workspace-migrate:
@@ -159,7 +161,9 @@ services:
       PGDATABASE: workspace
     volumes:
       - ../../services/workspace/migrations:/migrations:ro
-    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+      - ./migrate.sh:/migrate.sh:ro
+    # 带版本跟踪与校验和的执行器（见 migrate.sh 头部说明）
+    command: ["sh", "/migrate.sh"]
     restart: "no"
 
   asset-db-init:
@@ -189,7 +193,9 @@ services:
       PGDATABASE: asset
     volumes:
       - ../../services/asset/migrations:/migrations:ro
-    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+      - ./migrate.sh:/migrate.sh:ro
+    # 带版本跟踪与校验和的执行器（见 migrate.sh 头部说明）
+    command: ["sh", "/migrate.sh"]
     restart: "no"
 
   workspace-db-init:
@@ -233,7 +239,9 @@ services:
       PGDATABASE: execution
     volumes:
       - ../../services/execution/migrations:/migrations:ro
-    command: ["sh", "-ec", "for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f \"$$migration\"; done"]
+      - ./migrate.sh:/migrate.sh:ro
+    # 带版本跟踪与校验和的执行器（见 migrate.sh 头部说明）
+    command: ["sh", "/migrate.sh"]
     restart: "no"
 
   production:
