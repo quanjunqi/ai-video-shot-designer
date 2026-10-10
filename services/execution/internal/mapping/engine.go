@@ -12,10 +12,10 @@ import (
 
 // CapabilityConfig 单个能力的配置（如 text-to-image / image-to-image）
 type CapabilityConfig struct {
-	RequestPath    string            `json:"request_path"`
-	Method         string            `json:"method"`
-	RequiredParams []string          `json:"required_params"`
-	ParamMapping   map[string]string `json:"param_mapping"` // 源路径 -> 目标路径
+	RequestPath     string            `json:"request_path"`
+	Method          string            `json:"method"`
+	RequiredParams  []string          `json:"required_params"`
+	ParamMapping    map[string]string `json:"param_mapping"` // 源路径 -> 目标路径
 	ResponseExtract map[string]string `json:"response_extract"`
 }
 

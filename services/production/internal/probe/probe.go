@@ -4,6 +4,7 @@
 // truth of an actual HTTP round trip against the channel's base URL.
 //   - no stored credential  -> network-layer reachability probe
 //   - credential present    -> authenticated probe (result reported as-is)
+//
 // Channel base URLs come from model_channels; credentials are read from the
 // workspace credential table (same PostgreSQL in the current single-DB
 // topology; once services split databases this reads via the workspace API).

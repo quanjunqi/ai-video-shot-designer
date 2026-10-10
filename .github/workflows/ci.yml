@@ -69,9 +69,23 @@ jobs:
         run: go vet ./...
         working-directory: services/${{ matrix.service }}
 
+      - name: Go format check (gofmt)
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt 发现未格式化文件，请本地运行 gofmt -w services。以下文件未格式化："
+            echo "$unformatted"
+            exit 1
+          fi
+        working-directory: services/${{ matrix.service }}
+
       - name: Test
         run: go test ./... -v -race -coverprofile=coverage.out
         working-directory: services/${{ matrix.service }}
+
+      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/TESTING.md §3.3）
+      - name: Coverage floor (ratchet)
+        run: bash .github/scripts/check-coverage.sh "${{ matrix.service }}" "services/${{ matrix.service }}/coverage.out"
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -94,8 +108,19 @@ jobs:
         with:
           args: ./services/...
 
-      - name: NPM audit
-        run: npm audit --audit-level=high
+      # 生产依赖：高危/严重直接阻断（当前 0 high / 0 critical，应始终通过）
+      # 必须显式指定官方 registry：apps/web/.npmrc 指向 npmmirror，而该镜像未实现
+      # /-/npm/v1/security/audits 端点，会返回 NOT_IMPLEMENTED —— 之前该步骤因此静默失败，
+      # 等于从未真正校验过依赖漏洞。
+      - name: NPM audit (production deps, blocking)
+        run: npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
+        working-directory: apps/web
+
+      # 全部依赖（含 dev 构建链）：存量 high/critical 集中在 concurrently/eslint/vite 等
+      # 开发工具，暂不阻断，但必须可见（见 CHANGELOG.md Known Issues）。
+      # 修复后应去掉 continue-on-error 改为阻断。
+      - name: NPM audit (all deps incl. dev, advisory)
+        run: npm audit --audit-level=high --registry=https://registry.npmjs.org
         working-directory: apps/web
         continue-on-error: true
 
@@ -116,6 +141,65 @@ jobs:
 
       - name: Check ADR directory exists
         run: test -d docs/adr
+
+      # 关键文档与契约必须存在，防止被误删（新增文档时同步此处）
+      - name: Check key docs and contract exist
+        run: |
+          set -e
+          for f in \
+            CHANGELOG.md \
+            SECURITY.md \
+            .env.example \
+            docs/architecture/README.md \
+            docs/TESTING.md \
+            docs/OBSERVABILITY.md \
+            docs/RELEASE.md \
+            docs/FRONTEND_QUALITY_GATE.md \
+            docs/branch-protection.md \
+            openapi/bff.yaml \
+            openapi/README.md
+          do
+            if [ ! -f "$f" ]; then
+              echo "::error::缺少必需文档：$f"
+              exit 1
+            fi
+          done
+          echo "✓ 全部关键文档存在"
+
+      # 契约必须可解析且 $ref 可解析，防止提交坏掉的 YAML
+      - name: Validate OpenAPI contract
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 - <<'PY'
+          import sys, yaml
+          d = yaml.safe_load(open('openapi/bff.yaml', encoding='utf-8'))
+          assert str(d.get('openapi','')).startswith('3.'), 'openapi 版本缺失'
+          paths = d.get('paths', {})
+          methods = {'get','put','post','delete','patch','head','options'}
+          ops = [(p,m) for p in paths for m in paths[p] if m in methods]
+          refs = set()
+          def walk(n):
+              if isinstance(n, dict):
+                  for k,v in n.items():
+                      if k == '$ref' and isinstance(v,str): refs.add(v)
+                      else: walk(v)
+              elif isinstance(n, list):
+                  for i in n: walk(i)
+          walk(d)
+          bad = []
+          for r in refs:
+              if not r.startswith('#/'): continue
+              cur = d
+              for part in r[2:].split('/'):
+                  if isinstance(cur, dict) and part in cur: cur = cur[part]
+                  else: bad.append(r); break
+          missing = [f'{p} {m}' for p,m in ops
+                     if not all(k in paths[p][m] for k in ('operationId','summary','tags','responses'))]
+          print(f'paths={len(paths)} operations={len(ops)} $ref={len(refs)}')
+          if bad: print('无法解析的 $ref:', bad); sys.exit(1)
+          if missing: print('字段不全的 operation:', missing); sys.exit(1)
+          print('OK: 契约可解析、$ref 全部可解析、operation 字段完整')
+          PY
 
   # 合并检查（所有检查通过后）
   merge-check:

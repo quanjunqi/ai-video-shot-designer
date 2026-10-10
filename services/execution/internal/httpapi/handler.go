@@ -367,12 +367,12 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 	var in struct {
-		ModelID    string                 `json:"modelId"`
-		Modality   string                 `json:"modality"`
-		Mode       string                 `json:"mode"`
-		Input      map[string]any         `json:"input"`
-		Parameters map[string]any         `json:"parameters"`
-		Metadata   map[string]any         `json:"metadata"`
+		ModelID    string         `json:"modelId"`
+		Modality   string         `json:"modality"`
+		Mode       string         `json:"mode"`
+		Input      map[string]any `json:"input"`
+		Parameters map[string]any `json:"parameters"`
+		Metadata   map[string]any `json:"metadata"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		writeError(w, 400, "INVALID_BODY", "invalid generate request JSON")
@@ -662,9 +662,9 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{
-		"items": logs,
-		"total": len(logs),
-		"limit": limit,
+		"items":  logs,
+		"total":  len(logs),
+		"limit":  limit,
 		"offset": offset,
 	})
 }

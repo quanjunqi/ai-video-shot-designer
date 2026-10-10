@@ -71,9 +71,9 @@ type Project struct {
 	StyleID              string        `json:"style_id"`
 	StyleVersion         string        `json:"style_version"`
 	AspectRatio          string        `json:"aspect_ratio"`
-	DefaultTextModel  string        `json:"default_text_model"`
-	DefaultImageModel string        `json:"default_image_model"`
-	DefaultVideoModel string        `json:"default_video_model"`
+	DefaultTextModel     string        `json:"default_text_model"`
+	DefaultImageModel    string        `json:"default_image_model"`
+	DefaultVideoModel    string        `json:"default_video_model"`
 	Status               string        `json:"status"`
 	CurrentSourceVersion int           `json:"current_source_version"`
 	SourceVersion        SourceVersion `json:"source_version"`
