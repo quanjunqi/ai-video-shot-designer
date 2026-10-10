@@ -65,6 +65,8 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 	if err := templates.Err(); err != nil {
 		return dir, err
 	}
+	// 内置接入方式以 Go 注册表为默认值：DB 行优先（专家覆盖），DB 缺失的 id 由注册表补齐。
+	dir.Templates = MergeTemplates(dir.Templates)
 	return dir, nil
 }
 

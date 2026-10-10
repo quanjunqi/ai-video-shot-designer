@@ -74,6 +74,9 @@ type ProtocolTemplate struct {
 	Enabled        bool            `json:"enabled"`
 	RefCount       int             `json:"refCount"`
 	Version        int             `json:"version"`
+	// Source 标识模板来源（builtin=内置/注册表，custom=用户自定义），
+	// 由读取路径（Directory 合并）填充；写入路径返回时省略，保持既有 JSON 消费者兼容。
+	Source string `json:"source,omitempty"`
 }
 
 type ProtocolTemplatePatch struct {

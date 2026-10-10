@@ -15,6 +15,15 @@
 
 ### Added
 
+- **协议定义迁到代码注册表（ADR-007 D1 后端）**：新增 `catalog/protocol_registry.go`，
+  把 8 个内置接入方式（`pt_builtin_*`）从迁移 SQL **等价搬迁**到 Go 代码，作为内置默认值的
+  权威来源；`PostgresStore.Directory()` 读出后经 `MergeTemplates` 合并 ——
+  **DB 行优先**（管理员可覆盖）、DB 缺失的内置项由注册表补齐、自定义模板原样保留、
+  输出按 id 稳定有序。`ProtocolTemplate` 追加 `source`（builtin/custom，omitempty），
+  既有 JSON 消费者不受影响。含「异步一致性」断言：把 `enabled=true` 但缺 `pollPath`
+  或状态字段的内置项列为**已知缺陷台账**（当前 2 条：jimeng_video、minimax_video），
+  修好或新增违规都会使测试失败并提示更新台账。
+
 - **ADR-007 接入方式改用代码注册表**：参照本地参考项目 `VOZEB-PRO` 的实测做法
   （其 `channel-protocol-registry.ts` 用代码定义接入方式，**没有"协议配置"这个用户概念**），
   决定：协议定义迁到代码注册表并取消"用户可编辑协议"界面；鉴权由 `auth_type` 封闭枚举
