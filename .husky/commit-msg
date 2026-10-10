@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# Conventional Commits 校验（见 CONTRIBUTING.md §3）
+# 跳过方式（仅紧急场景）：SKIP_COMMIT_MSG=1 git commit
+if [ "$SKIP_COMMIT_MSG" = "1" ]; then
+  echo "[commit-msg] SKIP_COMMIT_MSG=1，跳过提交信息校验"
+  exit 0
+fi
+msgfile="$1"
+subject="$(head -1 "$msgfile")"
+
+# 合并提交与 revert 自动消息跳过
+case "$subject" in
+  Merge\ *|Revert\ *|"") exit 0;;
+esac
+
+TYPES='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+if printf '%s' "$subject" | grep -qE "^(${TYPES})(\([a-z0-9._/-]+\))?!?: .+"; then
+  exit 0
+fi
+
+echo "[commit-msg] ✗ 提交信息不符合 Conventional Commits"
+echo "             实际: $subject"
+echo "             要求: <type>(<scope>)?: <subject>"
+echo "             type ∈ feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+echo "             详见 CONTRIBUTING.md §3"
+exit 1
