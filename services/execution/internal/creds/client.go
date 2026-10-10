@@ -46,15 +46,26 @@ func (c *Client) Reveal(ctx context.Context, workspaceID, channelID string) (eng
 		return engine.Credentials{}, fmt.Errorf("creds: upstream %d: %s", resp.StatusCode, truncate(body, 200))
 	}
 	var out struct {
-		ChannelID string `json:"channelId"`
-		BaseURL   string `json:"baseUrl"`
-		AuthType  string `json:"authType"`
-		APIKey    string `json:"apiKey"`
+		ChannelID  string `json:"channelId"`
+		BaseURL    string `json:"baseUrl"`
+		AuthType   string `json:"authType"`
+		AuthHeader string `json:"authHeader"`
+		AuthPrefix string `json:"authPrefix"`
+		APIKey     string `json:"apiKey"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
 		return engine.Credentials{}, err
 	}
-	return engine.Credentials{BaseURL: out.BaseURL, AuthType: out.AuthType, APIKey: out.APIKey}, nil
+	// authHeader/authPrefix are data-driven auth knobs (ADR-007 D2). The store
+	// keeps them nullable; the workspace reveal endpoint flattens NULL to "",
+	// which is exactly what the engine needs ("" = not configured → fall back).
+	return engine.Credentials{
+		BaseURL:    out.BaseURL,
+		AuthType:   out.AuthType,
+		AuthHeader: out.AuthHeader,
+		AuthPrefix: out.AuthPrefix,
+		APIKey:     out.APIKey,
+	}, nil
 }
 
 func truncate(b []byte, n int) string {

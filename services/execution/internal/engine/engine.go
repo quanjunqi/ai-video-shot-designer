@@ -50,10 +50,18 @@ type Template struct {
 
 // Credentials are the decrypted tenant channel material, only ever materialized
 // inside this process boundary; never returned to callers.
+// Credentials carries the resolved upstream auth material for one channel.
+//
+// AuthHeader/AuthPrefix are the data-driven knobs (ADR-007 D2): when AuthHeader
+// is non-empty the runtime writes exactly `AuthHeader: AuthPrefix + APIKey`, so
+// a new header shape is a data change, not a code change. Empty AuthPrefix is
+// meaningful — it means a bare value (e.g. AutoDL: `Authorization: <key>`).
 type Credentials struct {
-	BaseURL  string
-	AuthType string
-	APIKey   string
+	BaseURL    string
+	AuthType   string
+	AuthHeader string
+	AuthPrefix string
+	APIKey     string
 }
 
 // RunRequest is a sync text execution against a configured model+protocol.
@@ -197,12 +205,7 @@ func Run(ctx context.Context, creds Credentials, req RunRequest, client *http.Cl
 		return fail(fmt.Errorf("engine: request build: %w", err))
 	}
 	hreq.Header.Set("Content-Type", "application/json")
-	switch creds.AuthType {
-	case "none", "":
-		// local / no-auth channels carry no Authorization header
-	default:
-		hreq.Header.Set("Authorization", "Bearer "+creds.APIKey)
-	}
+	applyAuth(hreq, creds)
 	resp, err := client.Do(hreq)
 	if err != nil {
 		return fail(fmt.Errorf("engine: request failed: %w", err))
@@ -383,9 +386,7 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 		return fail(fmt.Errorf("engine: submit request build: %w", err))
 	}
 	hreq.Header.Set("Content-Type", "application/json")
-	if creds.AuthType != "none" && creds.AuthType != "" {
-		hreq.Header.Set("Authorization", "Bearer "+creds.APIKey)
-	}
+	applyAuth(hreq, creds)
 	submitResp, err := client.Do(hreq)
 	if err != nil {
 		return fail(fmt.Errorf("engine: submit request failed: %w", err))
@@ -547,15 +548,27 @@ func buildRequest(creds Credentials, req RunRequest) (string, []byte, error) {
 	return url, raw, nil
 }
 
-// applyAuth 按 auth_type 写入鉴权头。
+// applyAuth writes the channel's auth header onto req.
 //
-//	none / ""     → 不写（本地或无鉴权渠道）
-//	token         → Authorization: <key>（**无前缀**）
-//	                AutoDL 的 ComfyUI 工作流 API 即此形态
-//	其余（bearer/apikey/sign）→ Authorization: Bearer <key>
+// Data-driven path (ADR-007 D2): a non-empty AuthHeader wins outright and the
+// value is AuthPrefix + APIKey. AuthPrefix may be empty on purpose — that is the
+// "bare token" shape (Authorization: <key>), e.g. AutoDL's ComfyUI API.
 //
-// 刻意让 default 保持 Bearer：新增 token 分支不得静默改变既有渠道的行为。
+// Fallback path (must stay byte-for-byte identical to the pre-ADR-007 behavior,
+// because no stored row is backfilled):
+//
+//	none / ""          → no header at all (local or unauthenticated channels)
+//	bearer/apikey/sign → Authorization: "Bearer " + key
+//	token              → Authorization: key (no prefix)
+//	anything else      → Bearer (the historical default must not shift)
+//
+// 既有渠道的行为不得改变：新增 AuthHeader/AuthPrefix 之前，所有调用点都只会
+// 走 fallback 分支，而这些分支的输出与改动前逐字一致。
 func applyAuth(req *http.Request, creds Credentials) {
+	if creds.AuthHeader != "" {
+		req.Header.Set(creds.AuthHeader, creds.AuthPrefix+creds.APIKey)
+		return
+	}
 	switch creds.AuthType {
 	case "none", "":
 		return

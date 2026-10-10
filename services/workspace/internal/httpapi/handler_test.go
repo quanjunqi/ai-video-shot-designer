@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"shotdesigner/services/workspace/internal/store"
@@ -17,6 +19,12 @@ type fakeStore struct {
 	authorizeErr  error
 	lastWorkspace string
 	lastActor     string
+
+	lastCredential   store.Credential
+	putErr           error
+	revealErr        error
+	revealAuthHeader *string
+	revealAuthPrefix *string
 }
 
 func (s *fakeStore) ListUserChannels(_ context.Context, workspaceID string) ([]store.UserChannel, error) {
@@ -44,13 +52,23 @@ func (s *fakeStore) Authorize(_ context.Context, workspaceID, actorID string) (s
 	return s.authorized, s.authorizeErr
 }
 
-func (s *fakeStore) PutCredential(_ context.Context, _, _, _, _, _, _ string) error { return nil }
+func (s *fakeStore) PutCredential(_ context.Context, in store.Credential) error {
+	s.lastCredential = in
+	return s.putErr
+}
 func (s *fakeStore) Status(_ context.Context, _ string) ([]store.CredentialStatus, error) {
 	return nil, nil
 }
 func (s *fakeStore) DeleteCredential(_ context.Context, _, _ string) error { return nil }
-func (s *fakeStore) RevealKey(_ context.Context, _, _ string) (string, string, string, error) {
-	return "https://x", "bearer", "sk-plain", nil
+func (s *fakeStore) RevealKey(_ context.Context, _, _ string) (store.RevealedCredential, error) {
+	if s.revealErr != nil {
+		return store.RevealedCredential{}, s.revealErr
+	}
+	return store.RevealedCredential{
+		BaseURL: "https://x", AuthType: "bearer",
+		AuthHeader: s.revealAuthHeader, AuthPrefix: s.revealAuthPrefix,
+		APIKey: "sk-plain",
+	}, nil
 }
 
 func workspaceRequest(method, path string) *http.Request {
@@ -139,5 +157,90 @@ func TestReadyReflectsDatabaseHealth(t *testing.T) {
 	h.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/ready", nil))
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("ready: expected 204, got %d", response.Code)
+	}
+}
+
+// PUT 凭据必须把 authHeader/authPrefix 透传给 store（ADR-007 D2 的数据驱动字段）。
+func TestPutCredentialPassesAuthHeaderAndPrefix(t *testing.T) {
+	fake := &fakeStore{}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	body := `{"channelId":"autodl","baseUrl":"https://api.autodl.com","authType":"token","authHeader":"Authorization","authPrefix":"","apiKey":"sk-1"}`
+	r := httptest.NewRequest(http.MethodPut, "/internal/v1/workspaces/ws_dev/credentials/autodl", strings.NewReader(body))
+	r.Header.Set("Authorization", "Bearer test-token")
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, r)
+	if response.Code != http.StatusOK {
+		t.Fatalf("put credential: expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+	got := fake.lastCredential
+	if got.WorkspaceID != "ws_dev" || got.ChannelID != "autodl" || got.AuthType != "token" || got.APIKey != "sk-1" {
+		t.Fatalf("credential not passed through: %+v", got)
+	}
+	if got.AuthHeader == nil || *got.AuthHeader != "Authorization" {
+		t.Fatalf("authHeader not passed through: %v", got.AuthHeader)
+	}
+	// 空字符串是有效配置（裸 token），必须与「未提供（nil）」区分开
+	if got.AuthPrefix == nil || *got.AuthPrefix != "" {
+		t.Fatalf("empty authPrefix must survive as an explicit empty string, got %v", got.AuthPrefix)
+	}
+}
+
+// PUT 未提供 authHeader/authPrefix 时必须保持 nil，store 侧才能沿用既有值。
+func TestPutCredentialKeepsAuthKnobsNilWhenAbsent(t *testing.T) {
+	fake := &fakeStore{}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	body := `{"channelId":"ch","baseUrl":"https://x","authType":"bearer","apiKey":"sk-1"}`
+	r := httptest.NewRequest(http.MethodPut, "/internal/v1/workspaces/ws_dev/credentials/ch", strings.NewReader(body))
+	r.Header.Set("Authorization", "Bearer test-token")
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, r)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", response.Code)
+	}
+	if fake.lastCredential.AuthHeader != nil || fake.lastCredential.AuthPrefix != nil {
+		t.Fatalf("absent fields must stay nil, got header=%v prefix=%v", fake.lastCredential.AuthHeader, fake.lastCredential.AuthPrefix)
+	}
+}
+
+// reveal 必须一路透出 authHeader/authPrefix（execution 靠它走数据驱动分支）。
+func TestRevealExposesAuthHeaderAndPrefix(t *testing.T) {
+	header, prefix := "X-Api-Key", "Token "
+	fake := &fakeStore{revealAuthHeader: &header, revealAuthPrefix: &prefix}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/credentials/ch/reveal"))
+	if response.Code != http.StatusOK {
+		t.Fatalf("reveal: expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+		t.Fatalf("reveal response is not JSON: %v", err)
+	}
+	if got["authHeader"] != "X-Api-Key" || got["authPrefix"] != "Token " {
+		t.Fatalf("reveal must expose the data-driven knobs, got %v", got)
+	}
+	if got["apiKey"] != "sk-plain" {
+		t.Fatalf("reveal must keep returning the decrypted key, got %v", got["apiKey"])
+	}
+}
+
+// 未配置（NULL）的两列在 reveal 响应里必须是空串，而不是 null（兼容既有客户端）。
+func TestRevealFlattensNullAuthKnobsToEmptyString(t *testing.T) {
+	h := Handler{Store: &fakeStore{}, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/credentials/ch/reveal"))
+	if response.Code != http.StatusOK {
+		t.Fatalf("reveal: expected 200, got %d", response.Code)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+		t.Fatalf("reveal response is not JSON: %v", err)
+	}
+	if got["authHeader"] != "" || got["authPrefix"] != "" {
+		t.Fatalf("NULL knobs must flatten to empty strings, got %v", got)
 	}
 }
