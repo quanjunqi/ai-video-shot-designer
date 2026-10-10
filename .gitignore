@@ -60,5 +60,8 @@ venv/
 *.tmp
 *.temp
 
-# worktree 依赖软链（不可入库）
+# worktree 借用依赖的软链（不是目录，node_modules/ 规则匹配不到）
 apps/web/node_modules
+
+# 并行开发用的 worktree 目录（不入库；§1 约定放在这里）
+.worktrees/
