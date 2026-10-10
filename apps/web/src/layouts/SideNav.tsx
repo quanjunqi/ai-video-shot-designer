@@ -62,7 +62,8 @@ const NAV: NavItem[] = [
 
 const SECONDARY: NavItem[] = [
   { key: 'tasks', label: '任务中心', path: '/tasks', icon: ListTodo },
-  { key: 'settings', label: '设置', path: '/settings/channels', icon: Settings },
+  // path 用 /settings 本身：默认入口会 replace 到「模型」，且在任一设置子页上该项都保持高亮（ADR-005 D2）
+  { key: 'settings', label: '设置', path: '/settings', icon: Settings },
 ];
 
 function NavLinkItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {

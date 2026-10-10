@@ -100,7 +100,7 @@ export function sortCandidatesByRoutePriority(
 
 /** 业务错误码 → 用户可读文案。服务端仍是唯一权威，但每个码都要有明确解释，禁止吞成通用错误。 */
 const ERROR_CODE_MESSAGE: Record<string, string> = {
-  ID_IMMUTABLE: '逻辑模型 id 是对外契约，创建后不可修改（ADR-003 §3.1.2）。如需更换标识，请新建逻辑模型并重新绑定候选。',
+  ID_IMMUTABLE: '逻辑模型 id 是对外接口名，创建后不可修改。如需更换标识，请新建逻辑模型并重新绑定候选。',
   MODEL_ALREADY_BOUND: '该模型已被另一个逻辑模型占用，不能静默抢占：请先在其归属逻辑模型中解绑，再绑定到这里。',
   LOGICAL_MODEL_NOT_FOUND: '逻辑模型不存在：可能已被移除或 id 有误，请刷新列表后重试。',
   MODEL_NOT_FOUND: '模型目录中找不到该模型：可能已下架，请刷新模型目录后重试。',
