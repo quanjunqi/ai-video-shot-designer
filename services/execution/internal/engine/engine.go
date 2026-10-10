@@ -73,6 +73,10 @@ type RunResult struct {
 	RawBody   string            `json:"rawBody,omitempty"`
 	Duration  string            `json:"duration"`
 	Error     string            `json:"error,omitempty"`
+	// ProviderTaskID 是异步协议在提交响应中返回的任务 ID（同步协议为空）。
+	// 提交响应与最终轮询响应是两个不同的文档，任务 ID 只在提交响应中出现，
+	// 故单独透出供统一 Executor 层与审计追溯使用。
+	ProviderTaskID string `json:"providerTaskId,omitempty"`
 }
 
 var (
@@ -82,6 +86,9 @@ var (
 )
 
 // Run assembles the request per source classification and performs the call.
+//
+// Deprecated: 新代码请经统一 Executor 接口调用（NewExecutor + Submit），
+// 以便同一入口支持 ComfyUI 等其它后端。保留此函数以兼容现有调用方。
 func Run(ctx context.Context, creds Credentials, req RunRequest, client *http.Client) (RunResult, error) {
 	start := time.Now()
 	fail := func(err error) (RunResult, error) {
@@ -306,6 +313,9 @@ func truncate(s string, n int) string {
 
 // RunAsync executes an async-task protocol: submit -> poll -> result.
 // It blocks until the task completes, fails, or the context times out.
+//
+// Deprecated: 新代码请经统一 Executor 接口调用（NewExecutor + Submit，Async=true），
+// 以便同一入口支持 ComfyUI 等其它后端。保留此函数以兼容现有调用方。
 func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *http.Client) (RunResult, error) {
 	start := time.Now()
 	fail := func(err error) (RunResult, error) {
@@ -451,6 +461,7 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 	// === Step 3: Extract result from final response ===
 	out := RunResult{Status: 200, Duration: time.Since(start).Round(time.Millisecond).String()}
 	out.Extracted = map[string]any{}
+	out.ProviderTaskID = taskID
 	log.Printf("engine RunAsync: responseParams count=%d, params=%v", len(req.ProtocolTemplate.ResponseParams), req.ProtocolTemplate.ResponseParams)
 	for _, p := range req.ProtocolTemplate.ResponseParams {
 		if p.Key == "" {
