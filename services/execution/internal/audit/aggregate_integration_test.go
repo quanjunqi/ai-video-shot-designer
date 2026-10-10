@@ -228,7 +228,9 @@ func TestIntegrationAggregateClustersErrorText(t *testing.T) {
 	if got.TopErrors[2].Key != "invalid generate request json" || got.TopErrors[2].Count != 1 {
 		t.Errorf("第 3 簇应为 invalid generate request json ×1，实际 %+v", got.TopErrors[2])
 	}
-	// Sample 保留原大小写（min() 取字典序最小者）⇒ "Model Not Found…" 大写在前
+	// Sample 保留原大小写。★ 这里能钉死，是因为查询显式用了 COLLATE "C"（字节序）：
+	// 不指定时它取决于数据库排序规则 —— 实测本机取到 "Model Not Found…"、CI 取到
+	// "model not found…"，正是这条让我发现"min() 对 text 依赖 collation"。
 	if got.TopErrors[0].Sample != "Model Not Found In Directory" {
 		t.Errorf("Sample 应保留原始大小写，实际 %q", got.TopErrors[0].Sample)
 	}

@@ -385,15 +385,21 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 
 	// ④ §2.3「按错误文本聚类」。与上面**同一套筛选条件与同一租户**（口径一致）。
 	//   key    = 第一个冒号之前、trim、转小写（分组用）
-	//   sample = 同簇里字典序最小的原始前缀（展示用；min() 保证确定、可复现）
+	//   sample = 同簇里"最小"的原始前缀（展示用）
+	//
+	// ★ 两处显式 COLLATE "C"：text 的 min()/ORDER BY 结果依赖**数据库排序规则** ——
+	//   字节序（C）下 'M'(0x4D) < 'm'(0x6D)，而 UTF-8/ICU 排序会得出相反结果。
+	//   实测：本机（C）取到 "Model Not Found…"，CI 取到 "model not found…"。
+	//   显式指定 C 后，同一份数据的返回**在任何环境都相同**（可复现），
+	//   而不是"取决于这台机器怎么排序"。
 	errRows, err := s.Pool.Query(ctx, `
 		SELECT lower(btrim(split_part(error_message, ':', 1))) AS key,
-		       min(btrim(split_part(error_message, ':', 1)))  AS sample,
+		       min(btrim(split_part(error_message, ':', 1)) COLLATE "C") AS sample,
 		       count(*)::int                                  AS n
 		FROM gateway_audit_logs
 		WHERE workspace_id = $1 AND error_message <> ''`+f.whereClause()+`
 		GROUP BY key
-		ORDER BY n DESC, key ASC
+		ORDER BY n DESC, key COLLATE "C" ASC
 		LIMIT `+strconv.Itoa(topErrorsLimit),
 		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
 	if err != nil {
