@@ -399,7 +399,7 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 		FROM gateway_audit_logs
 		WHERE workspace_id = $1 AND error_message <> ''`+f.whereClause()+`
 		GROUP BY key
-		ORDER BY n DESC, key COLLATE "C" ASC
+		ORDER BY n DESC, lower(btrim(split_part(error_message, ':', 1))) COLLATE "C" ASC
 		LIMIT `+strconv.Itoa(topErrorsLimit),
 		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until)
 	if err != nil {
