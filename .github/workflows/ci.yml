@@ -53,17 +53,15 @@ jobs:
     name: Frontend Quality Gate
     needs: changes
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
+    # ⚠️ 刻意**不使用** job 级 defaults.run.working-directory。
+    # 原因：本 job 里有「在 Checkout 之前执行」的断言步骤，以及「Checkout 被跳过时
+    # 才执行」的跳过说明步骤 —— 这两类步骤都会因 apps/web 不存在而无法启动
+    # （已真实导致 PR #29 与 #30 两次失败）。改为每个前端步骤显式声明
+    # working-directory: apps/web，从而彻底消除这一类问题。
 
     steps:
       # fail-closed：变更检测异常时**不得**静默跳过，否则就是「假绿」
-      # 注意：必须显式指定 working-directory，否则会继承本 job 的
-      # defaults.run.working-directory（apps/web）—— 而本步骤在 Checkout **之前**执行，
-      # 那时 apps/web 还不存在，会导致步骤无法启动（已真实发生过）。
       - name: Assert change detection succeeded
-        working-directory: .
         env:
           REASON: ${{ needs.changes.outputs.reason }}
         run: |
@@ -87,22 +85,27 @@ jobs:
 
       - name: Install dependencies
         if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
         run: npm ci
 
       - name: TypeScript typecheck
         if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
         run: npm run typecheck
 
       - name: ESLint
         if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
         run: npm run lint:eslint
 
       - name: Quality gate
         if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
         run: npm run gate
 
       - name: Unit tests
         if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
         run: npm test
 
       - name: Skipped (无前端改动)
@@ -351,6 +354,12 @@ jobs:
           if missing: print('字段不全的 operation:', missing); sys.exit(1)
           print('OK: 契约可解析、$ref 全部可解析、operation 字段完整')
           PY
+
+      # 结构不变量校验（在 OpenAPI 步骤之后，PyYAML 已安装）
+      # 把两条踩坑得来的规则固化：必需检查不可加 job 级 if；不可用 job 级
+      # defaults.run.working-directory。详见脚本头部与 docs/CI.md §3。
+      - name: Validate workflow structure invariants
+        run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
 
   # 合并检查（所有检查通过后）
   merge-check:
