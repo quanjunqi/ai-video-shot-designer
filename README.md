@@ -34,10 +34,13 @@
 │   ├── asset/                 # 资产上传、媒体校验
 │   ├── web-bff/               # BFF 网关（前端唯一入口）
 │   └── outbox-relay/          # 事务性消息投递
-├── docs/                      # 项目文档
-│   ├── TECHNICAL_ARCHITECTURE.md  # 技术架构（权威）
-│   ├── DESIGN.md              # 设计规范
-│   └── adr/                   # 架构决策记录
+├── docs/                      # 项目文档（索引见 docs/README.md）
+│   ├── README.md              # 文档索引：按受众导航
+│   ├── architecture/          # 技术架构权威 + 架构图集
+│   ├── adr/                   # 架构决策记录
+│   ├── development/           # 开发规范（门禁/测试/CI/发布）
+│   ├── product/               # 产品与设计规范
+│   └── commercial/            # 商业规划
 ├── deploy/local/              # 本地 Compose（PostgreSQL/Redis/Kafka/Temporal/MinIO）
 ├── .github/                   # CI、任务卡、PR 模板
 └── AGENTS.md                  # AI 协作开发规范（最高准则）
@@ -92,14 +95,15 @@ go build ./... && go vet ./... && go test ./...
 
 - 所有修改走 `feature/<任务>-<日期>` 分支 + PR + 人类审查，**禁止直接 push master**
 - 每个任务先填任务卡（模板见 `.github/TASK_TEMPLATE.md`）
-- 架构变更必须同步 `docs/TECHNICAL_ARCHITECTURE.md` 并记录 ADR
+- 架构变更必须同步 `docs/architecture/00-technical-architecture.md` 并记录 ADR
 - 完整规范见 [AGENTS.md](AGENTS.md)
 
 ## 文档
 
+- [docs/README.md](docs/README.md) — **文档索引（按受众导航，从这里进）**
 - [AGENTS.md](AGENTS.md) — AI 协作开发规范（最高准则）
-- [docs/TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) — 技术架构
-- [docs/DESIGN.md](docs/DESIGN.md) — 产品与设计规范
+- [docs/architecture/00-technical-architecture.md](docs/architecture/00-technical-architecture.md) — 技术架构
+- [docs/product/design.md](docs/product/design.md) — 产品与设计规范
 - [docs/adr/](docs/adr/) — 架构决策记录
 
 ## License

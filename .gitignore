@@ -59,3 +59,6 @@ venv/
 # 临时文件
 *.tmp
 *.temp
+
+# worktree 依赖软链（不可入库）
+apps/web/node_modules
