@@ -42,6 +42,7 @@
 | 2026-10 | 角色资产页面刷新后从 1 个变 4 个重复"王力" | 页面加载时**自动提取 useEffect** 与 `loadAssetsFromServer()` 竞态：后端数据还没加载完，`chars` 为空，自动提取就创建了新资产；每次刷新都重复这个过程 | **禁止页面加载时自动创建业务数据**：自动提取/自动创建类 useEffect 必须移除，所有数据创建必须由用户明确操作（点击按钮）触发；去重必须使用稳定标识符（name/id），禁止 `Date.now()` 作为业务 id（固化于 `FRONTEND_QUALITY_GATE.md` §2.6） |
 | 2026-10 | 重新提取角色时已存在的角色被重复创建（id 不同） | 重新提取逻辑用 `Date.now()` 生成新 id，且已存在角色使用新 id 而不是已有 id，导致 upsert 时认为是不同资产 | 去重逻辑：已存在角色使用**已有 id** 更新出场统计，保留用户已填写的描述；新角色使用基于 name 的稳定 id（`${episodeId}-char-${name}`）；明确区分新增/更新数量（固化于 `FRONTEND_QUALITY_GATE.md` §2.6） |
 | 2026-10 | 右侧"预览与操作"面板底部内容被截断（生成按钮、来源与版本只能看到一部分） | 整个面板 `p-4` 无滚动区域，内容超出后被父容器截断；三栏布局中每栏都需要独立的滚动容器 | **三栏/多栏布局必须有滚动区域**：固定标题栏（shrink-0 + border-b）+ 独立内容滚动区（min-h-0 flex-1 overflow-y-auto）；禁止整个面板无滚动导致底部截断；交付前检查每栏是否可独立滚动到底部（固化于 `FRONTEND_QUALITY_GATE.md` §3.7） |
+| 2026-10 | 智能创作专业级改造：参数 JSON 双视图的解析结果用 `{ ok: true } \| { ok: false; error }` 判别联合，`npm run gate` 报 `Property 'error' does not exist on type 'ParamJsonResult'`（`if (!parsed.ok)` 与 `else { parsed.error }` 两种写法都不收窄） | 根因不在写法而在编译配置：`apps/web/tsconfig.app.json` 是 **`"strict": false`**（`noImplicitAny: false`）。非 strict 模式下 TypeScript 不对**布尔字面量判别联合**做控制流收窄，`ok` 被视为普通 boolean，联合退化为不可判别 | **本仓库禁用布尔字面量判别联合做控制流**（`strict:false` 下无效）：需要"成功/失败"结果时改用**扁平结构 + 可选 error 字段**（`{ values; ignoredKeys; error? }`），失败时同时把数据字段置空以避免误用半份数据；若确需联合，判别式用**字符串字面量**（如 `status: 'ok' \| 'error'`）并先验证收窄生效 |
 
 ---
 
