@@ -37,8 +37,21 @@
 #   理由：验证不该有"顺手把开发库删了"的可能。
 set -uo pipefail
 
-ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+# ★ 构建必须用【本脚本所在的树】。原来取 `git worktree list` 的【第一项】（主 checkout），
+#   于是在某个 worktree 里跑它，编译出来的却是【别人树里的代码】—— 而且**静默**：
+#   本项目真实踩到：在 worktree 里核对新接口的 wire 格式，返回的却是 develop 的旧结构，
+#   差点据此得出"改动没生效"的错误结论。
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# 主 checkout 单独保留：worktree 常常没有 .env.local，需要回退到它。
+MAIN_ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
 cd "$ROOT" || exit 2
+
+# .env.local 解析：显式指定 → 本树 → 主 checkout（与 preflight.sh 同一套回退规则）
+ENV_FILE="${SCRATCH_ENV_FILE:-}"
+if [ -z "$ENV_FILE" ]; then
+  if [ -f "$ROOT/.env.local" ]; then ENV_FILE="$ROOT/.env.local"
+  elif [ -n "$MAIN_ROOT" ] && [ -f "$MAIN_ROOT/.env.local" ]; then ENV_FILE="$MAIN_ROOT/.env.local"; fi
+fi
 
 SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
 SCRATCH_PORT="${SCRATCH_PORT:-8095}"
@@ -87,7 +100,7 @@ dsn_for_scratch() {
   # 环境变量优先，其次 .env.local（本地约定）—— CI 里没有 .env.local。
   local saved="${EXECUTION_DATABASE_URL:-}"
   if [ "${SCRATCH_SKIP_ENV_LOCAL:-0}" != "1" ]; then
-    set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+    set -a; . "$ENV_FILE" 2>/dev/null; set +a
   fi
   if [ -n "$saved" ]; then EXECUTION_DATABASE_URL="$saved"; fi
   [ -n "${EXECUTION_DATABASE_URL:-}" ] || die "EXECUTION_DATABASE_URL 未设置（导出它，或准备 .env.local）"
@@ -128,6 +141,8 @@ cmd_up() {
   echo "── 编译并启动实例（端口 ${port}）──"
   export GOCACHE="${GOCACHE:-/tmp/mdp-gocache}"
   mkdir -p "$BIN_DIR"
+  # 打印"从哪棵树构建" —— 这类"构建了别的树"的错误，只有把它说出来才不会再发生
+  say "   构建来源：${ROOT}/services/${service}（env: ${ENV_FILE:-无}）"
   ( cd "services/$service" && go build -o "$BIN_DIR/$service" ./cmd/server ) || die "编译失败"
 
   local old; old="$(lsof -ti ":$port" 2>/dev/null | head -1)"
@@ -137,7 +152,7 @@ cmd_up() {
   if [ "${SCRATCH_SKIP_ENV_LOCAL:-0}" = "1" ]; then
     echo "   （SCRATCH_SKIP_ENV_LOCAL=1：跳过 .env.local ⇒ 复现 CI 的条件）"
   else
-    set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+    set -a; . "$ENV_FILE" 2>/dev/null; set +a
   fi
   [ -n "$saved_dsn" ] && EXECUTION_DATABASE_URL="$saved_dsn"
   [ -n "$saved_tok" ] && EXECUTION_INTERNAL_TOKEN="$saved_tok"

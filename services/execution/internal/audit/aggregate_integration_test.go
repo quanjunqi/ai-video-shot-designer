@@ -330,3 +330,87 @@ func TestIntegrationAggregateFiltersByUserAndProject(t *testing.T) {
 		t.Fatalf("alice+proj_2 应只匹配失败那条，实际 %v", got.ByStatus)
 	}
 }
+
+// ④ §2.2「成本归因」的 SUM 维度：按模型 / 按渠道聚合 token 用量。
+func TestIntegrationTokenUsageByModelAndChannel(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	seed := func(model, channel string, in, out, cached int) {
+		if _, err := s.Pool.Exec(ctx, `
+			INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+				mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+			VALUES ($1,'ws_t','u','image',$2,$3,'text-chat','success',10,$4,$5,$6,0,'CNY', now())`,
+			fmt.Sprintf("req_t_%d", seedSeq.Add(1)), model, channel, in, out, cached); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seed("m_a", "ch_1", 10, 20, 5)
+	seed("m_a", "ch_2", 1, 2, 0) // 同模型另一渠道
+	seed("m_b", "ch_1", 100, 200, 0)
+	// 全 0 的行（如校验失败）不得进入用量聚合：它没有用量可言
+	seed("m_zero", "ch_1", 0, 0, 0)
+	// 另一个租户不得混入
+	if _, err := s.Pool.Exec(ctx, `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+			mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ('req_t_other','ws_other','u','image','m_a','ch_1','text-chat','success',10,999,999,0,0,'CNY', now())`); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := s.Aggregate(ctx, "ws_t", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 按模型：m_b(300) > m_a(33)
+	if len(got.TokensByModel) != 2 {
+		t.Fatalf("应有 2 个模型，实际 %+v", got.TokensByModel)
+	}
+	if got.TokensByModel[0].Key != "m_b" || got.TokensByModel[0].Input != 100 || got.TokensByModel[0].Output != 200 {
+		t.Errorf("第 1 个模型应为 m_b(100/200)，实际 %+v", got.TokensByModel[0])
+	}
+	if got.TokensByModel[1].Key != "m_a" || got.TokensByModel[1].Input != 11 || got.TokensByModel[1].Output != 22 || got.TokensByModel[1].Cached != 5 {
+		t.Errorf("m_a 应聚合为 in=11/out=22/cached=5（两条），实际 %+v", got.TokensByModel[1])
+	}
+	if got.TokensByModel[1].Calls != 2 {
+		t.Errorf("m_a 应有 2 次调用，实际 %d", got.TokensByModel[1].Calls)
+	}
+
+	// 按渠道：ch_1(310) > ch_2(3)
+	if len(got.TokensByChannel) != 2 {
+		t.Fatalf("应有 2 个渠道，实际 %+v", got.TokensByChannel)
+	}
+	if got.TokensByChannel[0].Key != "ch_1" || got.TokensByChannel[0].Input != 110 || got.TokensByChannel[0].Output != 220 {
+		t.Errorf("ch_1 应聚合为 in=110/out=220（含 m_a 与 m_b），实际 %+v", got.TokensByChannel[0])
+	}
+}
+
+// ★ 维度名来自调用方 ⇒ **白名单之外一律拒绝**（它是唯一的防线）
+func TestIntegrationTokenUsageRejectsUnknownDimension(t *testing.T) {
+	s := testStore(t)
+	if _, err := s.TokenUsageBy(context.Background(), "ws_t", Filter{}, "model_id; DROP TABLE gateway_audit_logs", 5); err == nil {
+		t.Fatal("白名单之外的维度必须被拒绝")
+	}
+	if _, err := s.TokenUsageBy(context.Background(), "ws_t", Filter{}, "nope", 5); err == nil {
+		t.Fatal("未知维度必须被拒绝")
+	}
+}
+
+// 筛选与租户对 token 聚合同样生效（口径一致）
+func TestIntegrationTokenUsageRespectsFilters(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	if _, err := s.Pool.Exec(ctx, `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, project_id, product, model_id, channel_id,
+			mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ('req_tf_1','ws_tf','alice','p1','image','m1','c1','text-chat','success',10,7,8,0,0,'CNY', now()),
+		       ('req_tf_2','ws_tf','bob','p2','image','m1','c1','text-chat','success',10,70,80,0,0,'CNY', now())`); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Aggregate(ctx, "ws_tf", Filter{UserID: "alice"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TokensByModel) != 1 || got.TokensByModel[0].Input != 7 {
+		t.Fatalf("按 alice 筛后只应有 7，实际 %+v", got.TokensByModel)
+	}
+}
