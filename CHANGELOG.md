@@ -14,6 +14,20 @@
 ## [Unreleased]
 
 ### Added
+#### 渠道探测（接入验证）
+
+- **渠道探测合流为一份实现并加上 SSRF 防护**（`refactor(execution)` / PR #71）：
+  原先 production 与 BFF 各有一份等价实现，且**都没有 SSRF 防护**（BFF 那份的自定义渠道
+  `baseUrl` 完全由请求体控制）。现统一由 **execution** 实现（`internal/probe`），BFF 改为转发；
+  production 的探测包与内部路由已移除（同时消除了它对 workspace 表的跨服务直读）。
+- **修复：用户自建渠道的探测不再报 400**。此前 `POST /api/v1/channels/{id}/probe`
+  对用户渠道要求请求体里带 `baseUrl`，缺失即 `400 INVALID_CHANNEL`；现在服务端自行解析地址，
+  **请求体不再被读取**（这也正是消除 SSRF 面的方式）。
+- **行为变化（如实上报）**：本地/内网目标（如本机 ComfyUI）在默认策略下会返回
+  「目标被出站策略拒绝（未发起连接，非网络故障）」并提示 `EXECUTION_ALLOW_PRIVATE_UPSTREAM=1`，
+  而不是此前的 `connection refused`。**按渠道粒度的私网开关与留痕**另立切片。
+
+### Changed
 
 - **联合并行开发规范**（`docs/PARALLEL_DEVELOPMENT.md` + `AGENTS.md` §12.7）：面向多条开发线
   同时改同一仓库的操作规范。核心为四条硬规则 —— ①一条线一个 worktree（禁止共用 checkout）
