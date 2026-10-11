@@ -16,7 +16,10 @@
 
 ## getting-started/ — 新手教程
 
-> 🚧 待补充：安装配置、首次跑通、第一个 PR。
+| 文件 | 内容 |
+|---|---|
+| [getting-started/local-setup.md](getting-started/local-setup.md) | 从零跑起来：装依赖、起服务、验证 |
+| [getting-started/first-pr.md](getting-started/first-pr.md) | 提交第一个 PR 的完整流程 |
 
 ---
 
@@ -80,13 +83,19 @@
 
 ## reference/ — 机械事实
 
-> 🚧 待补充：环境变量、端口表、API 字段索引。
+| 文件 | 内容 |
+|---|---|
+| [reference/configuration.md](reference/configuration.md) | 全部环境变量（按服务分组） |
+| [reference/ports.md](reference/ports.md) | 端口表（应用服务 + 基础设施） |
 
 ---
 
 ## explanation/ — 概念解释
 
-> 🚧 待补充：供给池、协议注册表、审计为什么不可丢、服务边界为什么这么分。
+| 文件 | 内容 |
+|---|---|
+| [explanation/service-boundaries.md](explanation/service-boundaries.md) | 为什么是 6 个微服务？ |
+| [explanation/supply-pool.md](explanation/supply-pool.md) | 什么是供给池？ |
 
 ---
 
