@@ -44,10 +44,13 @@ func main() {
 	syncPolicy := netguard.FromEnvWithPrefix("PRODUCTION", os.Getenv)
 	var channelSyncer httpapi.ChannelSyncer
 	if wsURL, wsToken := os.Getenv("PRODUCTION_WORKSPACE_URL"), os.Getenv("PRODUCTION_WORKSPACE_TOKEN"); wsURL != "" && wsToken != "" {
+		wsClient := catalog.NewWorkspaceCredentials(wsURL, wsToken, 10*time.Second)
 		channelSyncer = catalog.Syncer{
 			Store:       catalog.PostgresStore{Pool: pool},
-			Credentials: catalog.NewWorkspaceCredentials(wsURL, wsToken, 10*time.Second),
-			Lister:      catalog.NewHTTPLister(syncPolicy, 30*time.Second),
+			Credentials: wsClient,
+			// 同步配置来源（ADR-009 决定 2）：工作区自己的渠道优先，其次平台渠道
+			Channels: wsClient,
+			Lister:   catalog.NewHTTPLister(syncPolicy, 30*time.Second),
 		}
 	} else {
 		log.Printf("production: 上游同步器【未启用】（需 PRODUCTION_WORKSPACE_URL / PRODUCTION_WORKSPACE_TOKEN）")
