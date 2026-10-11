@@ -70,3 +70,9 @@ apps/web/node_modules
 # docs/commercial/
 # docs/research/
 # docs/archive/
+
+# 本地原型目录（对比原型/设计探索，只保留在本机，不上传 GitHub）
+/prototypes/
+
+# 本地私有库（商业/调研/历史/提案与开发计划，只保留在本机，不上传 GitHub）
+/ai-video-shot-designer-private/
