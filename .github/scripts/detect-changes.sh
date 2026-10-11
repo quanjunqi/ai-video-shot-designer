@@ -74,11 +74,6 @@ fi
 frontend=false
 security=false
 declare -a svcs=()
-# ★ 跨服务共享包（services/shared/**）改动 ⇒ 一并视为"全局命中"，触发全量后端：
-#   它被多个服务依赖，只跑 shared 自己会漏掉消费方的回归。
-if git diff --name-only "$base"...HEAD 2>/dev/null | grep -q '^services/shared/'; then
-    global_hit="${global_hit:+$global_hit、}shared 包（跨服务共享）"
-fi
 
 global_hit=""
 
@@ -90,6 +85,10 @@ while IFS= read -r p; do
         # PR/Issue 模板等改动不会影响任何检查，不应触发全量回退
         # （否则「加一张任务卡也跑全套 CI」）。
         .github/workflows/*|.github/scripts/*|deploy/*)
+            global_hit="$p" ;;
+        # ★ 跨服务共享包：它被多个服务依赖 ⇒ 视为全局命中（触发全量后端），
+        #   否则只跑 shared 自己会漏掉消费方的回归。必须放在通用 services/* 之前。
+        services/shared/*)
             global_hit="$p" ;;
         apps/web/*)
             frontend=true; security=true ;;
