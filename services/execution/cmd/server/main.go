@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
@@ -118,7 +119,26 @@ func main() {
 		log.Printf("execution: 审计保留期清理【未启用】（需显式设置 EXECUTION_AUDIT_RETENTION_DAYS / EXECUTION_AUDIT_FAILURE_RETENTION_DAYS）")
 	}
 	log.Printf("execution service listening on %s", addr)
-	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	// 产物落盘（TASK-ASSET-001）：配置了 ASSET_BASE_URL/ASSET_INTERNAL_TOKEN 才启用。
+	// 下载上游 URL 走与模型网关同一套 netguard SSRF 防护；调 asset 内部 API 用普通 client
+	// （内网目标，套防护会自断链路）。
+	var artifactClient *artifact.Client
+	if assetBaseURL := os.Getenv("ASSET_BASE_URL"); assetBaseURL != "" {
+		assetToken := os.Getenv("ASSET_INTERNAL_TOKEN")
+		if assetToken == "" {
+			log.Fatal("ASSET_INTERNAL_TOKEN must be set when ASSET_BASE_URL is set")
+		}
+		artifactClient = &artifact.Client{
+			AssetBaseURL: assetBaseURL,
+			Token:        assetToken,
+			AssetHTTP:    &http.Client{Timeout: 60 * time.Second},
+			Downloader:   upstreamPolicy.NewClient(120 * time.Second),
+			CheckURL:     upstreamPolicy.CheckURL,
+			MaxBytes:     artifact.DefaultMaxBytes,
+		}
+		log.Printf("execution: artifact persist enabled (asset=%s)", assetBaseURL)
+	}
+	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.

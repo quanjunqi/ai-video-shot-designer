@@ -60,6 +60,8 @@
 | `EXECUTION_LISTEN_ADDR` | — | 监听地址 |
 | `EXECUTION_MAX_CONCURRENT_JOBS` | 8 | Worker 并发上限 |
 | `EXECUTION_ALLOW_PRIVATE_UPSTREAM` | 0 | 允许访问本地 ComfyUI 时设 1 |
+| `ASSET_BASE_URL` | — | 产物落盘（TASK-ASSET-001）：asset 服务地址；留空 = 不落盘 |
+| `ASSET_INTERNAL_TOKEN` | — | 产物落盘：asset 内部认证 token（与 `ASSET_BASE_URL` 同时配置） |
 
 ### asset（18084）
 

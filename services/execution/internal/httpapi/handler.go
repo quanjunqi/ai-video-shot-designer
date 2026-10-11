@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
@@ -38,6 +39,8 @@ type Handler struct {
 	Quota *quota.Limiter
 	// Probe 是渠道连通性探测（全仓唯一实现，TASK-INFRA-004）。为 nil 时该路由 503。
 	Probe *probe.Prober
+	// Artifacts 是产物落盘客户端（TASK-ASSET-001）。为 nil 时不落盘（best-effort 关闭）。
+	Artifacts *artifact.Client
 }
 
 type Store interface {
@@ -723,9 +726,43 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"ok": false, "status": "failed", "error": out.Error, "run": out, "attempts": syncAttempts})
 		return
 	}
+	// 产物落盘（TASK-ASSET-001）：best-effort，失败不阻塞生成。
+	// 从上游提取结果中找产物 URL → 转存 asset（MinIO）→ 返回稳定 asset_id/asset_url。
+	var artifactInfo map[string]any
+	if h.Artifacts != nil {
+		if artifactURL, reason := artifact.URLWithReason(out.Extracted); artifactURL != "" {
+			persistOpts := artifact.PersistOptions{
+				WorkspaceID: ws,
+				ActorID:     actor,
+				ProjectID:   projectID,
+				EpisodeID:   episodeID,
+				Kind:        in.Modality,
+				Name:        model.Name + "-" + in.Modality,
+				URL:         artifactURL,
+			}
+			res, perr := h.Artifacts.Persist(r.Context(), persistOpts)
+			if perr != nil {
+				// 落盘失败只记录，不改变任务结果（生成是主流程，落盘是增强）。
+				slog.Error("artifact persist failed", "requestId", requestID, "reason", reason, "error", perr)
+			} else {
+				artifactInfo = map[string]any{
+					"asset_id":   res.AssetID,
+					"object_key": res.ObjectKey,
+					"asset_url":  res.AssetURL,
+					"byte_size":  res.ByteSize,
+				}
+			}
+		} else {
+			slog.Info("artifact skip", "requestId", requestID, "reason", reason)
+		}
+	}
 	respBytes, _ := json.Marshal(out)
 	writeAudit("success", respBytes, "", "", "")
-	writeJSON(w, 200, map[string]any{"ok": true, "status": "succeeded", "output": out.Extracted, "run": out})
+	body := map[string]any{"ok": true, "status": "succeeded", "output": out.Extracted, "run": out}
+	if artifactInfo != nil {
+		body["artifact"] = artifactInfo
+	}
+	writeJSON(w, 200, body)
 }
 
 // genRequestID generates a unique request ID for audit tracing
