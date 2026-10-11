@@ -54,7 +54,7 @@ func TestPostgresProtocolTemplateRequestTemplateRoundTrip(t *testing.T) {
 		t.Fatalf("created requestTemplate = %q, want %q", created.RequestTemplate, tpl)
 	}
 
-	dir, err := store.Directory(ctx)
+	dir, err := store.Directory(ctx, "")
 	if err != nil {
 		t.Fatalf("Directory: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestPostgresProtocolTemplateRequestTemplateRoundTrip(t *testing.T) {
 		t.Fatalf("requestTemplate not cleared: %q", cleared.RequestTemplate)
 	}
 
-	dir, err = store.Directory(ctx)
+	dir, err = store.Directory(ctx, "")
 	if err != nil {
 		t.Fatalf("Directory after clear: %v", err)
 	}

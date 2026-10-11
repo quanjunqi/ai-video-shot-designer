@@ -27,7 +27,7 @@ func TestIntegrationDirectoryExposesRoutingFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir, err := s.Directory(ctx)
+	dir, err := s.Directory(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -14,8 +15,16 @@ type PostgresStore struct {
 	Pool *pgxpool.Pool
 }
 
-func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
+// Directory 返回**某个工作区视角**的目录（ADR-009 Phase B2）：
+// 平台共享行（workspace_id=”）+ 该工作区自己的行；两者键相同时（模型按 (family, channel_id)）
+// **工作区行覆盖平台行** —— 与前端既有的"用户渠道覆盖平台目录"语义一致。
+//
+// 为什么要改签名而不是新增 DirectoryFor：本项目已四次栽在"两条同形路径只改一处"，
+// 所以只保留一条读路径；平台视角调用方传 "" 即可（现有行为不变）。
+func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (Directory, error) {
 	var dir Directory
+	// 渠道（model_channels）刻意**不含**工作区维度：平台渠道归平台，工作区自己的渠道
+	// 在 workspace 的 user_channels（由前端/BFF 合并）。见 ADR-009 §2 的边界说明。
 	channels, err := store.Pool.Query(ctx, `SELECT id, name, kind, base_url, auth_type, enabled, note, sort,
 		COALESCE(sync_kind,'none'), COALESCE(sync_models_path,''), COALESCE(sync_pricing_path,''), last_sync_at
 		FROM model_channels ORDER BY sort, id`)
@@ -35,18 +44,58 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 		return dir, err
 	}
 
-	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority FROM model_catalog ORDER BY type, sort, name`)
+	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority,
+		workspace_id
+		FROM model_catalog
+		WHERE workspace_id = '' OR workspace_id = $1
+		ORDER BY type, sort, name, id`, workspaceID)
 	if err != nil {
 		return dir, err
 	}
 	defer models.Close()
+	// 合并：先收平台行与工作区行，再按 (family, channel_id) 让工作区行覆盖平台行，
+	// 最后按 (type, sort, name, id) 重排 —— 与 SQL 的 ORDER BY 一致，保证确定性。
+	type scoped struct {
+		model Model
+		ws    string
+	}
+	var collected []scoped
 	for models.Next() {
 		var m Model
-		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version, &m.LogicalModelID, &m.RoutePriority); err != nil {
+		var ws string
+		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version, &m.LogicalModelID, &m.RoutePriority, &ws); err != nil {
 			return dir, err
 		}
-		dir.Models = append(dir.Models, m)
+		collected = append(collected, scoped{model: m, ws: ws})
 	}
+	if err := models.Err(); err != nil {
+		return dir, err
+	}
+	overridden := map[string]bool{}
+	for _, sc := range collected {
+		if sc.ws != "" {
+			overridden[sc.model.Family+"\x00"+sc.model.ChannelID] = true
+		}
+	}
+	for _, sc := range collected {
+		if sc.ws == "" && overridden[sc.model.Family+"\x00"+sc.model.ChannelID] {
+			continue // 被本工作区的同键行覆盖
+		}
+		dir.Models = append(dir.Models, sc.model)
+	}
+	sort.SliceStable(dir.Models, func(i, j int) bool {
+		a, b := dir.Models[i], dir.Models[j]
+		if a.Type != b.Type {
+			return a.Type < b.Type
+		}
+		if a.Sort != b.Sort {
+			return a.Sort < b.Sort
+		}
+		if a.Name != b.Name {
+			return a.Name < b.Name
+		}
+		return a.ID < b.ID
+	})
 	if err := models.Err(); err != nil {
 		return dir, err
 	}

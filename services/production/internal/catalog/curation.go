@@ -39,32 +39,57 @@ type SupplyItem struct {
 }
 
 // ListSupply 列出某个渠道的供给。includeMissing=true 时连已下架的也列出来。
-func (store PostgresStore) ListSupply(ctx context.Context, channelID string, includeMissing bool) ([]SupplyItem, error) {
+// ListSupply 返回**某个工作区视角**的供给池（ADR-009 Phase B2）：
+// 平台共享行 + 该工作区自己的行，键相同（(channel_id, provider_model)）时工作区行覆盖平台行。
+func (store PostgresStore) ListSupply(ctx context.Context, workspaceID, channelID string, includeMissing bool) ([]SupplyItem, error) {
 	rows, err := store.Pool.Query(ctx, `
 		SELECT channel_id, provider_model, COALESCE(display_name,''), COALESCE(model_type,''),
-		       COALESCE(tags,''), endpoint_types, pricing, last_seen_at, missing_since
+		       COALESCE(tags,''), endpoint_types, pricing, last_seen_at, missing_since, workspace_id
 		  FROM channel_models
-		 WHERE ($1 = '' OR channel_id = $1)
-		   AND ($2 OR missing_since IS NULL)
-		 ORDER BY channel_id, provider_model`, channelID, includeMissing)
+		 WHERE (workspace_id = '' OR workspace_id = $2)
+		   AND ($1 = '' OR channel_id = $1)
+		   AND ($3 OR missing_since IS NULL)
+		 ORDER BY channel_id, provider_model`, channelID, workspaceID, includeMissing)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	out := make([]SupplyItem, 0)
+	// 同键覆盖：同一 (channel_id, provider_model) 上，工作区行覆盖平台行。
+	// ★ 价格解析必须在这里做 —— 旧实现在 scan 循环里调 parsePricing，改写时漏掉会让
+	//   策展读到的价格凭空消失（这是"重构顺手丢逻辑"，比崩溃更难发现）。
+	type supplyRow struct {
+		item SupplyItem
+		ws   string
+	}
+	var collected []supplyRow
+	overridden := map[string]bool{}
 	for rows.Next() {
 		var it SupplyItem
+		var ws string
 		if err := rows.Scan(&it.ChannelID, &it.ProviderModel, &it.DisplayName, &it.UpstreamType,
-			&it.Tags, &it.EndpointTypes, &it.Pricing, &it.LastSeenAt, &it.MissingSince); err != nil {
+			&it.Tags, &it.EndpointTypes, &it.Pricing, &it.LastSeenAt, &it.MissingSince, &ws); err != nil {
 			return nil, err
 		}
 		if amt, unit, ok := parsePricing(it.Pricing); ok {
 			it.PricingAmount, it.PricingUnit = &amt, unit
 		}
-		out = append(out, it)
+		collected = append(collected, supplyRow{item: it, ws: ws})
+		if ws != "" {
+			overridden[it.ChannelID+"\x00"+it.ProviderModel] = true
+		}
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]SupplyItem, 0, len(collected))
+	for _, r := range collected {
+		if r.ws == "" && overridden[r.item.ChannelID+"\x00"+r.item.ProviderModel] {
+			continue
+		}
+		out = append(out, r.item)
+	}
+	return out, nil
 }
 
 // parsePricing 只认一种窄约定；认不出就返回 false（**不猜**）。

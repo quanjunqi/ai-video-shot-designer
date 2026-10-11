@@ -19,7 +19,7 @@ func TestIntegrationDirectoryExposesSyncStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir, err := s.Directory(ctx)
+	dir, err := s.Directory(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestIntegrationDirectoryExposesSyncStatus(t *testing.T) {
 	if _, err := s.Pool.Exec(ctx, `INSERT INTO model_channels (id, name, kind, base_url, sync_kind, last_sync_at) VALUES ('ch_plain','普通','aggregator','https://x.example.com','none',NULL)`); err != nil {
 		t.Fatal(err)
 	}
-	dir2, err := s.Directory(ctx)
+	dir2, err := s.Directory(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}

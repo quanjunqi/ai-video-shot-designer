@@ -231,7 +231,7 @@ func (m Model) Validate() error {
 }
 
 type Store interface {
-	Directory(context.Context) (Directory, error)
+	Directory(context.Context, string) (Directory, error)
 	GetModel(context.Context, string) (Model, error)
 	CreateModel(context.Context, string, Model) (Model, bool, error) // (model, duplicate, err)
 	UpdateModel(context.Context, string, ModelPatch) (Model, error)
