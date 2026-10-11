@@ -1,137 +1,43 @@
-# 分支保护规则
+# 分支规则
 
-> 本文档说明 `master` 分支的保护规则，所有开发者和 AI Agent 必须遵守。
-> **本文件描述的是已实际生效的配置**（2026-10-10 通过 GitHub API 核实）。修改规则后必须同步本文档。
+本文说明分支模型、命名规范和保护规则。
 
-## 一、master 强制规则（实际生效）
+## 三层分支模型
 
-| # | 规则 | 状态 | 说明 |
-|---|---|---|---|
-| 1 | Require a pull request before merging | ✅ 启用 | 所有人（含 Owner、管理员）禁止直接 push master |
-| 2 | Require status checks to pass | ✅ 启用 | 必须通过下列 9 项检查 |
-| 3 | Do not allow bypassing the above settings | ✅ 启用 | `enforce_admins = true`，管理员也不能绕过 |
-| 4 | Allow force pushes | ❌ 禁止 | 禁止改写 master 历史 |
-| 5 | Allow deletions | ❌ 禁止 | 禁止删除 master |
-| 6 | Requires approving review count | ⚠️ **0** | 见「四、审批数为何是 0」 |
+```
+master    ← 生产分支，只接 develop 验收通过的合并 + hotfix
+develop   ← 集成分支，所有 feature PR 合到这里
+feature/* ← 开发分支，从 develop 拉
+```
 
-### 必需通过的检查（9 项）
+## 分支命名
 
-| 检查 | 覆盖内容 |
-|---|---|
-| `Frontend Quality Gate` | typecheck + eslint + quality-gate 静态扫描 + 单元测试 |
-| `Backend Build & Test (workspace)` | go build + go vet + go test |
-| `Backend Build & Test (production)` | 同上 |
-| `Backend Build & Test (execution)` | 同上 |
-| `Backend Build & Test (asset)` | 同上 |
-| `Backend Build & Test (web-bff)` | 同上 |
-| `Backend Build & Test (outbox-relay)` | 同上 |
-| `Security Scan` | gosec + npm audit |
-| `Documentation Check` | AGENTS.md / 架构文档 / ADR 目录存在 |
-
-> 任一必需检查未通过或未运行，GitHub 会拒绝合并。这是**真实生效**的硬门禁，不是文档承诺。
-
-### 不启用「Require branches to be up to date」
-
-`strict = false`。CI 已校验 PR 自身与目标分支的合并结果，强求分支实时领先会显著增加无意义的 rebase 成本。
-
----
-
-## 三层分支模型（2026-10-10 起）
-
-| 分支 | 角色 | 保护 |
+| 类型 | 格式 | 示例 |
 |---|---|---|
-| `master` | **生产** | ✅ 必需检查（9 项）+ enforce_admins + 禁 force-push/删除 |
-| `develop` | **集成/验收** | ✅ **与 master 同规格**（否则会退化为"谁都能推"的脏分支） |
-| `feature/*` | 开发 | 无（短命分支）；**统一从 `develop` 拉** |
+| 新功能 | `feature/<描述>-<日期>` | `feature/audit-log-1010` |
+| Bug 修复 | `fix/<描述>-<日期>` | `fix/image-loading-1010` |
+| 文档 | `docs/<描述>-<日期>` | `docs/readme-update-1010` |
+| 维护 | `chore/<描述>-<日期>` | `chore/deps-upgrade-1010` |
 
-**hotfix**：从 `master` 拉 → 修完**同时合回 `develop`**。
+## 保护规则
 
-> ⚠️ `develop` 的保护规则需**单独配置**（master 上的规则不自动覆盖新分支）。
+master 和 develop 都开启了保护：
+- 必须走 PR，不能直接 push
+- 必须 CI 全绿
+- 禁止 force push
+- 禁止删除分支
 
----
+## 必需通过的 CI 检查（9 项）
 
-## 二、分支命名规范
+1. Frontend Quality Gate
+2. Backend Build & Test × 6（workspace / production / execution / asset / web-bff / outbox-relay）
+3. Security Scan
+4. Documentation Check
 
-| 类型 | 命名格式 | 示例 |
-|---|---|---|
-| 新功能 | `feature/<简短描述>-<日期>` | `feature/audit-log-1010` |
-| Bug 修复 | `fix/<简短描述>-<日期>` | `fix/image-loading-1010` |
-| 重构 | `refactor/<简短描述>-<日期>` | `refactor/character-store-1010` |
-| 文档 | `docs/<简短描述>-<日期>` | `docs/adr-update-1010` |
-| 测试 | `test/<简短描述>-<日期>` | `test/audit-api-1010` |
-| 仓库维护 | `chore/<简短描述>-<日期>` | `chore/repo-tidy-1010` |
+## hotfix
 
----
-
-## 三、PR 大小限制
-
-- **理想**：< 300 行变更
-- **可接受**：300–500 行变更
-- **需要拆分**：> 500 行变更（自动生成代码、迁移文件、首次导入除外）
-
-大任务必须拆分为子任务，逐个 PR 合并。
-
-### 3.1 分支保鲜判据（PR 前必须满足）
-
-> 分支保护 `strict = false`（§一，不要求分支实时领先），因此**人工判据代替机制**。
-
-1. **开 PR 前**运行 `scripts/preflight.sh --stale`：
-   - 判据：`git merge-base --is-ancestor <基线> HEAD` 必须成立（HEAD 已包含基线全部提交）；
-   - 若落后：**先 `git merge <基线>`（或 rebase）**，重跑测试，再开 PR；
-   - 基线默认 `origin/develop`；hotfix 用 `PREFLIGHT_BASE=origin/master scripts/preflight.sh --stale`。
-2. 合并动作必须**真实发生且可验证**（`git log` 中可见基线的最新提交），
-   **不得**在 PR 描述中以「我合并了 develop」代替实际同步。
-3. 若因他人 PR 先合入导致自己再次落后：合并顺序靠后的一方在合入前**重新同步一次**。
-
----
-
-## 四、审批数为何是 0（重要）
-
-**原始配置**为 `required_approving_review_count = 1` + `enforce_admins = true`。该组合在**单账号仓库**下构成死锁：
-
-1. GitHub **禁止审批自己的 PR**
-2. 仓库只有 1 个协作者（Owner），没有第二个账号能审批
-3. `enforce_admins = true` 使管理员也无法绕过
-
-结果：**任何人都无法合并任何 PR**（2026-10-10 实测，PR #1 CI 10/10 全绿仍为 `blocked`）。
-
-### 现行方案（2026-10-10 起）
-
-审批数调整为 **0**，其余规则全部保留。得到的门禁是：
-
-> **必须走 PR + 必须 9 项 CI 全绿 + 管理员不可绕过**
-
-这保留了「不可绕过」的原始意图，只去掉了在单账号仓库下永远无法满足的人工审批要求。
-
-### 如需恢复「必须有人审批」
-
-任选其一，然后通过 GitHub API/UI 把审批数改回 1：
-
-1. **推荐**：新增第二个协作者账号（协作者或机器人账号），由它审批
-2. 关闭 `enforce_admins`（不推荐：会使管理员可绕过全部规则，弱于现方案）
-
----
-
-## 五、AI Agent 工作规则
-
-1. AI Agent **只能在 feature/fix/chore 等分支工作**
-2. AI Agent **禁止直接 push master**
-3. AI Agent 开 PR 后，**默认等待人类 Owner 审查并合并**（`AGENTS.md` §5.4 / §9.3）
-4. 如需 AI Agent 执行合并动作，必须由 Owner 在会话中**明确授权**，并在 PR 中留有记录
-5. AI Agent 必须在 PR 中附测试结果与风险说明
-6. AI Agent 遇到禁区操作必须停止并询问人类
-
----
-
-## 六、如何修改本规则
-
-**GitHub UI**：Settings → Branches → Branch protection rules → `master`
-
-**GitHub API 注意**：REST 端点
-`PATCH /repos/{owner}/{repo}/branches/master/protection`
-在部分令牌类型下会返回 **404 Not Found**（GitHub 用 404 掩盖权限不足）。
-若遇到该情况，改用 **GraphQL `updateBranchProtectionRule`**，同一令牌可正常写入。
-
----
-
-**本规则自 2026-10-10 起生效；最近一次核实与更新：2026-10-10。**
+生产环境紧急 bug：
+1. 从 master 拉 `hotfix/xxx` 分支
+2. 修 bug，测试通过
+3. 合回 master，打 patch tag
+4. **同时合回 develop**——否则下次 develop → master 会覆盖修复
