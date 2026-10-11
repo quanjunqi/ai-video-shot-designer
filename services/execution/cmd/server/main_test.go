@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"shotdesigner/services/execution/internal/audit"
+	"shotdesigner/services/execution/internal/job"
 )
 
 // execution 的 cmd/server 此前覆盖率 0.0% —— 而 **D2/D2b/D4c/D6 的核心逻辑都在这里**
@@ -75,18 +76,18 @@ func TestEnvDurationOnlyAcceptsPositiveDurations(t *testing.T) {
 func TestAuditHelpersAreSafeWithNilStore(t *testing.T) {
 	ctx := context.Background()
 	// 不得 panic —— 一旦 panic 会沿着 recover 分支把任务标成 internal panic
-	auditTerminal(ctx, nil, "job_1", true, "", []byte(`{"ok":true}`))
-	auditTerminal(ctx, nil, "job_2", false, "boom", nil)
-	auditTerminalUsage(ctx, nil, "job_3", true, "", []byte(`{"ok":true}`), map[string]any{
+	auditTerminal(ctx, nil, job.Job{ID: "job_1"}, true, "", []byte(`{"ok":true}`))
+	auditTerminal(ctx, nil, job.Job{ID: "job_2"}, false, "boom", nil)
+	auditTerminalUsage(ctx, nil, job.Job{ID: "job_3"}, true, "", []byte(`{"ok":true}`), map[string]any{
 		"usage.prompt_tokens":     float64(35),
 		"usage.completion_tokens": float64(38),
 	}, 12)
 	// 对抗性输入：用法抽取不得因奇怪类型而 panic
-	auditTerminalUsage(ctx, nil, "job_4", false, "x", nil, map[string]any{
+	auditTerminalUsage(ctx, nil, job.Job{ID: "job_4"}, false, "x", nil, map[string]any{
 		"usage.prompt_tokens":     []int{1, 2, 3},
 		"usage.completion_tokens": map[string]string{"a": "b"},
 	}, 0)
-	auditTerminalUsage(ctx, nil, "job_5", false, "x", nil, nil, 0)
+	auditTerminalUsage(ctx, nil, job.Job{ID: "job_5"}, false, "x", nil, nil, 0)
 }
 
 var _ = audit.SystemWorkspace // 断言 audit 包的哨兵常量仍可被引用（D6 依赖它归属清理记录）

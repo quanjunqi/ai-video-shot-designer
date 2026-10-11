@@ -32,6 +32,15 @@ type jobPayload struct {
 	Result  map[string]interface{} `json:"result"`
 }
 
+// wsOf 取 job 的工作区：Phase C 之前 worker 拿不到它，只能硬编码/用哨兵值。
+// 兼容历史行（没有 workspace_id）时仍退回哨兵值，但**日志里可见**（不静默）。
+func wsOf(j job.Job) string {
+	if j.WorkspaceID == "" {
+		return audit.SystemWorkspace
+	}
+	return j.WorkspaceID
+}
+
 func main() {
 	dsn := os.Getenv("EXECUTION_DATABASE_URL")
 	token := os.Getenv("EXECUTION_INTERNAL_TOKEN")
@@ -124,9 +133,9 @@ func main() {
 // 覆盖范围：executeJob 内 s.Complete(...) 的全部 11 处调用点（含 defer 里的 panic）。
 // 【本片明确未覆盖】failOrRetry 触发的终态（重试耗尽 / 死信）：那两处是否终态只有
 // failOrRetry 自己知道，需要它回报终态性 —— 属 D2b。
-func auditTerminal(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte) {
+func auditTerminal(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte) {
 	// 无用量场景（早退失败、panic 等）：用量本就为 0
-	auditTerminalT(ctx, as, jobID, ok, errMsg, result, 0, 0, 0, 0)
+	auditTerminalT(ctx, as, j, ok, errMsg, result, 0, 0, 0, 0)
 }
 
 // auditStatusFor 决定【审计行】里的终态词。
@@ -159,13 +168,13 @@ func auditStatusFor(ok bool) string {
 // 为什么必须补（D4a 的缺口）：D4a 只在同步路径记录了 token，worker 传的是
 //
 //	0,0,0 ⇒ **异步任务的 token 恒为 0**，而异步主要是视频类长任务（主要付费路径）。
-func auditTerminalUsage(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int) {
+func auditTerminalUsage(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int) {
 	in, out, cached := engine.UsageFromExtracted(ex)
-	auditTerminalT(ctx, as, jobID, ok, errMsg, result, in, out, cached, elapsedMs)
+	auditTerminalT(ctx, as, j, ok, errMsg, result, in, out, cached, elapsedMs)
 }
 
 // auditTerminalT 是两条入口的公共实现。
-func auditTerminalT(ctx context.Context, as *audit.Store, jobID string, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int) {
+func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int) {
 	if as == nil {
 		return
 	}
@@ -177,13 +186,13 @@ func auditTerminalT(ctx context.Context, as *audit.Store, jobID string, ok bool,
 	// 第 6 个参数是 latency_ms：原来硬编码 0 ⇒ 异步任务的耗时**永远是 0**，
 	// 而 P50/P95 与平均耗时都只统计 latency_ms > 0 的行 ⇒ **异步长任务（主要付费路径）
 	// 被整体排除在耗时分布之外**。引擎本来就测了 Duration，这里把它传下去。
-	n, err := as.UpdateResultByJobID(ctx, jobID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, 0, "")
+	n, err := as.UpdateResultByJobID(ctx, j.ID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, 0, "")
 	if err != nil {
-		log.Printf("execution worker: audit update failed for job %s: %v", jobID, err)
+		log.Printf("execution worker: audit update failed for job %s: %v", j.ID, err)
 		return
 	}
 	if n == 0 {
-		log.Printf("execution worker: job %s has NO submit-time audit row (status=%s) —— 该任务提交路径不写审计（D2 说明：经 /internal/v1/tasks 提交的任务属此列）", jobID, status)
+		log.Printf("execution worker: job %s has NO submit-time audit row (status=%s) —— 该任务提交路径不写审计（D2 说明：经 /internal/v1/tasks 提交的任务属此列）", j.ID, status)
 	}
 }
 
@@ -240,13 +249,13 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("execution worker: panic in job %s: %v", j.ID, r)
-			auditTerminal(ctx, as, j.ID, false, fmt.Sprintf("internal panic: %v", r), nil)
+			auditTerminal(ctx, as, j, false, fmt.Sprintf("internal panic: %v", r), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, fmt.Sprintf("internal panic: %v", r))
 		}
 	}()
 
 	if cat == nil || cred == nil {
-		auditTerminal(ctx, as, j.ID, false, "execution engine not configured", nil)
+		auditTerminal(ctx, as, j, false, "execution engine not configured", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "execution engine not configured")
 		return
 	}
@@ -255,19 +264,27 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	var payload jobPayload
 	if len(j.IntentPayload) > 0 && string(j.IntentPayload) != "null" {
 		if err := json.Unmarshal(j.IntentPayload, &payload); err != nil {
-			auditTerminal(ctx, as, j.ID, false, "invalid job payload: "+err.Error(), nil)
+			auditTerminal(ctx, as, j, false, "invalid job payload: "+err.Error(), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, "invalid job payload: "+err.Error())
 			return
 		}
 	}
 	if payload.ModelID == "" {
-		auditTerminal(ctx, as, j.ID, false, "missing modelId in payload", nil)
+		auditTerminal(ctx, as, j, false, "missing modelId in payload", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "missing modelId in payload")
 		return
 	}
 
 	// Get model directory (use dev workspace/actor)
-	dir, err := cat.Get(ctx, "ws_dev", "user_dev")
+	// Phase C：用 job 自己的工作区（而不是硬编码）—— 多租户下否则会把 A 的 job
+	// 拿去 B 的目录上解析、并用 B 的凭据去上游调用。
+	jobWorkspace := j.WorkspaceID
+	if jobWorkspace == "" {
+		// 兼容历史行（000/早期 job 没写 workspace_id）：退回审计哨兵值，并在日志里显式可见
+		log.Printf("execution worker: job %s 没有 workspace_id（历史行），退回 %q", j.ID, audit.SystemWorkspace)
+		jobWorkspace = audit.SystemWorkspace
+	}
+	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
 	if err != nil {
 		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as)
 		return
@@ -278,7 +295,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		// 文案与改动前**逐字一致**：存量排障文档与断言依赖它。
 		// 具体原因（既非行 id 也无启用候选）由 Resolve 的错误类型承载，另有单测覆盖。
 		const msg = "model not found in directory"
-		auditTerminal(ctx, as, j.ID, false, msg, nil)
+		auditTerminal(ctx, as, j, false, msg, nil)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 		return
 	}
@@ -288,7 +305,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	chosen := catalog.PickForAttempt(candidates, j.Attempt)
 	model := &chosen
 	if model.ProtocolTemplateID == "" {
-		auditTerminal(ctx, as, j.ID, false, "model has no protocol template", nil)
+		auditTerminal(ctx, as, j, false, "model has no protocol template", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model has no protocol template")
 		return
 	}
@@ -300,15 +317,15 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		}
 	}
 	if tmpl == nil {
-		auditTerminal(ctx, as, j.ID, false, "protocol template not found", nil)
+		auditTerminal(ctx, as, j, false, "protocol template not found", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "protocol template not found")
 		return
 	}
 
 	// Get credentials
-	credentials, err := cred.Reveal(ctx, "ws_dev", model.ChannelID)
+	credentials, err := cred.Reveal(ctx, jobWorkspace, model.ChannelID)
 	if err != nil {
-		auditTerminal(ctx, as, j.ID, false, "credentials missing: "+err.Error(), nil)
+		auditTerminal(ctx, as, j, false, "credentials missing: "+err.Error(), nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "credentials missing: "+err.Error())
 		return
 	}
@@ -371,7 +388,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	resultBytes, marshalErr := json.Marshal(payload)
 	if marshalErr != nil {
 		log.Printf("execution worker: job %s marshal payload error: %v", j.ID, marshalErr)
-		auditTerminal(ctx, as, j.ID, false, "marshal result error: "+marshalErr.Error(), nil)
+		auditTerminal(ctx, as, j, false, "marshal result error: "+marshalErr.Error(), nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "marshal result error: "+marshalErr.Error())
 		return
 	}
@@ -384,12 +401,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
-		auditTerminalUsage(ctx, as, j.ID, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs)
+		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
 	}
 
-	auditTerminalUsage(ctx, as, j.ID, true, "", resultBytes, result.Extracted, result.ElapsedMs)
+	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
@@ -422,7 +439,9 @@ func runAuditPurger(as *audit.Store, successDays, failureDays int, interval time
 		}
 		if n > 0 {
 			rec := audit.Log{
-				RequestID:   fmt.Sprintf("req_purge_%d", time.Now().UnixNano()),
+				RequestID: fmt.Sprintf("req_purge_%d", time.Now().UnixNano()),
+				// 清理是后台维护动作，**刻意**挂在哨兵值下（见本函数上方的设计说明）：
+				// 它不是任何租户的行为，挂到某个工作区会污染那个租户的列表与聚合。
 				WorkspaceID: audit.SystemWorkspace,
 				UserID:      "system",
 				Product:     "system",
@@ -471,7 +490,7 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 	case err != nil:
 		log.Printf("execution worker: FailOrRetry job=%s err=%v（回退为标记失败）", j.ID, err)
 		// D2b：这是【终态】（回退为标记失败）
-		auditTerminal(ctx, as, j.ID, false, msg, nil)
+		auditTerminal(ctx, as, j, false, msg, nil)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 	case retried:
 		log.Printf("execution worker: job=%s 第 %d 次失败，%s 后重试: %s", j.ID, j.Attempt, backoff.Round(time.Second), msg)
@@ -480,6 +499,6 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		// D2b：这是【终态】（重试耗尽 → 死信）。
 		// 上面的 case retried 分支【不写】—— 那个任务还会重试，不是终态；
 		// 提前写会把"还在重试"记成"已失败"。
-		auditTerminal(ctx, as, j.ID, false, msg, nil)
+		auditTerminal(ctx, as, j, false, msg, nil)
 	}
 }

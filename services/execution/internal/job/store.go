@@ -58,6 +58,9 @@ type Job struct {
 	UpdatedAt     time.Time       `json:"updated_at"`
 	StartedAt     *time.Time      `json:"started_at,omitempty"`
 	FinishedAt    *time.Time      `json:"finished_at,omitempty"`
+	// WorkspaceID：这个 job 属于哪个工作区。worker 必须用它（而不是硬编码）去取目录与凭据，
+	// 否则多租户下会把 A 的 job 拿去 B 的目录/凭据上执行（Phase C 修的就是这件事）。
+	WorkspaceID string `json:"workspace_id"`
 }
 
 func (s Store) Create(ctx context.Context, workspace, actor string, in Input) (Job, bool, error) {
@@ -88,7 +91,7 @@ func (s Store) Create(ctx context.Context, workspace, actor string, in Input) (J
 		return Job{}, false, err
 	}
 	defer tx.Rollback(ctx)
-	out, err := scanJob(tx.QueryRow(ctx, `INSERT INTO jobs (workspace_id,id,idempotency_key,request_hash,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,steps,intent_payload,cost_estimate,context_path,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) ON CONFLICT DO NOTHING RETURNING id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at`, workspace, id, in.IdempotencyKey, requestHash, in.IntentID, in.Kind, in.Label, in.ProjectID, in.EpisodeID, in.AssetID, in.ShotID, in.ScopeEpoch, steps, intentPayload, in.CostEstimate, in.ContextPath, actor))
+	out, err := scanJob(tx.QueryRow(ctx, `INSERT INTO jobs (workspace_id,id,idempotency_key,request_hash,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,steps,intent_payload,cost_estimate,context_path,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) ON CONFLICT DO NOTHING RETURNING id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at,workspace_id`, workspace, id, in.IdempotencyKey, requestHash, in.IntentID, in.Kind, in.Label, in.ProjectID, in.EpisodeID, in.AssetID, in.ShotID, in.ScopeEpoch, steps, intentPayload, in.CostEstimate, in.ContextPath, actor))
 	if errors.Is(err, pgx.ErrNoRows) {
 		var hashID, existingHash string
 		err = s.Pool.QueryRow(ctx, `SELECT id,request_hash FROM jobs WHERE workspace_id=$1 AND (idempotency_key=$2 OR ($3 <> '' AND intent_id=$3)) ORDER BY id LIMIT 1`, workspace, in.IdempotencyKey, in.IntentID).Scan(&hashID, &existingHash)
@@ -114,7 +117,7 @@ func (s Store) Create(ctx context.Context, workspace, actor string, in Input) (J
 }
 
 func (s Store) Get(ctx context.Context, workspace, id string) (Job, error) {
-	out, err := scanJob(s.Pool.QueryRow(ctx, `SELECT id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at FROM jobs WHERE workspace_id=$1 AND id=$2`, workspace, id))
+	out, err := scanJob(s.Pool.QueryRow(ctx, `SELECT id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at,workspace_id FROM jobs WHERE workspace_id=$1 AND id=$2`, workspace, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Job{}, ErrNotFound
 	}
@@ -125,7 +128,7 @@ func (s Store) List(ctx context.Context, workspace, status, kind string, limit i
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at FROM jobs WHERE workspace_id=$1 AND ($2='' OR status=$2) AND ($3='' OR kind=$3) ORDER BY updated_at DESC,id DESC LIMIT $4`, workspace, status, kind, limit)
+	rows, err := s.Pool.Query(ctx, `SELECT id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at,workspace_id FROM jobs WHERE workspace_id=$1 AND ($2='' OR status=$2) AND ($3='' OR kind=$3) ORDER BY updated_at DESC,id DESC LIMIT $4`, workspace, status, kind, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +150,7 @@ func (s Store) Cancel(ctx context.Context, workspace, id string) (Job, error) {
 		return Job{}, err
 	}
 	defer tx.Rollback(ctx)
-	j, err := scanJob(tx.QueryRow(ctx, `UPDATE jobs SET status='cancelled',error='',finished_at=now(),updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status IN ('queued','running') RETURNING id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at`, workspace, id))
+	j, err := scanJob(tx.QueryRow(ctx, `UPDATE jobs SET status='cancelled',error='',finished_at=now(),updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status IN ('queued','running') RETURNING id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at,workspace_id`, workspace, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		existing, e := s.Get(ctx, workspace, id)
 		if e != nil {
@@ -176,7 +179,7 @@ func (s Store) Retry(ctx context.Context, workspace, id string) (Job, error) {
 		return Job{}, err
 	}
 	defer tx.Rollback(ctx)
-	j, err := scanJob(tx.QueryRow(ctx, `UPDATE jobs SET status='queued',progress=0,error='',attempt=attempt+1,finished_at=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status IN ('failed','cancelled') RETURNING id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at`, workspace, id))
+	j, err := scanJob(tx.QueryRow(ctx, `UPDATE jobs SET status='queued',progress=0,error='',attempt=attempt+1,finished_at=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status IN ('failed','cancelled') RETURNING id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at,workspace_id`, workspace, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Job{}, ErrInvalidState
 	}
@@ -280,7 +283,7 @@ func (s Store) FailOrRetry(ctx context.Context, id, errMsg string, backoffSecond
 
 // ListRunning returns jobs currently in running state, for worker dispatch.
 func (s Store) ListRunning(ctx context.Context, limit int) ([]Job, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at FROM jobs WHERE status='running' ORDER BY created_at LIMIT $1`, limit)
+	rows, err := s.Pool.Query(ctx, `SELECT id,intent_id,kind,label,project_id,episode_id,asset_id,shot_id,scope_epoch,status,progress,attempt,steps,intent_payload,result_payload,cost_estimate,error,context_path,created_at,updated_at,started_at,finished_at,workspace_id FROM jobs WHERE status='running' ORDER BY created_at LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +335,7 @@ func normalizeLegacyResult(j *Job) {
 }
 
 func fields(j *Job) []any {
-	return []any{&j.ID, &j.IntentID, &j.Kind, &j.Label, &j.ProjectID, &j.EpisodeID, &j.AssetID, &j.ShotID, &j.ScopeEpoch, &j.Status, &j.Progress, &j.Attempt, &j.Steps, &j.IntentPayload, &j.ResultPayload, &j.CostEstimate, &j.Error, &j.ContextPath, &j.CreatedAt, &j.UpdatedAt, &j.StartedAt, &j.FinishedAt}
+	return []any{&j.ID, &j.IntentID, &j.Kind, &j.Label, &j.ProjectID, &j.EpisodeID, &j.AssetID, &j.ShotID, &j.ScopeEpoch, &j.Status, &j.Progress, &j.Attempt, &j.Steps, &j.IntentPayload, &j.ResultPayload, &j.CostEstimate, &j.Error, &j.ContextPath, &j.CreatedAt, &j.UpdatedAt, &j.StartedAt, &j.FinishedAt, &j.WorkspaceID}
 }
 func randomID() string { var b [12]byte; _, _ = rand.Read(b[:]); return hex.EncodeToString(b[:]) }
 
