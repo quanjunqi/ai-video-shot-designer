@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -499,6 +501,7 @@ func assembleBody(req RunRequest, taskType string) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("engine: body marshal: %w", err)
 		}
+		logOutboundBody(req, raw)
 		return raw, nil
 	}
 
@@ -507,7 +510,9 @@ func assembleBody(req RunRequest, taskType string) ([]byte, error) {
 		return nil, fmt.Errorf("engine: request template %q: %w", req.ProtocolTemplate.ID, err)
 	}
 	if taskType == "" && !hasPassthrough(req) {
-		return []byte(rendered), nil
+		raw := []byte(rendered)
+		logOutboundBody(req, raw)
+		return raw, nil
 	}
 	var body map[string]any
 	if err := json.Unmarshal([]byte(rendered), &body); err != nil {
@@ -518,7 +523,26 @@ func assembleBody(req RunRequest, taskType string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("engine: body marshal: %w", err)
 	}
+	logOutboundBody(req, raw)
 	return raw, nil
+}
+
+// logOutboundBody 按需记录**实际发往上游的请求体**。
+//
+// 为什么需要：上游报「请求参数有误 / 类型不符」这类问题时，唯一可靠的判据是**实际发出的字节** ——
+// 审计里的 request_payload 记的是业务入参，两者不是一回事（T7 就因此绕过一次弯路）。
+//
+// 为什么默认关闭：请求体可能含提示词与业务文本 ⇒ 只在显式开启时记录。
+func logOutboundBody(req RunRequest, raw []byte) {
+	if os.Getenv("EXECUTION_LOG_REQUEST_BODY") != "1" {
+		return
+	}
+	slog.Info("engine outbound body",
+		"template", req.ProtocolTemplate.ID,
+		"model", req.ProviderModel,
+		"path", req.ProtocolTemplate.RequestPath,
+		"bytes", len(raw),
+		"body", string(raw))
 }
 
 // resolvedParam 是一条已声明参数按 role 解析后的取值。
@@ -559,12 +583,12 @@ func resolveParams(req RunRequest) []resolvedParam {
 			out = append(out, resolvedParam{Key: p.Key, Value: req.ProviderModel, Present: true})
 		case "runtime":
 			if v, has := req.Runtime[p.Key]; has {
-				out = append(out, resolvedParam{Key: p.Key, Value: v, Present: true})
+				out = append(out, resolvedParam{Key: p.Key, Value: coerceByType(v, spec.Type), Present: true})
 			}
 			// absent runtime field -> omit (executor did not produce it)
 		default: // static
 			if v, has := req.Runtime["__"+p.Key]; has {
-				out = append(out, resolvedParam{Key: p.Key, Value: v, Present: true})
+				out = append(out, resolvedParam{Key: p.Key, Value: coerceByType(v, spec.Type), Present: true})
 				continue
 			}
 			if val := strings.TrimSpace(spec.Value); val != "" {
@@ -573,6 +597,44 @@ func resolveParams(req RunRequest) []resolvedParam {
 		}
 	}
 	return out
+}
+
+// coerceByType 按协议模板声明的 type，把业务值规范成**正确的 JSON 类型**。
+//
+// 为什么必须有这一步（T7 真机事故）：界面表单天然产出字符串（`Record<string, string>`），
+// 而严格的上游按 JSON 类型校验 —— 实测某中转站对 `"max_tokens":"32"` / `"temperature":"0.7"` /
+// `"stream":"false"` 一律返回 `503 请求参数有误`，而数字/布尔形式返回 200。
+// 此前只有 static 默认值走了 parseJSONValue 转换，**业务覆盖值（runtime 与 __ 覆盖）被原样透传**。
+//
+// 边界（刻意保守，不猜）：
+//   - 值已经是 JSON 类型（数字/布尔/数组/对象）⇒ 原样返回；
+//   - 未声明 type，或声明为 string ⇒ 原样返回（**不**做"看起来像数字就转"的推断：
+//     那会把 "007"、"+86" 这类字符串静默改写）；
+//   - 声明了 type 但解析失败 ⇒ 原样返回，让上游如实报错，而不是悄悄换成一个"能过"的值。
+func coerceByType(v any, typ string) any {
+	s, ok := v.(string)
+	if !ok {
+		return v
+	}
+	switch strings.ToLower(strings.TrimSpace(typ)) {
+	case "number":
+		if f, err := strconv.ParseFloat(strings.TrimSpace(s), 64); err == nil {
+			return f
+		}
+	case "bool", "boolean":
+		if b, err := strconv.ParseBool(strings.TrimSpace(s)); err == nil {
+			return b
+		}
+	case "array", "object":
+		var probe any
+		if json.Unmarshal([]byte(s), &probe) == nil {
+			switch probe.(type) {
+			case []any, map[string]any:
+				return probe
+			}
+		}
+	}
+	return v
 }
 
 // assembleParamsBody 是 params[] 形态的请求体（改动前 Run / buildRequest 里逐字相同的两段）。
@@ -633,13 +695,36 @@ func injectDynamic(body map[string]any, taskType string, req RunRequest) {
 	if taskType != "" {
 		body["task_type"] = taskType
 	}
-	if pt, ok := req.Runtime["__passthrough"].(map[string]any); ok {
-		for k, v := range pt {
-			if k != "" && v != nil {
-				body[k] = v
-			}
+	pt, ok := req.Runtime["__passthrough"].(map[string]any)
+	if !ok {
+		return
+	}
+	// ★ 动态参数同样要按模板声明的 type 规范化：参数映射引擎的产物来自用户输入，
+	//   天然是字符串（`Record<string, string>`），而严格上游按 JSON 类型校验。
+	//   T7 真机事故：`max_tokens` 走的就是这条路 —— 它**在组装之后覆盖** body，
+	//   因此绕过了 resolveParams 里的转换（我第一版修复只改了 resolveParams，真机仍然 503）。
+	types := declaredTypes(req.ProtocolTemplate.Params, req.ModelParams)
+	for k, v := range pt {
+		if k != "" && v != nil {
+			body[k] = coerceByType(v, types[k])
 		}
 	}
+}
+
+// declaredTypes 汇总「参数名 → 声明类型」（模型级声明优先），只保留非空 type。
+func declaredTypes(tpl []Param, model []Param) map[string]string {
+	out := make(map[string]string, len(tpl)+len(model))
+	for _, p := range tpl {
+		if p.Key != "" && p.Type != "" {
+			out[p.Key] = p.Type
+		}
+	}
+	for _, p := range model {
+		if p.Key != "" && p.Type != "" {
+			out[p.Key] = p.Type
+		}
+	}
+	return out
 }
 
 // hasPassthrough 报告本次调用是否存在会被注入的动态参数（与 injectDynamic 的过滤规则一致）。
