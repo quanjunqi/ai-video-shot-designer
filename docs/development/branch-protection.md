@@ -71,6 +71,18 @@
 
 大任务必须拆分为子任务，逐个 PR 合并。
 
+### 3.1 分支保鲜判据（PR 前必须满足）
+
+> 分支保护 `strict = false`（§一，不要求分支实时领先），因此**人工判据代替机制**。
+
+1. **开 PR 前**运行 `scripts/preflight.sh --stale`：
+   - 判据：`git merge-base --is-ancestor <基线> HEAD` 必须成立（HEAD 已包含基线全部提交）；
+   - 若落后：**先 `git merge <基线>`（或 rebase）**，重跑测试，再开 PR；
+   - 基线默认 `origin/develop`；hotfix 用 `PREFLIGHT_BASE=origin/master scripts/preflight.sh --stale`。
+2. 合并动作必须**真实发生且可验证**（`git log` 中可见基线的最新提交），
+   **不得**在 PR 描述中以「我合并了 develop」代替实际同步。
+3. 若因他人 PR 先合入导致自己再次落后：合并顺序靠后的一方在合入前**重新同步一次**。
+
 ---
 
 ## 四、审批数为何是 0（重要）
