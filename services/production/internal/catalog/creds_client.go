@@ -71,3 +71,66 @@ func (c *WorkspaceCredentials) Reveal(ctx context.Context, workspaceID, channelI
 	}
 	return Credential{APIKey: out.APIKey, BaseURL: out.BaseURL}, nil
 }
+
+// UserChannel 读一个工作区自己的渠道定义（含同步配置）。
+//
+// 为什么放在这个客户端里：它就是"访问 workspace 服务"的那一个客户端（先是 reveal，现在是渠道）。
+// 端点复用既有的 GET /internal/v1/workspaces/{ws}/channels（workspace 早已提供），**不新增接口**。
+//
+// found=false 表示该工作区没有这个渠道 —— 这是**正常情况**（平台内置渠道就不在用户域里），
+// 调用方据此退回平台表；把它当错误会让平台渠道全部同步失败。
+func (c *WorkspaceCredentials) UserChannel(ctx context.Context, workspaceID, channelID string) (SyncChannelConfig, bool, error) {
+	if c == nil || c.Client == nil || c.WorkspaceURL == "" {
+		return SyncChannelConfig{}, false, fmt.Errorf("catalog: workspace client is not configured")
+	}
+	raw := fmt.Sprintf("%s/internal/v1/workspaces/%s/channels", c.WorkspaceURL, url.PathEscape(workspaceID))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	if err != nil {
+		return SyncChannelConfig{}, false, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return SyncChannelConfig{}, false, fmt.Errorf("catalog: list workspace channels: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
+	if resp.StatusCode != http.StatusOK {
+		return SyncChannelConfig{}, false, fmt.Errorf("catalog: list workspace channels: HTTP %d: %s", resp.StatusCode, truncate(string(body), 200))
+	}
+	var out struct {
+		Items []struct {
+			ID              string  `json:"id"`
+			Name            string  `json:"name"`
+			BaseURL         string  `json:"baseUrl"`
+			AuthType        string  `json:"authType"`
+			AuthHeader      *string `json:"authHeader"`
+			AuthPrefix      *string `json:"authPrefix"`
+			SyncKind        string  `json:"syncKind"`
+			SyncModelsPath  *string `json:"syncModelsPath"`
+			SyncPricingPath *string `json:"syncPricingPath"`
+			TrustNote       *string `json:"trustNote"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return SyncChannelConfig{}, false, fmt.Errorf("catalog: list workspace channels: bad json: %w", err)
+	}
+	deref := func(v *string) string {
+		if v == nil {
+			return ""
+		}
+		return *v
+	}
+	for _, it := range out.Items {
+		if it.ID != channelID {
+			continue
+		}
+		return SyncChannelConfig{
+			ID: it.ID, Name: it.Name, BaseURL: it.BaseURL, AuthType: it.AuthType,
+			AuthHeader: deref(it.AuthHeader), AuthPrefix: deref(it.AuthPrefix),
+			SyncKind: it.SyncKind, SyncModelsPath: deref(it.SyncModelsPath),
+			SyncPricingPath: deref(it.SyncPricingPath), TrustNote: deref(it.TrustNote),
+		}, true, nil
+	}
+	return SyncChannelConfig{}, false, nil
+}

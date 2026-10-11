@@ -22,7 +22,7 @@ func seedSupply(t *testing.T, s PostgresStore, channelID string, rows ...[3]stri
 			Pricing:       json.RawMessage(r[2]),
 		})
 	}
-	if _, err := s.ApplySync(context.Background(), channelID, items); err != nil {
+	if _, err := s.ApplySync(context.Background(), "", channelID, items); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -76,7 +76,7 @@ func TestIntegrationCurateRejectsTypesTheProductCannotRepresent(t *testing.T) {
 	seedSupply(t, s, "ch_cur", [3]string{"m_audio", "audio", `{}`})
 	before := catalogCount(t, s)
 
-	if _, err := s.Curate(ctx, "human", CurateInput{
+	if _, err := s.Curate(ctx, "", "human", CurateInput{
 		ID: "mc_audio", Family: "f", Name: "音频模型", Type: "audio",
 		ChannelID: "ch_cur", ProviderModel: "m_audio",
 	}); err == nil {
@@ -95,7 +95,7 @@ func TestIntegrationCuratePriceSource(t *testing.T) {
 	seedSupply(t, s, "ch_price2", [3]string{"m1", "image", `{"amount":0.25,"unit":"per_call"}`})
 
 	// ① 不给人工售价 ⇒ 取供给池的 ⇒ price_source=synced 且记录同步时刻
-	synced, err := s.Curate(ctx, "human", CurateInput{
+	synced, err := s.Curate(ctx, "", "human", CurateInput{
 		ID: "mc_synced", Family: "f1", Name: "n1", Type: "image",
 		ChannelID: "ch_price2", ProviderModel: "m1",
 	})
@@ -115,7 +115,7 @@ func TestIntegrationCuratePriceSource(t *testing.T) {
 
 	// ② 给人工售价 ⇒ price_source=manual，且不写 price_synced_at
 	manual := 9.99
-	man, err := s.Curate(ctx, "human", CurateInput{
+	man, err := s.Curate(ctx, "", "human", CurateInput{
 		ID: "mc_manual", Family: "f2", Name: "n2", Type: "image",
 		ChannelID: "ch_price2", ProviderModel: "m1",
 		PriceAmount: &manual, PriceUnit: "per_call",
@@ -141,11 +141,11 @@ func TestIntegrationCurateUpdatesInPlaceOnSameFamilyChannel(t *testing.T) {
 	seedChannel(t, s, "ch_up")
 	seedSupply(t, s, "ch_up", [3]string{"m1", "image", `{}`})
 
-	first, err := s.Curate(ctx, "h1", CurateInput{ID: "mc1", Family: "f", Name: "旧名", Type: "image", ChannelID: "ch_up", ProviderModel: "m1"})
+	first, err := s.Curate(ctx, "", "h1", CurateInput{ID: "mc1", Family: "f", Name: "旧名", Type: "image", ChannelID: "ch_up", ProviderModel: "m1"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := s.Curate(ctx, "h2", CurateInput{ID: "mc2", Family: "f", Name: "新名", Type: "image", ChannelID: "ch_up", ProviderModel: "m1"})
+	second, err := s.Curate(ctx, "", "h2", CurateInput{ID: "mc2", Family: "f", Name: "新名", Type: "image", ChannelID: "ch_up", ProviderModel: "m1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestIntegrationCurateRequiresAnExistingSupplyRow(t *testing.T) {
 	s := testPostgresStore(t)
 	seedChannel(t, s, "ch_req")
 	before := catalogCount(t, s)
-	if _, err := s.Curate(context.Background(), "human", CurateInput{
+	if _, err := s.Curate(context.Background(), "", "human", CurateInput{
 		ID: "mc_ghost", Family: "f", Name: "n", Type: "image",
 		ChannelID: "ch_req", ProviderModel: "never_synced",
 	}); err == nil {

@@ -73,7 +73,17 @@ type Syncer struct {
 	Store       PostgresStore
 	Credentials CredentialSource
 	Lister      ModelLister
-	Now         func() time.Time
+	// Channels 提供"某个工作区自己定义的渠道"（workspace 服务的 user_channels）。
+	// 为什么需要：ADR-009 决定 2 —— 同步配置跟着渠道走；工作区自己的中转站配置只存在于工作区域。
+	// 为 nil 时退回平台表（行为与引入工作区维度之前一致）。
+	Channels UserChannelSource
+	Now      func() time.Time
+}
+
+// UserChannelSource 读一个工作区自己的渠道定义（含同步配置）。
+// found=false 表示该工作区没有这个渠道（而不是错误）。
+type UserChannelSource interface {
+	UserChannel(ctx context.Context, workspaceID, channelID string) (SyncChannelConfig, bool, error)
 }
 
 func (s Syncer) now() time.Time {
@@ -110,12 +120,28 @@ func (store PostgresStore) LoadSyncConfig(ctx context.Context, channelID string)
 //   - 成功时更新 last_sync_at（界面"上次同步时间"的来源）
 //   - 落库复用 ApplySync：幂等 / 缺失只标记不删 / 绝不写 model_catalog
 func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) (SyncResult, error) {
-	cfg, err := s.Store.LoadSyncConfig(ctx, channelID)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return SyncResult{}, ErrChannelNotFound
+	// 渠道配置的来源顺序（ADR-009 决定 2）：**工作区自己的渠道优先**，其次平台渠道。
+	// 这也解开了 F3：工作区渠道的 id 就是它的 user_channels.id，不再要求"与平台 id 相同"。
+	var cfg SyncChannelConfig
+	found := false
+	if s.Channels != nil {
+		uc, ok, err := s.Channels.UserChannel(ctx, workspaceID, channelID)
+		if err != nil {
+			return SyncResult{}, fmt.Errorf("catalog: load workspace channel %s: %w", channelID, err)
 		}
-		return SyncResult{}, fmt.Errorf("catalog: load channel %s: %w", channelID, err)
+		if ok && uc.SyncKind != "" && uc.SyncKind != "none" {
+			cfg, found = uc, true
+		}
+	}
+	if !found {
+		platformCfg, err := s.Store.LoadSyncConfig(ctx, channelID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return SyncResult{}, ErrChannelNotFound
+			}
+			return SyncResult{}, fmt.Errorf("catalog: load channel %s: %w", channelID, err)
+		}
+		cfg = platformCfg
 	}
 	if cfg.SyncKind == "" || cfg.SyncKind == "none" || strings.TrimSpace(cfg.SyncModelsPath) == "" {
 		return SyncResult{}, ErrSyncNotConfigured
@@ -139,7 +165,7 @@ func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) 
 		return SyncResult{}, fmt.Errorf("catalog: channel %s has no base_url (row or credentials)", channelID)
 	}
 
-	syncID, err := s.Store.StartSync(ctx, channelID)
+	syncID, err := s.Store.StartSync(ctx, workspaceID, channelID)
 	if err != nil {
 		return SyncResult{}, fmt.Errorf("catalog: start sync record: %w", err)
 	}
@@ -148,7 +174,7 @@ func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) 
 	var endpointsJSON, diffJSON json.RawMessage
 	models, endpoints, listErr := s.Lister.List(ctx, cfg, baseURL, apiKey)
 	if listErr == nil {
-		res, listErr = s.Store.ApplySync(ctx, channelID, models)
+		res, listErr = s.Store.ApplySync(ctx, workspaceID, channelID, models)
 	}
 	if b, mErr := json.Marshal(endpoints); mErr == nil {
 		endpointsJSON = b

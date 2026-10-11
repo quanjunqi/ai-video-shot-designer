@@ -47,11 +47,12 @@ type SyncResult struct {
 //   - 不越界（§8.3）：绝不写 model_catalog
 //   - 可选描述字段（display_name/model_type/tags/vendor）：本次未提供时**保留旧值**
 //     （用 COALESCE），避免"上游某次没带这个字段"把已有信息抹掉
-func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upstream []UpstreamModel) (SyncResult, error) {
+func (store PostgresStore) ApplySync(ctx context.Context, workspaceID, channelID string, upstream []UpstreamModel) (SyncResult, error) {
 	res := SyncResult{RawCount: len(upstream)}
 	if channelID == "" {
 		return res, errors.New("channel id is required")
 	}
+	// ADR-009 Phase B2b：同步写进【该工作区】的供给池（workspaceID="" 仍是平台共享，行为不变）
 	// 注：上游端点映射表属于【同步记录】（ADR-004 §3.2 的 channel_model_syncs.endpoints），
 	// 由 FinishSync 落库；本函数只负责供给池本身。
 
@@ -77,17 +78,16 @@ func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upst
 		err := tx.QueryRow(ctx, `
 			WITH old AS (
 				SELECT pricing FROM channel_models
-				WHERE channel_id = $1 AND provider_model = $2
+				WHERE workspace_id = $11 AND channel_id = $1 AND provider_model = $2
 			), up AS (
-			INSERT INTO channel_models (channel_id, provider_model, display_name, model_type, tags,
+			INSERT INTO channel_models (workspace_id, channel_id, provider_model, display_name, model_type, tags,
 				endpoint_types, vendor, raw, pricing, remote_created_at,
 				first_seen_at, last_seen_at, missing_since)
-			VALUES ($1,$2,NULLIF($3,''),NULLIF($4,''),NULLIF($5,''),
+			VALUES ($11,$1,$2,NULLIF($3,''),NULLIF($4,''),NULLIF($5,''),
 				COALESCE($6,'[]'::jsonb),NULLIF($7,''),COALESCE($8,'{}'::jsonb),
 				COALESCE($9,'{}'::jsonb),$10, now(), now(), NULL)
 			-- 038 后主键为 (workspace_id, channel_id, provider_model)：冲突目标必须与唯一索引
-			-- 的列完全一致，否则 Postgres 报 42P10。workspace_id 未在列清单里出现，由
-			-- DEFAULT ''（平台共享）提供 ⇒ 语义与迁移前完全一致（Phase A 不改行为）。
+			-- 的列完全一致，否则 Postgres 报 42P10。B2b 起 workspace_id 显式传入（""=平台共享）。
 			ON CONFLICT (workspace_id, channel_id, provider_model) DO UPDATE SET
 				display_name      = COALESCE(EXCLUDED.display_name, channel_models.display_name),
 				model_type        = COALESCE(EXCLUDED.model_type,   channel_models.model_type),
@@ -104,7 +104,7 @@ func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upst
 			SELECT up.inserted, (old.pricing IS DISTINCT FROM up.pricing)
 			FROM up LEFT JOIN old ON true`,
 			channelID, u.ProviderModel, u.DisplayName, u.ModelType, u.Tags,
-			u.EndpointTypes, u.Vendor, u.Raw, u.Pricing, u.RemoteCreatedAt).
+			u.EndpointTypes, u.Vendor, u.Raw, u.Pricing, u.RemoteCreatedAt, workspaceID).
 			Scan(&inserted, &priceChanged)
 		if err != nil {
 			return SyncResult{}, err
@@ -122,8 +122,8 @@ func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upst
 	// 本次未出现的行：置 missing_since（已置位的保留原时刻），**不删除**
 	tag, err := tx.Exec(ctx, `
 		UPDATE channel_models SET missing_since = now()
-		WHERE channel_id = $1 AND missing_since IS NULL AND NOT (provider_model = ANY($2::text[]))`,
-		channelID, seen)
+		WHERE workspace_id = $3 AND channel_id = $1 AND missing_since IS NULL AND NOT (provider_model = ANY($2::text[]))`,
+		channelID, seen, workspaceID)
 	if err != nil {
 		return SyncResult{}, err
 	}
@@ -136,11 +136,12 @@ func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upst
 }
 
 // StartSync 开一条 running 的同步记录，返回其 id。
-func (store PostgresStore) StartSync(ctx context.Context, channelID string) (int64, error) {
+func (store PostgresStore) StartSync(ctx context.Context, workspaceID, channelID string) (int64, error) {
 	var id int64
+	// ADR-009 Phase B2b：同步记录也归工作区（审计/排障按工作区过滤）
 	err := store.Pool.QueryRow(ctx,
-		`INSERT INTO channel_model_syncs (channel_id, status) VALUES ($1, 'running') RETURNING id`,
-		channelID).Scan(&id)
+		`INSERT INTO channel_model_syncs (workspace_id, channel_id, status) VALUES ($1, $2, 'running') RETURNING id`,
+		workspaceID, channelID).Scan(&id)
 	return id, err
 }
 

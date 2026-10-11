@@ -154,7 +154,7 @@ type CurateInput struct {
 }
 
 // Curate 把一条供给策展成产品面的模型。**只有走到这里，模型才可能对外可见。**
-func (store PostgresStore) Curate(ctx context.Context, actor string, in CurateInput) (CuratedModel, error) {
+func (store PostgresStore) Curate(ctx context.Context, workspaceID, actor string, in CurateInput) (CuratedModel, error) {
 	var out CuratedModel
 	if in.ID == "" || in.Family == "" || in.Name == "" || in.ChannelID == "" || in.ProviderModel == "" {
 		return out, errors.New("id, family, name, channel_id and provider_model are required")
@@ -168,9 +168,13 @@ func (store PostgresStore) Curate(ctx context.Context, actor string, in CurateIn
 
 	// 从供给池取上游价格（窄约定；认不出就不猜）
 	var rawPricing json.RawMessage
+	// 供给价：平台共享行 + 该工作区自己的行 ⇒ **工作区行优先**（ORDER BY 把平台排后）
 	err := store.Pool.QueryRow(ctx,
-		`SELECT pricing FROM channel_models WHERE channel_id=$1 AND provider_model=$2`,
-		in.ChannelID, in.ProviderModel).Scan(&rawPricing)
+		`SELECT pricing FROM channel_models
+		  WHERE channel_id=$1 AND provider_model=$2 AND (workspace_id = '' OR workspace_id = $3)
+		  ORDER BY (workspace_id = '') ASC
+		  LIMIT 1`,
+		in.ChannelID, in.ProviderModel, workspaceID).Scan(&rawPricing)
 	if err != nil {
 		return out, fmt.Errorf("supply row %s/%s: %w", in.ChannelID, in.ProviderModel, err)
 	}
@@ -185,10 +189,11 @@ func (store PostgresStore) Curate(ctx context.Context, actor string, in CurateIn
 	err = store.Pool.QueryRow(ctx, `
 		INSERT INTO model_catalog (id, channel_id, family, name, provider_model, type, status, sort,
 			note, protocol_template_id, logical_model_id, route_priority,
-			cost_amount, cost_unit, price_amount, price_unit, price_source, price_synced_at, created_by)
+			cost_amount, cost_unit, price_amount, price_unit, price_source, price_synced_at, created_by,
+			workspace_id)
 		VALUES ($1,$2,$3,$4,$5,$6,'enabled',100,$7,NULLIF($8,''),NULLIF($9,''),$10,
 			$11,NULLIF($12,''),$13,NULLIF($14,''),$15,
-			CASE WHEN $15 = 'synced' THEN now() ELSE NULL END, $16)
+			CASE WHEN $15 = 'synced' THEN now() ELSE NULL END, $16, $17)
 		-- 038 后唯一键为 (workspace_id, family, channel_id)：理由同 pool.go（42P10）。
 		ON CONFLICT (workspace_id, family, channel_id) DO UPDATE SET
 			name = EXCLUDED.name, provider_model = EXCLUDED.provider_model, type = EXCLUDED.type,
@@ -203,7 +208,7 @@ func (store PostgresStore) Curate(ctx context.Context, actor string, in CurateIn
 			cost_amount, COALESCE(cost_unit,''), price_amount, COALESCE(price_unit,''), price_source, version`,
 		in.ID, in.ChannelID, in.Family, in.Name, in.ProviderModel, in.Type, in.Note,
 		in.ProtocolTemplateID, in.LogicalModelID, in.RoutePriority,
-		in.CostAmount, in.CostUnit, priceAmount, priceUnit, priceSource, actor).
+		in.CostAmount, in.CostUnit, priceAmount, priceUnit, priceSource, actor, workspaceID).
 		Scan(&out.ID, &out.ChannelID, &out.Family, &out.Name, &out.ProviderModel, &out.Type, &out.Status,
 			&out.Sort, &out.Note, &out.ProtocolTemplateID, &out.LogicalModelID, &out.RoutePriority,
 			&out.CostAmount, &out.CostUnit, &out.PriceAmount, &out.PriceUnit, &out.PriceSource, &out.Version)
