@@ -328,6 +328,12 @@ func (s *server) catalogProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/catalog")
 	upstreamPath := "/internal/v1/catalog" + rel
+	// ★ 保留查询串：本仓其它 9 个代理都做了这件事，唯独这里漏了 ——
+	//   后果是 /api/v1/catalog/supply?channel_id=… 到上游后变成"没带 channel_id"，
+	//   用户看到 400 MISSING_CHANNEL（是我的新接口把它暴露出来的）。
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
 	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
