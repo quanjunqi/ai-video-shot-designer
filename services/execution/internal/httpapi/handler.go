@@ -313,17 +313,14 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "CATALOG_UNAVAILABLE", err.Error())
 		return
 	}
-	var model *catalog.Model
-	for i := range dir.Models {
-		if dir.Models[i].ID == in.ModelID {
-			model = &dir.Models[i]
-			break
-		}
-	}
-	if model == nil {
+	// ADR-003 的候选解析（与 worker 同一实现，避免两条路径口径分叉）。
+	candidates, resolveErr := catalog.Resolve(dir, in.ModelID)
+	if resolveErr != nil {
+		// 文案与改动前逐字一致（错误码 MODEL_NOT_FOUND 与消息都保持稳定）
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
 	}
+	model := &candidates[0]
 	if model.ProtocolTemplateID == "" {
 		writeError(w, 422, "MODEL_NO_PROTOCOL", "model has no protocol template; attach one first")
 		return

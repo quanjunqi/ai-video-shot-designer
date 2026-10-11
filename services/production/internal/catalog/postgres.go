@@ -35,14 +35,14 @@ func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 		return dir, err
 	}
 
-	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version FROM model_catalog ORDER BY type, sort, name`)
+	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority FROM model_catalog ORDER BY type, sort, name`)
 	if err != nil {
 		return dir, err
 	}
 	defer models.Close()
 	for models.Next() {
 		var m Model
-		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version); err != nil {
+		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version, &m.LogicalModelID, &m.RoutePriority); err != nil {
 			return dir, err
 		}
 		dir.Models = append(dir.Models, m)

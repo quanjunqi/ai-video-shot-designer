@@ -272,18 +272,18 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as)
 		return
 	}
-	var model *catalog.Model
-	for i := range dir.Models {
-		if dir.Models[i].ID == payload.ModelID {
-			model = &dir.Models[i]
-			break
-		}
-	}
-	if model == nil {
-		auditTerminal(ctx, as, j.ID, false, "model not found in directory", nil)
-		_ = s.Complete(ctx, j.ID, false, nil, "model not found in directory")
+	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
+	// P3-1 只取首选；失败切换（逐个候选重试）是 P3-2。
+	candidates, resolveErr := catalog.Resolve(dir, payload.ModelID)
+	if resolveErr != nil {
+		// 文案与改动前**逐字一致**：存量排障文档与断言依赖它。
+		// 具体原因（既非行 id 也无启用候选）由 Resolve 的错误类型承载，另有单测覆盖。
+		const msg = "model not found in directory"
+		auditTerminal(ctx, as, j.ID, false, msg, nil)
+		_ = s.Complete(ctx, j.ID, false, nil, msg)
 		return
 	}
+	model := &candidates[0]
 	if model.ProtocolTemplateID == "" {
 		auditTerminal(ctx, as, j.ID, false, "model has no protocol template", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model has no protocol template")
