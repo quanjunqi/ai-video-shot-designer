@@ -306,6 +306,20 @@ export default function SettingsChannelsPage() {
                     <p className="text-[9px] uppercase tracking-wide text-muted-foreground">鉴权方式</p>
                     <p className="mt-0.5 font-mono text-xs">{c.authType}</p>
                   </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">同步上游模型目录</p>
+                    <p className="mt-0.5 font-mono text-xs">
+                      {c.syncKind && c.syncKind !== 'none'
+                        ? `${c.syncKind}${c.syncModelsPath ? ` · ${c.syncModelsPath}` : ''}`
+                        : '未配置（同步配置属平台级，需在平台侧设置）'}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">上次同步</p>
+                    <p className="mt-0.5 font-mono text-xs">
+                      {c.lastSyncAt ? c.lastSyncAt.replace('T', ' ').slice(0, 19) : '从未同步'}
+                    </p>
+                  </div>
                   <div className="min-w-0 sm:col-span-2">
                     <p className="text-[9px] uppercase tracking-wide text-muted-foreground">凭据状态</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2">

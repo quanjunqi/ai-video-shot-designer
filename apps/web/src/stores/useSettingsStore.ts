@@ -50,7 +50,7 @@ interface SettingsState {
 }
 
 function serverChannelToLocal(c: ServerCatalogDirectory['channels'][number]): ChannelConfig {
-  return { id: c.id, name: c.name, kind: c.kind, protocol: (c as { protocol?: string }).protocol === 'local' ? 'local' : 'api', baseUrl: c.baseUrl, authType: c.authType, enabled: c.enabled, note: c.note, sort: c.sort };
+  return { id: c.id, name: c.name, kind: c.kind, protocol: (c as { protocol?: string }).protocol === 'local' ? 'local' : 'api', baseUrl: c.baseUrl, authType: c.authType, enabled: c.enabled, note: c.note, sort: c.sort, syncKind: c.syncKind, syncModelsPath: c.syncModelsPath, syncPricingPath: c.syncPricingPath, lastSyncAt: c.lastSyncAt };
 }
 function userChannelToLocal(c: UserChannelItem): ChannelConfig {
   return { id: c.id, name: c.name, kind: c.kind, protocol: c.protocol === 'local' ? 'local' : 'api', baseUrl: c.baseUrl, authType: c.authType as ChannelConfig['authType'], enabled: c.enabled, note: c.note, sort: c.sort ?? 0 };

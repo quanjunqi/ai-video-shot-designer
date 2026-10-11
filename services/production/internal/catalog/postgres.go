@@ -16,14 +16,17 @@ type PostgresStore struct {
 
 func (store PostgresStore) Directory(ctx context.Context) (Directory, error) {
 	var dir Directory
-	channels, err := store.Pool.Query(ctx, `SELECT id, name, kind, base_url, auth_type, enabled, note, sort FROM model_channels ORDER BY sort, id`)
+	channels, err := store.Pool.Query(ctx, `SELECT id, name, kind, base_url, auth_type, enabled, note, sort,
+		COALESCE(sync_kind,'none'), COALESCE(sync_models_path,''), COALESCE(sync_pricing_path,''), last_sync_at
+		FROM model_channels ORDER BY sort, id`)
 	if err != nil {
 		return dir, err
 	}
 	defer channels.Close()
 	for channels.Next() {
 		var c Channel
-		if err := channels.Scan(&c.ID, &c.Name, &c.Kind, &c.BaseURL, &c.AuthType, &c.Enabled, &c.Note, &c.Sort); err != nil {
+		if err := channels.Scan(&c.ID, &c.Name, &c.Kind, &c.BaseURL, &c.AuthType, &c.Enabled, &c.Note, &c.Sort,
+			&c.SyncKind, &c.SyncModelsPath, &c.SyncPricingPath, &c.LastSyncAt); err != nil {
 			return dir, err
 		}
 		dir.Channels = append(dir.Channels, c)
@@ -202,7 +205,8 @@ func (store PostgresStore) UpdateChannel(ctx context.Context, id string, patch C
             note      = COALESCE($6, note),
             sort      = COALESCE($7, sort)
         WHERE id = $1
-        RETURNING id, name, kind, base_url, auth_type, enabled, note, sort`,
+        RETURNING id, name, kind, base_url, auth_type, enabled, note, sort,
+            COALESCE(sync_kind,'none'), COALESCE(sync_models_path,''), COALESCE(sync_pricing_path,''), last_sync_at`,
 		id,
 		nullableString(patch.Name),
 		nullableString(patch.BaseURL),
@@ -211,7 +215,8 @@ func (store PostgresStore) UpdateChannel(ctx context.Context, id string, patch C
 		nullableString(patch.Note),
 		patch.Sort)
 	var c Channel
-	if err := row.Scan(&c.ID, &c.Name, &c.Kind, &c.BaseURL, &c.AuthType, &c.Enabled, &c.Note, &c.Sort); err != nil {
+	if err := row.Scan(&c.ID, &c.Name, &c.Kind, &c.BaseURL, &c.AuthType, &c.Enabled, &c.Note, &c.Sort,
+		&c.SyncKind, &c.SyncModelsPath, &c.SyncPricingPath, &c.LastSyncAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return c, ErrNotFound
 		}
