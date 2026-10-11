@@ -9,3 +9,4 @@ execution      48
 asset          23
 web-bff        40
 outbox-relay   28
+shared          86

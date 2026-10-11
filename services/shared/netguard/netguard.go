@@ -44,9 +44,21 @@ type Policy struct {
 //
 //	EXECUTION_ALLOW_PRIVATE_UPSTREAM=1     放开私网（本地开发）
 //	EXECUTION_ALLOWED_UPSTREAM_HOSTS=a,b   仅允许这些主机（可选）
-func FromEnv(getenv func(string) string) Policy {
-	p := Policy{AllowPrivate: getenv("EXECUTION_ALLOW_PRIVATE_UPSTREAM") == "1"}
-	for _, h := range strings.Split(getenv("EXECUTION_ALLOWED_UPSTREAM_HOSTS"), ",") {
+//
+// FromEnv 保持【原名与原有语义】（EXECUTION_ 前缀）：execution 侧零改动。
+func FromEnv(getenv func(string) string) Policy { return FromEnvWithPrefix("EXECUTION", getenv) }
+
+// FromEnvWithPrefix 是同一策略的【可复用】形式：环境变量前缀由调用方给。
+//
+// 为什么需要它：本包已从 execution 内部搬到共享模块（`shotdesigner/shared/netguard`），
+// production 的供给池同步器也要用它。若共用同一组变量名，两个服务会互相干扰
+// （execution 的私网开关会顺带打开 production 的）。故各自一组：
+//
+//	execution  → EXECUTION_ALLOW_PRIVATE_UPSTREAM  / EXECUTION_ALLOWED_UPSTREAM_HOSTS
+//	production → PRODUCTION_ALLOW_PRIVATE_UPSTREAM / PRODUCTION_ALLOWED_UPSTREAM_HOSTS
+func FromEnvWithPrefix(prefix string, getenv func(string) string) Policy {
+	p := Policy{AllowPrivate: getenv(prefix+"_ALLOW_PRIVATE_UPSTREAM") == "1"}
+	for _, h := range strings.Split(getenv(prefix+"_ALLOWED_UPSTREAM_HOSTS"), ",") {
 		if h = strings.ToLower(strings.TrimSpace(h)); h != "" {
 			p.AllowedHosts = append(p.AllowedHosts, h)
 		}

@@ -25,7 +25,7 @@
 # =============================================================================
 set -uo pipefail
 
-ALL_SERVICES='["workspace","production","execution","asset","web-bff","outbox-relay"]'
+ALL_SERVICES='["workspace","production","execution","asset","web-bff","outbox-relay","shared"]'
 base="${1:-}"
 
 emit_all() { # $1=原因
@@ -74,6 +74,7 @@ fi
 frontend=false
 security=false
 declare -a svcs=()
+
 global_hit=""
 
 while IFS= read -r p; do
@@ -84,6 +85,10 @@ while IFS= read -r p; do
         # PR/Issue 模板等改动不会影响任何检查，不应触发全量回退
         # （否则「加一张任务卡也跑全套 CI」）。
         .github/workflows/*|.github/scripts/*|deploy/*)
+            global_hit="$p" ;;
+        # ★ 跨服务共享包：它被多个服务依赖 ⇒ 视为全局命中（触发全量后端），
+        #   否则只跑 shared 自己会漏掉消费方的回归。必须放在通用 services/* 之前。
+        services/shared/*)
             global_hit="$p" ;;
         apps/web/*)
             frontend=true; security=true ;;

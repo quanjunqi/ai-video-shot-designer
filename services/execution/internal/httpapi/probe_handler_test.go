@@ -11,8 +11,8 @@ import (
 
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
-	"shotdesigner/services/execution/internal/netguard"
 	"shotdesigner/services/execution/internal/probe"
+	"shotdesigner/shared/netguard"
 )
 
 // probeFixture 组装一条完整的执行链：HTTP 路由 → probe → 三方替身

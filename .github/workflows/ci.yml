@@ -152,7 +152,7 @@ jobs:
       # 否则日志只显示 cancelled，会掩盖其它服务的真实结果。
       fail-fast: false
       matrix:
-        service: [workspace, production, execution, asset, web-bff, outbox-relay]
+        service: [workspace, production, execution, asset, web-bff, outbox-relay, shared]
 
     steps:
       - name: Relevance
