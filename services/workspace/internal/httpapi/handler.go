@@ -228,6 +228,11 @@ type UserChannelInput struct {
 	Enabled    *bool   `json:"enabled"`
 	Note       string  `json:"note"`
 	Sort       *int    `json:"sort"`
+	// 同步配置（ADR-009 决定 2）：可空；不填即"不配同步"
+	SyncKind        string  `json:"syncKind"`
+	SyncModelsPath  *string `json:"syncModelsPath"`
+	SyncPricingPath *string `json:"syncPricingPath"`
+	TrustNote       *string `json:"trustNote"`
 }
 
 func (h Handler) listUserChannels(w http.ResponseWriter, r *http.Request) {
@@ -284,10 +289,18 @@ func (h Handler) putUserChannel(w http.ResponseWriter, r *http.Request) {
 	if input.Sort != nil {
 		sort = *input.Sort
 	}
+	// 同步方式留空 ⇒ 归一为 none（"没配同步"），而不是把空串写进库 —— 让读侧只面对两种状态：
+	// none（不配同步）或具体的同步器类型。认不出的类型由同步器明确拒绝（"认不出就不猜"）。
+	syncKind := input.SyncKind
+	if syncKind == "" {
+		syncKind = "none"
+	}
 	saved, err := h.Store.UpsertUserChannel(r.Context(), ws, store.UserChannel{
 		ID: id, Name: input.Name, Kind: input.Kind, Protocol: protocol, BaseURL: input.BaseURL,
 		AuthType: input.AuthType, AuthHeader: input.AuthHeader, AuthPrefix: input.AuthPrefix,
 		Enabled: enabled, Note: input.Note, Sort: sort,
+		SyncKind: syncKind, SyncModelsPath: input.SyncModelsPath,
+		SyncPricingPath: input.SyncPricingPath, TrustNote: input.TrustNote,
 	})
 	if err != nil {
 		writeError(w, 503, "CHANNEL_UNAVAILABLE", "user channel could not be saved")
