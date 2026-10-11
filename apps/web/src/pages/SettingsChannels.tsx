@@ -14,6 +14,7 @@ import { useEffect } from 'react';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { api, type ChannelSyncResult } from '@/lib/api/client';
 import CurationPanel from '@/features/settings/CurationPanel';
+import { describeSyncSource, effectiveSync } from '@/features/settings/channel-sync';
 import { MODEL_CHANNELS, type ChannelKind, type ChannelConfig, type ChannelProtocol } from '@/config/models/model-catalog';
 import { cn } from '@/lib/utils';
 
@@ -64,7 +65,13 @@ export default function SettingsChannelsPage() {
   const [form, setForm] = useState<NewChannelForm>({ ...EMPTY_FORM });
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<ChannelConfig | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', kind: 'aggregator' as ChannelKind, protocol: 'api' as ChannelProtocol, authType: 'bearer' as 'bearer' | 'none', baseUrl: '', note: '' });
+  const [editForm, setEditForm] = useState({
+    name: '', kind: 'aggregator' as ChannelKind, protocol: 'api' as ChannelProtocol,
+    authType: 'bearer' as 'bearer' | 'none', baseUrl: '', note: '',
+    // 同步配置：**只对工作区自己的渠道**可编辑（平台渠道由平台侧拥有，界面不得改）
+    syncKind: 'none' as 'none' | 'openai_compatible',
+    syncModelsPath: '', syncPricingPath: '', trustNote: '',
+  });
   const [testingId, setTestingId] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   // 最近一次同步结果（每个渠道一份；权威记录在服务端的 channel_model_syncs）
@@ -87,17 +94,54 @@ export default function SettingsChannelsPage() {
   useEffect(() => { void syncCatalog(); }, [syncCatalog]);
   useEffect(() => { void syncCredentials(); }, [syncCredentials]);
 
-  const openEdit = (c: ChannelConfig) => {
+  const openEdit = async (c: ChannelConfig) => {
     setEditing(c);
-    setEditForm({ name: c.name, kind: c.kind, protocol: c.protocol ?? 'api', authType: c.authType, baseUrl: c.baseUrl, note: c.note });
+    setEditForm({
+      name: c.name, kind: c.kind, protocol: c.protocol ?? 'api', authType: c.authType,
+      baseUrl: c.baseUrl, note: c.note,
+      // ★ 必须取【该渠道自己】的同步配置，而不是上面显示的"生效值"：
+      //   生效值可能来自平台行，若拿它预填，一保存就把平台配置抄成了工作区私有配置。
+      syncKind: 'none', syncModelsPath: '', syncPricingPath: '', trustNote: '',
+    });
     setEditKey('');
     setRevealed(null);
     setEditOpen(true);
+    if (!isBuiltin(c.id)) {
+      try {
+        const mine = (await api.listUserChannels()).items.find((x) => x.id === c.id);
+        if (mine) {
+          setEditForm((prev) => ({
+            ...prev,
+            syncKind: mine.syncKind === 'openai_compatible' ? 'openai_compatible' : 'none',
+            syncModelsPath: mine.syncModelsPath ?? '',
+            syncPricingPath: mine.syncPricingPath ?? '',
+            trustNote: mine.trustNote ?? '',
+          }));
+        }
+      } catch {
+        // 读不到就不预填（保持 none）。用户仍可显式配置；失败不静默影响其它字段。
+      }
+    }
   };
 
   const submitEdit = async () => {
     if (!editing || !editForm.name.trim()) return;
-    upsertChannel(editing.id, { name: editForm.name.trim(), kind: editForm.kind, protocol: editForm.protocol, authType: editForm.authType, baseUrl: editForm.baseUrl.trim(), note: editForm.note.trim() });
+    const isUserChannel = !isBuiltin(editing.id);
+    if (isUserChannel) {
+      // ★ 工作区渠道：写【工作区域】（这是它的所有者），绝不写平台目录 ——
+      //   平台目录属于平台，界面改它等于跨租户改别人的事实（ADR-005 D1 的护栏）。
+      await api.putUserChannel(editing.id, {
+        name: editForm.name.trim(), kind: editForm.kind, protocol: editForm.protocol,
+        baseUrl: editForm.baseUrl.trim(), authType: editForm.authType, enabled: editing.enabled,
+        note: editForm.note.trim(),
+        syncKind: editForm.syncKind,
+        syncModelsPath: editForm.syncModelsPath.trim(),
+        syncPricingPath: editForm.syncPricingPath.trim(),
+        trustNote: editForm.trustNote.trim(),
+      });
+    } else {
+      upsertChannel(editing.id, { name: editForm.name.trim(), kind: editForm.kind, protocol: editForm.protocol, authType: editForm.authType, baseUrl: editForm.baseUrl.trim(), note: editForm.note.trim() });
+    }
     const hasCred = Boolean(credFor(editing.id)?.hasKey);
     const newKey = editKey.trim();
     try {
@@ -116,6 +160,8 @@ export default function SettingsChannelsPage() {
       setEditing(null);
       setRevealed(null);
       setEditKey('');
+      // 写的是服务端 ⇒ 必须重拉目录，否则卡片仍显示旧的同步状态
+      if (isUserChannel) await syncCatalog();
       await syncCredentials();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '保存失败');
@@ -492,7 +538,48 @@ export default function SettingsChannelsPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
+                        {editing && !isBuiltin(editing.id) && (
+                <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+                  <p className="text-[11px] font-medium">同步配置（本渠道自己的）</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {describeSyncSource(effectiveSync(
+                      { syncKind: editForm.syncKind, syncModelsPath: editForm.syncModelsPath, syncPricingPath: editForm.syncPricingPath },
+                      { syncKind: editing.syncKind, syncModelsPath: editing.syncModelsPath, syncPricingPath: editing.syncPricingPath },
+                    ).source)}
+                    。留空（none）时会退回平台配置；要用本渠道自己的中转站，请在这里选好同步方式与路径。
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">同步方式</Label>
+                    <Select value={editForm.syncKind} onValueChange={(v) => setEditForm({ ...editForm, syncKind: v as 'none' | 'openai_compatible' })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">不配置（退回平台配置）</SelectItem>
+                        <SelectItem value="openai_compatible">openai_compatible（/v1/models 风格）</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editForm.syncKind !== 'none' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">模型列表路径</Label>
+                        <Input value={editForm.syncModelsPath} onChange={(e) => setEditForm({ ...editForm, syncModelsPath: e.target.value })} placeholder="/v1/models" className="font-mono text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">价格路径（可选）</Label>
+                        <Input value={editForm.syncPricingPath} onChange={(e) => setEditForm({ ...editForm, syncPricingPath: e.target.value })} placeholder="/v1/pricing" className="font-mono text-xs" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">来源说明（信任备注，会随供给留痕）</Label>
+                    <Input value={editForm.trustNote} onChange={(e) => setEditForm({ ...editForm, trustNote: e.target.value })} placeholder="例如：该中转站转售第三方模型，价格随上游浮动" />
+                  </div>
+                </div>
+              )}
+
+<DialogFooter>
             <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
               取消
             </Button>

@@ -5,6 +5,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { MODEL_CHANNELS, MODEL_CATALOG, PROTOCOL_TEMPLATES, type ChannelConfig, type CatalogModel, type ModelParam, type ProtocolTemplate } from '@/config/models/model-catalog';
+import { effectiveSync } from '@/features/settings/channel-sync';
 import { api, type ServerCatalogDirectory, type CredentialStatus, type UserChannelItem } from '@/lib/api/client';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -56,6 +57,7 @@ function serverChannelToLocal(c: ServerCatalogDirectory['channels'][number]): Ch
 // 而合并时"用户渠道覆盖同名 id"⇒ 若这里不带过来，卡片就会永远显示"未配置 / 从未同步"
 // —— 这正是 T1 的真实缺陷（同形合并只改了一处）。故由调用方把平台行作为 fallback 传进来。
 function userChannelToLocal(c: UserChannelItem, platform?: ChannelConfig): ChannelConfig {
+  const effective = effectiveSync(c, platform);
   return {
     id: c.id,
     name: c.name,
@@ -66,10 +68,12 @@ function userChannelToLocal(c: UserChannelItem, platform?: ChannelConfig): Chann
     enabled: c.enabled,
     note: c.note,
     sort: c.sort ?? 0,
-    // 平台侧拥有、用户侧不拥有的字段：一律从平台行继承（不得丢）
-    syncKind: platform?.syncKind,
-    syncModelsPath: platform?.syncModelsPath,
-    syncPricingPath: platform?.syncPricingPath,
+    // 同步配置的生效规则由纯函数给出（与后端 SyncChannel 同一优先级）：
+    // 工作区自己的渠道**配了**同步 ⇒ 用它；否则退回平台行。
+    // ★ 这里曾经一律取平台行 ⇒ 用户渠道自己的配置被丢掉（界面显示"未配置"，实际却可能已配）。
+    syncKind: effective.syncKind,
+    syncModelsPath: effective.syncModelsPath,
+    syncPricingPath: effective.syncPricingPath,
     lastSyncAt: platform?.lastSyncAt,
   };
 }

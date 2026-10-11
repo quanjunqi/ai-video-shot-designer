@@ -396,6 +396,12 @@ export interface UserChannelItem {
   note: string;
   sort?: number;
   updatedAt?: string;
+  // 同步配置（ADR-009 决定 2：**跟着渠道走**）。工作区渠道的配置只存在于工作区域，
+  // 因此这四个字段必须随用户渠道一起读到 —— 否则界面会把"已配同步"的渠道显示成"未配置"。
+  syncKind?: 'none' | 'openai_compatible';
+  syncModelsPath?: string;
+  syncPricingPath?: string;
+  trustNote?: string;
 }
 
 export interface ServerCatalogDirectory {
@@ -757,7 +763,23 @@ export const api = {
   deleteChannelCredential: (channelId: string) =>
     request<void>(`/api/v1/workspace/credentials/${encodeURIComponent(channelId)}`, { method: 'DELETE' }),
   listUserChannels: () => request<{ items: UserChannelItem[] }>('/api/v1/workspace/channels'),
-  putUserChannel: (channelId: string, input: { name: string; kind: string; protocol?: string; baseUrl: string; authType: string; enabled: boolean; note: string }) =>
+  putUserChannel: (
+    channelId: string,
+    input: {
+      name: string;
+      kind: string;
+      protocol?: string;
+      baseUrl: string;
+      authType: string;
+      enabled: boolean;
+      note: string;
+      // 同步配置（可空；空 = 不配置/清除）
+      syncKind?: string;
+      syncModelsPath?: string;
+      syncPricingPath?: string;
+      trustNote?: string;
+    },
+  ) =>
     request<{ channel: UserChannelItem }>(`/api/v1/workspace/channels/${encodeURIComponent(channelId)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
