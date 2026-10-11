@@ -1,6 +1,6 @@
 # 测试策略
 
-> 本文件是测试的**权威规范**。测试门禁的执行口径见 [`docs/development/frontend-quality-gate.md`](frontend-quality-gate.md)，
+> 本文件是测试的**权威规范**。测试门禁的执行口径见 [`docs/product/frontend-design-rules.md`](frontend-quality-gate.md)，
 > 图与链路见 [`architecture/02-key-sequences.md`](../architecture/02-key-sequences.md)。
 
 ## 1. 原则
@@ -119,7 +119,7 @@ docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml \
 
 ## 相关文档
 
-- 质量门禁执行口径：[`docs/development/frontend-quality-gate.md`](frontend-quality-gate.md)
+- 质量门禁执行口径：[`docs/product/frontend-design-rules.md`](frontend-quality-gate.md)
 - 关键链路（决定该测什么）：[`architecture/02-key-sequences.md`](../architecture/02-key-sequences.md)
 - 跨库数据隔离（集成测试前提）：[`architecture/03-data-model.md`](../architecture/03-data-model.md)
 

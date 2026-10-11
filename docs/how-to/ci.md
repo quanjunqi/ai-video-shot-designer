@@ -59,7 +59,7 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 1. 它是**必需检查**吗？如果是，job 必须**始终运行**，只对步骤加 `if:`
 2. 需要判定「要不要跑」吗？在 `detect-changes.sh` 里加一个输出，并在 job 里消费
 3. 如果它可能影响其它检查（如共享配置），记得让判定**退化到全量**
-4. 新增必需检查后，**同步更新分支保护的必需检查列表**（见 [docs/development/branch-protection.md](branch-protection.md)）
+4. 新增必需检查后，**同步更新分支保护的必需检查列表**（见 [docs/how-to/branch-protection.md](branch-protection.md)）
 
 ## 5. 排障
 
@@ -146,6 +146,6 @@ GitHub 不会为被 `if:` 跳过的 **job** 创建检查记录。如果给
 
 ## 相关文档
 
-- 分支与必需检查：[docs/development/branch-protection.md](branch-protection.md)
+- 分支与必需检查：[docs/how-to/branch-protection.md](branch-protection.md)
 - 本地提交前自检：[`../CONTRIBUTING.md`](../../CONTRIBUTING.md) §4
-- 测试与覆盖率门禁：[docs/development/testing.md](testing.md)
+- 测试与覆盖率门禁：[docs/how-to/run-tests.md](testing.md)

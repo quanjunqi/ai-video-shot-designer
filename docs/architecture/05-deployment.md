@@ -159,7 +159,7 @@ Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间�
 | 身份 | 固定开发身份 | OIDC + 短期凭证 |
 | worker | 与 execution 同进程 goroutine | 独立可伸缩 Worker Pod |
 | 事件/长任务 | 未接入 Kafka / Temporal | 事件驱动 + 持久化工作流 |
-| 可观测 | 标准 `log` 输出 | 指标/追踪/告警（见 `docs/development/observability.md`，待补） |
+| 可观测 | 标准 `log` 输出 | 指标/追踪/告警（见 `docs/how-to/observability.md`，待补） |
 
 ---
 

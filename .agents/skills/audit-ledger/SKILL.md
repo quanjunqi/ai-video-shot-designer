@@ -5,7 +5,7 @@ description: 当修改 execution 服务、审计日志、gateway_audit_logs、�
 
 # 审计日志规范
 
-> 完整文档见 `docs/development/observability.md`。
+> 完整文档见 `docs/how-to/observability.md`。
 > 本文件是 AI 执行时的快速参考。
 
 ## 什么时候加载这个 skill
@@ -47,5 +47,5 @@ description: 当修改 execution 服务、审计日志、gateway_audit_logs、�
 
 ## 完整文档
 
-→ `docs/development/observability.md`（日志/指标/追踪/健康检查规范）
+→ `docs/how-to/observability.md`（日志/指标/追踪/健康检查规范）
 → `services/execution/internal/audit/redact.go`（打码实现）

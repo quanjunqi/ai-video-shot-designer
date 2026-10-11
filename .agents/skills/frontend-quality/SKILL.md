@@ -5,7 +5,7 @@ description: 当修改 apps/web/ 下任何前端代码时加载。包含 Awwward
 
 # 前端交付质量门禁
 
-> 完整规则见 `docs/development/frontend-quality-gate.md`（唯一权威）。
+> 完整规则见 `docs/product/frontend-design-rules.md`（唯一权威）。
 > 本文件是 AI 执行时的快速参考。
 
 ## 什么时候加载这个 skill
@@ -55,5 +55,5 @@ Awwwards / Webby Awards / FWA 获奖级网站。交付前从 8 维度自检：
 
 ## 完整规则
 
-→ `docs/development/frontend-quality-gate.md`（R-* 全量规则 + 六步硬门禁 + 清单 1-7）
-→ `docs/development/iteration-qa.md`（历史教训台账）
+→ `docs/product/frontend-design-rules.md`（R-* 全量规则 + 六步硬门禁 + 清单 1-7）
+→ `.agents/skills/frontend-quality/lessons.md`（历史教训台账）

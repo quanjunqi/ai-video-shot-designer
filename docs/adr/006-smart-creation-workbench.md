@@ -2,14 +2,14 @@
 
 - **状态**：提议（待 Owner 确认 §7 的 D1/D3/D4/D8）
 - **日期**：2026-10-10
-- **相关**：`docs/development/backlog.md` P0 #2、ADR-003（模型路由层）、ADR-004（中转站与供给池）、`docs/product/design.md` §3.4、`docs/architecture/00-technical-architecture.md`、`docs/development/frontend-quality-gate.md`
+- **相关**：`docs/how-to/backlog.md` P0 #2、ADR-003（模型路由层）、ADR-004（中转站与供给池）、`docs/product/design.md` §3.4、`docs/architecture/00-technical-architecture.md`、`docs/product/frontend-design-rules.md`
 - **分支**：`feat/create-workbench-2026-10-10`
 
 ---
 
 ## 1. 为什么现在做：启动条件的逐条核对
 
-`docs/development/backlog.md` 把「智能创造三工作台 UI 重构」列为 P0 暂缓项 #2，暂缓理由与启动条件写得很明确：
+`docs/how-to/backlog.md` 把「智能创造三工作台 UI 重构」列为 P0 暂缓项 #2，暂缓理由与启动条件写得很明确：
 
 > **为什么暂缓**：参数表单应由**协议模板**生成，否则改模型就要改前端 —— 依赖底座
 > **启动条件**：能力层补全（`capabilities` 用于生成表单与前置校验）
@@ -126,7 +126,7 @@
 | **静默降级模型版本** | 可灵选中「多模态编辑」后会**变为可灵 1.6 模型**处理，结果受影响（[优设](https://www.uisdc.com/ai-video-26)） | **绝不允许静默换模型**；模型变化必须可见（呼应 D2：能力差异要显式声明） |
 | **聚合层参数面不统一** | Liblib 只有可灵 3.0 Omni「明确支持选择生成尺寸」（[新榜](https://voice.newrank.cn/study/hot/CA22D5C5433A9F69)） | 聚合平台的价值必须靠「统一能力抽象 + 统一参数面 + 低于原厂价格」三者同时成立；我们的 Catalog/协议模板正是为此而建 |
 | **黑盒扣费** | 黑猫投诉标题：「LibTV 平台 Agent **黑盒未明码标价**扣费，服务不可用申请全额退款」；OiiOii「全程不显示规格与积分」 | 必须在**每一步**显示积分预估（呼应 D2 的费用预估与 D6 的模型档位标价） |
-| **结果 URL 短命** | 可灵生成的图片/视频**30 天后被清理**；Vidu 结果 24 小时过期 | 「生成成功但图打不开」是必然结果 —— 强力支撑 `docs/development/backlog.md` #4（产物落盘 MinIO）应尽早做，也说明 D4「本地结果库」只是过渡 |
+| **结果 URL 短命** | 可灵生成的图片/视频**30 天后被清理**；Vidu 结果 24 小时过期 | 「生成成功但图打不开」是必然结果 —— 强力支撑 `docs/how-to/backlog.md` #4（产物落盘 MinIO）应尽早做，也说明 D4「本地结果库」只是过渡 |
 | **平台停运** | 文心一格 2025-04-01 并入文心一言，2026-07-26 再迁百度文心，原域名 302 到迁移指引页 | 多模型聚合的长期性风险；也说明**目录/协议必须是可替换的配置**而不是写死的代码 |
 | **时长上限是成本放大器** | 海螺 Hailuo 2.3 一次最长 6s，要 15s 得生成三次 | `maxDurationSeconds` 必须来自模型能力（我们已有），且要影响费用预估（D2） |
 
@@ -301,7 +301,7 @@
 2. 创作者在**一个页面**内完成：写提示词 → 调参 → 生成 → 看结果 → 复用迭代 → 落资产
 3. 三个工作台共用一套类型化工作台组件，差异来自**能力**而不是三份字面量
 4. 生成前可预知代价（费用、时长上限、参考图上限），生成后可复盘（元数据）
-5. 视觉与交互达到 `docs/development/frontend-quality-gate.md` 的品质标准（Awwwards 级）
+5. 视觉与交互达到 `docs/product/frontend-design-rules.md` 的品质标准（Awwwards 级）
 
 ---
 
@@ -457,7 +457,7 @@
 | B | 扩展 `type` 枚举 + execution 适配器 + 迁移 | 跨服务改动，属**底座**范畴，应回到 BACKLOG 的底座线 |
 | **C（推荐整体）** | A + 把"音频模型类型缺失"作为新条目登记 BACKLOG（带启动条件） | 需要 Owner 认可"音频暂缓" |
 
-### D9 · 品质门禁（对齐 `docs/development/frontend-quality-gate.md`）
+### D9 · 品质门禁（对齐 `docs/product/frontend-design-rules.md`）
 
 - 结果主舞台必须有真实的空态 / 加载态 / 失败态 / 无权限态，不允许用假数据占位生产状态
 - 图标按钮带 `title`/`aria-label`；grid 列加 `min-w-0`（R2）；页面容器不用 `max-w-xl/2xl`（R3）
@@ -487,7 +487,7 @@
   避免「点了一次没反应」与「任务被莫名杀掉」两类投诉
 
 **依赖缺口**：本决策的计费部分**依赖一个尚不存在的积分账本**（全仓 `credits/ledger/wallet/balance`
-命中为 0，`cost_estimate` 只是展示字符串）→ 已登记 `docs/development/backlog.md` 第 12 项。
+命中为 0，`cost_estimate` 只是展示字符串）→ 已登记 `docs/how-to/backlog.md` 第 12 项。
 在账本落地前，UI 只做「口径声明」与状态区分，**不假装已经退款**。
 
 ---
@@ -504,7 +504,7 @@
 | 6 | **D7 范围**：风格库 + 镜头语言库接入是否纳入本次？ | 纳入——差异化收益高、成本低 |
 | 7 | **候选数默认值**：`count` 默认 1 还是 4？（无界默认 4；万相/即梦一次 4 张消耗 1 额度） | 建议默认 **1**，但在下拉里把 4 作为显眼预设——漫剧场景多为单张精修，且 4 张会放大积分消耗，需先确认计费口径 |
 | 8 | **`capability` 是否需要「条件支持」**：可灵三态表含"仅 1080P 且仅无声视频"这类条件能力，我们只能表达支持/不支持 | 现阶段靠 `note` 文字说明兜底；若要精确表达需扩展 capability 结构（与 D3-B 同一批后端改动） |
-| 9 | **镜头语言/风格词条是否要做成服务端资产**：D7 先接本地 store（`useLensStore`/`useStyleStore`），但 `docs/development/backlog.md` #3 记录这两个 store **0 个 API 调用** | 本次接本地；「接后端」沿用 BACKLOG #3 的启动条件，不并入本次 |
+| 9 | **镜头语言/风格词条是否要做成服务端资产**：D7 先接本地 store（`useLensStore`/`useStyleStore`），但 `docs/how-to/backlog.md` #3 记录这两个 store **0 个 API 调用** | 本次接本地；「接后端」沿用 BACKLOG #3 的启动条件，不并入本次 |
 | 10 | **「积分余额」与「并发额度」是否要在 UI 上分开表述**（Comfy Cloud 专门用 FAQ 解释这个混淆；fal 的并发随充值提升、排队不计费） | 建议**分开**：余额=能不能做，并发=同时能做几个。但**当前全仓没有积分账本**（`cost_estimate` 只是展示字符串），所以本次只做口径声明与状态区分，账本落地见 BACKLOG #12 |
 | 11 | **「同一提示词横向比多个模型」是否作为本页的正式功能**（范式：fal Sandbox 的结果标 Fastest/Cheapest/Free；SwarmUI Grid Generator 的轴） | 建议**列为后续独立任务卡**而不是本次——它是聚合网关真正的差异化卖点，但需要队列+成本+并排视图三件套就位 |
 | 12 | **D10 队列与取消**：是否认可"取消分 `queued`/`running` 两种语义并前置声明计费口径"，以及队列作为可管理对象（分段/逐项取消/暂停恢复/清空/保留原参数重试）？ | 认可——这是积分平台纠纷的源头，且我们当前的实现在专业工具圈里是已被记录过的缺陷模式 |
@@ -545,7 +545,7 @@
 > **L3 浏览器实测未执行**：本执行环境无浏览器工具。各任务卡 §5 已写明手动步骤，待人工或具备浏览器能力时执行。
 
 **需同步的文档**：`docs/product/design.md` §3.4（智能创作段落改写）、`CHANGELOG.md`、
-`docs/development/backlog.md`（#2 改为"已启动" + 新增音频缺口条目）、`docs/architecture/*`（若涉及表结构）。
+`docs/how-to/backlog.md`（#2 改为"已启动" + 新增音频缺口条目）、`docs/architecture/*`（若涉及表结构）。
 
 ---
 

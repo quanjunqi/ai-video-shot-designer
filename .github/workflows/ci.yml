@@ -124,7 +124,7 @@ jobs:
     # 测试库：随 job 起的一个【一次性】Postgres。口令是本地容器口令，不是任何真实凭据。
     # 为什么必须有它：各服务的集成测试在无 DSN 时 t.Skip ⇒
     #   与"跑过且通过"在 CI 输出里**无法区分**。本项目因此让 2 条与迁移脱节的断言
-    #   红着很久无人知晓（它们只在有测试库时才执行）。见 docs/development/ci.md §7。
+    #   红着很久无人知晓（它们只在有测试库时才执行）。见 docs/how-to/ci.md §7。
     services:
       postgres:
         image: postgres:16
@@ -270,8 +270,8 @@ jobs:
       #   现已加入**诊断**（随本注记一并落地）：source 完额外 env 后打印"加载后实际生效的
       #   引擎地址"，且引擎未构建时把搭建日志的相关行一并打到 CI 输出
       #   ⇒ 下次接入时 CI 会【说出真相】，而不是只给一句结论。
-      #   启动条件：这条根因排清后再接（见 docs/development/backlog.md）。
-      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）
+      #   启动条件：这条根因排清后再接（见 docs/how-to/backlog.md）。
+      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/how-to/run-tests.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
         run: bash .github/scripts/check-coverage.sh "${{ matrix.service }}" "services/${{ matrix.service }}/coverage.out"
@@ -388,12 +388,12 @@ jobs:
             CONTRIBUTING.md \
             .env.example \
             docs/architecture/README.md \
-            docs/development/testing.md \
-            docs/development/observability.md \
-            docs/development/release.md \
-            docs/development/frontend-quality-gate.md \
-            docs/development/branch-protection.md \
-            docs/development/ci.md \
+            docs/how-to/run-tests.md \
+            docs/how-to/observability.md \
+            docs/how-to/release.md \
+            docs/product/frontend-design-rules.md \
+            docs/how-to/branch-protection.md \
+            docs/how-to/ci.md \
             .agents/skills/frontend-quality/SKILL.md \
             openapi/bff.yaml \
             openapi/README.md
@@ -442,7 +442,7 @@ jobs:
 
       # 结构不变量校验（在 OpenAPI 步骤之后，PyYAML 已安装）
       # 把两条踩坑得来的规则固化：必需检查不可加 job 级 if；不可用 job 级
-      # defaults.run.working-directory。详见脚本头部与 docs/development/ci.md §3。
+      # defaults.run.working-directory。详见脚本头部与 docs/how-to/ci.md §3。
       - name: Validate workflow structure invariants
         run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
 

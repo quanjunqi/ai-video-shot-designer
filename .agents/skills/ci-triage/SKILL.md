@@ -5,7 +5,7 @@ description: 当 CI 失败、需要排查 GitHub Actions、或修改 .github/wor
 
 # CI 排障指南
 
-> 完整文档见 `docs/development/ci.md`。
+> 完整文档见 `docs/how-to/ci.md`。
 > 本文件是 AI 执行时的快速参考。
 
 ## 什么时候加载这个 skill
@@ -49,4 +49,4 @@ description: 当 CI 失败、需要排查 GitHub Actions、或修改 .github/wor
 
 ## 完整文档
 
-→ `docs/development/ci.md`（§3 核心不变量 + §7 SKIP 守卫）
+→ `docs/how-to/ci.md`（§3 核心不变量 + §7 SKIP 守卫）

@@ -45,7 +45,7 @@ assignees: ''
 
 <!--
 请先脱敏：不要粘贴真实密钥、Token、渠道凭据、生产库连接串或客户数据。
-日志规范见 docs/development/observability.md。
+日志规范见 docs/how-to/observability.md。
 -->
 
 ## 附加信息

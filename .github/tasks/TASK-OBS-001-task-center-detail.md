@@ -66,7 +66,7 @@ UPDATE jobs SET status=$1,progress=$2,error=$3,intent_payload=$4::jsonb,
 ## ❌ 缺口 2：无产物列 / 产物未落盘
 
 - `jobs` 无 `result_payload`（同上）
-- 生成产物目前**未落盘到 MinIO**（`docs/development/backlog.md` #4）⇒ 审计里的 URL 会过期
+- 生成产物目前**未落盘到 MinIO**（`docs/how-to/backlog.md` #4）⇒ 审计里的 URL 会过期
 - 这是"任务中心能看产物"的**硬前置**：不落盘，历史任务的产物必然打不开
 
 ## ⚠️ 缺口 3：进度只有 0 → 100
@@ -79,7 +79,7 @@ UPDATE jobs SET status=$1,progress=$2,error=$3,intent_payload=$4::jsonb,
 1. 迁移：`jobs` 增 `result_payload jsonb`（execution 号段）
 2. `Store.Complete` 写 `result_payload`；`intent_payload` 不再被覆盖
 3. 任务中心（前端）展示：请求参数（审计 `request_payload`）· 响应 · 实际渠道 · 扣费 · 耗时 · 重试历史
-4. （依赖）产物落盘 —— 见 `docs/development/backlog.md` #4
+4. （依赖）产物落盘 —— 见 `docs/how-to/backlog.md` #4
 
 ## 非范围
 
