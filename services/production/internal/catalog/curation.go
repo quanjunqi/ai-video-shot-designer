@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"time"
 )
 
@@ -24,19 +25,23 @@ import (
 
 // SupplyItem 是供给池里的一行，供人工策展时查看。
 type SupplyItem struct {
-	ChannelID       string
-	ProviderModel   string
-	DisplayName     string
-	UpstreamType    string // 上游原样标签（可能无法映射到 text|image|video）
-	Tags            string
-	EndpointTypes   json.RawMessage
-	Pricing         json.RawMessage
-	PricingAmount   *float64 // 按上面的窄约定解析；认不出则 nil
-	PricingUnit     string
-	LastSeenAt      time.Time
-	MissingSince    *time.Time // 非 NULL = 已下架（仍保留行）
-	PriceIsEstimate bool
+	ChannelID       string          `json:"channelId"`
+	ProviderModel   string          `json:"providerModel"`
+	DisplayName     string          `json:"displayName"`
+	UpstreamType    string          `json:"upstreamType"` // 上游原样标签（可能无法映射到 text|image|video）
+	Tags            string          `json:"tags"`
+	EndpointTypes   json.RawMessage `json:"endpointTypes"`
+	Pricing         json.RawMessage `json:"pricing"`
+	PricingAmount   *float64        `json:"pricingAmount"` // 按上面的窄约定解析；认不出则 nil
+	PricingUnit     string          `json:"pricingUnit"`
+	LastSeenAt      time.Time       `json:"lastSeenAt"`
+	MissingSince    *time.Time      `json:"missingSince"` // 非 NULL = 已下架（仍保留行）
+	PriceIsEstimate bool            `json:"priceIsEstimate"`
 }
+
+// ErrSupplyNotFound：供给池里没有这条（channel + provider_model）。
+// 单独一个领域错误，是为了让 HTTP 层不必 import 驱动包就能把 ErrNoRows 映射成 404。
+var ErrSupplyNotFound = errors.New("catalog: supply row not found (sync the channel first)")
 
 // ListSupply 列出某个渠道的供给。includeMissing=true 时连已下架的也列出来。
 // ListSupply 返回**某个工作区视角**的供给池（ADR-009 Phase B2）：
@@ -176,6 +181,9 @@ func (store PostgresStore) Curate(ctx context.Context, workspaceID, actor string
 		  LIMIT 1`,
 		in.ChannelID, in.ProviderModel, workspaceID).Scan(&rawPricing)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return out, ErrSupplyNotFound
+		}
 		return out, fmt.Errorf("supply row %s/%s: %w", in.ChannelID, in.ProviderModel, err)
 	}
 

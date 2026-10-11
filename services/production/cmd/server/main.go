@@ -65,6 +65,7 @@ func main() {
 		IntentStore:           intent.PostgresStore{Pool: pool},
 		CatalogStore:          catalog.PostgresStore{Pool: pool},
 		LogicalModelStore:     catalog.PostgresStore{Pool: pool},
+		CurationStore:         catalog.PostgresStore{Pool: pool},
 		ChannelSyncer:         channelSyncer,
 		Token:                 token,
 		Ready:                 pool.Ping,
