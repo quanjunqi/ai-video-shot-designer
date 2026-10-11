@@ -16,7 +16,9 @@ type stubCatalogStore struct {
 	models map[string]catalog.Model
 }
 
-func (s stubCatalogStore) Directory(context.Context) (catalog.Directory, error) { return s.dir, nil }
+func (s stubCatalogStore) Directory(context.Context, string) (catalog.Directory, error) {
+	return s.dir, nil
+}
 func (s stubCatalogStore) GetModel(context.Context, string) (catalog.Model, error) {
 	return catalog.Model{}, catalog.ErrNotFound
 }

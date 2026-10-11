@@ -69,7 +69,7 @@ type IntentStore interface {
 }
 
 type CatalogStore interface {
-	Directory(context.Context) (catalog.Directory, error)
+	Directory(context.Context, string) (catalog.Directory, error)
 	GetModel(context.Context, string) (catalog.Model, error)
 	CreateModel(context.Context, string, catalog.Model) (catalog.Model, bool, error)
 	UpdateModel(context.Context, string, string, catalog.ModelPatch) (catalog.Model, error)
@@ -417,7 +417,7 @@ func (h Handler) updateProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) getCatalog(w http.ResponseWriter, r *http.Request) {
-	_, _, ok := h.identity(w, r)
+	workspace, _, ok := h.identity(w, r)
 	if !ok {
 		return
 	}
@@ -425,7 +425,7 @@ func (h Handler) getCatalog(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "CATALOG_UNAVAILABLE", "model catalog is unavailable")
 		return
 	}
-	dir, err := h.CatalogStore.Directory(r.Context())
+	dir, err := h.CatalogStore.Directory(r.Context(), workspace)
 	if err != nil {
 		slog.Error("get model catalog", "error", err)
 		writeError(w, http.StatusServiceUnavailable, "CATALOG_UNAVAILABLE", "model catalog could not be loaded")
@@ -437,7 +437,7 @@ func (h Handler) getCatalog(w http.ResponseWriter, r *http.Request) {
 // getModelCapabilities returns the capability declaration for a model.
 // It merges the model's own capability field with the protocol template's capabilities.
 func (h Handler) getModelCapabilities(w http.ResponseWriter, r *http.Request) {
-	_, _, ok := h.identity(w, r)
+	workspace, _, ok := h.identity(w, r)
 	if !ok {
 		return
 	}
@@ -446,7 +446,7 @@ func (h Handler) getModelCapabilities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	modelID := r.PathValue("id")
-	dir, err := h.CatalogStore.Directory(r.Context())
+	dir, err := h.CatalogStore.Directory(r.Context(), workspace)
 	if err != nil {
 		slog.Error("get model capabilities", "error", err)
 		writeError(w, http.StatusServiceUnavailable, "CATALOG_UNAVAILABLE", "model catalog could not be loaded")

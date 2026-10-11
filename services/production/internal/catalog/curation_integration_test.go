@@ -46,7 +46,7 @@ func TestIntegrationListSupplyShowsUpstreamLabelsAndParsesPrice(t *testing.T) {
 		// 合法 JSON、但不是本文件认的那种窄约定 ⇒ 必须"不猜"
 		[3]string{"m_weird", "image", `{"some":"other shape"}`})
 
-	items, err := s.ListSupply(ctx, "ch_list", false)
+	items, err := s.ListSupply(ctx, "", "ch_list", false)
 	if err != nil {
 		t.Fatal(err)
 	}
