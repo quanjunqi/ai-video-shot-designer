@@ -256,6 +256,13 @@ export interface CatalogModel {
   params: ModelParam[]; // provider 特有请求参数模板（key-value）
   responseParams?: ModelParam[]; // 响应字段映射模板（可选；执行器解析 provider 输出，空=适配器内置解析）
   capability: TextCapability | ImageCapability | VideoCapability;
+  /**
+   * 路由归属（来自平台目录投影，只读）。
+   * logicalModelId：所属「对外能力」（同一 id 的多行 = 候选渠道）
+   * routePriority ：优先级，小者优先；未纳入路由的行没有该字段
+   */
+  logicalModelId?: string;
+  routePriority?: number;
 }
 
 // ---- L1 渠道（六渠道全内置）----

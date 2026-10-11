@@ -81,6 +81,10 @@ function serverModelToLocal(m: ServerCatalogDirectory['models'][number]): Catalo
     id: m.id, channelId: m.channelId, family: m.family, name: m.name,
     providerModel: (m as { providerModel?: string }).providerModel ?? m.name,
     type: m.type, status: m.status, sort: m.sort, note: m.note,
+    // ★ 映射必须携带路由字段：T1 的教训是"两处同形映射只改一处 + 覆盖时丢字段"。
+    //   本文件只有一个 model 映射函数（两个调用点共用），所以改这里即覆盖全部路径。
+    logicalModelId: (m as { logicalModelId?: string }).logicalModelId,
+    routePriority: (m as { routePriority?: number }).routePriority,
     protocolTemplateId: (m as { protocolTemplateId?: string }).protocolTemplateId,
     requestPath: (m as { requestPath?: string }).requestPath ?? '',
     method: (m as { method?: 'POST' | 'GET' }).method ?? 'POST',
