@@ -129,6 +129,9 @@ class Handler(BaseHTTPRequestHandler):
                                     "authPrefix": "", "apiKey": "sk-stub-not-a-real-key"})
         # 上游模型清单 / 价格（供 production 的同步器用）：
         # 用"路径后缀匹配"，这样无论 base_url 是 127.0.0.1:8096 还是 .../upstream 都能命中。
+        # BFF 每次代理前都会调 workspace 的 authorize（判据：web-bff 的 authorize()）
+        if p.endswith("/authorize"):
+            return self._send(200, {"allowed": True})
         if p.endswith("/v1/models"):
             return self._send(200, {"data": [
                 {"id": "gpt-sync-1", "name": "同步测试模型", "type": "image", "owned_by": "stub-relay"},

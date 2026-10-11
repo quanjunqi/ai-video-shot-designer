@@ -2,7 +2,7 @@
 // 渠道配置（模型来源 L1）：内置六渠道（平台集中）+ 自定义渠道（用户自建，可删除）
 // 正式态：凭据经 workspace 服务加密存储（只写不读明文）；连通性检测为后端真实 HTTP 探测
 import { useState } from 'react';
-import { Cable, Globe, Server, Cloud, PlugZap, Power, Plus, Trash2, UserRound, ShieldCheck, Pencil, Eye, EyeOff, Lock, Check, Copy } from 'lucide-react';
+import { Cable, Globe, Server, Cloud, PlugZap, Power, Plus, Trash2, UserRound, ShieldCheck, Pencil, Eye, EyeOff, Lock, Check, Copy, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,7 @@ export default function SettingsChannelsPage() {
   const [editing, setEditing] = useState<ChannelConfig | null>(null);
   const [editForm, setEditForm] = useState({ name: '', kind: 'aggregator' as ChannelKind, protocol: 'api' as ChannelProtocol, authType: 'bearer' as 'bearer' | 'none', baseUrl: '', note: '' });
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
 
   const toggleSelect = (id: string) =>
@@ -243,6 +244,33 @@ export default function SettingsChannelsPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  {/* ① 的第①步：让后端真的去上游拉一次模型清单（与价格）。
+                      失败语义原样呈现（没配 / 渠道不存在 / 上游失败 / 未装配），不折叠成"失败"。 */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1.5 px-2 text-[11px]"
+                    disabled={syncingId === c.id}
+                    title="同步上游模型目录：拉取该渠道的模型（与其价格）到本平台"
+                    onClick={async () => {
+                      setSyncingId(c.id);
+                      try {
+                        const r = await api.syncChannel(c.id);
+                        toast.success(
+                          `「${c.name}」同步完成：新增 ${r.added} · 更新 ${r.updated} · 缺失 ${r.missing}` +
+                            (r.price_changed > 0 ? ` · 变价 ${r.price_changed}` : ''),
+                        );
+                      } catch (err) {
+                        toast.error(`「${c.name}」同步失败：${err instanceof Error ? err.message : '未知错误'}`);
+                      } finally {
+                        setSyncingId(null);
+                      }
+                    }}
+                  >
+                    <RefreshCw className={cn('h-3.5 w-3.5', syncingId === c.id && 'animate-spin')} />
+                    同步上游模型目录
+                  </Button>
                   <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => upsertChannel(c.id, { enabled: !c.enabled })} title={c.enabled ? '停用' : '启用'}>
                     <Power className={cn('h-3.5 w-3.5', c.enabled && 'text-success')} />
                   </Button>

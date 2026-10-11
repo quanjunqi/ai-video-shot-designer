@@ -435,6 +435,16 @@ export interface ServerCatalogModelPatch {
   capability?: Record<string, unknown>;
 }
 
+/** 一次上游同步的结果计数（与 production 的 SyncResult 一一对应）。 */
+export interface ChannelSyncResult {
+  channel_id: string;
+  raw_count: number;
+  added: number;
+  updated: number;
+  missing: number;
+  price_changed: number;
+}
+
 export interface ServerCatalogChannelPatch {
   name?: string;
   baseUrl?: string;
@@ -657,6 +667,17 @@ export const api = {
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify(input),
     }),
+  /**
+   * 同步上游模型目录（① 的第①步）。
+   *
+   * 语义：让后端**真的去**上游拉一次模型清单（与价格，若该渠道配了价格路径），
+   * 落进供给池并留下同步记录。**失败语义刻意不折叠**：
+   * 400 = 该渠道没配同步 · 404 = 渠道不存在 · 502 = 上游抓取失败 · 503 = 服务端未装配同步器
+   * —— 界面据此能告诉运营"是没配"还是"是上游坏了"。
+   */
+  syncChannel: (channelId: string) =>
+    request<ChannelSyncResult>(`/api/v1/channels/${encodeURIComponent(channelId)}/sync`, { method: 'POST' }),
+
   probeChannel: (channelId: string, opts?: { baseUrl?: string; authType?: string }) =>
     request<ProbeResult>(`/api/v1/channels/${encodeURIComponent(channelId)}/probe`, {
       method: 'POST',

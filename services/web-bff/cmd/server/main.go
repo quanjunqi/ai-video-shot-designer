@@ -45,6 +45,8 @@ func main() {
 	mux.HandleFunc("/api/v1/audit/export", s.auditExport)
 	mux.HandleFunc("/api/v1/generate", s.generate)
 	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
+	// 更具体的模式优先于上面的 "/api/v1/channels/"（Go 1.22 ServeMux 的最具体匹配）
+	mux.HandleFunc("POST /api/v1/channels/{id}/sync", s.channelSync)
 	mux.HandleFunc("/api/v1/catalog", s.catalogProxy)
 	mux.HandleFunc("/api/v1/catalog/", s.catalogProxy)
 	mux.HandleFunc("/api/v1/rule-templates", s.ruleTemplates)
@@ -154,6 +156,46 @@ func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
+		return
+	}
+	defer resp.Body.Close()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// channelSync 触发一次上游模型目录同步（① 的第①步）—— 转发到 production 的内部同步接口。
+//
+// 为什么要【透传上游状态码】而不是一律折成 500：同步有四种可区分的失败 ——
+// 未配置同步(400) / 渠道不存在(404) / 上游抓取失败(502) / 同步器未装配(503)。
+// 折成一个码，运营在界面上就分不清"是我没配"还是"是上游坏了"。
+// 这也是本项目反复强调的：错误必须可归因。
+func (s *server) channelSync(w http.ResponseWriter, r *http.Request) {
+	channelID := r.PathValue("id")
+	if channelID == "" {
+		writeError(w, http.StatusBadRequest, "INVALID_PATH", "channel id is required")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost,
+		s.productionURL+"/internal/v1/channels/"+url.PathEscape(channelID)+"/sync", nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.productionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
 		return
 	}
 	defer resp.Body.Close()
