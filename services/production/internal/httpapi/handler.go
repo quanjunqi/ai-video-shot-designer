@@ -79,6 +79,12 @@ type CatalogStore interface {
 	DeleteTemplate(context.Context, string) error
 }
 
+// ChannelSyncer 是上游同步器的【窄接口】：handler 只依赖它，
+// 于是这条路由能用 stub 单测（与 CatalogStore 同一思路），不需要数据库与上游。
+type ChannelSyncer interface {
+	SyncChannel(ctx context.Context, workspaceID, channelID string) (catalog.SyncResult, error)
+}
+
 type Handler struct {
 	Store                 Store
 	EpisodeStore          EpisodeStore
@@ -88,8 +94,11 @@ type Handler struct {
 	IntentStore           IntentStore
 	CatalogStore          CatalogStore
 	LogicalModelStore     LogicalModelStore
-	Token                 string
-	Ready                 func(context.Context) error
+	// ChannelSyncer 未装配时（缺 workspace 地址/令牌），路由会以 503 如实拒绝，
+	// 而不是静默地"同步成功但什么都没拉"。
+	ChannelSyncer ChannelSyncer
+	Token         string
+	Ready         func(context.Context) error
 }
 
 func (h Handler) Routes() http.Handler {
@@ -142,6 +151,8 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("PUT /internal/v1/catalog/protocol-templates/{id}", h.updateProtocolTemplate)
 	mux.HandleFunc("DELETE /internal/v1/catalog/protocol-templates/{id}", h.deleteProtocolTemplate)
 	// Logical Models（ADR-003：对外统一标识 + 候选渠道集合）
+	// ① 的第①步：触发一次上游同步（ADR-004 §4）。x-workspace-id 决定去哪取密钥。
+	mux.HandleFunc("POST /internal/v1/channels/{id}/sync", h.syncChannel)
 	mux.HandleFunc("GET /internal/v1/logical-models", h.listLogicalModels)
 	mux.HandleFunc("POST /internal/v1/logical-models", h.createLogicalModel)
 	mux.HandleFunc("GET /internal/v1/logical-models/{id}", h.getLogicalModel)
@@ -613,6 +624,42 @@ func (h Handler) updateCatalogChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// syncChannel 触发一次上游同步（ADR-004 §4 第①步「同步（自动）」）。
+//
+// 为什么要 x-workspace-id：密钥由 workspace 拥有，reveal 按 (workspace, channel) 定位 ——
+// 与渠道探测同一套来源顺序（平台渠道的 base_url + 该工作区的凭据）。
+func (h Handler) syncChannel(w http.ResponseWriter, r *http.Request) {
+	if h.ChannelSyncer == nil {
+		writeError(w, http.StatusServiceUnavailable, "SYNC_DISABLED",
+			"sync is not configured (needs PRODUCTION_WORKSPACE_URL / PRODUCTION_WORKSPACE_TOKEN)")
+		return
+	}
+	workspace, _, ok := h.identity(w, r)
+	if !ok {
+		return
+	}
+	id := r.PathValue("id")
+	res, err := h.ChannelSyncer.SyncChannel(r.Context(), workspace, id)
+	switch {
+	case err == nil:
+		writeJSON(w, http.StatusOK, map[string]any{
+			"channel_id":    id,
+			"raw_count":     res.RawCount,
+			"added":         res.Added,
+			"updated":       res.Updated,
+			"missing":       res.Missing,
+			"price_changed": res.PriceChanged,
+		})
+	case errors.Is(err, catalog.ErrSyncNotConfigured):
+		writeError(w, http.StatusBadRequest, "SYNC_NOT_CONFIGURED", err.Error())
+	case errors.Is(err, catalog.ErrChannelNotFound):
+		writeError(w, http.StatusNotFound, "CHANNEL_NOT_FOUND", "channel not found: "+id)
+	default:
+		slog.Error("channel sync failed", "channel", id, "error", err)
+		writeError(w, http.StatusBadGateway, "SYNC_UPSTREAM_FAILED", err.Error())
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"shotdesigner/shared/netguard"
 )
 
@@ -29,6 +31,10 @@ import (
 // ErrSyncNotConfigured：该渠道没配同步（sync_kind=none 或没给清单路径）。
 // 这**不是**错误处理问题，而是"没配就别猜"——同步器不该替人决定去哪拉数据。
 var ErrSyncNotConfigured = errors.New("catalog: channel sync is not configured (sync_kind/sync_models_path)")
+
+// ErrChannelNotFound：渠道不存在。单独一个领域错误，是为了让 HTTP 层不必依赖 pgx
+// （否则 handler 要去 import 驱动包才能把 ErrNoRows 映射成 404）。
+var ErrChannelNotFound = errors.New("catalog: channel not found")
 
 // SyncChannelConfig 是同步所需的最小渠道配置（全部来自 model_channels 一行）。
 type SyncChannelConfig struct {
@@ -106,6 +112,9 @@ func (store PostgresStore) LoadSyncConfig(ctx context.Context, channelID string)
 func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) (SyncResult, error) {
 	cfg, err := s.Store.LoadSyncConfig(ctx, channelID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return SyncResult{}, ErrChannelNotFound
+		}
 		return SyncResult{}, fmt.Errorf("catalog: load channel %s: %w", channelID, err)
 	}
 	if cfg.SyncKind == "" || cfg.SyncKind == "none" || strings.TrimSpace(cfg.SyncModelsPath) == "" {
