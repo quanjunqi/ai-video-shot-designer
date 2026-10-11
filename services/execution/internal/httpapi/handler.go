@@ -467,18 +467,17 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "CATALOG_UNAVAILABLE", err.Error())
 		return
 	}
-	var model *catalog.Model
-	for i := range dir.Models {
-		if dir.Models[i].ID == in.ModelID {
-			model = &dir.Models[i]
-			break
-		}
-	}
-	if model == nil {
+	// ADR-003 的候选解析（与 worker、/v1/run 同一实现）。
+	// ★ 这里曾漏改：P3-1 只改了同一个文件里另一处形状相似但文案不同的循环，
+	//   断言 count==1 通过了，却让**真正服务 /v1/generate 的这一处**留在旧行为上。
+	//   是"用逻辑模型 id 发一次真实请求"把它暴露出来的。
+	candidates, resolveErr := catalog.Resolve(dir, in.ModelID)
+	if resolveErr != nil {
 		writeAudit("failed", nil, "model not found in directory", "", "")
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
 	}
+	model := &candidates[0]
 	// 渠道已解析：从此之后的审计都能带上真实 channel_id。
 	auditChannelID = model.ChannelID
 	if model.ProtocolTemplateID == "" {
