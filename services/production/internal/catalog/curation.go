@@ -164,7 +164,8 @@ func (store PostgresStore) Curate(ctx context.Context, actor string, in CurateIn
 		VALUES ($1,$2,$3,$4,$5,$6,'enabled',100,$7,NULLIF($8,''),NULLIF($9,''),$10,
 			$11,NULLIF($12,''),$13,NULLIF($14,''),$15,
 			CASE WHEN $15 = 'synced' THEN now() ELSE NULL END, $16)
-		ON CONFLICT (family, channel_id) DO UPDATE SET
+		-- 038 后唯一键为 (workspace_id, family, channel_id)：理由同 pool.go（42P10）。
+		ON CONFLICT (workspace_id, family, channel_id) DO UPDATE SET
 			name = EXCLUDED.name, provider_model = EXCLUDED.provider_model, type = EXCLUDED.type,
 			note = EXCLUDED.note, protocol_template_id = EXCLUDED.protocol_template_id,
 			logical_model_id = EXCLUDED.logical_model_id, route_priority = EXCLUDED.route_priority,
