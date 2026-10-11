@@ -74,7 +74,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - 密钥只在 workspace 加密存储，禁止硬编码
 - BFF 是前端唯一入口，禁止前端直连后端服务
 
-## 场景化 Skills（按需加载，不要全读）
+## 场景化 Skills（按需加载，不要全读；总览与编写规范见 `.agents/README.md`）
 
 | 场景 | 加载 |
 |---|---|
@@ -83,6 +83,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 | CI 红了排查 | `.agents/skills/ci-triage/SKILL.md` |
 | 开 PR 前自检 | `.agents/skills/pr-workflow/SKILL.md` |
 | 改审计日志/网关 | `.agents/skills/audit-ledger/SKILL.md` |
+| 新增/修改数据库迁移 | `.agents/skills/database-migrations/SKILL.md` |
 
 ## 人类技术文档（参考，不要用来约束自己）
 

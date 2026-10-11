@@ -387,11 +387,14 @@ jobs:
             SECURITY.md \
             CONTRIBUTING.md \
             .env.example \
+            .agents/README.md \
             docs/architecture/README.md \
             docs/how-to/run-tests.md \
             docs/how-to/observability.md \
             docs/how-to/release.md \
+            docs/how-to/database-migrations.md \
             .agents/skills/frontend-quality/rules.md \
+            .agents/skills/database-migrations/SKILL.md \
             docs/how-to/branch-protection.md \
             docs/how-to/ci.md \
             .agents/skills/frontend-quality/SKILL.md \
@@ -404,6 +407,51 @@ jobs:
             fi
           done
           echo "✓ 全部关键文档存在"
+
+      # .agents 规则体系引用完整性：每个 SKILL.md 必须有 frontmatter（name/description），
+      # 且正文里指向 rules.md / lessons.md / docs/ 的相对链接目标必须存在。
+      # 防止"改规则文件时悄悄断链"（此前 lessons.md 曾指向已移动的规则路径）。
+      - name: Check .agents skills link integrity
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+
+          errors = []
+          skills_dir = '.agents/skills'
+          for skill in sorted(os.listdir(skills_dir)):
+              skill_path = os.path.join(skills_dir, skill)
+              if not os.path.isdir(skill_path):
+                  continue
+              skill_md = os.path.join(skill_path, 'SKILL.md')
+              if not os.path.isfile(skill_md):
+                  errors.append(f'{skill_path}/SKILL.md 缺失')
+                  continue
+              content = open(skill_md, encoding='utf-8').read()
+              # frontmatter 校验：必须有 name 与 description
+              m = re.match(r'^---\n(.*?)\n---\n', content, re.S)
+              if not m:
+                  errors.append(f'{skill_md}: 缺少 frontmatter')
+              else:
+                  fm = m.group(1)
+                  for field in ('name:', 'description:'):
+                      if not re.search(rf'^{field}\s', fm, re.M):
+                          errors.append(f'{skill_md}: frontmatter 缺少 {field}')
+              # 相对链接目标存在性（跳过 http / # 锚点 / 外部）
+              base = os.path.dirname(skill_md)
+              for link in re.findall(r'\[[^\]]*\]\(([^)]+)\)', content):
+                  target = link.split('#')[0].split('?')[0]
+                  if not target or target.startswith(('http://', 'https://', 'mailto:', '#')):
+                      continue
+                  resolved = os.path.normpath(os.path.join(base, target))
+                  if not os.path.exists(resolved):
+                      errors.append(f'{skill_md}: 链接 [{target}] 指向不存在的文件')
+
+          if errors:
+              for e in errors:
+                  print('::error::' + e)
+              sys.exit(1)
+          print('✓ .agents skills frontmatter 完整、链接全部有效')
+          PY
 
       # 契约必须可解析且 $ref 可解析，防止提交坏掉的 YAML
       - name: Validate OpenAPI contract

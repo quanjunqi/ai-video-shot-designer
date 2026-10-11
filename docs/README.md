@@ -36,6 +36,7 @@
 | [how-to/observability.md](how-to/observability.md) | 日志 / 健康检查规范 |
 | [how-to/branch-protection.md](how-to/branch-protection.md) | 分支模型与保护规则 |
 | [how-to/parallel-work.md](how-to/parallel-work.md) | 多开发线并行工作流 |
+| [how-to/database-migrations.md](how-to/database-migrations.md) | 数据库迁移规范（号段认领、只增不改） |
 
 ---
 
