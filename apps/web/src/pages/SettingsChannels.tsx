@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useEffect } from 'react';
 import { useSettingsStore } from '@/stores/useSettingsStore';
-import { api } from '@/lib/api/client';
+import { api, type ChannelSyncResult } from '@/lib/api/client';
 import { MODEL_CHANNELS, type ChannelKind, type ChannelConfig, type ChannelProtocol } from '@/config/models/model-catalog';
 import { cn } from '@/lib/utils';
 
@@ -64,6 +64,8 @@ export default function SettingsChannelsPage() {
   const [editForm, setEditForm] = useState({ name: '', kind: 'aggregator' as ChannelKind, protocol: 'api' as ChannelProtocol, authType: 'bearer' as 'bearer' | 'none', baseUrl: '', note: '' });
   const [testingId, setTestingId] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  // 最近一次同步结果（每个渠道一份；权威记录在服务端的 channel_model_syncs）
+  const [syncResults, setSyncResults] = useState<Record<string, ChannelSyncResult>>({});
   const [selected, setSelected] = useState<string[]>([]);
 
   const toggleSelect = (id: string) =>
@@ -257,10 +259,13 @@ export default function SettingsChannelsPage() {
                       setSyncingId(c.id);
                       try {
                         const r = await api.syncChannel(c.id);
+                        setSyncResults((prev) => ({ ...prev, [c.id]: r }));
                         toast.success(
                           `「${c.name}」同步完成：新增 ${r.added} · 更新 ${r.updated} · 缺失 ${r.missing}` +
                             (r.price_changed > 0 ? ` · 变价 ${r.price_changed}` : ''),
                         );
+                        // T2：同步会改平台的 last_sync_at ⇒ 必须重拉目录，否则卡片仍显示"从未同步"
+                        await syncCatalog();
                       } catch (err) {
                         toast.error(`「${c.name}」同步失败：${err instanceof Error ? err.message : '未知错误'}`);
                       } finally {
@@ -319,6 +324,12 @@ export default function SettingsChannelsPage() {
                     <p className="mt-0.5 font-mono text-xs">
                       {c.lastSyncAt ? c.lastSyncAt.replace('T', ' ').slice(0, 19) : '从未同步'}
                     </p>
+                    {syncResults[c.id] && (
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        最近一次：新增 {syncResults[c.id].added} · 更新 {syncResults[c.id].updated} · 缺失{' '}
+                        {syncResults[c.id].missing}
+                      </p>
+                    )}
                   </div>
                   <div className="min-w-0 sm:col-span-2">
                     <p className="text-[9px] uppercase tracking-wide text-muted-foreground">凭据状态</p>

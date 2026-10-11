@@ -60,3 +60,36 @@ test('前端【不】写平台同步配置（那会越权改平台目录）', ()
   // 渠道页只允许调用 syncChannel（触发同步）；不得调用 updateCatalogChannel 去改同步配置
   assert.doesNotMatch(PAGE, /updateCatalogChannel/, '渠道页不得写平台目录（防跨工作区污染）');
 });
+
+// ── T1/T2：同一渠道在"平台域 + 工作区域"两处都有 ⇒ 合并时【不得丢掉平台侧的同步状态】 ──
+// 真实事故：syncCatalog 先用平台行建 map，再用工作区用户渠道覆盖同名 id；
+// 而 userChannelToLocal 没带 syncKind/lastSyncAt ⇒ 卡片永远显示"未配置 / 从未同步"，
+// 即使服务端明明已配好并同步成功。这与"两处同形代码只改一处"是同一族失误，故钉成不变量。
+
+test('T1：用户渠道映射必须继承平台侧同步状态（不得被覆盖抹掉）', () => {
+  const m = STORE.match(/function userChannelToLocal\([\s\S]*?\n\}/);
+  assert.ok(m, '未找到 userChannelToLocal');
+  const body = m[0];
+  for (const field of ['syncKind', 'syncModelsPath', 'syncPricingPath', 'lastSyncAt']) {
+    assert.match(body, new RegExp(field), `userChannelToLocal 必须带上 ${field}（平台侧拥有）`);
+  }
+  assert.match(body, /platform\?\./, '这些字段应从传入的平台行继承（platform?.xxx）');
+});
+
+test('T1：syncCatalog 合并时必须把平台行作为 fallback 传给用户映射', () => {
+  assert.match(
+    STORE,
+    /user\.items\.map\(\(c\) => userChannelToLocal\(c, builtinById\.get\(c\.id\)\)\)/,
+    'syncCatalog 必须传平台行 fallback；否则用户渠道覆盖同名 id 时会丢掉同步状态',
+  );
+});
+
+test('T2：同步成功后必须重拉目录，否则卡片状态停在旧值', () => {
+  // 用【位置关系】断言而不是脆弱的整块正则：syncCatalog() 必须出现在 syncChannel 调用之后。
+  const call = PAGE.indexOf('api.syncChannel(');
+  const refresh = PAGE.indexOf('await syncCatalog()');
+  assert.ok(call >= 0, '页面必须调用 api.syncChannel');
+  assert.ok(refresh >= 0, '页面必须调用 syncCatalog() 重拉目录');
+  assert.ok(refresh > call, 'syncCatalog() 必须在同步调用【之后】（否则刷新的是旧状态）');
+  assert.match(PAGE, /setSyncResults/, '应记录最近一次同步结果用于卡片即时反馈');
+});
