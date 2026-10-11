@@ -133,8 +133,12 @@ jobs:
           POSTGRES_PASSWORD: shotdesigner
           POSTGRES_DB: postgres
         ports: ['5432:5432']
+        # --health-cmd 必须显式带 -d：pg_isready 默认探测【与用户名同名】的库，
+        # 而这里没有名为 shotdesigner 的库 ⇒ 健康检查会一直失败并每 5s 刷一条 FATAL。
+        # ★ 注意：options 是 YAML 折叠标量，【不能】在里面写注释 —— 注释会变成传给
+        #   docker 的参数（本片踩过，被 YAML 解析结果当场暴露）。
         options: >-
-          --health-cmd "pg_isready -U shotdesigner"
+          --health-cmd "pg_isready -U shotdesigner -d postgres"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       # 三个服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
@@ -246,6 +250,27 @@ jobs:
           echo "集成测试守卫通过：无 SKIP；本次通过 $ran 个用例（含真库集成）"
         working-directory: services/${{ matrix.service }}
 
+      # ⏸ ④ 审计判决套件【仍未接入 CI】—— 显式推迟，不假装已接入。
+      #
+      #   套件本体已在 develop：scripts/audit-verdicts.sh（V1–V6），
+      #   **本地两种模式各 20/20 · 退出码 0**：docker 模式（默认容器）与直连模式（PG_CONTAINER 为空，模拟 CI）。
+      #
+      #   2026-10 的接入尝试（PR #133）已排掉【三层】环境问题，每层都有判据：
+      #     1) 套件硬编码 docker 假设：PG_CONTAINER 默认写成容器名 ⇒ CI 报
+      #        `No such container: shotdesigner-postgres-1`
+      #        ⇒ 已修：默认空，连接方式交回 scratch-stack.sh 统一决定，并打印实际模式
+      #     2) 子进程看不到"空值"：设了却没 export ⇒ 同一份日志里
+      #        "套件打印直连" 与 "A1 的 setup 打印 docker" 自相矛盾 ⇒ 已修：export PG_CONTAINER
+      #     3) 直连模式需要 psql 客户端（本地由 Homebrew 提供）⇒ 接入时需在步骤内显式确保
+      #
+      #   剩下【未解决】的一层（就是本注记最初写的那一件）：
+      #     启动日志 = warning: execution engine partial config (catalog=false creds=false)
+      #     ⇒ CI 里 EXECUTION_PRODUCTION_URL / EXECUTION_WORKSPACE_URL **未在实例进程中生效**；
+      #     本地看不出差异，因为 .env.local 会把引擎配齐。
+      #   现已加入**诊断**（随本注记一并落地）：source 完额外 env 后打印"加载后实际生效的
+      #   引擎地址"，且引擎未构建时把搭建日志的相关行一并打到 CI 输出
+      #   ⇒ 下次接入时 CI 会【说出真相】，而不是只给一句结论。
+      #   启动条件：这条根因排清后再接（见 docs/development/backlog.md）。
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/development/testing.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
@@ -336,14 +361,22 @@ jobs:
       # 在 set -u 下报 "unbound variable"。本仓库已因此踩坑两次
       # （check-coverage.sh 与 detect-changes.sh），故固化为检查。
       # 正确写法：${var} 或 ${var}：
+      # ★ 规则只有一份实现：scripts/check-shell-vars.sh（预检的门 0 与 .husky/pre-commit 也用它）。
+      #   此前这里是**另一份**实现（grep -P，且只扫 .github/scripts 与 deploy/），
+      #   而 preflight 扫的是 scripts/ 与 .husky/ —— 两者互补，也就是说**都有盲区**。
+      #   现在由脚本按"git 追踪的全部 shell 脚本"来算，谁都不用记目录。
+      #   用 Python 而非 grep -P：后者在 macOS 上不可用，本地就复现不了 CI 的判定。
       - name: Check shell scripts for \$var followed by non-ASCII
         run: |
-          if grep -rnP '\$[A-Za-z_][A-Za-z0-9_]*(?=[^\x00-\x7F])' \
-               --include='*.sh' .github/scripts deploy/ 2>/dev/null; then
-            echo "::error::发现 \$var 紧跟非 ASCII 字符（会被 bash 并入变量名）；请改用 \${var}"
+          set +e
+          bash scripts/check-shell-vars.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::脚本自检【未验证】（缺 python3）—— 未验证不等于通过"
             exit 1
           fi
-          echo "✓ shell 脚本无 \$var 紧跟非 ASCII 的写法"
+          exit "$rc"
 
       # 关键文档与契约必须存在，防止被误删（新增文档时同步此处）
       - name: Check key docs and contract exist

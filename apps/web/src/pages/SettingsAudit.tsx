@@ -32,12 +32,19 @@ function formatLatency(ms: number) {
  * D7b：把服务端返回的 stats 归一化为界面计数。
  * 缺失时回退 0 —— 【不假装有数据】：与服务端未聚合时的行为一致（stats 为 undefined）。
  */
-function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number } }) {
+function statsFrom(res: { total: number; stats?: { byStatus?: Record<string, number>; avgLatencyMs?: number; p50LatencyMs?: number; p95LatencyMs?: number; topErrors?: { key: string; sample: string; count: number }[]; tokensByModel?: { key: string; input: number; output: number; cached: number; calls: number }[]; tokensByChannel?: { key: string; input: number; output: number; cached: number; calls: number }[] } }) {
   return {
     total: res.total,
     success: res.stats?.byStatus?.success ?? 0,
     failed: res.stats?.byStatus?.failed ?? 0,
     avgLatencyMs: res.stats?.avgLatencyMs ?? 0,
+    // 缺失时回退 0：与服务端未聚合时的行为一致（【不假装有数据】）
+    p50LatencyMs: res.stats?.p50LatencyMs ?? 0,
+    p95LatencyMs: res.stats?.p95LatencyMs ?? 0,
+    topErrors: res.stats?.topErrors ?? [],
+    // ④ §2.2 成本归因的 SUM 维度（缺失回退空数组：不假装有数据）
+    tokensByModel: res.stats?.tokensByModel ?? [],
+    tokensByChannel: res.stats?.tokensByChannel ?? [],
   };
 }
 
@@ -47,13 +54,20 @@ export default function SettingsAuditPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
   // D7b：统计来自服务端（筛选后全集），不再是前端在当前页上算的
-  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number } | null>(null);
+  const [stats, setStats] = useState<{ total: number; success: number; failed: number; avgLatencyMs: number; p50LatencyMs: number; p95LatencyMs: number; topErrors: { key: string; sample: string; count: number }[]; tokensByModel: { key: string; input: number; output: number; cached: number; calls: number }[]; tokensByChannel: { key: string; input: number; output: number; cached: number; calls: number }[] } | null>(null);
   // D8c：服务端状态筛选（与导出口径【同一个】status，避免"看到的是筛选后、导出的是全部"）
   const [status, setStatus] = useState('');
+  // 任务卡 §2.1：按【人/项目】筛选 —— 必须是**服务端**筛选（否则列表看着筛过了、
+  // 而 total 与 stats 仍是全集，是误导）。文本输入用"草稿 + 已应用"两态：
+  // 只有按 Enter 或失焦才应用，避免每敲一个字符就打一次请求。
+  const [userIdDraft, setUserIdDraft] = useState('');
+  const [projectIdDraft, setProjectIdDraft] = useState('');
+  const [userId, setUserId] = useState('');
+  const [projectId, setProjectId] = useState('');
 
   const loadLogs = async () => {
     try {
-      const res = await api.listAuditLogs({ limit: 100, status: status || undefined });
+      const res = await api.listAuditLogs({ limit: 100, status: status || undefined, user_id: userId || undefined, project_id: projectId || undefined });
       setLogs(res.items || []);
       setStats(statsFrom(res));
     } catch (e) {
@@ -66,12 +80,12 @@ export default function SettingsAuditPage() {
   useEffect(() => {
     let cancelled = false;
     // 初始加载：setState 全部落在异步回调中，避免 effect 内同步 setState 触发级联渲染
-    api.listAuditLogs({ limit: 100, status: status || undefined })
+    api.listAuditLogs({ limit: 100, status: status || undefined, user_id: userId || undefined, project_id: projectId || undefined })
       .then((res) => { if (!cancelled) { setLogs(res.items || []); setStats(statsFrom(res)); } })
       .catch((e) => console.error('Failed to load audit logs', e))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [status]);
+  }, [status, userId, projectId]);
 
   const filteredLogs = logs.filter((log) => {
     if (!filter) return true;
@@ -92,6 +106,9 @@ export default function SettingsAuditPage() {
   const successCount = stats?.success ?? 0;
   const failedCount = stats?.failed ?? 0;
   const avgLatency = stats?.avgLatencyMs ?? 0;
+  // ④ §2.3：耗时百分位（服务端在筛选后全集上算，排除 latency_ms=0）
+  const p50Latency = stats?.p50LatencyMs ?? 0;
+  const p95Latency = stats?.p95LatencyMs ?? 0;
 
   return (
     <div className="space-y-5">
@@ -103,6 +120,24 @@ export default function SettingsAuditPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* D8c：状态筛选 —— 与 stats、导出【同一口径】 */}
+          <input
+            value={userIdDraft}
+            onChange={(e) => setUserIdDraft(e.target.value)}
+            onBlur={() => setUserId(userIdDraft.trim())}
+            onKeyDown={(e) => { if (e.key === 'Enter') setUserId(userIdDraft.trim()); }}
+            placeholder="按操作者（回车应用）"
+            aria-label="按操作者筛选"
+            className="w-40 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          />
+          <input
+            value={projectIdDraft}
+            onChange={(e) => setProjectIdDraft(e.target.value)}
+            onBlur={() => setProjectId(projectIdDraft.trim())}
+            onKeyDown={(e) => { if (e.key === 'Enter') setProjectId(projectIdDraft.trim()); }}
+            placeholder="按项目（回车应用）"
+            aria-label="按项目筛选"
+            className="w-40 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          />
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -117,7 +152,7 @@ export default function SettingsAuditPage() {
           {/* D8c：导出用原生链接交给浏览器下载 —— 才能用上服务端的 Content-Disposition
               文件名（D8b 修的那个头）。筛选条件与页面【一致】。 */}
           <a
-            href={api.auditExportUrl({ status: status || undefined })}
+            href={api.auditExportUrl({ status: status || undefined, user_id: userId || undefined, project_id: projectId || undefined })}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
             <Download className="h-3.5 w-3.5" />
@@ -152,14 +187,74 @@ export default function SettingsAuditPage() {
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">平均耗时</div>
           <div className="mt-1 text-xl font-bold text-blue-400">{formatLatency(avgLatency)}</div>
         </div>
+        {/* ④ §2.3 故障定位：耗时中位数与 P95，紧挨平均值（三者是同一类度量），
+            好让人一眼看出长尾：P95 远高于平均值 = 少数调用拖慢了整体。
+            数据全部来自服务端 stats（护栏测试钉住了这一点）。 */}
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">耗时中位数 P50</div>
+          <div className="mt-1 text-xl font-bold text-foreground">{p50Latency > 0 ? formatLatency(p50Latency) : '—'}</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">耗时 P95</div>
+          <div className="mt-1 text-xl font-bold text-amber-400">{p95Latency > 0 ? formatLatency(p95Latency) : '—'}</div>
+        </div>
       </div>
+
+      {/* ④ §2.3「按错误文本聚类」：失败原因的形状比单条错误更有用。
+          数据全部来自服务端 stats（护栏测试钉住了这一点）；无数据时整块不渲染。 */}
+      {(stats?.topErrors?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">错误分布 Top {stats?.topErrors?.length}</div>
+          <ul className="mt-2 space-y-1">
+            {stats?.topErrors?.map((e) => (
+              <li key={e.key} className="flex items-baseline gap-2 text-xs">
+                <span className="min-w-0 flex-1 truncate font-mono text-foreground" title={e.sample}>{e.sample}</span>
+                <span className="shrink-0 font-mono text-muted-foreground">{e.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ④ §2.2「成本归因」的 SUM 维度：token 用量。
+          金额 SUM 待计费单位确定（D4b）—— 现在做会恒定显示 0，反而误导，故此处只呈现 token。
+          数据全部来自服务端 stats（护栏测试钉住）；无用量时整块不渲染（不假装有数据）。 */}
+      {((stats?.tokensByModel?.length ?? 0) > 0 || (stats?.tokensByChannel?.length ?? 0) > 0) && (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Token 用量（输入 / 输出）</div>
+          <div className="mt-2 grid gap-3 md:grid-cols-2">
+            <div>
+              <div className="text-[10px] text-muted-foreground">按模型</div>
+              <ul className="mt-0.5 space-y-0.5">
+                {(stats?.tokensByModel ?? []).map((t) => (
+                  <li key={t.key} className="flex items-baseline gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-mono text-foreground" title={t.key}>{t.key}</span>
+                    <span className="shrink-0 font-mono text-muted-foreground">{t.input} / {t.output}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground">按渠道</div>
+              <ul className="mt-0.5 space-y-0.5">
+                {(stats?.tokensByChannel ?? []).map((t) => (
+                  <li key={t.key} className="flex items-baseline gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-mono text-foreground" title={t.key}>{t.key}</span>
+                    <span className="shrink-0 font-mono text-muted-foreground">{t.input} / {t.output}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="搜索模型ID、产品、模式、请求ID、项目ID..."
+          placeholder="在**当前页**内搜索：模型ID、产品、模式、请求ID…（服务端筛选请用上方条件）"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"

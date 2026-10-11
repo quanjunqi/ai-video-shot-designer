@@ -46,6 +46,12 @@
 
 ---
 
+| 2026-10 | `scripts/preflight.sh --changed` 报「相对 origin/develop 没有改动 ⇒ 无需预检 ✅ 通过」，而当时分支上明明有改动 | 它只比较 `git diff "$BASE"...HEAD`（**已提交历史**）；改动还在工作区时它看到的是一个"干净"的分支 ⇒ **裁决空过**（真正的门是我另手跑的那三道） | `--changed` 改为四类改动取并集（已提交 / 已暂存 / 未暂存 / 未跟踪），并打印参与判定的文件清单、工作区脏时显式说明；固化于 `scripts/preflight.sh`。**本条是「假防线」族在【自己的机制】上的重现**：一个报"✅ 通过"的检查，并没有检查它声称检查的东西 |
+
+| 2026-10 | 在 worktree 里用 `scripts/scratch-stack.sh` 核对新接口的 wire 格式，返回的却是 **develop 的旧结构**（大写键、没有新字段），差点据此得出「改动没生效」的错误结论 | 第 40 行 `ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"` 取的是 **worktree 列表第一项 = 主 checkout**，于是**在 A 树里跑、编译的却是 B 树里的代码**，且**完全静默** | `ROOT` 改为**本脚本所在的树**（由 `BASH_SOURCE` 推导），`.env.local` 单独回退主 checkout，并**打印构建来源**；固化于 `scripts/scratch-stack.sh`。**同族教训**：共享工具在 worktree 工作流下必须显式声明「用哪棵树」 |
+| 2026-10 | 修完 `scratch-stack.sh` 后，脚本在运行期报 `service（: unbound variable`，一次性栈起不来 | 我插入的 `say "…$service（env: …）"` 里 **`$service` 紧跟全角括号** ⇒ bash 把多字节字符当成变量名的一部分。**这正是门 0 存在的理由**，而我当时**只跑了 `bash -n`** —— 它查不出**运行期**的 unbound variable ⇒ **有机制却绕过机制** | 变量一律加花括号 `${service}（`；**脚本改动后必须跑门 0**（`scripts/preflight.sh`），而不是只跑 `bash -n`；本条是「门 0 被绕过」的首个案例 |
+| 2026-10 | 「错误分布」界面本该显示错误文本，实际会显示 `undefined` —— 前端类型读 `key`/`sample`/`count`，而服务端发的是 `Key`/`Sample`/`Count` | Go 结构体 `ErrorCluster` **没有 JSON tag** ⇒ 字段按 Go 导出名（首字母大写）序列化。前端测试只断言**类型文本**，永远发现不了**运行期 wire 格式**不符 | (1) 对外结构体**必须写 JSON tag**；(2) 新增或改动对外字段时，**在真实实例上核对一次 wire 格式**（做法：`scratch-stack.sh up` + 轮询就绪 + **先打印原始响应再解析**）；固化于 `services/execution/internal/audit/store.go` 的注释与本节 |
+
 ## 新增条目模板（追加用 · 不删历史）
 
 ```

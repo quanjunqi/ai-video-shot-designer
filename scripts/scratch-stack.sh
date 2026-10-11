@@ -17,8 +17,16 @@
 # 环境变量（一般不用改）：
 #   SCRATCH_DB     临时库名，默认 execution_verify
 #   SCRATCH_PORT   实例端口，默认 8095
-#   PG_CONTAINER   PostgreSQL 容器名，默认 shotdesigner-postgres-1
+#   PG_CONTAINER   PostgreSQL 容器名（默认 shotdesigner-postgres-1）
+#                  ★ 设为【空字符串】即切到"直连模式"：用 psql 客户端连
+#                    EXECUTION_DATABASE_URL 所指的服务器（CI 用的是 Postgres service，
+#                    没有 docker 容器）。两种模式共用同一个 SCRATCH_DB 命名与安全断言。
+#   PG_USER        直连/docker 两模式下的数据库用户，默认 shotdesigner
 #   PG_USER        PostgreSQL 用户，默认 shotdesigner
+#   SCRATCH_SKIP_ENV_LOCAL  设为 1 则【不读 .env.local】—— 用于复现 CI 的条件：
+#                           CI 里没有 .env.local，很多配置不会被隐式补齐
+#                           （本项目真实教训：本地因 .env.local 把执行引擎配齐，
+#                            于是"引擎两侧配置缺失"这类问题在本地永远看不出来）
 #   SCRATCH_ENV_FILE  额外环境变量文件（KEY=VALUE 每行一条），启动实例前 source
 #                     例：把 EXECUTION_PRODUCTION_URL 指向死地址以迫使 failOrRetry；
 #                         或开启 EXECUTION_AUDIT_RETENTION_DAYS 以验证清理器
@@ -29,19 +37,72 @@
 #   理由：验证不该有"顺手把开发库删了"的可能。
 set -uo pipefail
 
-ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+# ★ 构建必须用【本脚本所在的树】。原来取 `git worktree list` 的【第一项】（主 checkout），
+#   于是在某个 worktree 里跑它，编译出来的却是【别人树里的代码】—— 而且**静默**：
+#   本项目真实踩到：在 worktree 里核对新接口的 wire 格式，返回的却是 develop 的旧结构，
+#   差点据此得出"改动没生效"的错误结论。
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# 主 checkout 单独保留：worktree 常常没有 .env.local，需要回退到它。
+MAIN_ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
 cd "$ROOT" || exit 2
+
+# 基础环境文件解析：本树 → 主 checkout（与 preflight.sh 同一套回退规则）。
+# ★ 它与 SCRATCH_ENV_FILE 是【两个不同的东西】——ENV_FILE 是基础配置（.env.local：DSN/口令），
+#   SCRATCH_ENV_FILE 只用于**追加/覆盖**。我曾把两者混为一谈 ⇒ 一旦设了 SCRATCH_ENV_FILE，
+#   .env.local 就再也不会被加载，实例因缺 EXECUTION_INTERNAL_TOKEN 直接退出。
+ENV_FILE=""
+if [ -f "$ROOT/.env.local" ]; then ENV_FILE="$ROOT/.env.local"
+elif [ -n "$MAIN_ROOT" ] && [ -f "$MAIN_ROOT/.env.local" ]; then ENV_FILE="$MAIN_ROOT/.env.local"; fi
 
 SCRATCH_DB="${SCRATCH_DB:-execution_verify}"
 SCRATCH_PORT="${SCRATCH_PORT:-8095}"
-PG_CONTAINER="${PG_CONTAINER:-shotdesigner-postgres-1}"
+# ★ 用 ${VAR-默认} 而不是 ${VAR:-默认}：后者会把"已显式设为空字符串"也当成未设置，
+#   于是 CI 里的 `PG_CONTAINER: ''` 会静默退回 docker 模式（本片真实踩到，
+#   而且它伪装成了一次"直连模式 11/11 通过"的假绿）。
+# ★ PG_CONTAINER 的默认值【不猜，而是探测】：
+#   · 显式给出（含显式空 ⇒ 直连）⇒ 一律尊重 —— 显式设置必须能覆盖一切
+#   · 未给出 ⇒ 本地探测得到那个容器就用 docker，探测不到就直连
+#   为什么不能写死默认值（两个方向都踩过）：
+#     · 默认写容器名 ⇒ CI（没有容器）走进 docker 模式，报 `No such container`
+#     · 默认写空     ⇒ 本地（有容器、但没有 psql 客户端）反而跑不起来
+#   **环境假设必须被探测，而不是被写死。**
+if [ "${PG_CONTAINER+set}" = "set" ]; then
+  PG_CONTAINER="${PG_CONTAINER}"
+  PG_MODE_WHY="PG_CONTAINER 已显式设置"
+elif command -v docker >/dev/null 2>&1 && docker inspect -f '{{.State.Running}}' shotdesigner-postgres-1 >/dev/null 2>&1; then
+  PG_CONTAINER="shotdesigner-postgres-1"
+  PG_MODE_WHY="未设置，探测到该容器在运行"
+else
+  PG_CONTAINER=""
+  PG_MODE_WHY="未设置，且探测不到容器"
+fi
+export PG_CONTAINER
 PG_USER="${PG_USER:-shotdesigner}"
 REAL_DBS="execution workspace production asset"
 BIN_DIR="${BIN_DIR:-/tmp/mdp-scratch-bin}"
 LOG="${LOG:-/tmp/scratch-stack.log}"
 
 die() { echo "❌ $*" >&2; exit 1; }
-psql_() { docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" "$@"; }
+# psql_：两种模式（判据：PG_CONTAINER 是否为空）
+#   docker：本地默认，连 compose 起的容器
+#   直连  ：CI 用（Postgres service），连接参数从 EXECUTION_DATABASE_URL 推导
+psql_() {
+  if [ -n "$PG_CONTAINER" ]; then
+    docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" "$@"
+  else
+    local dsn="${EXECUTION_DATABASE_URL:-}"
+    [ -n "$dsn" ] || die "直连模式（PG_CONTAINER 为空）需要 EXECUTION_DATABASE_URL"
+    # ★ 必须用 export（单行）：此前写成多行 `VAR=... \` 的行续接，
+    #   实际执行时四个变量成了【独立赋值】、没有传给 psql ⇒ psql 去连本地 unix socket、
+    #   以 OS 用户身份认证 ⇒ `FATAL: role "root" does not exist`。
+    #   Bash 的行续接对"末尾空格"极敏感，这类写法在这里不值得冒险。
+    export PGUSER="${PGUSER:-$(printf '%s' "$dsn" | sed -E 's#^postgres://([^:]+):.*#\1#')}"
+    export PGPASSWORD="${PGPASSWORD:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^:]+:([^@]+)@.*#\1#')}"
+    export PGHOST="${PGHOST:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@([^:/]+).*#\1#')}"
+    export PGPORT="${PGPORT:-$(printf '%s' "$dsn" | sed -E 's#^postgres://[^@]+@[^:]+:([0-9]+).*#\1#')}"
+    psql "$@"
+  fi
+}
 
 assert_scratch_name() {
   for real in $REAL_DBS; do
@@ -54,10 +115,20 @@ assert_scratch_name() {
 }
 
 dsn_for_scratch() {
-  set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
-  [ -n "${EXECUTION_DATABASE_URL:-}" ] || die "EXECUTION_DATABASE_URL 未设置（先 .env.local）"
-  # 只替换库名，其余（用户/口令/主机/参数）沿用真实配置 —— 手拼 DSN 会错（本项目已发生过 SASL 认证失败）
-  printf '%s' "$EXECUTION_DATABASE_URL" | sed -E "s#/execution(\\?|\$)#/$SCRATCH_DB\\1#"
+  # 环境变量优先，其次 .env.local（本地约定）—— CI 里没有 .env.local。
+  local saved="${EXECUTION_DATABASE_URL:-}"
+  if [ "${SCRATCH_SKIP_ENV_LOCAL:-0}" != "1" ]; then
+    set -a; . "$ENV_FILE" 2>/dev/null; set +a
+  fi
+  if [ -n "$saved" ]; then EXECUTION_DATABASE_URL="$saved"; fi
+  [ -n "${EXECUTION_DATABASE_URL:-}" ] || die "EXECUTION_DATABASE_URL 未设置（导出它，或准备 .env.local）"
+  # 只替换【库名】，其余（用户/口令/主机/参数）沿用真实配置
+  # —— 手拼 DSN 会错（本项目已发生过 SASL 认证失败）。
+  # 用"按最后一个 / 切分"而不是正则匹配 /execution：CI 的 service 库名是 postgres，
+  # 将来也可能换名；正则匹配一旦不中，就会静默连到错误的库（比报错更危险）。
+  local base="$EXECUTION_DATABASE_URL" qs=""
+  case "$base" in *\?*) qs="?${base#*\?}"; base="${base%%\?*}" ;; esac
+  printf '%s/%s%s' "${base%/*}" "$SCRATCH_DB" "$qs"
 }
 
 cmd_up() {
@@ -65,7 +136,11 @@ cmd_up() {
   local service="${1:-execution}" port="${2:-$SCRATCH_PORT}"
   [ -d "services/$service/migrations" ] || die "services/$service/migrations 不存在"
 
-  echo "── 建库 $SCRATCH_DB ──"
+  if [ -n "$PG_CONTAINER" ]; then
+    echo "── 模式：docker（容器 ${PG_CONTAINER}）· 建库 $SCRATCH_DB ──（${PG_MODE_WHY}）"
+  else
+    echo "── 模式：直连 psql（PG_CONTAINER 为空）· 建库 $SCRATCH_DB ──（${PG_MODE_WHY}）"
+  fi
   psql_ -d postgres -q -c "DROP DATABASE IF EXISTS $SCRATCH_DB;" || die "drop 失败"
   psql_ -d postgres -q -c "CREATE DATABASE $SCRATCH_DB;" || die "create 失败"
 
@@ -84,16 +159,31 @@ cmd_up() {
   echo "── 编译并启动实例（端口 ${port}）──"
   export GOCACHE="${GOCACHE:-/tmp/mdp-gocache}"
   mkdir -p "$BIN_DIR"
+  # 打印"从哪棵树构建" —— 这类"构建了别的树"的错误，只有把它说出来才不会再发生
+  say "   构建来源：${ROOT}/services/${service}（env: ${ENV_FILE:-无}）"
   ( cd "services/$service" && go build -o "$BIN_DIR/$service" ./cmd/server ) || die "编译失败"
 
   local old; old="$(lsof -ti ":$port" 2>/dev/null | head -1)"
   [ -n "$old" ] && { kill "$old"; sleep 2; echo "   已停旧实例 PID=$old"; }
 
-  set -a; . "$ROOT/.env.local" 2>/dev/null; set +a
+  local saved_dsn="${EXECUTION_DATABASE_URL:-}" saved_tok="${EXECUTION_INTERNAL_TOKEN:-}"
+  if [ "${SCRATCH_SKIP_ENV_LOCAL:-0}" = "1" ]; then
+    echo "   （SCRATCH_SKIP_ENV_LOCAL=1：跳过 .env.local ⇒ 复现 CI 的条件）"
+  else
+    set -a; . "$ENV_FILE" 2>/dev/null; set +a
+  fi
+  [ -n "$saved_dsn" ] && EXECUTION_DATABASE_URL="$saved_dsn"
+  [ -n "$saved_tok" ] && EXECUTION_INTERNAL_TOKEN="$saved_tok"
   if [ -n "${SCRATCH_ENV_FILE:-}" ]; then
     [ -f "$SCRATCH_ENV_FILE" ] || die "SCRATCH_ENV_FILE=$SCRATCH_ENV_FILE 不存在"
     set -a; . "$SCRATCH_ENV_FILE"; set +a
-    echo "   已加载额外环境：$SCRATCH_ENV_FILE"
+    # ★ 把【加载后实际生效】的引擎地址打出来。
+    #   为什么：CI 里曾出现"实例报 partial config (catalog=false creds=false)"，
+    #   而本地看不出差异（.env.local 把引擎配齐了）⇒ 光看"加载了哪个文件"不够，
+    #   要看"加载之后这两个变量到底是什么"。这类"环境没生效"的错误，
+    #   只有把生效值说出来才能一眼定位（值本身不是秘密：要么是死地址，要么是本地桩）。
+    echo "   已加载额外环境：${SCRATCH_ENV_FILE}"
+    echo "   生效的引擎地址：PRODUCTION_URL=${EXECUTION_PRODUCTION_URL:-<空>} WORKSPACE_URL=${EXECUTION_WORKSPACE_URL:-<空>}"
   fi
   local dsn; dsn="$(dsn_for_scratch)"
   env EXECUTION_DATABASE_URL="$dsn" EXECUTION_LISTEN_ADDR="127.0.0.1:$port" \
@@ -143,12 +233,14 @@ cmd_down() {
 case "${1:-}" in
   up)     shift; cmd_up "${1:-execution}" "${2:-$SCRATCH_PORT}" ;;
   sql)    shift; cmd_sql "${1:-}" ;;
+  psql)   shift; psql_ -d "$SCRATCH_DB" "$@" ;;
   status) cmd_status ;;
   down)   cmd_down ;;
   *) cat <<EOF
 用法：
   $0 up [service] [port]      建一次性库（跑该服务全部迁移）并起实例
   $0 sql "<SQL>"              在一次性库上执行 SQL
+  $0 psql [psql 参数]         在当前模式下对一次性库执行 psql（默认库 ${SCRATCH_DB}）
   $0 status                   打印库与实例状态
   $0 down                     停实例并删库（幂等）
 环境：SCRATCH_DB=$SCRATCH_DB SCRATCH_PORT=$SCRATCH_PORT PG_CONTAINER=$PG_CONTAINER

@@ -76,6 +76,20 @@
 
 ## 已识别的其他待办
 
+### 2026-10-10：供给池同步器（ADR-004 §4）的两处**如实暂缓**
+
+ADR-004 §8 的验证计划共 7 条；本片实现了 **§8.1–§8.4、§8.6 中与库相关的部分**
+（`catalog.ApplySync` / `StartSync` / `FinishSync` + 6 条集成测试）。**未做的两条与原因**：
+
+| # | 项 | 为什么暂缓 | 启动条件 |
+|---|---|---|---|
+| §8.5 | **SSRF 防护**（把 `sync_models_path` 指到内网 ⇒ 应被拦） | production **没有** `netguard`（只有 execution 有），而各服务是**独立 Go module** ⇒ 跨模块共享安全代码需要架构决策（复制 / 建共享 module / 走 replace），**不由 AI 自行决定** | Owner 决定共享方式后即可实现；在此之前**不要**接真实渠道的同步 |
+| §8.7 | **对真实渠道跑一次同步** | 需要 Owner 提供渠道与凭据；且它依赖 §8.5 先就位 | §8.5 落地 + Owner 指定一个可用的中转站 |
+
+> **为什么必须在接真实渠道前完成 §8.5**：`sync_models_path` 是可配的，
+> 一旦它被指向内网地址，同步器就会替调用方发起内网请求 —— 那正是 SSRF。
+
+
 | 项 | 说明 |
 |---|---|
 | **Dependabot 10 个 PR** | 含 `actions/checkout` 4→7、`actions/setup-go` 5→7、`setup-node` 4→7 等**大版本升级**，需逐个评估兼容性（大版本可能改变行为，如 Node 版本要求） |
@@ -97,3 +111,43 @@
 
 **待完成**：第 2 轮（主流产品画布交互拆解）→ 第 3 轮（参考实现与许可证）→ 第 4 轮（我们的落地映射 + ADR）
 **Owner 已定**：第一版**不做全量对齐**，先把画布基础打好。
+
+### ④ 审计判决套件接入 CI（暂缓 2026-10）
+
+- **现状**：`scripts/audit-verdicts.sh`（V1–V6）**本地两模式各 20/20**，但**未接入 CI**。
+  `ci.yml` 里保留了 ⏸ 注记，写明排掉了哪三层、剩下哪一层。
+- **剩下的根因（判据）**：CI 里实例启动日志为
+  `warning: execution engine partial config (catalog=false creds=false)`
+  ⇒ `EXECUTION_PRODUCTION_URL` / `EXECUTION_WORKSPACE_URL` 未在**实例进程**中生效；
+  本地因 `.env.local` 把引擎配齐而看不出差异。
+- **已具备的诊断**：`scratch-stack.sh` 打印"加载后实际生效的引擎地址"；
+  套件在引擎未构建时打印搭建日志相关行 ⇒ 下一次接入时 CI 会直接给出证据。
+- **启动条件**：定位并修掉上述根因后，用**步骤级** `if: matrix.service == 'execution'`
+  接入（禁止 job 级 `if:`，见 `docs/development/ci.md` §3）。
+
+### live 开发库补齐迁移（暂缓 2026-10；**方案已在 pg_dump 副本上验证**）
+
+- **现状（判据：对象清单 diff，对 live 只读）**
+  - `production` 缺 **54** 个对象：`channel_models.*`(034) · `channel_model_syncs.*`(035) ·
+    `model_channels.sync_kind/trust_note`(036) · `model_catalog.price_*/cost_*/price_source`(037) ·
+    `protocol_templates.doc_ref`(031/033)
+  - `execution` 缺 **2** 个：`jobs.result_payload`(010) 与 **`gateway_audit_logs` 的 append-only 触发器**(011)
+    ⇒ **④ 的「审计不可变」在 live 上并不成立**（只在迁移文件、测试库与代码里成立）
+  - 两库**双向漂移**：还多出迁移里没有的对象（`production` 2 个索引 · `execution` 的 `jobs_audit` 表若干列）
+  - 四个库（production/execution/workspace/asset）**都没有 `schema_migrations`**
+    ⇒ 直接跑执行器会被它**拒绝**（`deploy/local/migrate.sh:58-68`：不做任何假设）
+- **已验证的操作**（在 `pg_dump` 副本 `*_reh_verify` 上执行，`rc=0`）
+  ```
+  production : MIGRATE_ADOPT=1 MIGRATE_ADOPT_UNTIL=030_async_terminal_values.sql → 应用 031–037
+  execution  : MIGRATE_ADOPT=1 MIGRATE_ADOPT_UNTIL=009_quota.sql                  → 应用 010–011
+  ```
+  其中「采纳模式」**只登记版本与校验和、不执行任何 SQL**（`migrate.sh:21-23`）。
+- **验证到的结果**
+  - 彩排后对象清单 **缺=0**（live 原有的对象一个都没丢）
+  - 用彩排后的 `execution_reh_verify` 起实例：`/live = HTTP 204` ✅、审计接口 `HTTP 200` ✅
+  - 不可变触发器四种行为逐条实测：改身份字段被拒 ✅ · 回填完成字段允许 ✅ ·
+    `DELETE` 无许可被拒 ✅ · 带 `SET LOCAL app.allow_audit_purge='on'` 允许 ✅
+- **唯一未知与回滚**
+  - `ADOPT_UNTIL` 是按「首个缺失产物」**推断**的；若实际更早，执行器会去跑已跑过的迁移而失败
+  - 因此**先备份**（`pg_dump` 四个库）⇒ 失败即恢复备份，或删 `schema_migrations` 中登记的行
+- **启动条件**：Owner 决定「对 live 执行」后，按上述命令执行，并逐库用对象清单核对（缺=0）

@@ -84,11 +84,29 @@ type RunResult struct {
 	Extracted map[string]any `json:"extracted"`
 	RawBody   string         `json:"rawBody,omitempty"`
 	Duration  string         `json:"duration"`
-	Error     string         `json:"error,omitempty"`
+	// ElapsedMs 是同一个耗时的**有类型**形式（毫秒）。
+	//
+	// 为什么需要两个：`Duration` 是给人和 payload 看的字符串，
+	// 而审计要把它写成 `latency_ms`（整型）—— 让调用方去 parse 一个自己刚格式化的
+	// 字符串，是在把已经丢掉的信息再猜回来（本项目真实缺陷：worker 因此把耗时写成 0，
+	// 导致**异步任务的耗时永远为 0**，而 P50/P95/平均耗时都只统计 latency_ms > 0 的行
+	// ⇒ 异步长任务被整体排除在耗时分布之外）。
+	ElapsedMs int    `json:"elapsedMs"`
+	Error     string `json:"error,omitempty"`
 	// ProviderTaskID 是异步协议在提交响应中返回的任务 ID（同步协议为空）。
 	// 提交响应与最终轮询响应是两个不同的文档，任务 ID 只在提交响应中出现，
 	// 故单独透出供统一 Executor 层与审计追溯使用。
 	ProviderTaskID string `json:"providerTaskId,omitempty"`
+}
+
+// withElapsed 把本次调用的耗时【一次】写进两种形式：给人看的字符串 + 给审计用的毫秒。
+// 4 个 RunResult 构造点原来各自重复 `time.Since(start).Round(time.Millisecond).String()`，
+// 只写字符串 ⇒ 时间信息在格式化那一刻就丢了。
+func (r RunResult) withElapsed(start time.Time) RunResult {
+	d := time.Since(start).Round(time.Millisecond)
+	r.Duration = d.String()
+	r.ElapsedMs = int(d.Milliseconds())
+	return r
 }
 
 var (
@@ -104,7 +122,7 @@ var (
 func Run(ctx context.Context, creds Credentials, req RunRequest, client *http.Client) (RunResult, error) {
 	start := time.Now()
 	fail := func(err error) (RunResult, error) {
-		return RunResult{Status: 0, Duration: time.Since(start).Round(time.Millisecond).String(), Error: err.Error()}, err
+		return RunResult{Status: 0, Error: err.Error()}.withElapsed(start), err
 	}
 	// Async protocols need submit->poll; the sync path refuses them loudly.
 	var async struct {
@@ -155,7 +173,7 @@ func Run(ctx context.Context, creds Credentials, req RunRequest, client *http.Cl
 	defer resp.Body.Close()
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 
-	out := RunResult{Status: resp.StatusCode, Duration: time.Since(start).Round(time.Millisecond).String()}
+	out := RunResult{Status: resp.StatusCode}.withElapsed(start)
 	out.RawBody = string(respBody)
 	if resp.StatusCode >= 400 {
 		out.Error = fmt.Sprintf("upstream %d: %s", resp.StatusCode, truncate(string(respBody), 300))
@@ -265,7 +283,7 @@ func truncate(s string, n int) string {
 func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *http.Client) (RunResult, error) {
 	start := time.Now()
 	fail := func(err error) (RunResult, error) {
-		return RunResult{Status: 0, Duration: time.Since(start).Round(time.Millisecond).String(), Error: err.Error()}, err
+		return RunResult{Status: 0, Error: err.Error()}.withElapsed(start), err
 	}
 
 	// Parse async config
@@ -405,7 +423,7 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 	}
 
 	// === Step 3: Extract result from final response ===
-	out := RunResult{Status: 200, Duration: time.Since(start).Round(time.Millisecond).String()}
+	out := RunResult{Status: 200}.withElapsed(start)
 	out.Extracted = map[string]any{}
 	out.ProviderTaskID = taskID
 	log.Printf("engine RunAsync: responseParams count=%d, params=%v", len(req.ProtocolTemplate.ResponseParams), req.ProtocolTemplate.ResponseParams)

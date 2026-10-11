@@ -715,13 +715,16 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// D7a：统计由【服务端】在【筛选后全集】上算 —— 前端此前在"当前页"上算，是假统计。
-	byStatus, avgLatency, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
+	agg, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
 	if aggErr != nil {
 		// 统计失败不该让列表也不可用：如实标注，便于排查。
 		slog.Error("audit aggregate failed", "error", aggErr)
-		byStatus, avgLatency = nil, 0
+		agg = audit.AggregateResult{ByStatus: nil}
 	}
-	success := byStatus["success"]
+	byStatus := agg.ByStatus
+	// ★ 成功数必须把历史行的 "succeeded" 也算上（写侧已归一为 "success"）：
+	//   否则老数据的成功会在界面上凭空消失。失败态两条路径同名，无需兼容。
+	success := byStatus["success"] + byStatus["succeeded"]
 	successRate := 0.0
 	if total > 0 {
 		successRate = float64(success) / float64(total)
@@ -735,8 +738,16 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			"byStatus":     byStatus,
 			"success":      success,
 			"successRate":  successRate,
-			"avgLatencyMs": avgLatency,
-			"aggregateOn":  "filtered_total",
+			"avgLatencyMs": agg.AvgLatencyMs,
+			// ④ §2.3「故障定位」要求的耗时百分位（此前只有平均值）
+			"p50LatencyMs": agg.P50LatencyMs,
+			"p95LatencyMs": agg.P95LatencyMs,
+			// ④ §2.3「按错误文本聚类」：按"第一个冒号前的规范化前缀"分组
+			"topErrors": agg.TopErrors,
+			// ④ §2.2「成本归因」的 SUM 维度（token；金额 SUM 等计费单位确定后再加）
+			"tokensByModel":   agg.TokensByModel,
+			"tokensByChannel": agg.TokensByChannel,
+			"aggregateOn":     "filtered_total",
 		},
 	})
 }

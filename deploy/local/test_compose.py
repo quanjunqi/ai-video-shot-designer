@@ -43,7 +43,12 @@ class LocalComposeTest(unittest.TestCase):
             services["production-migrate"]["depends_on"]["postgres"]["condition"],
             "service_healthy",
         )
-        self.assertIn("production_test", (COMPOSE_DIR / "postgres/init/001-databases.sql").read_text())
+        init_sql = (COMPOSE_DIR / "postgres/init/001-databases.sql").read_text()
+        # 四个集成测试库必须都在：它们与根目录 .env.example 的 *_TEST_DATABASE_URL 一一对应。
+        # 此前只建了 production_test ⇒ 另外三个服务的集成测试在本地【静默跳过】，
+        # 而预检需要它们真的跑起来才有意义。
+        for db in ("production_test", "execution_test", "workspace_test", "asset_test"):
+            self.assertIn(db, init_sql)
         self.assertEqual(services["production-test"]["profiles"], ["test"])
 
 

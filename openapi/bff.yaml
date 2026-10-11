@@ -928,6 +928,14 @@ paths:
           in: query
           schema: {type: string, format: date-time}
           description: 结束时间（RFC3339，含）。非法值返回 400 INVALID_UNTIL。
+        - name: user_id
+          in: query
+          schema: {type: string}
+          description: 按操作者筛选（任务卡 §2.1「按人/项目的操作清单」）。与导出共用同一口径。
+        - name: project_id
+          in: query
+          schema: {type: string}
+          description: 按项目筛选（同上）。
       responses:
         '200':
           description: 审计日志分页
@@ -2698,7 +2706,7 @@ components:
           description: |
             在**筛选后全集**上的统计（D7a）。前端必须用它，不得在"当前页"上自行统计。
             聚合失败时 `byStatus` 为 null（`success`/`avgLatencyMs` 为 0）—— 契约如实反映这一点。
-          required: [byStatus, success, successRate, avgLatencyMs, aggregateOn]
+          required: [byStatus, success, successRate, avgLatencyMs, p50LatencyMs, p95LatencyMs, topErrors, tokensByModel, tokensByChannel, aggregateOn]
           properties:
             byStatus:
               type: object
@@ -2708,6 +2716,36 @@ components:
             success: {type: integer}
             successRate: {type: number, description: 'success / total（服务端算）'}
             avgLatencyMs: {type: integer}
+            p50LatencyMs:
+              type: integer
+              description: >-
+                筛选后全集上的耗时中位数（④ §2.3）。**排除 latency_ms = 0 的行** ——
+                0 表示"没有测量到"而不是"瞬时完成"；计入会把 P50 拉成 0，让耗时分布成为假象。
+            p95LatencyMs:
+              type: integer
+              description: 筛选后全集上的耗时 P95（同上，排除 0）。空集时为 0。
+            topErrors:
+              type: array
+              description: >-
+                ④ §2.3「按错误文本聚类」。库里没有错误码列，实测形状是「稳定前缀 + ':' + 变量尾部」，
+                且大小写不一致 ⇒ 取**第一个冒号之前**的部分、trim、转小写作为簇键（不引入相似度算法，
+                保证归类可解释）。key 为规范化簇键；sample 为同簇中字典序最小的原始前缀（保留原大小写）。
+                同一筛选口径与前 5 簇（按计数降序、同计数按 key 升序）。
+              items:
+                type: object
+                required: [key, sample, count]
+                additionalProperties: false
+                properties:
+                  key: {type: string, description: 规范化簇键（小写、无变量尾部）}
+                  sample: {type: string, description: 代表性原始前缀（保留原大小写）}
+                  count: {type: integer}
+
+            tokensByModel:
+              $ref: '#/components/schemas/TokenUsageList'
+            tokensByChannel:
+              $ref: '#/components/schemas/TokenUsageList'
+              description: 同上，按渠道聚合。
+
             aggregateOn: {type: string, description: '固定为 filtered_total'}
           additionalProperties: false
       additionalProperties: false
@@ -2973,6 +3011,23 @@ components:
           additionalProperties: true
       additionalProperties: false
 
+    TokenUsageList:
+      type: array
+      description: >-
+        ④ §2.2「成本归因」的 SUM 维度：按维度聚合的 token 用量（前 5，按 input+output 降序）。
+        **只统计有用量的行**（全 0 的行没有用量可言，混进来只会稀释）。金额 SUM 待计费单位
+        确定（D4b）后再加 —— 现在做会恒定显示 0，反而误导。
+      items:
+        type: object
+        required: [key, input, output, cached, calls]
+        additionalProperties: false
+        properties:
+          key: {type: string, description: 维度取值；未标注时为「(未标注)」}
+          input: {type: integer}
+          output: {type: integer}
+          cached: {type: integer}
+          calls: {type: integer, description: 参与聚合的调用次数}
+
     ProtocolTemplate:
       type: object
       description: 协议模板：声明 HTTP 方法/路径/参数映射与异步轮询规则。
@@ -3016,6 +3071,20 @@ components:
         builtin: {type: boolean, description: 内置模板受保护，不可改/删（`400 BUILTIN_PROTECTED`）。}
         enabled: {type: boolean}
         refCount: {type: integer, description: 被模型引用次数；>0 时不可删（`409 TEMPLATE_IN_USE`）。}
+        docRef:
+          type: object
+          nullable: true
+          description: >-
+            ADR-008 文档依据（**外部输入**，可能过期或本身有误）：source(official|cloud|relay) /
+            url / docVersion|verifiedAt / sections / authDoc / statusEnumDoc / referenceRuleDoc。
+            NULL = 尚未对齐文档。
+        observedEvidence:
+          type: object
+          nullable: true
+          description: >-
+            ADR-008 实测证据（**事实**）：lastProbedAt / observedStatusCodes / observedStatusEnum /
+            observedEndpoints / discrepancies[]。冲突时以本列为准，且**差异必须保留可见**。
+            NULL = 尚未实测。
         version: {type: integer}
         capabilities:
           type: object

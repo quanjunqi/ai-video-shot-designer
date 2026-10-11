@@ -412,6 +412,10 @@ export interface ServerProtocolTemplate {
   enabled: boolean;
   refCount: number;
   version: number;
+  // ADR-008 §3 两类证据并列：docRef 是【外部输入/线索】，observedEvidence 是【实测/事实】。
+  // 服务端为 NULL 时字段缺席（omitempty）⇒ 两者都是可选。
+  docRef?: Record<string, unknown>;
+  observedEvidence?: Record<string, unknown>;
 }
 
 export interface ServerCatalogModelPatch {
@@ -737,11 +741,16 @@ export const api = {
     channel_id?: string;
     since?: string;
     until?: string;
+    // 任务卡 §2.1：按人/项目的操作清单（导出与列表共用同一套筛选口径）
+    user_id?: string;
+    project_id?: string;
   }) =>
     `/api/v1/audit/export?${new URLSearchParams({
       ...(params?.status ? { status: params.status } : {}),
       ...(params?.model_id ? { model_id: params.model_id } : {}),
       ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+      ...(params?.user_id ? { user_id: params.user_id } : {}),
+      ...(params?.project_id ? { project_id: params.project_id } : {}),
       ...(params?.since ? { since: params.since } : {}),
       ...(params?.until ? { until: params.until } : {}),
     }).toString()}`,
@@ -753,6 +762,8 @@ export const api = {
     channel_id?: string;
     since?: string;
     until?: string;
+    user_id?: string;
+    project_id?: string;
   }) =>
     request<{
       items: AuditLog[];
@@ -766,6 +777,14 @@ export const api = {
         success: number;
         successRate: number;
         avgLatencyMs: number;
+        // ④ §2.3 故障定位的聚合：耗时中位数与 P95（服务端算，排除 latency_ms=0 的行）
+        p50LatencyMs: number;
+        p95LatencyMs: number;
+        // ④ §2.3「按错误文本聚类」：cluster key + 代表样本 + 计数（服务端算）
+        topErrors: { key: string; sample: string; count: number }[];
+        // ④ §2.2「成本归因」的 SUM 维度：token 用量（服务端算；金额 SUM 待 D4b）
+        tokensByModel: { key: string; input: number; output: number; cached: number; calls: number }[];
+        tokensByChannel: { key: string; input: number; output: number; cached: number; calls: number }[];
         aggregateOn: string;
       };
     }>(
@@ -775,6 +794,8 @@ export const api = {
         ...(params?.status ? { status: params.status } : {}),
         ...(params?.model_id ? { model_id: params.model_id } : {}),
         ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+      ...(params?.user_id ? { user_id: params.user_id } : {}),
+      ...(params?.project_id ? { project_id: params.project_id } : {}),
         ...(params?.since ? { since: params.since } : {}),
         ...(params?.until ? { until: params.until } : {}),
       }).toString()}`,

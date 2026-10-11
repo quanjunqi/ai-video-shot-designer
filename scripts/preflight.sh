@@ -20,7 +20,8 @@
 # 用法：
 #   scripts/preflight.sh                 全部后端服务 + 前端
 #   scripts/preflight.sh execution d6    只跑指定服务（可多个）
-#   scripts/preflight.sh --changed       只跑相对 origin/develop 改动过的部分（模拟 CI 的 Relevance）
+#   scripts/preflight.sh --changed       只跑改动过的部分（模拟 CI 的 Relevance）；
+#                                        ★ 计入【工作区】：已提交 + 已暂存 + 未暂存 + 未跟踪
 #   PREFLIGHT_BASE=origin/master scripts/preflight.sh --changed   改基线
 #   PREFLIGHT_ENV_FILE=/dev/null scripts/preflight.sh              不用 .env.local（测"无测试库"分支）
 #
@@ -31,7 +32,23 @@ ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT" || exit 2
 BASE="${PREFLIGHT_BASE:-origin/develop}"
 # 测试库 DSN 的来源文件（默认仓库约定的 .env.local）。设为 /dev/null 可模拟"无测试库"。
-ENV_FILE="${PREFLIGHT_ENV_FILE:-$ROOT/.env.local}"
+# .env.local 的定位：它被 gitignore，通常**只在主检出目录**里，worktree 里没有。
+# ★ 此前直接取 "$ROOT/.env.local" ⇒ 从 worktree 跑预检时 DSN 取不到
+#   ⇒ 集成门永远报「未验证」且**不会真跑**（本项目实测：我长期在 worktree 里工作，
+#     于是那道门一直没起作用 —— 这正是"标注了未验证"之外更该修的东西）。
+# 取值顺序：显式指定 → 当前目录 → **主检出目录**（git worktree 列表的第一个）。
+if [ -n "${PREFLIGHT_ENV_FILE:-}" ]; then
+  ENV_FILE="$PREFLIGHT_ENV_FILE"
+elif [ -f "$ROOT/.env.local" ]; then
+  ENV_FILE="$ROOT/.env.local"
+else
+  MAIN_WORKTREE="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+  ENV_FILE="$MAIN_WORKTREE/.env.local"
+fi
+# 无静默差异：用了回退文件时，在【真正取到 DSN】的那一步说出来
+# （放在顶部会被后续输出淹没，也不代表"这次真的用上了"）
+ENV_FILE_FALLBACK=0
+if [ "$ENV_FILE" != "$ROOT/.env.local" ]; then ENV_FILE_FALLBACK=1; fi
 SERVICES=(workspace production execution asset web-bff outbox-relay)
 
 TMP="$(mktemp -d)"
@@ -52,43 +69,48 @@ bad()  { printf '   ❌ %s\n' "$*"; FAILED+=("$*"); }
 warn() { printf '   ⚠️  %s\n' "$*"; }
 
 # ---- 门 0：脚本自检（`$VAR` 后紧跟非 ASCII ⇒ bash 会把多字节字符当成变量名的一部分）----
-# 为什么（本项目真实事故，两次，跨两个脚本）：
+# 规则实现见 scripts/check-shell-vars.sh —— **单一实现**：提交时（.husky/pre-commit）
+# 与预检时都用它，避免"规则写在两处、迟早分叉"。
+# 为什么必须有这道门（本项目三次真实事故）：
 #   scratch-stack.sh 的 `echo "…（端口 ${port}）…"` ⇒ `port）: unbound variable`；
-#   preflight.sh 的 `warn "…${dsn_var}】⇒ …"` ⇒ `dsn_var】: unbound variable`
-#   —— 后者在 set -u 下【直接中止脚本】，而管道里的 grep 掩盖了退出码，
-#   于是那一次预检"看起来跑过了"，其实只跑了一半。
-# ⇒ 规则靠记忆必然复发（已两次），故做成每次预检都执行的检查。
-SHELL_VAR_BUG=0
-for f in scripts/*.sh .husky/*; do
-  [ -f "$f" ] || continue
-  hits="$(python3 - "$f" <<'PYEOF'
-import re,sys
-raw=open(sys.argv[1],'rb').read()
-out=[]
-for m in re.finditer(rb'\$[A-Za-z_][A-Za-z0-9_]*', raw):
-    if m.end()<len(raw) and raw[m.end()]>127:
-        out.append(f'{raw[:m.start()].count(chr(10).encode())+1}:{m.group().decode()}')
-print('\n'.join(out))
-PYEOF
-)"
-  if [ -n "$hits" ]; then
-    bad "$f 存在 \${VAR} 紧跟非 ASCII（bash 会误认为变量名的一部分）"
-    printf '%s\n' "$hits" | sed 's/^/      /'
-    SHELL_VAR_BUG=1
-  fi
-done
-if [ "$SHELL_VAR_BUG" = "0" ]; then ok "脚本自检（\${VAR} 与非 ASCII 相邻）"; fi
+#   preflight.sh 的 `warn "…${dsn_var}】⇒ …"` ⇒ 在 set -u 下【直接中止脚本】，
+#   而管道里的 grep 掩盖了退出码 ⇒ 那次预检"看起来跑过了"，其实只跑了一半。
+if bash "$ROOT/scripts/check-shell-vars.sh"; then
+  ok "脚本自检（\${VAR} 与非 ASCII 相邻）"
+else
+  rc=$?
+  [ "$rc" = "2" ] && bad "脚本自检【未验证】（缺 python3）—— 不等于通过" \
+                  || bad "脚本自检（\${VAR} 与非 ASCII 相邻）"
+fi
 
 # ---- 选定要检查的服务与前端 ----
 FRONTEND=1
 declare -a TARGETS=()
 if [ "${1:-}" = "--changed" ]; then
-  mapfile -t CHANGED < <(git diff --name-only "$BASE"...HEAD 2>/dev/null || true)
+  # ★ 必须把【工作区】也算进来：此前只比较 `git diff "$BASE"...HEAD`（**已提交历史**），
+  #   于是"改动还没提交"时会报「没有改动 ⇒ 无需预检 ✅ 通过」—— **那次裁决等于没说**。
+  #   （本项目真实踩到：改动全在工作区，预检报空过，见 docs/development/iteration-qa.md）
+  #   四类都要算：已提交 / 已暂存 / 未暂存 / 未跟踪，去重后 union。
+  mapfile -t CHANGED < <(
+    {
+      git diff --name-only "$BASE"...HEAD 2>/dev/null
+      git diff --cached --name-only 2>/dev/null
+      git diff --name-only 2>/dev/null
+      git ls-files --others --exclude-standard 2>/dev/null
+    } | sed '/^$/d' | sort -u
+  )
+  DIRTY=0
+  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then DIRTY=1; fi
   if [ "${#CHANGED[@]}" -eq 0 ]; then
-    say "   相对 $BASE 没有改动 ⇒ 无需预检（CI 也会因 Relevance 跳过）"
+    say "   相对 $BASE 无改动，且工作区干净 ⇒ 无需预检（CI 也会因 Relevance 跳过）"
     exit 0
   fi
-  say "   相对 $BASE 改动的文件：${#CHANGED[@]} 个"
+  say "   参与判定的改动文件：${#CHANGED[@]} 个（已提交 + 已暂存 + 未暂存 + 未跟踪）"
+  printf '      %s\n' "${CHANGED[@]}" | head -10
+  if [ "${#CHANGED[@]}" -gt 10 ]; then say "      …（其余 $(( ${#CHANGED[@]} - 10 )) 个）"; fi
+  if [ "$DIRTY" = "1" ]; then
+    say "   （工作区不干净：未提交的改动【已计入】上面这份清单，不会出现看着干净的空过）"
+  fi
   for s in "${SERVICES[@]}"; do
     for f in "${CHANGED[@]}"; do
       case "$f" in services/$s/*) TARGETS+=("$s"); break;; esac
@@ -141,6 +163,10 @@ for svc in "${TARGETS[@]}"; do
   dsn="${!dsn_var:-}"
   if [ -z "$dsn" ] && [ -f "$ENV_FILE" ]; then
     dsn="$(grep -E "^${dsn_var}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')"
+    # 无静默差异：DSN 来自回退文件（worktree 无 .env.local）时明确说出来
+    if [ -n "$dsn" ] && [ "$ENV_FILE_FALLBACK" = "1" ]; then
+      say "      （$dsn_var 取自 ${ENV_FILE} —— 当前目录无 .env.local，已回退到主检出）"
+    fi
   fi
   gated=0
   grep -rqs "$dsn_var" "$dir" --include='*_test.go' && gated=1

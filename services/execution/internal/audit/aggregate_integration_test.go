@@ -1,0 +1,453 @@
+package audit
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"sync/atomic"
+	"testing"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// 真库测试脚手架：与 production/execution 既有做法一致 —— 每个用例自建随机 schema、
+// 就地应用 migrations、结束时清理。未设置 EXECUTION_TEST_DATABASE_URL 时跳过。
+func testStore(t *testing.T) Store {
+	t.Helper()
+	url := os.Getenv("EXECUTION_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("set EXECUTION_TEST_DATABASE_URL to a dedicated PostgreSQL test database")
+	}
+	ctx := context.Background()
+	admin, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(admin.Close)
+	if err := admin.Ping(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var suffix [8]byte
+	if _, err := rand.Read(suffix[:]); err != nil {
+		t.Fatal(err)
+	}
+	schema := "audit_test_" + hex.EncodeToString(suffix[:])
+	quoted := pgx.Identifier{schema}.Sanitize()
+	if _, err := admin.Exec(ctx, "CREATE SCHEMA "+quoted); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := admin.Exec(context.Background(), "DROP SCHEMA "+quoted+" CASCADE"); err != nil {
+			t.Errorf("remove test schema: %v", err)
+		}
+	})
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ConnConfig.RuntimeParams["search_path"] = schema
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	migrations, err := filepath.Glob(filepath.Join("..", "..", "migrations", "*.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(migrations)
+	for _, f := range migrations {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, string(b), pgx.QueryExecModeSimpleProtocol); err != nil {
+			t.Fatalf("apply %s: %v", filepath.Base(f), err)
+		}
+	}
+	return Store{Pool: pool}
+}
+
+// seedSeq 保证 request_id 唯一：库里对 request_id 有唯一索引，
+// 用 (status, latency) 拼 id 会在"同 status 同耗时"时撞（我第一版就是这么写的）。
+var seedSeq atomic.Int64
+
+func seedAudit(t *testing.T, s Store, workspace, status string, latency int) {
+	t.Helper()
+	id := fmt.Sprintf("req_%s_%d", workspace, seedSeq.Add(1))
+	if _, err := s.Pool.Exec(context.Background(), `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+			mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ($1,$2,'u','image','m','','text-chat',$3,$4,0,0,0,0,'CNY', now())`,
+		id, workspace, status, latency); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// ★ 核心判据：P50/P95 是【筛选后全集】上的百分位，且**排除零耗时**
+// （latency_ms 是 NOT NULL DEFAULT 0，0 表示"没测到"，不是"瞬时完成"）
+func TestIntegrationAggregateLatencyPercentiles(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	// 1..100 的耗时（P50=50 / P95=95），再加 2 行"未测到"的 0
+	for i := 1; i <= 100; i++ {
+		seedAudit(t, s, "ws_a", "success", i)
+	}
+	seedAudit(t, s, "ws_a", "queued", 0)
+	seedAudit(t, s, "ws_a", "queued", 0)
+
+	got, err := s.Aggregate(ctx, "ws_a", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.P50LatencyMs != 50 {
+		t.Errorf("P50 应为 50（连续插值取整），实际 %d", got.P50LatencyMs)
+	}
+	if got.P95LatencyMs != 95 {
+		t.Errorf("P95 应为 95，实际 %d", got.P95LatencyMs)
+	}
+	// 若把两行 0 计入，P50 会被拉到 0/1 —— 这条断言就是防那个的
+	if got.P50LatencyMs == 0 {
+		t.Error("零耗时应被排除：它们会把 P50 拉成 0，让耗时分布变成假象")
+	}
+	if got.ByStatus["success"] != 100 || got.ByStatus["queued"] != 2 {
+		t.Errorf("byStatus 应仍为全集计数，实际 %v", got.ByStatus)
+	}
+	if got.AvgLatencyMs <= 0 {
+		t.Errorf("平均值应大于 0，实际 %d", got.AvgLatencyMs)
+	}
+}
+
+// 筛选条件必须对百分位同样生效（否则"筛选后的耗时"是假的）
+func TestIntegrationAggregatePercentilesRespectFilters(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	for i := 1; i <= 10; i++ {
+		seedAudit(t, s, "ws_a", "success", i*10) // 10..100
+	}
+	for i := 1; i <= 10; i++ {
+		seedAudit(t, s, "ws_b", "success", i) // 另一个租户：绝不能混进来
+	}
+	got, err := s.Aggregate(ctx, "ws_a", Filter{Status: "success"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// ★ 钉住【连续插值】的语义：样本是 10,20,…,100（10 个等距点），P50 落在第 5/6 个样本之间。
+	//   P50=55 是【二进制可精确表示】的值，所以它稳定可钉。
+	if got.P50LatencyMs != 55 {
+		t.Fatalf("ws_a 的 P50 应为 55（连续插值），实际 %d", got.P50LatencyMs)
+	}
+	//   但 P95 不能钉死：0.95 处插值得 95.5，而 percentile_cont 返回 double precision，
+	//   `::int` 对 95.5 的取整受浮点表示影响 —— **实测按平台不同**：
+	//     本地 arm64 → 96 ；CI x86_64 → 95 。
+	//   ⇒ 断言【语义区间】而不是那个数：换成 percentile_disc 会落到 90/100 上，仍会被这条抓住。
+	if got.P95LatencyMs < 95 || got.P95LatencyMs > 96 {
+		t.Fatalf("ws_a 的 P95 应落在 [95,96]（95.5 的取整平台相关），实际 %d", got.P95LatencyMs)
+	}
+	// 锁住"不是取样本"这一点：55 并不存在于样本集合 {10,20,…,100} 中
+	if got.P50LatencyMs%10 == 0 {
+		t.Errorf("P50=%d 恰好落在样本上，看起来像 percentile_disc 而非连续插值", got.P50LatencyMs)
+	}
+	// 顺序性：P95 必须不小于 P50（这条与平台无关）
+	if got.P95LatencyMs < got.P50LatencyMs {
+		t.Errorf("P95(%d) 不应小于 P50(%d)", got.P95LatencyMs, got.P50LatencyMs)
+	}
+	if got.ByStatus["success"] != 10 {
+		t.Fatalf("只应统计 ws_a 的 10 行，实际 %v", got.ByStatus)
+	}
+}
+
+// 空集：不得返回错误，归 0（前端要能安全渲染）
+func TestIntegrationAggregateOnEmptySet(t *testing.T) {
+	s := testStore(t)
+	got, err := s.Aggregate(context.Background(), "ws_none", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.P50LatencyMs != 0 || got.P95LatencyMs != 0 || got.AvgLatencyMs != 0 {
+		t.Fatalf("空集应全为 0，实际 %+v", got)
+	}
+	if len(got.ByStatus) != 0 {
+		t.Fatalf("空集的 byStatus 应为空，实际 %v", got.ByStatus)
+	}
+}
+
+// ④ §2.3「按错误文本聚类」：实测形状是"稳定前缀 + ':' + 变量尾部"，且大小写不一致。
+func TestIntegrationAggregateClustersErrorText(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	seedErr := func(msg string) {
+		if _, err := s.Pool.Exec(ctx, `
+			INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+				mode, status, error_message, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+			VALUES ($1,'ws_e','u','image','m','','text-chat','failed',$2,1,0,0,0,0,'CNY', now())`,
+			fmt.Sprintf("req_err_%d", seedSeq.Add(1)), msg); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 同一前缀、不同变量尾部 ⇒ 必须归为一簇
+	seedErr("required parameter missing: messages")
+	seedErr("required parameter missing: model")
+	// 大小写不同 ⇒ 也必须归为一簇
+	seedErr("Model Not Found In Directory")
+	seedErr("model not found in directory")
+	// 另一簇（只有一个）
+	seedErr("invalid generate request JSON")
+	// 另一租户：绝不能混进来
+	if _, err := s.Pool.Exec(ctx, `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+			mode, status, error_message, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ('req_err_other','ws_other','u','image','m','','text-chat','failed','required parameter missing: x',1,0,0,0,0,'CNY', now())`); err != nil {
+		t.Fatal(err)
+	}
+	// 无非空错误的行不得成为一簇
+	seedAudit(t, s, "ws_e", "success", 5)
+
+	got, err := s.Aggregate(ctx, "ws_e", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TopErrors) != 3 {
+		t.Fatalf("应有 3 簇，实际 %d：%+v", len(got.TopErrors), got.TopErrors)
+	}
+	// 按计数降序：required parameter missing(2) > model not found(2) > invalid...(1)
+	// 前两名计数相同 ⇒ 用 key 升序做确定性次序
+	if got.TopErrors[0].Key != "model not found in directory" || got.TopErrors[0].Count != 2 {
+		t.Errorf("第 1 簇应为 model not found in directory ×2，实际 %+v", got.TopErrors[0])
+	}
+	if got.TopErrors[1].Key != "required parameter missing" || got.TopErrors[1].Count != 2 {
+		t.Errorf("第 2 簇应为 required parameter missing ×2，实际 %+v", got.TopErrors[1])
+	}
+	if got.TopErrors[2].Key != "invalid generate request json" || got.TopErrors[2].Count != 1 {
+		t.Errorf("第 3 簇应为 invalid generate request json ×1，实际 %+v", got.TopErrors[2])
+	}
+	// Sample 保留原大小写。★ 这里能钉死，是因为查询显式用了 COLLATE "C"（字节序）：
+	// 不指定时它取决于数据库排序规则 —— 实测本机取到 "Model Not Found…"、CI 取到
+	// "model not found…"，正是这条让我发现"min() 对 text 依赖 collation"。
+	if got.TopErrors[0].Sample != "Model Not Found In Directory" {
+		t.Errorf("Sample 应保留原始大小写，实际 %q", got.TopErrors[0].Sample)
+	}
+	// 簇数不超过上限
+	if len(got.TopErrors) > 5 {
+		t.Errorf("簇数不应超过 5，实际 %d", len(got.TopErrors))
+	}
+}
+
+// Top-N 上限：多于 5 簇时只返回前 5（按计数降序）
+func TestIntegrationAggregateTopErrorsLimit(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	// 7 个不同前缀，计数递减：e0×7 … e6×1
+	for i := 0; i < 7; i++ {
+		for n := 0; n < 7-i; n++ {
+			if _, err := s.Pool.Exec(ctx, `
+				INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+					mode, status, error_message, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+				VALUES ($1,'ws_top','u','image','m','','text-chat','failed',$2,1,0,0,0,0,'CNY', now())`,
+				fmt.Sprintf("req_top_%d", seedSeq.Add(1)), fmt.Sprintf("e%d: detail", i)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	got, err := s.Aggregate(ctx, "ws_top", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TopErrors) != 5 {
+		t.Fatalf("应截断到 5 簇，实际 %d", len(got.TopErrors))
+	}
+	if got.TopErrors[0].Key != "e0" || got.TopErrors[0].Count != 7 {
+		t.Errorf("第 1 簇应为 e0×7，实际 %+v", got.TopErrors[0])
+	}
+	if got.TopErrors[4].Key != "e4" || got.TopErrors[4].Count != 3 {
+		t.Errorf("第 5 簇应为 e4×3，实际 %+v", got.TopErrors[4])
+	}
+}
+
+// 任务卡 §2.1：按【人/项目】筛选必须是服务端行为 —— 否则用户看到的是筛过的列表，
+// 而 total/stats 仍是全集（本片之前前端只能在【当前页】上做文本过滤，正是这个问题）。
+func TestIntegrationAggregateFiltersByUserAndProject(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	ins := func(user, project, status string) {
+		if _, err := s.Pool.Exec(ctx, `
+			INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, project_id, product, model_id, channel_id,
+				mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+			-- project_id 是 NOT NULL（默认 ''）⇒ 不能 NULLIF；空串就是"无项目"的表示
+			VALUES ($1,'ws_f',$2,$3,'image','m','','text-chat',$4,10,0,0,0,0,'CNY', now())`,
+			fmt.Sprintf("req_f_%d", seedSeq.Add(1)), user, project, status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ins("alice", "proj_1", "success")
+	ins("alice", "proj_2", "failed")
+	ins("bob", "proj_1", "success")
+	ins("bob", "", "success")
+
+	got, err := s.Aggregate(ctx, "ws_f", Filter{UserID: "alice"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["success"] != 1 || got.ByStatus["failed"] != 1 {
+		t.Fatalf("alice 的行应只有 2 条，实际 %v", got.ByStatus)
+	}
+	got, err = s.Aggregate(ctx, "ws_f", Filter{ProjectID: "proj_1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["success"] != 2 || got.ByStatus["failed"] != 0 {
+		t.Fatalf("proj_1 应只有 2 条且都成功，实际 %v", got.ByStatus)
+	}
+	got, err = s.Aggregate(ctx, "ws_f", Filter{UserID: "alice", ProjectID: "proj_1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["success"] != 1 || len(got.ByStatus) != 1 {
+		t.Fatalf("alice+proj_1 应只有 1 条，实际 %v", got.ByStatus)
+	}
+	// 列表与 total 也必须同步收窄（这正是"服务端筛选"的意义）
+	logs, total, err := s.ListByWorkspace(ctx, "ws_f", Filter{UserID: "bob"}, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// bob 共 2 行（proj_1 一条 + 无项目一条）
+	if total != 2 || len(logs) != 2 {
+		t.Fatalf("bob 的 total/行数应为 2，实际 total=%d len=%d", total, len(logs))
+	}
+	// 百分位与错误聚类同样遵循这两个筛选（口径一致）
+	got, err = s.Aggregate(ctx, "ws_f", Filter{UserID: "alice", ProjectID: "proj_2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ByStatus["failed"] != 1 {
+		t.Fatalf("alice+proj_2 应只匹配失败那条，实际 %v", got.ByStatus)
+	}
+}
+
+// ④ §2.2「成本归因」的 SUM 维度：按模型 / 按渠道聚合 token 用量。
+func TestIntegrationTokenUsageByModelAndChannel(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	seed := func(model, channel string, in, out, cached int) {
+		if _, err := s.Pool.Exec(ctx, `
+			INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+				mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+			VALUES ($1,'ws_t','u','image',$2,$3,'text-chat','success',10,$4,$5,$6,0,'CNY', now())`,
+			fmt.Sprintf("req_t_%d", seedSeq.Add(1)), model, channel, in, out, cached); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seed("m_a", "ch_1", 10, 20, 5)
+	seed("m_a", "ch_2", 1, 2, 0) // 同模型另一渠道
+	seed("m_b", "ch_1", 100, 200, 0)
+	// 全 0 的行（如校验失败）不得进入用量聚合：它没有用量可言
+	seed("m_zero", "ch_1", 0, 0, 0)
+	// 另一个租户不得混入
+	if _, err := s.Pool.Exec(ctx, `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, product, model_id, channel_id,
+			mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ('req_t_other','ws_other','u','image','m_a','ch_1','text-chat','success',10,999,999,0,0,'CNY', now())`); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := s.Aggregate(ctx, "ws_t", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 按模型：m_b(300) > m_a(33)
+	if len(got.TokensByModel) != 2 {
+		t.Fatalf("应有 2 个模型，实际 %+v", got.TokensByModel)
+	}
+	if got.TokensByModel[0].Key != "m_b" || got.TokensByModel[0].Input != 100 || got.TokensByModel[0].Output != 200 {
+		t.Errorf("第 1 个模型应为 m_b(100/200)，实际 %+v", got.TokensByModel[0])
+	}
+	if got.TokensByModel[1].Key != "m_a" || got.TokensByModel[1].Input != 11 || got.TokensByModel[1].Output != 22 || got.TokensByModel[1].Cached != 5 {
+		t.Errorf("m_a 应聚合为 in=11/out=22/cached=5（两条），实际 %+v", got.TokensByModel[1])
+	}
+	if got.TokensByModel[1].Calls != 2 {
+		t.Errorf("m_a 应有 2 次调用，实际 %d", got.TokensByModel[1].Calls)
+	}
+
+	// 按渠道：ch_1(310) > ch_2(3)
+	if len(got.TokensByChannel) != 2 {
+		t.Fatalf("应有 2 个渠道，实际 %+v", got.TokensByChannel)
+	}
+	if got.TokensByChannel[0].Key != "ch_1" || got.TokensByChannel[0].Input != 110 || got.TokensByChannel[0].Output != 220 {
+		t.Errorf("ch_1 应聚合为 in=110/out=220（含 m_a 与 m_b），实际 %+v", got.TokensByChannel[0])
+	}
+}
+
+// ★ 维度名来自调用方 ⇒ **白名单之外一律拒绝**（它是唯一的防线）
+func TestIntegrationTokenUsageRejectsUnknownDimension(t *testing.T) {
+	s := testStore(t)
+	if _, err := s.TokenUsageBy(context.Background(), "ws_t", Filter{}, "model_id; DROP TABLE gateway_audit_logs", 5); err == nil {
+		t.Fatal("白名单之外的维度必须被拒绝")
+	}
+	if _, err := s.TokenUsageBy(context.Background(), "ws_t", Filter{}, "nope", 5); err == nil {
+		t.Fatal("未知维度必须被拒绝")
+	}
+}
+
+// 筛选与租户对 token 聚合同样生效（口径一致）
+func TestIntegrationTokenUsageRespectsFilters(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	if _, err := s.Pool.Exec(ctx, `
+		INSERT INTO gateway_audit_logs (request_id, workspace_id, user_id, project_id, product, model_id, channel_id,
+			mode, status, latency_ms, token_input, token_output, token_cached, cost_amount, cost_currency, created_at)
+		VALUES ('req_tf_1','ws_tf','alice','p1','image','m1','c1','text-chat','success',10,7,8,0,0,'CNY', now()),
+		       ('req_tf_2','ws_tf','bob','p2','image','m1','c1','text-chat','success',10,70,80,0,0,'CNY', now())`); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Aggregate(ctx, "ws_tf", Filter{UserID: "alice"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.TokensByModel) != 1 || got.TokensByModel[0].Input != 7 {
+		t.Fatalf("按 alice 筛后只应有 7，实际 %+v", got.TokensByModel)
+	}
+}
+
+// 写侧已把 worker 的成功终态归一为 "success"（main.go 的 auditStatusFor），
+// 但**历史行**里还有 "succeeded"：读侧必须仍然认它们，
+// 否则老数据的成功会在「成功」计数与「成功」筛选里凭空消失。
+func TestIntegrationSuccessCountsHistoricalSucceededRows(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	seedAudit(t, s, "ws_hist", "success", 10)   // 归一新写法
+	seedAudit(t, s, "ws_hist", "succeeded", 20) // 历史写法
+	seedAudit(t, s, "ws_hist", "failed", 30)
+
+	got, err := s.Aggregate(ctx, "ws_hist", Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// byStatus 保留原始键（如实呈现），归一由 handler 做
+	if got.ByStatus["success"] != 1 || got.ByStatus["succeeded"] != 1 || got.ByStatus["failed"] != 1 {
+		t.Fatalf("byStatus 应保留原始键，实际 %v", got.ByStatus)
+	}
+
+	// 「成功」筛选必须同时命中两种写法
+	logs, total, err := s.ListByWorkspace(ctx, "ws_hist", Filter{Status: "success"}, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 2 || len(logs) != 2 {
+		t.Fatalf("按 success 筛选应命中 2 行（success + 历史 succeeded），实际 total=%d len=%d", total, len(logs))
+	}
+	// 其它状态名不受影响
+	_, failedTotal, err := s.ListByWorkspace(ctx, "ws_hist", Filter{Status: "failed"}, 50, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if failedTotal != 1 {
+		t.Fatalf("按 failed 筛选应命中 1 行，实际 %d", failedTotal)
+	}
+}

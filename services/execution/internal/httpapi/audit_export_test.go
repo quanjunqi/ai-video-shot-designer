@@ -172,3 +172,20 @@ func indexOf(s, sub string) int {
 	}
 	return -1
 }
+
+// 任务卡 §2.1：按人/项目筛选必须被解析出来，且【列表与导出共用同一个函数】
+// ⇒ 口径不可能分叉（这正是把 auditFilterFrom 抽成纯函数的原因）。
+func TestAuditFilterFromParsesUserAndProject(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/internal/v1/audit/logs?user_id=alice&project_id=proj_1&status=failed", nil)
+	f, code := auditFilterFrom(r)
+	if code != "" {
+		t.Fatalf("不应报错，实际 %q", code)
+	}
+	if f.UserID != "alice" || f.ProjectID != "proj_1" || f.Status != "failed" {
+		t.Fatalf("筛选未解析正确：%+v", f)
+	}
+	f2, _ := auditFilterFrom(httptest.NewRequest(http.MethodGet, "/internal/v1/audit/logs", nil))
+	if f2.UserID != "" || f2.ProjectID != "" {
+		t.Fatalf("未提供时应为零值，实际 %+v", f2)
+	}
+}
