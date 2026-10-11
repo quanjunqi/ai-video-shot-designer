@@ -23,6 +23,9 @@
 #   scripts/preflight.sh --changed       只跑改动过的部分（模拟 CI 的 Relevance）；
 #                                        ★ 计入【工作区】：已提交 + 已暂存 + 未暂存 + 未跟踪
 #   PREFLIGHT_BASE=origin/master scripts/preflight.sh --changed   改基线
+#   scripts/preflight.sh --stale   PR 前分支保鲜判据（strict=false 的人工替代）：
+#                                   默认要求 HEAD 已包含 origin/develop 全部提交，落后即失败；
+#                                   hotfix 用 PREFLIGHT_BASE=origin/master 覆盖基线
 #   PREFLIGHT_ENV_FILE=/dev/null scripts/preflight.sh              不用 .env.local（测"无测试库"分支）
 #
 # 退出码：0 = 所有【可本地验证】的门通过；1 = 有门失败
@@ -81,6 +84,26 @@ else
   rc=$?
   [ "$rc" = "2" ] && bad "脚本自检【未验证】（缺 python3）—— 不等于通过" \
                   || bad "脚本自检（\${VAR} 与非 ASCII 相邻）"
+fi
+
+# ---- 分支保鲜判据（--stale）：PR 前必须满足，strict=false 的人工替代 ----
+if [ "${1:-}" = "--stale" ]; then
+  BASE="${PREFLIGHT_BASE:-origin/develop}"
+  if ! git rev-parse --verify -q "$BASE" >/dev/null 2>&1; then
+    bad "分支保鲜：基线 $BASE 不可解析（未 fetch？先 git fetch origin 再重跑）"
+    exit 1
+  fi
+  if git merge-base --is-ancestor "$BASE" HEAD 2>/dev/null; then
+    ok "分支保鲜：HEAD 已包含 $BASE 全部提交（落后 0）"
+    exit 0
+  fi
+  BEHIND="$(git rev-list --count HEAD.."$BASE" 2>/dev/null || echo error)"
+  if [ "$BEHIND" = "error" ]; then
+    bad "分支保鲜：无法计算落后数（$BASE 解析异常）"
+  else
+    bad "分支保鲜：落后 $BASE 共 $BEHIND 个提交 —— 先 git merge $BASE 再开 PR（strict=false，机制不拦，此判据必须拦）"
+  fi
+  exit 1
 fi
 
 # ---- 选定要检查的服务与前端 ----
