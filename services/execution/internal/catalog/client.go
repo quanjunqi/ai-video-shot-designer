@@ -48,6 +48,11 @@ type Model struct {
 	Method             string          `json:"method"`
 	Params             []engine.Param  `json:"params"`
 	Capability         json.RawMessage `json:"capability"`
+	// 路由字段（ADR-003 §3.1）：logicalModelId 相同的一组行 = 该逻辑模型的候选渠道，
+	// routePriority 小者优先；status 用于跳过被停用的候选。详见 resolve.go 的 Resolve。
+	LogicalModelID string `json:"logicalModelId"`
+	RoutePriority  int    `json:"routePriority"`
+	Status         string `json:"status"`
 }
 
 type Template struct {

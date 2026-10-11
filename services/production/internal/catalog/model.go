@@ -61,6 +61,11 @@ type Model struct {
 	ResponseParams     json.RawMessage `json:"responseParams"`
 	Capability         json.RawMessage `json:"capability"`
 	Version            int             `json:"version"`
+	// 路由字段（ADR-003 §3.1）：同一 logicalModelId 的多行 = 该逻辑模型的候选渠道，
+	// routePriority 小者优先。放进【目录投影】是为了让 execution 一次拉取就能在本地
+	// 解析候选（零额外往返），而不是再加一次内部调用。
+	LogicalModelID string `json:"logicalModelId"`
+	RoutePriority  int    `json:"routePriority"`
 }
 
 // ProtocolTemplate：协议模板实体（独立可管理）。
