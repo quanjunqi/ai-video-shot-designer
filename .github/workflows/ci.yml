@@ -394,6 +394,7 @@ jobs:
             docs/development/frontend-quality-gate.md \
             docs/development/branch-protection.md \
             docs/development/ci.md \
+            .agents/skills/frontend-quality/SKILL.md \
             openapi/bff.yaml \
             openapi/README.md
           do
