@@ -320,40 +320,67 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
 	}
-	model := &candidates[0]
-	if model.ProtocolTemplateID == "" {
-		writeError(w, 422, "MODEL_NO_PROTOCOL", "model has no protocol template; attach one first")
-		return
-	}
-	var tmpl *catalog.Template
-	for i := range dir.Templates {
-		if dir.Templates[i].ID == model.ProtocolTemplateID {
-			tmpl = &dir.Templates[i]
-			break
+	// P3-2：按候选顺序**失败切换**（ADR-003）。顺序与判定只保留一份实现
+	// （catalog.AttemptEach），避免两条执行路径口径分叉。
+	//
+	// 错误语义刻意与改动前保持兼容：
+	//   - 配置类问题（无协议模板 / 模板缺失 / 取不到凭据）：若**所有**候选都是这类问题，
+	//     返回第一个候选的原始状态码与文案（单候选场景与改动前逐字一致）
+	//   - 引擎调用失败：仍返回 200 + {ok:false, run:…}（与改动前一致），另加 attempts 轨迹
+	// 配置类失败用包级 cfgErr 承载（见文件末尾），以便与引擎失败区分。
+	var firstCfgErr *cfgErr
+	var lastOut engine.RunResult
+	used, attempts, attemptErr := catalog.AttemptEach(candidates, func(m catalog.Model) error {
+		if m.ProtocolTemplateID == "" {
+			e := &cfgErr{status: 422, code: "MODEL_NO_PROTOCOL", msg: "model has no protocol template; attach one first"}
+			if firstCfgErr == nil {
+				firstCfgErr = e
+			}
+			return e
 		}
-	}
-	if tmpl == nil {
-		writeError(w, 404, "TEMPLATE_NOT_FOUND", "protocol template not found")
+		var tmpl *catalog.Template
+		for i := range dir.Templates {
+			if dir.Templates[i].ID == m.ProtocolTemplateID {
+				tmpl = &dir.Templates[i]
+				break
+			}
+		}
+		if tmpl == nil {
+			e := &cfgErr{status: 404, code: "TEMPLATE_NOT_FOUND", msg: "protocol template not found"}
+			if firstCfgErr == nil {
+				firstCfgErr = e
+			}
+			return e
+		}
+		creds, err := h.Creds.Reveal(r.Context(), ws, m.ChannelID)
+		if err != nil {
+			e := &cfgErr{status: 422, code: "CREDENTIALS_MISSING", msg: err.Error()}
+			if firstCfgErr == nil {
+				firstCfgErr = e
+			}
+			return e
+		}
+		out, err := engine.Run(r.Context(), creds, engine.RunRequest{
+			ChannelID:        m.ChannelID,
+			ProviderModel:    m.ProviderModel,
+			ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
+			ModelParams:      m.Params,
+			ModelRequestPath: m.RequestPath,
+			Runtime:          in.Runtime,
+		}, h.EngineClient)
+		lastOut = out
+		return err
+	})
+	if attemptErr != nil {
+		if firstCfgErr != nil {
+			writeError(w, firstCfgErr.status, firstCfgErr.code, firstCfgErr.msg)
+			return
+		}
+		writeJSON(w, 200, map[string]any{"ok": false, "run": lastOut, "attempts": attempts})
 		return
 	}
-	creds, err := h.Creds.Reveal(r.Context(), ws, model.ChannelID)
-	if err != nil {
-		writeError(w, 422, "CREDENTIALS_MISSING", err.Error())
-		return
-	}
-	out, err := engine.Run(r.Context(), creds, engine.RunRequest{
-		ChannelID:        model.ChannelID,
-		ProviderModel:    model.ProviderModel,
-		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
-		ModelParams:      model.Params,
-		ModelRequestPath: model.RequestPath,
-		Runtime:          in.Runtime,
-	}, h.EngineClient)
-	if err != nil {
-		writeJSON(w, 200, map[string]any{"ok": false, "run": out})
-		return
-	}
-	writeJSON(w, 200, map[string]any{"ok": true, "run": out})
+	_ = used
+	writeJSON(w, 200, map[string]any{"ok": true, "run": lastOut})
 }
 
 // generate is the unified model gateway entry: accepts a modality-agnostic
@@ -600,14 +627,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	// Embed final request path into runtime for worker (avoids hardcoded path switching in worker)
 	runtime["__request_path"] = finalRequestPath
-	engineReq := engine.RunRequest{
-		ChannelID:        model.ChannelID,
-		ProviderModel:    model.ProviderModel,
-		ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
-		ModelParams:      model.Params,
-		ModelRequestPath: finalRequestPath,
-		Runtime:          runtime,
-	}
+	// 注：请求体不再在这里预构造 —— P3-2 后同步分支按【候选逐次】构造（每个候选有自己的
+	// 协议模板与请求路径），见下方 catalog.AttemptEach。
 	// Dispatch: async template → create job, sync template → run directly
 	asyncEnabled := len(tmpl.Async) > 0
 	var asyncCfg struct {
@@ -650,13 +671,56 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	// Sync execution
-	out, err := engine.Run(r.Context(), creds, engineReq, h.EngineClient)
+	// Sync execution —— P3-2：按候选顺序**失败切换**（ADR-003），顺序与判定复用
+	// catalog.AttemptEach（与 /internal/v1/tasks/run 同一实现）。
+	//
+	// 异步分支**不在这里**切换：它落到 job，由 worker 按 attempt 推进候选（同一套顺序）。
+	// 原因是异步的"失败"发生在 worker 里，而不是这次 HTTP 请求内。
+	var out engine.RunResult
+	var syncAttempts []catalog.ChannelAttempt
+	_, syncAttempts, syncErr := catalog.AttemptEach(candidates, func(m catalog.Model) error {
+		// 审计如实记录"这一刻尝试的是谁"
+		auditChannelID = m.ChannelID
+		var mTmpl *catalog.Template
+		for i := range dir.Templates {
+			if dir.Templates[i].ID == m.ProtocolTemplateID {
+				mTmpl = &dir.Templates[i]
+				break
+			}
+		}
+		if mTmpl == nil {
+			return fmt.Errorf("protocol template %s not found", m.ProtocolTemplateID)
+		}
+		// 首选沿用上面已 reveal 的凭据（保住"取不到凭据 ⇒ 422 CREDENTIALS_MISSING"契约），
+		// 备用候选才按需 reveal。
+		mCreds := creds
+		if m.ChannelID != candidates[0].ChannelID {
+			mc, credErr := h.Creds.Reveal(r.Context(), ws, m.ChannelID)
+			if credErr != nil {
+				return credErr
+			}
+			mCreds = mc
+		}
+		mPath := m.RequestPath
+		if capPath := mappingEngine.GetRequestPath(in.Mode, ""); capPath != "" {
+			mPath = capPath
+		}
+		o, runErr := engine.Run(r.Context(), mCreds, engine.RunRequest{
+			ChannelID:        m.ChannelID,
+			ProviderModel:    m.ProviderModel,
+			ProtocolTemplate: engine.Template{ID: mTmpl.ID, Label: mTmpl.Label, Method: mTmpl.Method, RequestPath: mTmpl.RequestPath, Params: mTmpl.Params, ResponseParams: mTmpl.ResponseParams, Async: mTmpl.Async, RequestTemplate: mTmpl.RequestTemplate},
+			ModelParams:      m.Params,
+			ModelRequestPath: mPath,
+			Runtime:          runtime,
+		}, h.EngineClient)
+		out = o
+		return runErr
+	})
 	auditTokenIn, auditTokenOut, auditTokenCached = engine.UsageFromExtracted(out.Extracted)
-	if err != nil {
+	if syncErr != nil {
 		respBytes, _ := json.Marshal(out)
 		writeAudit("failed", respBytes, out.Error, "", "")
-		writeJSON(w, 200, map[string]any{"ok": false, "status": "failed", "error": out.Error, "run": out})
+		writeJSON(w, 200, map[string]any{"ok": false, "status": "failed", "error": out.Error, "run": out, "attempts": syncAttempts})
 		return
 	}
 	respBytes, _ := json.Marshal(out)
@@ -798,3 +862,14 @@ func boolString(v bool) string {
 	}
 	return "false"
 }
+
+// cfgErr：配置类失败（无协议模板 / 模板缺失 / 取不到凭据）。
+// 为什么要区分：失败切换后若**所有**候选都是配置问题，必须保留**第一个**候选的原始
+// 状态码与文案（单候选场景与改动前逐字一致）；而引擎失败仍走 200 + {ok:false}（同改动前）。
+type cfgErr struct {
+	status int
+	code   string
+	msg    string
+}
+
+func (e *cfgErr) Error() string { return e.msg }
