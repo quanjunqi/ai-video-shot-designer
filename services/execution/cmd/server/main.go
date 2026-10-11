@@ -273,7 +273,6 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		return
 	}
 	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
-	// P3-1 只取首选；失败切换（逐个候选重试）是 P3-2。
 	candidates, resolveErr := catalog.Resolve(dir, payload.ModelID)
 	if resolveErr != nil {
 		// 文案与改动前**逐字一致**：存量排障文档与断言依赖它。
@@ -283,7 +282,11 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 		return
 	}
-	model := &candidates[0]
+	// P3-2 失败切换：异步 worker 的重试由 job 的 attempt 机制驱动（failOrRetry + j.Attempt，
+	// 已存在且持久化），因此这里按尝试次数**推进候选**即可 —— 第一次用首选，重试即换备用。
+	// 不在这里再套一层同步循环：那会把这段长流程重构得更脆，而收益相同。
+	chosen := catalog.PickForAttempt(candidates, j.Attempt)
+	model := &chosen
 	if model.ProtocolTemplateID == "" {
 		auditTerminal(ctx, as, j.ID, false, "model has no protocol template", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model has no protocol template")
