@@ -52,8 +52,26 @@ interface SettingsState {
 function serverChannelToLocal(c: ServerCatalogDirectory['channels'][number]): ChannelConfig {
   return { id: c.id, name: c.name, kind: c.kind, protocol: (c as { protocol?: string }).protocol === 'local' ? 'local' : 'api', baseUrl: c.baseUrl, authType: c.authType, enabled: c.enabled, note: c.note, sort: c.sort, syncKind: c.syncKind, syncModelsPath: c.syncModelsPath, syncPricingPath: c.syncPricingPath, lastSyncAt: c.lastSyncAt };
 }
-function userChannelToLocal(c: UserChannelItem): ChannelConfig {
-  return { id: c.id, name: c.name, kind: c.kind, protocol: c.protocol === 'local' ? 'local' : 'api', baseUrl: c.baseUrl, authType: c.authType as ChannelConfig['authType'], enabled: c.enabled, note: c.note, sort: c.sort ?? 0 };
+// ★ 同步状态（syncKind/lastSyncAt…）是【平台侧】拥有的字段，工作区用户渠道域里没有它。
+// 而合并时"用户渠道覆盖同名 id"⇒ 若这里不带过来，卡片就会永远显示"未配置 / 从未同步"
+// —— 这正是 T1 的真实缺陷（同形合并只改了一处）。故由调用方把平台行作为 fallback 传进来。
+function userChannelToLocal(c: UserChannelItem, platform?: ChannelConfig): ChannelConfig {
+  return {
+    id: c.id,
+    name: c.name,
+    kind: c.kind,
+    protocol: c.protocol === 'local' ? 'local' : 'api',
+    baseUrl: c.baseUrl,
+    authType: c.authType as ChannelConfig['authType'],
+    enabled: c.enabled,
+    note: c.note,
+    sort: c.sort ?? 0,
+    // 平台侧拥有、用户侧不拥有的字段：一律从平台行继承（不得丢）
+    syncKind: platform?.syncKind,
+    syncModelsPath: platform?.syncModelsPath,
+    syncPricingPath: platform?.syncPricingPath,
+    lastSyncAt: platform?.lastSyncAt,
+  };
 }
 function serverTemplateToLocal(t: ServerCatalogDirectory['templates'][number]): ProtocolTemplate {
   return { id: t.id, label: t.label, desc: t.desc, type: (t as { type?: ProtocolTemplate['type'] }).type ?? 'all', method: t.method, requestPath: t.requestPath, params: (t.params ?? []).map((p) => ({ ...p, type: (p as { type?: ModelParam['type'] }).type })), responseParams: (t.responseParams ?? []).map((p) => ({ ...p, type: (p as { type?: ModelParam['type'] }).type })), async: t.async ? { ...t.async } : undefined, builtin: t.builtin, enabled: t.enabled, refCount: t.refCount, version: t.version, docRef: t.docRef, observedEvidence: t.observedEvidence };
@@ -111,7 +129,9 @@ export const useSettingsStore = create<SettingsState>()(
         try {
           const [dir, user] = await Promise.all([api.getCatalog(), api.listUserChannels()]);
           const builtin = dir.channels.map(serverChannelToLocal);
-          const userCh = user.items.map(userChannelToLocal);
+          const builtinById = new Map(builtin.map((c) => [c.id, c] as const));
+          // 平台行作为 fallback：用户渠道覆盖同名 id 时，仍保留平台拥有的同步状态（T1）
+          const userCh = user.items.map((c) => userChannelToLocal(c, builtinById.get(c.id)));
           // 合并：用户渠道优先（覆盖内置同名 id），再过滤本地隐藏的内置渠道
           const byId = new Map<string, ChannelConfig>();
           for (const c of builtin) byId.set(c.id, c);
