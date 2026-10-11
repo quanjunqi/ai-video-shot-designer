@@ -85,7 +85,10 @@ func (store PostgresStore) ApplySync(ctx context.Context, channelID string, upst
 			VALUES ($1,$2,NULLIF($3,''),NULLIF($4,''),NULLIF($5,''),
 				COALESCE($6,'[]'::jsonb),NULLIF($7,''),COALESCE($8,'{}'::jsonb),
 				COALESCE($9,'{}'::jsonb),$10, now(), now(), NULL)
-			ON CONFLICT (channel_id, provider_model) DO UPDATE SET
+			-- 038 后主键为 (workspace_id, channel_id, provider_model)：冲突目标必须与唯一索引
+			-- 的列完全一致，否则 Postgres 报 42P10。workspace_id 未在列清单里出现，由
+			-- DEFAULT ''（平台共享）提供 ⇒ 语义与迁移前完全一致（Phase A 不改行为）。
+			ON CONFLICT (workspace_id, channel_id, provider_model) DO UPDATE SET
 				display_name      = COALESCE(EXCLUDED.display_name, channel_models.display_name),
 				model_type        = COALESCE(EXCLUDED.model_type,   channel_models.model_type),
 				tags              = COALESCE(EXCLUDED.tags,         channel_models.tags),
