@@ -123,3 +123,29 @@ func TestSyncChannelPrefersWorkspaceChannelConfig(t *testing.T) {
 func isNotConfigured(err error) bool {
 	return err != nil && (err == ErrSyncNotConfigured || err.Error() == ErrSyncNotConfigured.Error())
 }
+
+// ★ 细化后的判据：**平台渠道的同步必须写平台共享行**（否则会给供给池添一份调用方工作区的副本）。
+func TestSyncPlatformChannelWritesPlatformRows(t *testing.T) {
+	s := testPostgresStore(t)
+	ctx := context.Background()
+	if _, err := s.Pool.Exec(ctx, `INSERT INTO model_channels (id, name, kind, base_url, auth_type, sync_kind, sync_models_path) VALUES ('ch_plat_sync','平台渠道','aggregator','https://p.example.com','bearer','openai_compatible','/v1/models')`); err != nil {
+		t.Fatal(err)
+	}
+	sy := Syncer{
+		Store:       s,
+		Credentials: fakeCreds{cred: Credential{APIKey: "k"}},
+		Lister:      fakeLister{models: []UpstreamModel{{ProviderModel: "m-p", DisplayName: "P", ModelType: "text"}}},
+		// Channels 为 nil ⇒ 只能用平台配置 ⇒ 数据应归平台
+	}
+	if _, err := sy.SyncChannel(ctx, "ws_dev", "ch_plat_sync"); err != nil {
+		t.Fatal(err)
+	}
+	var ws string
+	if err := s.Pool.QueryRow(ctx, `SELECT COALESCE(max(workspace_id),'') FROM channel_models WHERE channel_id='ch_plat_sync'`).Scan(&ws); err != nil {
+		t.Fatal(err)
+	}
+	if ws != "" {
+		t.Fatalf("★ 平台渠道的同步应写平台共享行（workspace_id=''），实际 %q", ws)
+	}
+	// 而工作区渠道（上一用例）写的是 ws_a ⇒ 两者语义不同，这正是细化要的效果
+}

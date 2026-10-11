@@ -124,13 +124,14 @@ func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) 
 	// 这也解开了 F3：工作区渠道的 id 就是它的 user_channels.id，不再要求"与平台 id 相同"。
 	var cfg SyncChannelConfig
 	found := false
+	fromWorkspaceChannel := false
 	if s.Channels != nil {
 		uc, ok, err := s.Channels.UserChannel(ctx, workspaceID, channelID)
 		if err != nil {
 			return SyncResult{}, fmt.Errorf("catalog: load workspace channel %s: %w", channelID, err)
 		}
 		if ok && uc.SyncKind != "" && uc.SyncKind != "none" {
-			cfg, found = uc, true
+			cfg, found, fromWorkspaceChannel = uc, true, true
 		}
 	}
 	if !found {
@@ -165,7 +166,16 @@ func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) 
 		return SyncResult{}, fmt.Errorf("catalog: channel %s has no base_url (row or credentials)", channelID)
 	}
 
-	syncID, err := s.Store.StartSync(ctx, workspaceID, channelID)
+	// ★ 数据归属跟着【配置归属】走（ADR-009）：
+	//   · 配置来自【平台渠道】 ⇒ 写【平台共享行】（workspace_id=""）
+	//   · 配置来自【工作区渠道】 ⇒ 写该工作区的私有行
+	// 否则：任何人点一次平台渠道的同步，就会给供给池添一份"发起方工作区"的副本
+	// （同一份上游数据被复制成 N 份，且各自标记"缺失"时序不同 —— 会互相干扰）。
+	scope := ""
+	if fromWorkspaceChannel {
+		scope = workspaceID
+	}
+	syncID, err := s.Store.StartSync(ctx, scope, channelID)
 	if err != nil {
 		return SyncResult{}, fmt.Errorf("catalog: start sync record: %w", err)
 	}
@@ -174,7 +184,7 @@ func (s Syncer) SyncChannel(ctx context.Context, workspaceID, channelID string) 
 	var endpointsJSON, diffJSON json.RawMessage
 	models, endpoints, listErr := s.Lister.List(ctx, cfg, baseURL, apiKey)
 	if listErr == nil {
-		res, listErr = s.Store.ApplySync(ctx, workspaceID, channelID, models)
+		res, listErr = s.Store.ApplySync(ctx, scope, channelID, models)
 	}
 	if b, mErr := json.Marshal(endpoints); mErr == nil {
 		endpointsJSON = b
