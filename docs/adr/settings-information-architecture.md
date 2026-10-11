@@ -1,8 +1,9 @@
 # ADR-005：设置中心信息架构（IA）重设计
+- **编号**：005
 
 - **状态**：提议（待 Owner 确认 §9）
 - **日期**：2026-10-10
-- **相关**：ADR-003（路由层）、ADR-004（中转站与供给池）、`docs/product/frontend-design-rules.md`
+- **相关**：ADR-003（路由层）、ADR-004（中转站与供给池）、`../../.agents/skills/frontend-quality/rules.md`
 
 ---
 

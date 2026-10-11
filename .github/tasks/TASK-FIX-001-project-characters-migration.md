@@ -28,13 +28,13 @@
 - **实测对照**：不同名 → 成功；同名 → `duplicate key value violates unique constraint "project_characters_pkey"`
 
 相关文件：`services/production/migrations/`、`internal/projectcharacter/`、
-`docs/architecture/03-data-model.md`、`docs/adr/002-project-character-library.md`
+`docs/architecture/data-model.md`、`docs/adr/project-character-library.md`
 
 ## 范围
 
 - ✅ 新增 `019a_project_characters.sql`（建表）
 - ✅ 新增 `019b_project_characters_backfill.sql`（去重回填，前置修正 020 步骤 1）
-- ✅ 同步 `docs/architecture/03-data-model.md`、`CHANGELOG.md`
+- ✅ 同步 `docs/architecture/data-model.md`、`CHANGELOG.md`
 - ✅ 用 Docker 真实 PostgreSQL 16 做全新库 / 带数据 / 解析正确性三类验证
 
 ## 非范围
@@ -51,7 +51,7 @@
 3. 跨集同名角色最终为**一条** `project_characters` 记录，所有同名资产 `project_character_id` 指向它
 4. 同名多行的代表值选取：优先有立绘的行
 5. 新文件可重复执行（幂等）
-6. `docs/architecture/03-data-model.md` 不再声称该表缺失
+6. `docs/architecture/data-model.md` 不再声称该表缺失
 
 ## 测试命令
 

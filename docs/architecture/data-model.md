@@ -363,7 +363,7 @@ erDiagram
 - `jobs` 用 `(idempotency_key)` + `request_hash` 实现提交幂等，重复请求不产生重复任务。
 - `job_attempts` 以 `(job_id, attempt)` 为主键，保留**每次重试**的独立记录 —— 重试不覆盖历史。
 - `gateway_audit_logs` 是**审计事实源**：一条调用一行，含请求/响应载荷、耗时、token 与费用。
-  注意其写入失败当前被静默忽略（见 [02-key-sequences.md](02-key-sequences.md#时序-1--同步生成网关完整链路) 的已知缺陷）。
+  注意其写入失败当前被静默忽略（见 [key-sequences.md](key-sequences.md#时序-1--同步生成网关完整链路) 的已知缺陷）。
 
 ---
 
@@ -431,12 +431,12 @@ erDiagram
 | JSONB 承载「结构由模板/规则决定」的载荷 | 如 `capability`、`params`、`interpretation`、`directing`；**不要**为它们建列 |
 | 迁移只增不改 | `migrations/NNN_description.sql`，已执行文件禁止修改（AGENTS.md §4.3） |
 | 时间列 | 统一 `timestamptz`；`created_at` / `updated_at` 成对出现 |
-| 状态列 | 用 `text` + `CHECK` 约束表达状态机，见 [04-state-machines.md](04-state-machines.md) |
+| 状态列 | 用 `text` + `CHECK` 约束表达状态机，见 [state-machines.md](state-machines.md) |
 
 ---
 
 ## 相关文档
 
-- 表的使用时机见 [02-key-sequences.md](02-key-sequences.md)
-- 状态列的取值与流转见 [04-state-machines.md](04-state-machines.md)
-- 角色库为何是「引用而非复制」：[ADR-002](../adr/002-project-character-library.md)
+- 表的使用时机见 [key-sequences.md](key-sequences.md)
+- 状态列的取值与流转见 [state-machines.md](state-machines.md)
+- 角色库为何是「引用而非复制」：[ADR-002](../adr/project-character-library.md)

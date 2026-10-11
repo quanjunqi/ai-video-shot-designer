@@ -1,4 +1,5 @@
 # ADR-001: 模型聚合网关架构 — 增强 execution 而非新建服务
+- **编号**：001
 
 ## 状态
 
@@ -126,7 +127,7 @@
 
 ## 参考资料
 
-- `docs/architecture/00-technical-architecture.md` — 项目技术架构
+- `docs/architecture/technical-architecture.md` — 项目技术架构
 - `AGENTS.md` — AI 协作开发规范
 
 ---

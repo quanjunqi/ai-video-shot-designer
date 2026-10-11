@@ -219,17 +219,17 @@ OK: bff.yaml parses, all $refs resolve, all operations well-formed
 
 | 文档 | 回答的问题 | 变化频率 |
 |---|---|---|
-| `docs/architecture/01-c4-context-container.md` | 有哪些容器/服务、谁调用谁、信任模型与已知缺口 | 低（架构变更时） |
-| `docs/architecture/02-key-sequences.md` | 一次生成/提交/轮询的**调用顺序**与落库点 | 中 |
-| `docs/architecture/03-data-model.md`、`04-state-machines.md` | 表结构、状态迁移 | 中 |
+| `docs/architecture/c4-context-container.md` | 有哪些容器/服务、谁调用谁、信任模型与已知缺口 | 低（架构变更时） |
+| `docs/architecture/key-sequences.md` | 一次生成/提交/轮询的**调用顺序**与落库点 | 中 |
+| `docs/architecture/data-model.md`、`state-machines.md` | 表结构、状态迁移 | 中 |
 | **`openapi/bff.yaml`（本目录）** | **字段名、类型、必填性、状态码、错误码、方法约束** | 高（每个接口改动） |
 
 分工原则：**图讲结构与流转，本目录讲字段级契约。** 两者冲突时，以**代码**为准，
 并同时修文档与契约：
 
-- 若只是字段/状态码变化 → 只改本目录（+必要时 `02-key-sequences.md` 的顺序）；
+- 若只是字段/状态码变化 → 只改本目录（+必要时 `key-sequences.md` 的顺序）；
 - 若服务边界、端口、调用方向变化 → 先改 `docs/architecture/`，再改本目录；
-- 已知的一处文档/代码不一致：`02-key-sequences.md` 写 `POST /internal/v1/generate`，
+- 已知的一处文档/代码不一致：`key-sequences.md` 写 `POST /internal/v1/generate`，
   而 `services/web-bff/cmd/server/main.go` 实际转发到 `POST /v1/generate`
   （本规范以代码为准，见 §5 第 3 条）。
 
@@ -256,7 +256,7 @@ OK: bff.yaml parses, all $refs resolve, all operations well-formed
    本规范在 `GenerateAsyncAccepted.poll_url` 中注明了该问题；建议在 execution 或 BFF 修正前缀。
 
 3. **文档与代码不一致：`POST /v1/generate` vs `POST /internal/v1/generate`。**
-   `docs/architecture/02-key-sequences.md` 写的是 `/internal/v1/generate`；
+   `docs/architecture/key-sequences.md` 写的是 `/internal/v1/generate`；
    代码（`main.go` 的 `generate`）转发到 execution `/v1/generate`，execution 也只在
    `/v1/generate` 注册。本规范以代码为准，建议同步修正时序图。
 

@@ -270,7 +270,7 @@ jobs:
       #   现已加入**诊断**（随本注记一并落地）：source 完额外 env 后打印"加载后实际生效的
       #   引擎地址"，且引擎未构建时把搭建日志的相关行一并打到 CI 输出
       #   ⇒ 下次接入时 CI 会【说出真相】，而不是只给一句结论。
-      #   启动条件：这条根因排清后再接（见 docs/how-to/backlog.md）。
+      #   启动条件：这条根因排清后再接（见 ../../ROADMAP.md）。
       # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/how-to/run-tests.md §3.3）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
@@ -351,8 +351,8 @@ jobs:
       - name: Check AGENTS.md exists
         run: test -f AGENTS.md
 
-      - name: Check docs/architecture/00-technical-architecture.md exists
-        run: test -f docs/architecture/00-technical-architecture.md
+      - name: Check docs/architecture/technical-architecture.md exists
+        run: test -f docs/architecture/technical-architecture.md
 
       - name: Check ADR directory exists
         run: test -d docs/adr
@@ -391,7 +391,7 @@ jobs:
             docs/how-to/run-tests.md \
             docs/how-to/observability.md \
             docs/how-to/release.md \
-            docs/product/frontend-design-rules.md \
+            .agents/skills/frontend-quality/rules.md \
             docs/how-to/branch-protection.md \
             docs/how-to/ci.md \
             .agents/skills/frontend-quality/SKILL.md \

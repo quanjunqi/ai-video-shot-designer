@@ -1,15 +1,42 @@
-# 环境变量参考
+# 环境参考
 
-完整权威清单见根目录 `.env.example`。这里按服务分组索引。
+本机运行所需的全部环境变量与端口。权威变量清单见根目录 `.env.example`。
 
-## 基础设施
+## 端口
+
+### 应用服务
+
+| 服务 | 端口 |
+|---|---|
+| web-bff | 8080 |
+| production | 18081 |
+| workspace | 18082 |
+| asset | 18084 |
+| execution | 8085 |
+| 前端 dev server | 5173 |
+
+### 基础设施（Docker）
+
+| 服务 | 端口 |
+|---|---|
+| PostgreSQL | 5432 |
+| Redis | 6379 |
+| MinIO API | 9000 |
+| MinIO Console | 9001 |
+| Temporal | 7233 |
+| Temporal UI | 8233 |
+| Keycloak | 8083 |
+
+## 环境变量（按服务分组）
+
+### 基础设施
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
 | `POSTGRES_PORT` | 5432 | PostgreSQL |
 | `REDIS_PORT` | 6379 | Redis |
 
-## workspace（18082）
+### workspace（18082）
 
 | 变量 | 说明 |
 |---|---|
@@ -17,7 +44,7 @@
 | `WORKSPACE_LISTEN_ADDR` | 监听地址 |
 | `WORKSPACE_CRED_KEY` | 渠道凭据加密密钥（32 字节） |
 
-## production（18081）
+### production（18081）
 
 | 变量 | 说明 |
 |---|---|
@@ -25,7 +52,7 @@
 | `PRODUCTION_LISTEN_ADDR` | 监听地址 |
 | `PRODUCTION_WORKSPACE_URL` | workspace 服务地址 |
 
-## execution（8085）
+### execution（8085）
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
@@ -34,7 +61,7 @@
 | `EXECUTION_MAX_CONCURRENT_JOBS` | 8 | Worker 并发上限 |
 | `EXECUTION_ALLOW_PRIVATE_UPSTREAM` | 0 | 允许访问本地 ComfyUI 时设 1 |
 
-## asset（18084）
+### asset（18084）
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
@@ -42,7 +69,7 @@
 | `ASSET_MAX_BYTES` | 100MB | 上传体积上限 |
 | `ASSET_S3_ENDPOINT` | 127.0.0.1:9000 | MinIO 地址 |
 
-## web-bff（8080）
+### web-bff（8080）
 
 | 变量 | 说明 |
 |---|---|

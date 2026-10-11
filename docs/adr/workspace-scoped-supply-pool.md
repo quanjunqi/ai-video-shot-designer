@@ -1,4 +1,5 @@
 # ADR-009：工作区级供给池与策展（Workspace-scoped supply pool & curation）
+- **编号**：009
 
 - 状态：**已接受**（Owner 于 2026-10-11 确认「按照你的建议执行」，四项决定全部按建议通过）
 - 关联：ADR-003（逻辑模型路由层）· ADR-004（中转站与供给池）· 迁移 `038_workspace_scoped_pool.sql`

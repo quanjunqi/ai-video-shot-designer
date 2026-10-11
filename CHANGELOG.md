@@ -4,7 +4,7 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
-版本策略、发布流程与回滚见 [`docs/RELEASE.md`](docs/how-to/release.md)。
+版本策略、发布流程与回滚见 [`docs/how-to/release.md`](docs/how-to/release.md)。
 
 > **状态说明**：仓库当前**尚无 git tag**（无正式发布）。下列条目按合并时间倒序记录，
 > 待首次正式发布时归入对应版本号。
@@ -183,7 +183,7 @@
 - **前端质量门禁权威文档**（`docs/FRONTEND_QUALITY_GATE.md`）：合并原三份重叠文档，
   保留全部 14 条规则编号（R-UI / R-DATA / R-CRUD / R-HOOK）与反例库 R1–R10。
 - **测试策略**（`docs/TESTING.md`）、**可观测性规范**（`docs/OBSERVABILITY.md`）、
-  **发布规范**（`docs/RELEASE.md`）、**安全策略**（`SECURITY.md`）。
+  **发布规范**（`docs/how-to/release.md`）、**安全策略**（`SECURITY.md`）。
 - **统一 Executor 接口与 API Connector**（TASK-P2-001）：`Submit/Poll/Cancel/GetResult`
   抽象 + 把既有 `Run`/`RunAsync` 适配为 `APIConnector`，含 11 个测试。
 - 各服务 `.dockerignore`（此前仅 production 有）。
@@ -349,7 +349,7 @@
 - 模型聚合网关：统一 `/v1/generate` 入口、能力校验、动态参数透传、异步任务。
 - 审计日志：`gateway_audit_logs` 表（23 字段 + 5 索引）+ 网关拦截层 + BFF 转发 + 前端查看页。
 - 项目级角色库（Character Bible）：引用而非复制，单集只存状态变体（见
-  [`docs/adr/002`](docs/adr/002-project-character-library.md)）。
+  [`docs/adr/002`](docs/adr/project-character-library.md)）。
 - AI 协作开发规范（`AGENTS.md`）与架构决策记录（`docs/adr/`）。
 - 本地 Compose 栈：PostgreSQL / Redis / Kafka / Temporal / MinIO / Keycloak。
 

@@ -88,7 +88,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 
 | 文档 | 内容 |
 |---|---|
-| `docs/architecture/00-technical-architecture.md` | 技术架构权威 |
+| `docs/architecture/technical-architecture.md` | 技术架构权威 |
 | `docs/adr/` | 架构决策记录 |
 | `docs/how-to/run-tests.md` | 测试策略 |
 | `docs/how-to/release.md` | 发布流程 |

@@ -68,7 +68,7 @@ flowchart TB
 ```
 
 **图注**：虚线为**已提供容器但业务未接入**的中间件（Redis / Kafka / Temporal / Keycloak）——
-代码实证见 [01-c4-context-container.md](01-c4-context-container.md#中间件接入状态代码实证)。
+代码实证见 [c4-context-container.md](c4-context-container.md#中间件接入状态代码实证)。
 不要因为 compose 里有就假定架构已使用。
 
 ---
@@ -109,7 +109,7 @@ flowchart TB
 **迁移执行方式**（重要）：`* -migrate` job 逐个执行 `/migrations/*.sql`，
 命令为 `psql -v ON_ERROR_STOP=1 -f "$migration"` 且外层是 `sh -e` —— **首个错误即整体中止**。
 这使「迁移序列中任何一步失败」都会导致 `app` profile 起不来（相关缺陷见
-[03-data-model.md](03-data-model.md#-project_characters-与-project_props--project_scenes-的建表证据缺失)）。
+[data-model.md](data-model.md#-project_characters-与-project_props--project_scenes-的建表证据缺失)）。
 
 ---
 
@@ -144,7 +144,7 @@ flowchart TB
     SVCP -.-> IAMM
 ```
 
-`docs/architecture/00-technical-architecture.md` §17 与 `deploy/local/README.md` 均已声明**当前仅交付 web 与 production
+`docs/architecture/technical-architecture.md` §17 与 `deploy/local/README.md` 均已声明**当前仅交付 web 与 production
 的镜像构建文件，不能据此宣称生产容器化或高可用已完成**。目标态要求补齐：
 Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间件或服务必须同时提供可版本化镜像、
 健康检查、迁移与容器部署描述，不能依赖宿主机常驻进程。
@@ -165,6 +165,6 @@ Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间�
 
 ## 相关文档
 
-- 容器边界与信任模型见 [01-c4-context-container.md](01-c4-context-container.md)
-- 迁移与建表证据问题见 [03-data-model.md](03-data-model.md)
+- 容器边界与信任模型见 [c4-context-container.md](c4-context-container.md)
+- 迁移与建表证据问题见 [data-model.md](data-model.md)
 - 本地启动步骤见 [`../../deploy/local/README.md`](../../deploy/local/README.md) 与 [`../../AGENTS.md`](../../AGENTS.md) §8

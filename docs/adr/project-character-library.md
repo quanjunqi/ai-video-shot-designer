@@ -1,4 +1,5 @@
 # ADR-002: 项目级角色库作为唯一事实源
+- **编号**：002
 
 ## 状态
 
@@ -125,7 +126,7 @@
 
 ## 参考资料
 
-- `docs/architecture/00-technical-architecture.md` — 项目技术架构
+- `docs/architecture/technical-architecture.md` — 项目技术架构
 - `AGENTS.md` — AI 协作开发规范
 
 ---

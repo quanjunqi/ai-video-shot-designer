@@ -44,7 +44,7 @@ git push origin v1.2.3
 
 ### 3. 部署
 
-部署流程见 `docs/architecture/05-deployment.md`。
+部署流程见 `docs/architecture/deployment.md`。
 
 ## 回滚
 

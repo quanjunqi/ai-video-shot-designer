@@ -214,6 +214,6 @@ sequenceDiagram
 
 ## 相关文档
 
-- 系统边界与信任模型见 [01-c4-context-container.md](01-c4-context-container.md)
-- 这些时序涉及的表结构见 [03-data-model.md](03-data-model.md)
-- Job 与产物的状态流转见 [04-state-machines.md](04-state-machines.md)
+- 系统边界与信任模型见 [c4-context-container.md](c4-context-container.md)
+- 这些时序涉及的表结构见 [data-model.md](data-model.md)
+- Job 与产物的状态流转见 [state-machines.md](state-machines.md)

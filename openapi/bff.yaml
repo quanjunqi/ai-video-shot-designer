@@ -26,7 +26,7 @@ info:
     | 请求/响应字段（TS 类型） | `apps/web/src/lib/api/client.ts` |
     | 转发目标与上游响应结构 | `services/{workspace,production,execution,asset}/internal/httpapi/*.go` |
     | 端口与令牌变量 | `.env.example` |
-    | 调用与鉴权叙述 | `docs/architecture/01-c4-context-container.md`、`docs/architecture/02-key-sequences.md` |
+    | 调用与鉴权叙述 | `docs/architecture/c4-context-container.md`、`docs/architecture/key-sequences.md` |
 
     # 鉴权现状（如实描述，不要假设已有 OIDC）
 
@@ -855,7 +855,7 @@ paths:
       summary: 统一模型网关生成
       description: |
         仅允许 POST。BFF 转发到 execution `POST /v1/generate`（**不带** `/internal` 前缀，
-        与 `docs/architecture/02-key-sequences.md` 的文字描述有出入，以代码为准）。
+        与 `docs/architecture/key-sequences.md` 的文字描述有出入，以代码为准）。
         同步协议模板返回 `200 {ok, status, output, run}`；异步模板返回
         `202 {task_id, status, poll_url}`。
 
@@ -1669,7 +1669,7 @@ components:
       openIdConnectUrl: https://example.invalid/.well-known/openid-configuration
       description: |
         **占位：尚未接入。** `docker-compose` 提供了 Keycloak 容器，但代码中没有任何
-        JWT/OIDC 校验（见 `docs/architecture/01-c4-context-container.md`「信任模型」与
+        JWT/OIDC 校验（见 `docs/architecture/c4-context-container.md`「信任模型」与
         「能力矩阵」）。生产化目标态是浏览器携带 OIDC 会话、BFF 校验后换取真实身份；
         在此之前**不要**把它当作可用鉴权方式。URL 为无效占位符，刻意不指向任何真实服务。
 
@@ -2102,7 +2102,7 @@ components:
         source_span_end: {type: integer}
         stage:
           type: string
-          description: 状态机阶段名，取值以服务端为准（见 `docs/architecture/04-state-machines.md`）。
+          description: 状态机阶段名，取值以服务端为准（见 `docs/architecture/state-machines.md`）。
         status: {type: string, description: 取值以服务端为准，契约待补。}
         counts:
           type: object

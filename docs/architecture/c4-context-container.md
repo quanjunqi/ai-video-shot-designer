@@ -136,7 +136,7 @@ flowchart LR
 - **② 补偿**：BFF 会拿该身份去 workspace 做一次授权（`errAuthorizationDenied`），因此**越权仍会被拦截**，但身份本身可伪造。
 - **③④ 现状**：服务信任「持有内部令牌的调用方」；令牌是静态共享密钥，非 mTLS、非短期凭证。
 
-> **结论**：当前信任模型**仅适用于本地开发/单机验证**，不可直接对外。生产化必须补 OIDC + 短期凭证或 mTLS。此项与 `docs/architecture/00-technical-architecture.md` §14「多租户与安全」的目标态对应，属**已知未完成项**，不是隐形缺陷。
+> **结论**：当前信任模型**仅适用于本地开发/单机验证**，不可直接对外。生产化必须补 OIDC + 短期凭证或 mTLS。此项与 `docs/architecture/technical-architecture.md` §14「多租户与安全」的目标态对应，属**已知未完成项**，不是隐形缺陷。
 
 ---
 
@@ -154,13 +154,13 @@ flowchart LR
 | Keycloak（OIDC） | ✅ | ❌ **未接入** | 无 jwt/oidc 校验；BFF 用固定开发身份 |
 
 **读图提醒**：不要因为 compose 里有 Redis/Kafka/Temporal 就假定架构已使用它们。
-`docs/architecture/00-technical-architecture.md` §17 已明确「任务中心、Temporal 业务 Workflow 和 Provider 模拟器尚未实现」。
+`docs/architecture/technical-architecture.md` §17 已明确「任务中心、Temporal 业务 Workflow 和 Provider 模拟器尚未实现」。
 
 ---
 
 ## 相关文档
 
-- 请求/生成的完整流转见 [02-key-sequences.md](02-key-sequences.md)
-- 数据归属与分库见 [03-data-model.md](03-data-model.md)
-- 本地与目标生产拓扑见 [05-deployment.md](05-deployment.md)
-- 为什么网关内置于 execution 而非新建服务：[ADR-001](../adr/001-model-gateway-architecture.md)
+- 请求/生成的完整流转见 [key-sequences.md](key-sequences.md)
+- 数据归属与分库见 [data-model.md](data-model.md)
+- 本地与目标生产拓扑见 [deployment.md](deployment.md)
+- 为什么网关内置于 execution 而非新建服务：[ADR-001](../adr/model-gateway-architecture.md)

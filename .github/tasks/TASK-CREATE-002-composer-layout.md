@@ -57,7 +57,7 @@
 - `apps/web/src/hooks/useCreateControls.ts` — 暴露 `channels`
 - `apps/web/src/config/create/control-schema.ts` — 能力驱动的控件事实源（片 1）
 - `apps/web/src/components/common/GenWorkbench.tsx` — 删除
-- `docs/adr/006-smart-creation-workbench.md` — D1/D2/D5 依据
+- `docs/adr/smart-creation-workbench.md` — D1/D2/D5 依据
 
 ---
 

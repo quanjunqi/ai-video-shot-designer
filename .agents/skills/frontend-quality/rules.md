@@ -6,7 +6,7 @@
 >
 > **合并来源**（2026-10-10）：`.agents/skills/frontend-quality/lessons.md`（交付门禁三层 + 六步硬门禁 + 品质标准）+ `SELF_CHECK_RULES.md`（代码逻辑自检 + UI 8 维度 + 用户体验 + 最终检查 + 记录模板）+ `docs/development-rules.md`（R-UI / R-DATA / R-CRUD / R-HOOK + gate 自动检测 + 来源追溯），合并时逐条核对，**一条规则未丢**。
 >
-> **历史教训台账**：每次迭代发现的教训条目（日期 / 问题 / 根因 / 固化成的规则编号）追加记录在 [`.agents/skills/frontend-quality/lessons.md`](iteration-qa.md)，本文件不记录事件流水。
+> **历史教训台账**：每次迭代发现的教训条目（日期 / 问题 / 根因 / 固化成的规则编号）追加记录在 [`lessons.md`](lessons.md)，本文件不记录事件流水。
 >
 > **执行纪律**：本文件是从实际 bug 中提炼的强制规则，每次开发前必须阅读，每次提交前必须自检；每次迭代完成后必须按以下规则逐项自检，不允许遗漏。
 >
@@ -53,7 +53,7 @@
 
 ### 六步硬门禁（L1→L3 合并为交付动作）
 
-1. **重读本文件**：打开 `docs/product/frontend-design-rules.md`，逐条读 [自检清单](#九交付前自检清单清单-1-7) 与 [反例库](#十一反例库黑名单r1-r10)，不凭记忆。
+1. **重读本文件**：打开本文件（`.agents/skills/frontend-quality/rules.md`），逐条读 [自检清单](#九交付前自检清单清单-1-7) 与 [反例库](#十一反例库黑名单r1-r10)，不凭记忆。
 2. **跑静态门禁**：`npm run gate`，GATE=0（typecheck + eslint + quality-gate 全绿），不绿不交付。
 3. **核对反例模式**：对照 R1-R10，确认本次改动不命中任何黑名单模式（命中即视为门禁未通过）。
 4. **打开涉及页面**：浏览器导航到本次改动的真实页面/弹窗/流程，确认路由可达、服务未挂（healthz 探活）。
@@ -62,11 +62,11 @@
 
 ### 门禁纪律（追加规则）
 
-- 用户每纠正一个问题，在对应改动完成后**当日**在 [`.agents/skills/frontend-quality/lessons.md`](iteration-qa.md) 登记一条（问题/根因/预防项），并登记固化成的规则编号。
+- 用户每纠正一个问题，在对应改动完成后**当日**在 [`lessons.md`](lessons.md) 登记一条（问题/根因/预防项），并登记固化成的规则编号。
 - **每次交付前必须重读本文件并执行顶部「交付门禁」三层六步，逐项打勾；有未通过项必须修复后再交付。禁止凭记忆跳过门禁。**
 - **`cd apps/web && npm run gate`（严格 typecheck + eslint + quality-gate 静态扫描）是任何前端交付的强制前置步骤，GATE=0 才可交付。** 代码层面可静态判定的问题一律在开发期拦截，不留给浏览器验收（反例 R10）。
 - 浏览器验收（L3）只验证静态检测不到的事实：最终渲染、真实请求链路、服务探活、交互反馈。禁止用浏览器替静态门禁兜底。
-- 本文件与 docs/product/design.md / docs/architecture/00-technical-architecture.md 平级（均在 `docs/` 下），随项目演进持续维护。
+- 本文件是 `.agents/skills/frontend-quality/` 下的规则库，随项目演进持续维护；`SKILL.md` 是执行时的快速参考。
 - 反例库（R1-R10）是黑名单：交付时按模式自查，命中任一模式即视为门禁未通过。
 
 ---
@@ -380,7 +380,7 @@ grep -rn 'grid-cols-[34]' src/features/comic/ && echo "WARN: 窄栏可能存在�
 
 ## 九、交付前自检清单（清单 1-7）
 
-> 这份清单是交付动作的逐项打勾口径，被 [`.agents/skills/frontend-quality/lessons.md`](iteration-qa.md) 教训条目的「预防检查项」按编号引用（清单 1-7），**编号不得变更**。
+> 这份清单是交付动作的逐项打勾口径，被 [`lessons.md`](lessons.md) 教训条目的「预防检查项」按编号引用（清单 1-7），**编号不得变更**。
 
 ### 1. CRUD 四态闭环
 - [ ] 新增的对象，是否同时提供了 **查询 / 编辑 / 删除** 入口？（批量删除、多选、全选是否合理存在）
@@ -529,4 +529,4 @@ grep -rn 'grid-cols-[34]' src/features/comic/ && echo "WARN: 窄栏可能存在�
 | R-HOOK-001 | InterpretStage 三层架构重构时 useState 放在 if (!interp) return 之后，导致页面白屏 "Rendered more hooks" | 2026-10-04 |
 | R-HOOK-002 | 自迭代检只做类型检查未做浏览器渲染验证，导致 Hooks 错误漏检 | 2026-10-04 |
 
-> 新增规则时在此追加一行（规则编号 / 来源 bug / 发现日期）；事件级流水仍记入 [`.agents/skills/frontend-quality/lessons.md`](iteration-qa.md)。
+> 新增规则时在此追加一行（规则编号 / 来源 bug / 发现日期）；事件级流水仍记入 [`lessons.md`](lessons.md)。

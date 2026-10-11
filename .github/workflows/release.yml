@@ -109,4 +109,4 @@ jobs:
             - [ ] 回滚方案已明确
 
             > 当前**尚无生产部署自动化**：镜像构建完成后，部署仍需人工执行。
-            > 目标形态见 `docs/architecture/05-deployment.md`。
+            > 目标形态见 `docs/architecture/deployment.md`。

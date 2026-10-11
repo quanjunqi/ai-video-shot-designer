@@ -2,7 +2,7 @@
 
 > 本文件说明如何报告漏洞、我们的响应时限，以及**当前真实的安全基线**（含已知缺口）。
 > 密钥管理原则见 `AGENTS.md` §3.4 与 §7；信任模型现状见
-> [`docs/architecture/01-c4-context-container.md`](docs/architecture/01-c4-context-container.md#信任模型当前状态务必知悉)。
+> [`docs/architecture/c4-context-container.md`](docs/architecture/c4-context-container.md#信任模型当前状态务必知悉)。
 
 ## 1. 支持范围
 
@@ -93,7 +93,7 @@
 
 ## 相关文档
 
-- 架构与信任边界：[`docs/architecture/01-c4-context-container.md`](docs/architecture/01-c4-context-container.md)
+- 架构与信任边界：[`docs/architecture/c4-context-container.md`](docs/architecture/c4-context-container.md)
 - 可观测性与告警：[`docs/how-to/observability.md`](docs/how-to/observability.md)
 - 分支与门禁：[`docs/how-to/branch-protection.md`](docs/how-to/branch-protection.md)
 - AI 协作禁区：[`AGENTS.md`](AGENTS.md) §7

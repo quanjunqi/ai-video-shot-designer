@@ -1,14 +1,16 @@
 # ADR 模板
 
 > 架构决策记录（Architecture Decision Record）
-> 每个重要架构决策必须记录在此目录下，命名 `NNN-short-title.md`
+> 每个重要架构决策必须记录在此目录下，文件名为 **kebab-case 语义名**（如 `model-routing-layer.md`），
+> 编号作为文档头部字段（`编号：NNN`），索引见 [README.md](README.md) 的编号↔文件映射表。
 
 ## 状态
 
+- **编号**：NNN（下一个可用编号，索引表查询）
 - **状态**：已提议 / 已接受 / 已弃用 / 已替代
 - **日期**：YYYY-MM-DD
 - **决策者**：
-- **相关 ADR**：[ADR-XXX](./XXX-title.md)
+- **相关 ADR**：<!-- 示例：ADR-XXX，链接到对应语义名文件 -->
 
 ---
 

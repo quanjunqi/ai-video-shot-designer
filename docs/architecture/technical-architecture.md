@@ -1,9 +1,6 @@
 # 镜序 Studio 技术实现方案
 
-版本：1.1（待评审）  
-日期：2026-09-29  
-架构：前后端分离、领域微服务、持久化任务编排、隔离执行面  
-状态：M0 服务体系已形成首条真实调用链；生产级 HA、完整 M1/M2 业务闭环及下述可用性指标仍未验收
+本文是系统的技术架构权威文档：服务边界、数据归属、关键事务边界与失败语义。
 
 ## 1. 结论与现状
 
@@ -16,15 +13,11 @@
 - `apps/web`：React 19、TypeScript、React Router、Zustand、Tailwind、Radix UI；现有路由、组件和工坊信息架构保留。
 - `scripts/shotdesigner/`：覆盖、空间、镜头、资产、审核、依赖、Prompt 与执行证据的领域逻辑和校验器。
 - `config/workflow/`、`config/adapters/`：工作流规则、依赖和 Adapter 合同，需版本化发布。
-- `tests/`：Python 领域回归测试；前端当前只有 3 项 Gate/路由单元测试，不是完整产品 E2E。
+- `tests/`：Python 领域回归测试。
 
-### 1.2 当前已完成与尚未完成的边界
+### 1.2 当前状态
 
-当前已完成 M0 的首条真实项目链路：`apps/web` 通过 Nginx 进入 `services/web-bff`，BFF 使用固定的本地开发身份调用 `services/workspace` 做成员授权，再调用 `services/production` 的内部项目 API；Production 使用 PostgreSQL 持久化项目，前端项目列表、创建、幂等重放和错误状态均走该链路。Workspace、Production、Web BFF 和 Web 都已有独立 OCI 镜像，并由本地 Compose 启动。该开发身份（`ws_dev / user_dev`）仅用于本地验证，尚未替代 OIDC。
-
-以下能力仍未完成，不能当作已交付：真实 OIDC 会话与多租户身份、Temporal 业务 Workflow、Go Director Worker、Catalog Service、Projection/SSE、Provider/ComfyUI 执行面、媒体扫描与转码、生产级迁移历史、HA/备份恢复和完整漫剧工坊业务闭环。Execution/Task Service 已完成首版真实闭环：独立 PostgreSQL、Job/Attempt、幂等创建、查询、取消、重试、内置开发 Worker 和 BFF 转发，仍不是生产级供应商执行器。Asset Service + PostgreSQL + MinIO 已完成首版上传会话、流式上传、SHA-256 校验、提交和按项目查询；但暂不包含签名下载 URL、媒体扫描、转码/缩略图、派生资源、病毒检测和审核状态机。前端 Store、本地任务计时器、占位媒体和 mock 哈希不能作为服务端审核事实源。
-
-早期商业立项文档（由 Owner 本地保管，不随仓库公开）曾提出 Vue 前端选型。本方案纠正该选型，收敛首期服务数量，明确审核与 Gate 的一致性边界；与本方案冲突的部分以本方案和当前 `docs/product/design.md` 产品边界为准。
+已完成 M0 首条真实项目链路（项目/剧集/任务/审计/资产上传的首版闭环）。以下能力仍未完成，不能当作已交付：真实 OIDC 会话与多租户身份、Temporal 业务 Workflow、Go Director Worker、Catalog Service、Projection/SSE、Provider/ComfyUI 执行面、媒体扫描与转码、生产级迁移历史、HA/备份恢复和完整漫剧工坊业务闭环。当前实现不是生产级，仅适用于本地开发与验证。
 
 ### 1.3 产品边界
 

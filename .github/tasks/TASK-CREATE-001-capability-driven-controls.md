@@ -1,7 +1,7 @@
 # TASK-CREATE-001：能力驱动的生成参数控件 schema
 
-> 本卡是 `docs/adr/006-smart-creation-workbench.md` 分片计划的第 1 片（D2 决策的落地）。
-> 也是 `docs/how-to/backlog.md` P0 #2「智能创造三工作台 UI 重构」**启动条件**的直接兑现：
+> 本卡是 `docs/adr/smart-creation-workbench.md` 分片计划的第 1 片（D2 决策的落地）。
+> 也是 `../../ROADMAP.md` P0 #2「智能创造三工作台 UI 重构」**启动条件**的直接兑现：
 > 「能力层补全（`capabilities` 用于生成表单与前置校验）」。
 
 ## 基本信息
@@ -121,7 +121,7 @@ npm run gate
 
 - [ ] 遵循 `AGENTS.md` §4.1 前端规范（TS 严格模式、禁止 `any`、Tailwind、统一 api client）
 - [ ] 前端只能调用 BFF（`/api/v1/*`）
-- [ ] 遵循 `docs/product/frontend-design-rules.md`：交付前完整执行六步硬门禁
+- [ ] 遵循 `.agents/skills/frontend-quality/rules.md`：交付前完整执行六步硬门禁
 
 ### 禁止操作
 

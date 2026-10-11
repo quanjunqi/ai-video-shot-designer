@@ -9,7 +9,7 @@
 
 ## 背景与相关文件
 
-三处不一致均由 `docs/architecture/04-state-machines.md` 的绘图/取证过程发现：
+三处不一致均由 `docs/architecture/state-machines.md` 的绘图/取证过程发现：
 
 | # | 不一致 | 证据 |
 |---|---|---|
@@ -22,7 +22,7 @@
 - ✅ `execution/migrations/007_job_timeout_status.sql`
 - ✅ `production/migrations/022_projects_status_machine.sql`
 - ✅ `production/migrations/023_episodes_state_checks.sql`
-- ✅ 同步 `docs/architecture/04-state-machines.md`、`CHANGELOG.md`
+- ✅ 同步 `docs/architecture/state-machines.md`、`CHANGELOG.md`
 - ✅ 用 Docker 真实验证接受路径与拒绝路径
 
 ## 非范围

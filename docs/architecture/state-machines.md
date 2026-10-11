@@ -5,7 +5,7 @@
 
 ## 状态分层（先区分三类，避免混用）
 
-`docs/architecture/00-technical-architecture.md` 开篇即强调「三类状态分离」，这是本项目最容易混淆的地方：
+`docs/architecture/technical-architecture.md` 开篇即强调「三类状态分离」，这是本项目最容易混淆的地方：
 
 | 类别 | 含义 | 载体 | 终态 |
 |---|---|---|---|
@@ -103,7 +103,7 @@ stateDiagram-v2
 | `SUPERSEDED` | 被新版本取代（**不删除历史**） | 终态 |
 
 > **设计要点**：`STALE` / `SUPERSEDED` 是**标记**而非删除 —— 历史文件与审核记录永久保留，保证可追溯。
-> 与 `docs/architecture/00-technical-architecture.md` §9「依赖登记冻结上游 artifact_id + version + sha256」一致。
+> 与 `docs/architecture/technical-architecture.md` §9「依赖登记冻结上游 artifact_id + version + sha256」一致。
 
 ---
 
@@ -150,7 +150,7 @@ stateDiagram-v2
 > ⚠️ **仍未实现（非约束问题，属功能缺口）**：`project.Update` 的 `sets` 里**没有 status**
 > （`postgres.go:104-137`），因此**服务端目前仍无法推进项目状态** —— 该列实际是「写入即冻结」。
 > 本迁移只解除约束层面的阻塞，状态机本身（合法跃迁、权限校验、审计）需另行实现。
-> `docs/architecture/00-technical-architecture.md` §6 描述的流转仍属**目标态**。
+> `docs/architecture/technical-architecture.md` §6 描述的流转仍属**目标态**。
 
 ### 5.2 剧集阶段与状态 —— ✅ 取值已归一并补 CHECK（`023_episodes_state_checks.sql`）
 
@@ -216,7 +216,7 @@ stateDiagram-v2
 ```
 
 **语义**：at-least-once（消费方必须幂等）；无显式 `status` 列，靠 `published_at` / `dead_lettered_at` 区分终态。
-详见 [02-key-sequences.md](02-key-sequences.md#时序-4--outbox-事件投递事务性消息)。
+详见 [key-sequences.md](key-sequences.md#时序-4--outbox-事件投递事务性消息)。
 
 ---
 
@@ -244,5 +244,5 @@ stateDiagram-v2
 
 ## 相关文档
 
-- 状态写入发生在哪些链路：[02-key-sequences.md](02-key-sequences.md)
-- 状态列所在表结构：[03-data-model.md](03-data-model.md)
+- 状态写入发生在哪些链路：[key-sequences.md](key-sequences.md)
+- 状态列所在表结构：[data-model.md](data-model.md)
