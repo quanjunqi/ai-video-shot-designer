@@ -3,13 +3,13 @@
 - **状态**：已确认（Owner 决策 2026-10-10）
 - **日期**：2026-10-10
 - **决策者**：Owner
-- **相关**：ADR-001（模型网关架构）、`docs/development/backlog.md`（"先做模型中心底座"决策）
+- **相关**：ADR-001（模型网关架构）、`docs/how-to/backlog.md`（"先做模型中心底座"决策）
 
 ---
 
 ## 1. 背景
 
-`docs/development/backlog.md` 记录了 Owner 判断：本项目所有能力都建立在 AI 模型之上，
+`docs/how-to/backlog.md` 记录了 Owner 判断：本项目所有能力都建立在 AI 模型之上，
 但模型中心（AI 模型聚合网关）**底座尚未搭好**，故先做底座。
 
 对现状的实测（本次会话）：

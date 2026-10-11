@@ -10,7 +10,7 @@ import (
 // 依据：
 //   - AGENTS.md §7 禁区：「禁止在代码、prompt、**日志**中写入真实密钥」
 //     —— 审计表就是日志，故同样适用；
-//   - 本项目已有先例：docs/development/observability.md 要求密钥打码为 <REDACTED>。
+//   - 本项目已有先例：docs/how-to/observability.md 要求密钥打码为 <REDACTED>。
 //
 // 为什么放在 audit.Store 的写库入口（而不是各调用方）：
 //   这是**唯一收口** —— Insert / UpdateResultByJobID 是仅有的两个写入口，

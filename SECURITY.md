@@ -94,6 +94,6 @@
 ## 相关文档
 
 - 架构与信任边界：[`docs/architecture/01-c4-context-container.md`](docs/architecture/01-c4-context-container.md)
-- 可观测性与告警：[`docs/development/observability.md`](docs/development/observability.md)
-- 分支与门禁：[`docs/development/branch-protection.md`](docs/development/branch-protection.md)
+- 可观测性与告警：[`docs/how-to/observability.md`](docs/how-to/observability.md)
+- 分支与门禁：[`docs/how-to/branch-protection.md`](docs/how-to/branch-protection.md)
 - AI 协作禁区：[`AGENTS.md`](AGENTS.md) §7

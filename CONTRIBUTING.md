@@ -43,7 +43,7 @@ master（保护分支，禁止直接 push）
 2. **填任务卡**（模板：[`.github/TASK_TEMPLATE.md`](.github/TASK_TEMPLATE.md)）—— 明确目标、范围、验收标准
 3. **本地自检**（见 §4）
 4. **开 PR**（模板：[`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md)）
-5. **等 CI 全绿**（9 项必需检查，见 [`docs/development/branch-protection.md`](docs/development/branch-protection.md)）
+5. **等 CI 全绿**（9 项必需检查，见 [`docs/how-to/branch-protection.md`](docs/how-to/branch-protection.md)）
 6. **审查后合并**，删除分支
 
 ### 任务粒度
@@ -132,9 +132,9 @@ bash .github/scripts/check-coverage.sh --all
 | 理解系统结构 | [`docs/architecture/`](docs/architecture/) |
 | 知道某个字段/接口长什么样 | [`openapi/`](openapi/) |
 | 知道某项技术决策为什么这么定 | [`docs/adr/`](docs/adr/) |
-| 知道测试该写到什么程度 | [`docs/development/testing.md`](docs/development/testing.md) |
-| 加日志/指标 | [`docs/development/observability.md`](docs/development/observability.md) |
-| 发布一个版本 | [`docs/development/release.md`](docs/development/release.md) |
+| 知道测试该写到什么程度 | [`docs/how-to/run-tests.md`](docs/how-to/run-tests.md) |
+| 加日志/指标 | [`docs/how-to/observability.md`](docs/how-to/observability.md) |
+| 发布一个版本 | [`docs/how-to/release.md`](docs/how-to/release.md) |
 | 报告安全问题 | [`SECURITY.md`](SECURITY.md) |
 | 查已知未修复缺陷 | [`CHANGELOG.md`](CHANGELOG.md) Known Issues |
-| 前端交付品质标准 | [`docs/development/frontend-quality-gate.md`](docs/development/frontend-quality-gate.md) |
+| 前端交付品质标准 | [`docs/product/frontend-design-rules.md`](docs/product/frontend-design-rules.md) |

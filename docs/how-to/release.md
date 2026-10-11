@@ -115,4 +115,4 @@ go build -o /tmp/mdp-bin/<service> ./cmd/server     # 本地验证
 - 变更记录：[`../CHANGELOG.md`](../../CHANGELOG.md)
 - 接口破坏性变更判定：[`../openapi/README.md`](../../openapi/README.md)
 - 部署形态与差距：[architecture/05-deployment.md](../architecture/05-deployment.md)
-- 分支与门禁：[docs/development/branch-protection.md](branch-protection.md)
+- 分支与门禁：[docs/how-to/branch-protection.md](branch-protection.md)

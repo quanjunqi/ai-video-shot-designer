@@ -39,7 +39,7 @@
 | 5 | **AutoDL 云端 ComfyUI 接入** | 前置已就绪，但依赖底座 | 底座可用 + 提供 `workflow_id` 与工作流入参示例 | ✅ `auth_type=token`（PR #37）已支持裸 Token；异步三要素已核实可表达（`statusField=data.status`、`doneValue=SUCCESS`、`failValue=FAILED`、`pollPath=…/result/{task_id}`） |
 | 6 | **媒体处理**（缩略图/转码/时长/封面/EXIF） | 必须有产物落盘（#4）才有输入 | #4 完成 | 实测：thumbnail/resize/transcode/ffmpeg/exif **0 命中** |
 | 7 | **Agent 双入口**（LibTV 式 Skill 接口） | 战略项，需底座提供稳定能力面 | 底座稳定 + 单独调研 | 已有雏形：`ai-video-shot-design-designer-skill` 仓库 + 本仓库 Agent 规范 |
-| 8 | **可观测性 / 测试分层 / 前端首屏** | 阶段 3 | 底座与主要功能稳定 | `docs/development/observability.md` 已定义指标；`lazy()` 计数实测为 **0** |
+| 8 | **可观测性 / 测试分层 / 前端首屏** | 阶段 3 | 底座与主要功能稳定 | `docs/how-to/observability.md` 已定义指标；`lazy()` 计数实测为 **0** |
 
 ---
 
@@ -123,7 +123,7 @@ ADR-004 §8 的验证计划共 7 条；本片实现了 **§8.1–§8.4、§8.6 �
 - **已具备的诊断**：`scratch-stack.sh` 打印"加载后实际生效的引擎地址"；
   套件在引擎未构建时打印搭建日志相关行 ⇒ 下一次接入时 CI 会直接给出证据。
 - **启动条件**：定位并修掉上述根因后，用**步骤级** `if: matrix.service == 'execution'`
-  接入（禁止 job 级 `if:`，见 `docs/development/ci.md` §3）。
+  接入（禁止 job 级 `if:`，见 `docs/how-to/ci.md` §3）。
 
 ### live 开发库补齐迁移（暂缓 2026-10；**方案已在 pg_dump 副本上验证**）
 

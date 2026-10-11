@@ -59,7 +59,7 @@
 - `apps/web/tests/create-result-utils.test.ts` — 新增（10 个单测）
 - `apps/web/src/features/genworkbench/CreateWorkbench.tsx` — 接入详情/复用/取消/重试
 - `apps/web/src/hooks/useCreateControls.ts` — 新增 `applyDraft`
-- `docs/development/backlog.md` — 新增 #14（结果写回缺失）、#15（无删除接口）
+- `docs/how-to/backlog.md` — 新增 #14（结果写回缺失）、#15（无删除接口）
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **这份文件只写能从仓库现状确证的内容**，并按「已交付 / 进行中 / 规划中」三段陈述。
 > **不承诺时间表** —— 具体优先级、暂缓理由与**启动条件**以
-> [docs/development/backlog.md](docs/development/backlog.md) 为唯一权威；本文件是面向外部读者的摘要。
+> [docs/how-to/backlog.md](docs/how-to/backlog.md) 为唯一权威；本文件是面向外部读者的摘要。
 >
 > **发布状态**：仓库当前**尚无 git tag、无正式发布**。用户可见变更按合并时间倒序记录在
 > [CHANGELOG.md](CHANGELOG.md)，条目尚在 `[Unreleased]` 下。
@@ -33,7 +33,7 @@
   对应 `apps/web/src/features/{comic,canvas,genworkbench,rules,settings,home}`。
 - Vite 8 + React 19 + TypeScript 5.9 + Tailwind CSS 4 + React Router + Zustand。
 - **前端交付质量门禁**已固化为可执行纪律：`npm run gate` = typecheck + ESLint + `scripts/quality-gate.mjs`，
-  配套规则库 R-* 与反例库，见 [docs/development/frontend-quality-gate.md](docs/development/frontend-quality-gate.md)。
+  配套规则库 R-* 与反例库，见 [docs/product/frontend-design-rules.md](docs/product/frontend-design-rules.md)。
 
 ### 工程治理
 
@@ -48,7 +48,7 @@
 
 ## 进行中
 
-> 判定依据：`docs/development/backlog.md` 中标记为**已启动**，且仓库内已有对应任务卡（`.github/tasks/`）的项。
+> 判定依据：`docs/how-to/backlog.md` 中标记为**已启动**，且仓库内已有对应任务卡（`.github/tasks/`）的项。
 
 - **智能创造（三工作台）UI 重构**（backlog #2，已启动）：分片任务卡为
   `.github/tasks/TASK-CREATE-001..006`。本轮范围是**只重构 composer，并对未接入执行链路的缺口如实标注**。
@@ -64,7 +64,7 @@
 ## 规划中（已识别、暂缓，附启动条件）
 
 > 本节只列标题；**为什么暂缓、什么条件才启动**以
-> [docs/development/backlog.md](docs/development/backlog.md) 为准，此处不复制其内容。
+> [docs/how-to/backlog.md](docs/how-to/backlog.md) 为准，此处不复制其内容。
 
 | # | 项 | 一句话 |
 |---|---|---|
@@ -98,4 +98,4 @@
   是已定决策；**ADR-005 / 006 / 007 仍为「提议」**（待 Owner 确认），不作为实现依据。
   状态含义与编号规则见 [docs/README.md](docs/README.md)。
 - **不承诺时间表与版本号**：仓库无 tag，首次正式发布时由维护者定义版本策略与发布流程
-  （见 [docs/development/release.md](docs/development/release.md)）。
+  （见 [docs/how-to/release.md](docs/how-to/release.md)）。

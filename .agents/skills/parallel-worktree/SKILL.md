@@ -5,7 +5,7 @@ description: 当需要并行开多条开发线、创建新 worktree、或在已�
 
 # 并行开发 Worktree 规范
 
-> 完整文档见 `docs/development/parallel-development.md`。
+> 完整文档见 `docs/how-to/parallel-work.md`。
 > 本文件是 AI 执行时的快速参考。
 
 ## 什么时候加载这个 skill
@@ -68,4 +68,4 @@ feature/* 开发：统一从 develop 拉
 
 ## 完整规则
 
-→ `docs/development/parallel-development.md`（§5 血泪条款 + §10 事故台账）
+→ `docs/how-to/parallel-work.md`（§5 血泪条款 + §10 事故台账）

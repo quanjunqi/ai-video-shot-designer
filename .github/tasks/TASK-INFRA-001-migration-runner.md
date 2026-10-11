@@ -74,5 +74,5 @@ docker rm -f mdpmig
 
 | # | 问题 | 说明 |
 |---|---|---|
-| 1 | 迁移无「向下」脚本 | 回滚仍依赖备份；见 `docs/development/release.md` §4 |
+| 1 | 迁移无「向下」脚本 | 回滚仍依赖备份；见 `docs/how-to/release.md` §4 |
 | 2 | 部分迁移注释与实际不符 | 例如某些 NOTICE 显示 `DROP TRIGGER IF EXISTS` 针对不存在的触发器，属历史遗留 |
