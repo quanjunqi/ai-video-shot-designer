@@ -25,21 +25,13 @@
 # =============================================================================
 set -uo pipefail
 
-ALL_SERVICES='["workspace","production","execution","asset","web-bff","outbox-relay"]' shared
+ALL_SERVICES='["workspace","production","execution","asset","web-bff","outbox-relay","shared"]'
 base="${1:-}"
 
 emit_all() { # $1=原因
     echo "frontend=true"
     echo "backend=true"
     echo "security=true"
-    # ★ 跨服务共享包（services/shared/**）改动 ⇒ 触发【全量】后端：
-    #   它被多个服务依赖，只跑 shared 自己会漏掉消费方的回归。
-    #   与 detect-changes 的既有 fail-safe 思路一致（判定不确定就全量）。
-    if git diff --name-only "$base"...HEAD 2>/dev/null | grep -q '^services/shared/'; then
-      emit_all "shared 包改动（跨服务共享）"
-      return 0
-    fi
-
     echo "services=$ALL_SERVICES"
     echo "reason=$1"
 }
@@ -82,6 +74,12 @@ fi
 frontend=false
 security=false
 declare -a svcs=()
+# ★ 跨服务共享包（services/shared/**）改动 ⇒ 一并视为"全局命中"，触发全量后端：
+#   它被多个服务依赖，只跑 shared 自己会漏掉消费方的回归。
+if git diff --name-only "$base"...HEAD 2>/dev/null | grep -q '^services/shared/'; then
+    global_hit="${global_hit:+$global_hit、}shared 包（跨服务共享）"
+fi
+
 global_hit=""
 
 while IFS= read -r p; do
