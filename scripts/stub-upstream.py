@@ -127,6 +127,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"channelId": "ch_stub", "baseUrl": UPSTREAM,
                                     "authType": "bearer", "authHeader": "",
                                     "authPrefix": "", "apiKey": "sk-stub-not-a-real-key"})
+        # 上游模型清单 / 价格（供 production 的同步器用）：
+        # 用"路径后缀匹配"，这样无论 base_url 是 127.0.0.1:8096 还是 .../upstream 都能命中。
+        if p.endswith("/v1/models"):
+            return self._send(200, {"data": [
+                {"id": "gpt-sync-1", "name": "同步测试模型", "type": "image", "owned_by": "stub-relay"},
+                {"id": "gpt-sync-2", "name": "同步测试模型 2", "type": "text"}]})
+        if p.endswith("/api/pricing"):
+            return self._send(200, {"gpt-sync-1": {"amount": 0.5, "unit": "per_call"}})
         if p == "/__stub/requests":
             with LOCK:
                 return self._send(200, {"items": list(SEEN)})
