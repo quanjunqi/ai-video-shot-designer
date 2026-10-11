@@ -168,9 +168,23 @@ test('the settings layout renders SETTINGS_NAV only, without the three demoted t
   }
 });
 
-// ADR-005 D4（供给池可见性不变量）：供给池（上游/中转站池、其它用户的渠道）只能出现在
-// 连接向导与「用户自己的」渠道详情里，不得出现在任何列表/概览/统计页。
-// 现有实现里供给池尚无后端接口，本断言把「设置中心不得出现池化数据源」钉成回归护栏。
+// ADR-005 D4（供给池可见性不变量）—— **2026-10-11 由 Owner 批准按 D4 原意收窄**。
+//
+// D4 的原文就写明：供给池**必须**出现在两个地方 —— ①接入向导第 2–3 步（此刻的任务就是"挑要用的"）
+// ②用户自己渠道的详情（"那是他自己的资源，有权知道我这家能调什么"）；**不得**出现在
+// 列表/概览/统计页。旧护栏是"设置中心一律禁止出现池化标记"的关键词扫描，它无法区分
+// "用户自己渠道的策展入口"与"平台池总览"，而且它写于"供给池尚无后端接口"之时 —— 该前提已不成立。
+//
+// 收窄后的规则（**行为为准，不以词汇为准**）：
+//   ✅ 允许：**每渠道**的策展入口（CurationPanel）—— 只能按当前渠道取供给
+//   ❌ 禁止：任何**列表/概览/统计**意义的设置界面出现池化数据源（标记词仍逐个检查）
+//   ❌ 禁止：跨渠道的"全平台供给池"视图
+const SUPPLY_EXEMPT = [
+  // 每渠道策展入口（ADR-005 D4 的"用户自己渠道的详情"这一场景的正式落地）
+  join('features', 'settings', 'CurationPanel.tsx'),
+  join('features', 'settings', 'curation.ts'),
+];
+
 test('no settings surface renders the supply pool (ADR-005 D4 invariant)', () => {
   const srcRoot = join(import.meta.dirname, '..', 'src');
   const targets: string[] = [];
@@ -188,15 +202,33 @@ test('no settings surface renders the supply pool (ADR-005 D4 invariant)', () =>
   targets.push(join(srcRoot, 'stores', 'useSettingsStore.ts'));
   assert.ok(targets.length >= 8, `扫描目标过少（${targets.length}），检查测试自身`);
 
-  // 池化数据源/契约的标记词：出现在设置中心即视为违反不变量
+  // 池化数据源/契约的标记词：出现在设置中心即视为违反不变量（每渠道策展入口除外，见上）
   const forbidden = ['供给池', 'channel_models', 'supply_pool', 'supply-pool', 'supplyPool', '/api/v1/pool', '/api/v1/supply'];
   for (const file of targets) {
+    if (SUPPLY_EXEMPT.some((suffix) => file.endsWith(suffix))) continue;
     const text = readFileSync(file, 'utf8');
     for (const token of forbidden) {
       assert.ok(
         !text.includes(token),
-        `${file.replace(srcRoot, 'src')} 出现供给池标记「${token}」：设置中心不得展示平台供给池或他人渠道`,
+        `${file.replace(srcRoot, 'src')} 出现供给池标记「${token}」：设置中心不得出现列表/概览/统计意义的池化数据源`,
       );
     }
   }
+});
+
+// 收窄之后必须用**正向断言**补上行为约束 —— 否则"豁免"会变成没有边界的口子：
+// 策展入口只能按当前渠道取供给，且不得出现"全平台供给池"视图。
+test('the curation surface only ever reads supply for one channel (ADR-005 D4 narrowed)', () => {
+  const panelPath = join(import.meta.dirname, '..', 'src', 'features', 'settings', 'CurationPanel.tsx');
+  const panel = readFileSync(panelPath, 'utf8');
+  assert.match(panel, /api\.listSupply\(channelId\)/, '只能按当前渠道取供给（不得跨渠道/全量拉取）');
+  assert.doesNotMatch(panel, /api\.listSupply\(\)/, '不得存在不带渠道参数的全量拉取');
+  assert.doesNotMatch(panel, /\.map\(([^)]*)\)\s*=>\s*[\s\S]{0,80}api\.listSupply/, '不得对渠道集合逐个拉供给来拼"全局池视图"');
+  // 入口必须是"某个渠道"，而不是任何列表/概览页面的内嵌总览
+  const page = readFileSync(join(import.meta.dirname, '..', 'src', 'pages', 'SettingsChannels.tsx'), 'utf8');
+  assert.match(page, /setCurationFor\(c\)/, '策展入口必须由具体渠道触发');
+  assert.ok(
+    readFileSync(join(import.meta.dirname, '..', '..', '..', 'docs', 'adr', '005-settings-information-architecture.md'), 'utf8').includes('人工策展入口'),
+    'ADR-005 D4 必须写明"每渠道人工策展入口"是允许的场景（规则与实现同步）',
+  );
 });
