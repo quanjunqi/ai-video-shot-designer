@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Boxes, Plus, Trash2, Power, Pencil, Layers, Copy, ChevronDown, ChevronRight, Eye, Play, Loader2, CheckCircle2, XCircle, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { candidatesByKey, candidateSummary, candidateTooltip, groupKey } from '@/features/settings/model-candidates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -285,6 +286,8 @@ export default function SettingsModelsPage() {
 
 
   const list = models.filter((m) => m.type === tab).sort((a, b) => a.sort - b.sort);
+  // T8：同款模型（同一对外能力 / 同一上游模型标识）跨渠道的分组。纯函数在 features/settings/model-candidates.ts。
+  const candidateGroups = candidatesByKey(models, (id) => channelName(channels, id));
   const allSelected = list.length > 0 && selected.length === list.length;
 
   // 预览合并视图：协议基线参数（未覆盖用模板默认值）+ 本模型覆盖/新增参数
@@ -355,7 +358,14 @@ export default function SettingsModelsPage() {
 
       {/* 模型卡片列表 */}
       <div className="space-y-2">
-        {list.map((m) => (
+        {candidateGroups.size > 0 && (
+          <p className="px-1 text-[11px] text-muted-foreground">
+            本页有 {candidateGroups.size} 组「同款模型多渠道」—— 徽标里能看到各渠道的优先级与启用状态（停用的候选不会被路由到）。
+          </p>
+        )}
+        {list.map((m) => {
+          const peers = candidateGroups.get(groupKey(m));
+          return (
           <div key={m.id} className="rounded-xl border border-border bg-card p-3">
             <div className="flex flex-wrap items-center gap-2">
               <input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggleSelect(m.id)} className="accent-primary" title="选择" />
@@ -364,6 +374,17 @@ export default function SettingsModelsPage() {
                 <Layers className="mr-1 inline h-2.5 w-2.5" />
                 {channelName(channels, m.channelId)} · {channelKind(channels, m.channelId) === 'official' ? '官方' : channelKind(channels, m.channelId) === 'aggregator' ? '聚合' : '本地'}
               </Badge>
+              {peers && peers.length > 1 && (
+                <Badge variant="outline" className="font-mono text-[9px]" title={candidateTooltip(peers)}>
+                  <Layers className="mr-1 inline h-2.5 w-2.5" />
+                  {candidateSummary(peers)}
+                </Badge>
+              )}
+              {m.logicalModelId && (
+                <Badge variant="secondary" className="font-mono text-[9px]" title="对外能力（逻辑模型）：同一 id 的多行即候选渠道，按优先级路由">
+                  对外能力：{m.logicalModelId}
+                </Badge>
+              )}
               <BillingLine m={m} />
               <Badge className={cn('ml-auto font-mono text-[9px]', m.status === 'enabled' ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground')}>
                 {m.status === 'enabled' ? '已启用' : '已停用'}
@@ -407,7 +428,8 @@ export default function SettingsModelsPage() {
               <CapabilityTags m={m} />
             </div>
           </div>
-        ))}
+          );
+        })}
         {list.length === 0 && (
           <div className="rounded-xl border border-border bg-card p-8 text-center text-xs text-muted-foreground">
             暂无{TYPE_TABS.find((x) => x.key === tab)?.label}模型，点击「添加模型」创建
