@@ -79,6 +79,14 @@ type CatalogStore interface {
 	DeleteTemplate(context.Context, string) error
 }
 
+// CurationStore 是**策展**的窄接口（ADR-009 Phase D）。
+// 为什么与 CatalogStore 分开：与既有的 LogicalModelStore 同一思路 ——
+// 接口按用途隔离，加方法不会牵连无关的测试 stub（本项目已多次因接口过宽改到别处）。
+type CurationStore interface {
+	ListSupply(context.Context, string, string, bool) ([]catalog.SupplyItem, error)
+	Curate(context.Context, string, string, catalog.CurateInput) (catalog.CuratedModel, error)
+}
+
 // ChannelSyncer 是上游同步器的【窄接口】：handler 只依赖它，
 // 于是这条路由能用 stub 单测（与 CatalogStore 同一思路），不需要数据库与上游。
 type ChannelSyncer interface {
@@ -94,6 +102,7 @@ type Handler struct {
 	IntentStore           IntentStore
 	CatalogStore          CatalogStore
 	LogicalModelStore     LogicalModelStore
+	CurationStore         CurationStore
 	// ChannelSyncer 未装配时（缺 workspace 地址/令牌），路由会以 503 如实拒绝，
 	// 而不是静默地"同步成功但什么都没拉"。
 	ChannelSyncer ChannelSyncer
@@ -147,6 +156,10 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/catalog/models", h.createCatalogModel)
 	mux.HandleFunc("PUT /internal/v1/catalog/models/{id}", h.updateCatalogModel)
 	mux.HandleFunc("PUT /internal/v1/catalog/channels/{id}", h.updateCatalogChannel)
+	// ADR-009 Phase D：策展。路径刻意落在 /internal/v1/catalog/* 之下 ⇒ BFF 的
+	// catalog 代理（/api/v1/catalog/* → /internal/v1/catalog/*）无需改动即可转发。
+	mux.HandleFunc("GET /internal/v1/catalog/supply", h.listSupply)
+	mux.HandleFunc("POST /internal/v1/catalog/curate", h.curate)
 	mux.HandleFunc("POST /internal/v1/catalog/protocol-templates", h.createProtocolTemplate)
 	mux.HandleFunc("PUT /internal/v1/catalog/protocol-templates/{id}", h.updateProtocolTemplate)
 	mux.HandleFunc("DELETE /internal/v1/catalog/protocol-templates/{id}", h.deleteProtocolTemplate)
@@ -660,6 +673,70 @@ func (h Handler) syncChannel(w http.ResponseWriter, r *http.Request) {
 		slog.Error("channel sync failed", "channel", id, "error", err)
 		writeError(w, http.StatusBadGateway, "SYNC_UPSTREAM_FAILED", err.Error())
 	}
+}
+
+// listSupply 列出某渠道的供给（未策展的上游模型），供界面挑选「加入我的模型目录」。
+//
+// 为什么必须带工作区：供给池按工作区隔离（ADR-009）—— A 同步进来的行不该出现在 B 的候选里。
+func (h Handler) listSupply(w http.ResponseWriter, r *http.Request) {
+	workspace, _, ok := h.identity(w, r)
+	if !ok {
+		return
+	}
+	if h.CurationStore == nil {
+		writeError(w, http.StatusServiceUnavailable, "CURATION_UNAVAILABLE", "curation is not configured")
+		return
+	}
+	channelID := r.URL.Query().Get("channel_id")
+	if channelID == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_CHANNEL", "channel_id is required")
+		return
+	}
+	includeMissing := r.URL.Query().Get("include_missing") == "1" || r.URL.Query().Get("include_missing") == "true"
+	items, err := h.CurationStore.ListSupply(r.Context(), workspace, channelID, includeMissing)
+	if err != nil {
+		slog.Error("list supply", "error", err, "channel", channelID)
+		writeError(w, http.StatusServiceUnavailable, "SUPPLY_UNAVAILABLE", "supply could not be loaded")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+// curate 把一条供给策展成产品面的模型（**只有走到这里，模型才可能对外可见**）。
+func (h Handler) curate(w http.ResponseWriter, r *http.Request) {
+	workspace, actor, ok := h.identity(w, r)
+	if !ok {
+		return
+	}
+	if h.CurationStore == nil {
+		writeError(w, http.StatusServiceUnavailable, "CURATION_UNAVAILABLE", "curation is not configured")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 256*1024)
+	var input catalog.CurateInput
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid curate JSON")
+		return
+	}
+	out, err := h.CurationStore.Curate(r.Context(), workspace, actor, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, catalog.ErrSupplyNotFound):
+			// 供给池里没有这条 ⇒ 不猜、不新建：策展的前提是"上游确实同步过它"
+			writeError(w, http.StatusNotFound, "SUPPLY_NOT_FOUND", err.Error())
+		case strings.Contains(err.Error(), "unsupported model type"):
+			writeError(w, http.StatusUnprocessableEntity, "INVALID_MODEL_TYPE", err.Error())
+		case strings.Contains(err.Error(), "are required"):
+			writeError(w, http.StatusUnprocessableEntity, "INVALID_CURATE_INPUT", err.Error())
+		default:
+			slog.Error("curate", "error", err, "model", input.ID)
+			writeError(w, http.StatusInternalServerError, "CURATE_FAILED", err.Error())
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"model": out})
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
