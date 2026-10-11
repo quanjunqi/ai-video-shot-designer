@@ -489,6 +489,7 @@ feature/* ← 开发分支：**统一从 develop 拉取**，完成后 PR 回 dev
 | 线 | 服务 | 号段 |
 |---|---|---|
 | 基础设施/可靠性 | execution | 010–019 |
+| 租户与凭据 | workspace | 001–009 |
 | 模型中心/网关 | production | 024–039 |
 | 项目知识库 | production | 040–049 |
 | 无限画布 | production | 050–059 |
