@@ -1,6 +1,6 @@
 # TASK-CREATE-006：参数三级披露 + 字段说明 + 表单/JSON 双视图
 
-> **专业级改造第 1 片**。依据 [`docs/research/pro-tools-generation-workbench-ux-2026-10.md`](../../docs/research/pro-tools-generation-workbench-ux-2026-10.md)
+> **专业级改造第 1 片**。依据调研报告《专业级生成工作台 UX 对标（2026-10）》（由 Owner 本地保管）
 > §3.1 借鉴表 **B1（schema 驱动 + 表单/JSON 双视图）** 与 **B2（参数分组 + 逐参数内联说明）**，
 > 以及 §3.2 E2（**不要**把 30+ 参数平铺，要"基础/进阶/专家三层，默认只露基础"）。
 

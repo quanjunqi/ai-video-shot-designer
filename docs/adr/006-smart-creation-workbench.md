@@ -94,7 +94,7 @@
 
 **严格区分「API 能证明能力存在」与「它出现在首屏」** —— 二者不可混用。
 未能核实的界面细节集中在报告 §14.6 列出（共 10 类），**不作为本 ADR 的决策依据**。
-完整拆解见 [`docs/research/chinese-ai-gen-ux-teardown-2026-10.md`](../research/chinese-ai-gen-ux-teardown-2026-10.md)（501 行、55 条来源链接）。
+完整拆解见竞品调研报告《中国 AI 生成产品 UX 拆解（2026-10）》（501 行、55 条来源链接，由 Owner 本地保管，不随仓库公开）。
 
 ### 3.2 七个反复出现的范式（附采用者）
 
@@ -189,7 +189,7 @@
 > SwarmUI、Fooocus、Krita AI Diffusion、Forge / reForge、ThinkDiffusion / RunDiffusion、
 > Topaz（Gigapixel / Photo）、Magnific、Upscayl、Civitai 元数据、W&B。
 > 完整事实卡（7 维度 × 15 工具 + 12 条横向模式 + 反模式表 + 57 条来源）见
-> [`docs/research/pro-tools-generation-workbench-ux-2026-10.md`](../research/pro-tools-generation-workbench-ux-2026-10.md)；
+> 调研报告《专业级生成工作台 UX 对标（2026-10）》（由 Owner 本地保管，不随仓库公开）；
 > 该报告同样列了 8 条「未核实」。
 
 这类「超能力用户」工具的价值不在于照抄界面（它们多数对创意用户过于专家化），
