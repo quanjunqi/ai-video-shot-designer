@@ -86,10 +86,13 @@ test('T1：syncCatalog 合并时必须把平台行作为 fallback 传给用户�
 
 test('T2：同步成功后必须重拉目录，否则卡片状态停在旧值', () => {
   // 用【位置关系】断言而不是脆弱的整块正则：syncCatalog() 必须出现在 syncChannel 调用之后。
+  // ★ 定位必须**从那一次调用之后**开始找（`indexOf(x, call)`）：
+  //   页面上还有别的 `await syncCatalog()`（例如保存工作区渠道后重拉），
+  //   从文件头找"第一处"会命中它，从而对真正的同步路径**失去约束**（本项目反例 #14）。
   const call = PAGE.indexOf('api.syncChannel(');
-  const refresh = PAGE.indexOf('await syncCatalog()');
   assert.ok(call >= 0, '页面必须调用 api.syncChannel');
-  assert.ok(refresh >= 0, '页面必须调用 syncCatalog() 重拉目录');
-  assert.ok(refresh > call, 'syncCatalog() 必须在同步调用【之后】（否则刷新的是旧状态）');
+  const refresh = PAGE.indexOf('await syncCatalog()', call);
+  assert.ok(refresh > call, 'syncCatalog() 必须在【这次】同步调用之后（否则刷新的是旧状态）');
+  assert.ok(refresh - call < 2000, '重拉目录应就在这次同步的处理器内，而不是飘到别处');
   assert.match(PAGE, /setSyncResults/, '应记录最近一次同步结果用于卡片即时反馈');
 });
