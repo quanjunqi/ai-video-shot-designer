@@ -359,6 +359,11 @@ export interface ServerCatalogChannel {
   enabled: boolean;
   note: string;
   sort: number;
+  /** 同步状态（只读投影；同步配置是平台级的，前端不写它） */
+  syncKind?: string;
+  syncModelsPath?: string;
+  syncPricingPath?: string;
+  lastSyncAt?: string | null;
 }
 
 export interface ServerCatalogModel {

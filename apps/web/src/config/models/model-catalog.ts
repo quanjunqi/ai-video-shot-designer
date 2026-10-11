@@ -21,6 +21,11 @@ export interface ChannelConfig {
   enabled: boolean;
   note: string;
   sort?: number; // 渠道排序（服务端目录 hydrate 后按 sort 排列）
+  /** 同步上游模型目录的状态（只读，来自平台目录投影）。同步配置本身是平台级的，前端不写。 */
+  syncKind?: string;
+  syncModelsPath?: string;
+  syncPricingPath?: string;
+  lastSyncAt?: string | null;
   lastTestAt?: number;
   lastTestOk?: boolean;
   testNote?: string;

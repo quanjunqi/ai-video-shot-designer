@@ -35,6 +35,13 @@ type Channel struct {
 	Enabled  bool   `json:"enabled"`
 	Note     string `json:"note"`
 	Sort     int    `json:"sort"`
+	// 同步状态（① 的第①步）：**只读投影** —— 界面据此显示"这个渠道有没有配同步、
+	// 上次同步成功没有"。刻意不放进 ChannelPatch：同步配置是【平台级】的，
+	// 而渠道页写的是工作区域（见 useSettingsStore 的注释），两者不能混。
+	SyncKind        string     `json:"syncKind"`
+	SyncModelsPath  string     `json:"syncModelsPath"`
+	SyncPricingPath string     `json:"syncPricingPath"`
+	LastSyncAt      *time.Time `json:"lastSyncAt"`
 }
 
 type Model struct {
