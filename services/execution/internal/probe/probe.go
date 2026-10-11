@@ -25,7 +25,7 @@ import (
 
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
-	"shotdesigner/services/execution/internal/netguard"
+	"shotdesigner/shared/netguard"
 )
 
 // UserAgent 是探测请求的 User-Agent（沿用既有字面量，运维侧按此识别探活流量）。

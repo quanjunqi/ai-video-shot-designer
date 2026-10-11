@@ -15,7 +15,7 @@ import (
 
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
-	"shotdesigner/services/execution/internal/netguard"
+	"shotdesigner/shared/netguard"
 )
 
 // ---- 替身 ----------------------------------------------------------------

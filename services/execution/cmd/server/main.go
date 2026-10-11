@@ -20,9 +20,9 @@ import (
 	"shotdesigner/services/execution/internal/engine"
 	"shotdesigner/services/execution/internal/httpapi"
 	"shotdesigner/services/execution/internal/job"
-	"shotdesigner/services/execution/internal/netguard"
 	"shotdesigner/services/execution/internal/probe"
 	"shotdesigner/services/execution/internal/quota"
+	"shotdesigner/shared/netguard"
 )
 
 // jobPayload is the structured payload stored in job.intent_payload for model execution jobs.

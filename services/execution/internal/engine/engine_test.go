@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"shotdesigner/services/execution/internal/netguard"
+	"shotdesigner/shared/netguard"
 )
 
 const testAPIKey = "test-key"
