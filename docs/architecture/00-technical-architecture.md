@@ -24,7 +24,7 @@
 
 以下能力仍未完成，不能当作已交付：真实 OIDC 会话与多租户身份、Temporal 业务 Workflow、Go Director Worker、Catalog Service、Projection/SSE、Provider/ComfyUI 执行面、媒体扫描与转码、生产级迁移历史、HA/备份恢复和完整漫剧工坊业务闭环。Execution/Task Service 已完成首版真实闭环：独立 PostgreSQL、Job/Attempt、幂等创建、查询、取消、重试、内置开发 Worker 和 BFF 转发，仍不是生产级供应商执行器。Asset Service + PostgreSQL + MinIO 已完成首版上传会话、流式上传、SHA-256 校验、提交和按项目查询；但暂不包含签名下载 URL、媒体扫描、转码/缩略图、派生资源、病毒检测和审核状态机。前端 Store、本地任务计时器、占位媒体和 mock 哈希不能作为服务端审核事实源。
 
-旧 `docs/commercial/04-technical-solution.md` 是方向参考。本方案纠正其 Vue 前端选型，收敛首期服务数量，明确审核与 Gate 的一致性边界；与本方案冲突的部分以本方案和当前 `docs/product/design.md` 产品边界为准。
+早期商业立项文档（由 Owner 本地保管，不随仓库公开）曾提出 Vue 前端选型。本方案纠正该选型，收敛首期服务数量，明确审核与 Gate 的一致性边界；与本方案冲突的部分以本方案和当前 `docs/product/design.md` 产品边界为准。
 
 ### 1.3 产品边界
 

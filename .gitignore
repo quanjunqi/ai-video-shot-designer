@@ -65,3 +65,8 @@ apps/web/node_modules
 
 # 并行开发用的 worktree 目录（不入库；§1 约定放在这里）
 .worktrees/
+
+# 私有文档目录（已迁移到仓库外 ../ai-video-shot-designer-private/，不随仓库公开）
+# docs/commercial/
+# docs/research/
+# docs/archive/
