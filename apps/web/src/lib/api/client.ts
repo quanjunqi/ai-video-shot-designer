@@ -552,6 +552,62 @@ export interface CredentialStatus {
 export type LogicalModelType = 'text' | 'image' | 'video';
 export type LogicalModelStatus = 'enabled' | 'disabled';
 
+// ── 策展（O-1 Phase D）─────────────────────────────────────────────────
+// 上游供给池里的一行。UpstreamType 是上游**原样标签**（如 "model"），
+// 它可能无法映射到产品面的 text|image|video —— 所以界面必须让用户选，而不是猜。
+export interface SupplyItem {
+  channelId: string;
+  providerModel: string;
+  displayName: string;
+  upstreamType: string;
+  tags: string;
+  endpointTypes: unknown;
+  pricing: unknown;
+  pricingAmount: number | null;
+  pricingUnit: string;
+  lastSeenAt: string;
+  missingSince: string | null;
+  priceIsEstimate: boolean;
+}
+
+export interface CurateModelRequest {
+  id: string;
+  family: string;
+  name: string;
+  type: 'text' | 'image' | 'video';
+  channelId: string;
+  providerModel: string;
+  logicalModelId?: string;
+  protocolTemplateId?: string;
+  routePriority?: number;
+  note?: string;
+  costAmount?: number;
+  costUnit?: string;
+  priceAmount?: number;
+  priceUnit?: string;
+}
+
+export interface CuratedModelResponse {
+  id: string;
+  channelId: string;
+  family: string;
+  name: string;
+  providerModel: string;
+  type: string;
+  status: string;
+  sort: number;
+  note: string;
+  protocolTemplateId?: string;
+  logicalModelId?: string;
+  routePriority: number;
+  costAmount?: number | null;
+  costUnit?: string;
+  priceAmount?: number | null;
+  priceUnit?: string;
+  priceSource?: string;
+  version: number;
+}
+
 export interface ServerLogicalModel {
   id: string;
   label: string;
@@ -710,6 +766,19 @@ export const api = {
   deleteUserChannel: (channelId: string) =>
     request<void>(`/api/v1/workspace/channels/${encodeURIComponent(channelId)}`, { method: 'DELETE' }),
   getCatalog: () => request<ServerCatalogDirectory>('/api/v1/catalog'),
+  // 策展（O-1 Phase D）：列出某渠道的上游供给 + 把其中一条加入产品目录。
+  // 注意 query 必须经 BFF 透传 —— catalogProxy 曾漏掉 RawQuery（已在 #157 修好并加护栏）。
+  listSupply: (channelId: string, includeMissing = false) => {
+    const query = new URLSearchParams({ channel_id: channelId });
+    if (includeMissing) query.set('include_missing', '1');
+    return request<{ items: SupplyItem[] }>(`/api/v1/catalog/supply?${query.toString()}`);
+  },
+  curateModel: (input: CurateModelRequest) =>
+    request<{ model: CuratedModelResponse }>('/api/v1/catalog/curate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
   createProtocolTemplate: (input: { label: string; desc: string; requestPath: string; method: 'POST' | 'GET'; params: { key: string; value: string }[]; responseParams: { key: string; value: string; type?: string }[]; async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string; pollPath?: string } }) =>
     request<ServerProtocolTemplate>('/api/v1/catalog/protocol-templates', { method: 'POST', body: JSON.stringify(input) }),
   updateProtocolTemplate: (id: string, patch: Partial<{ label: string; desc: string; requestPath: string; method: 'POST' | 'GET'; params: { key: string; value: string }[]; responseParams: { key: string; value: string; type?: string }[]; async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string; pollPath?: string }; enabled: boolean }>) =>

@@ -44,7 +44,7 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 		return dir, err
 	}
 
-	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority,
+	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, COALESCE(protocol_template_id,''), request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority,
 		workspace_id
 		FROM model_catalog
 		WHERE workspace_id = '' OR workspace_id = $1
@@ -124,7 +124,7 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 
 func (store PostgresStore) GetModel(ctx context.Context, id string) (Model, error) {
 	var m Model
-	err := store.Pool.QueryRow(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version
+	err := store.Pool.QueryRow(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, COALESCE(protocol_template_id,''), request_path, method, params, response_params, capability, version
         FROM model_catalog WHERE id = $1`, id).
 		Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -155,7 +155,7 @@ func (store PostgresStore) CreateModel(ctx context.Context, actor string, input 
 	if len(input.ResponseParams) == 0 {
 		input.ResponseParams = json.RawMessage("[]")
 	}
-	_, err := store.Pool.Exec(ctx, `INSERT INTO model_catalog (id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, created_by)
+	_, err := store.Pool.Exec(ctx, `INSERT INTO model_catalog (id, channel_id, family, name, provider_model, type, status, sort, note, COALESCE(protocol_template_id,''), request_path, method, params, response_params, capability, created_by)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 		input.ID, input.ChannelID, input.Family, input.Name, input.ProviderModel, input.Type, input.Status, input.Sort, input.Note, nullableString(input.ProtocolTemplateID), input.RequestPath, input.Method, input.Params, input.ResponseParams, input.Capability, actor)
 	if err != nil {
@@ -211,7 +211,7 @@ func (store PostgresStore) UpdateModel(ctx context.Context, actor string, id str
             capability      = COALESCE($15, capability),
             created_by      = $16
         WHERE id = $1
-        RETURNING id, channel_id, family, name, provider_model, type, status, sort, note, protocol_template_id, request_path, method, params, response_params, capability, version`,
+        RETURNING id, channel_id, family, name, provider_model, type, status, sort, note, COALESCE(protocol_template_id,''), request_path, method, params, response_params, capability, version`,
 		id,
 		nullableString(patch.ChannelID),
 		nullableString(patch.Family),

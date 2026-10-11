@@ -2,7 +2,7 @@
 // 渠道配置（模型来源 L1）：内置六渠道（平台集中）+ 自定义渠道（用户自建，可删除）
 // 正式态：凭据经 workspace 服务加密存储（只写不读明文）；连通性检测为后端真实 HTTP 探测
 import { useState } from 'react';
-import { Cable, Globe, Server, Cloud, PlugZap, Power, Plus, Trash2, UserRound, ShieldCheck, Pencil, Eye, EyeOff, Lock, Check, Copy, RefreshCw } from 'lucide-react';
+import { Cable, Globe, Server, Cloud, PlugZap, Power, Plus, Trash2, UserRound, ShieldCheck, Pencil, Eye, EyeOff, Lock, Check, Copy, RefreshCw, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { useEffect } from 'react';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { api, type ChannelSyncResult } from '@/lib/api/client';
+import CurationPanel from '@/features/settings/CurationPanel';
 import { MODEL_CHANNELS, type ChannelKind, type ChannelConfig, type ChannelProtocol } from '@/config/models/model-catalog';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +55,8 @@ export default function SettingsChannelsPage() {
   const duplicateChannel = useSettingsStore((s) => s.duplicateChannel);
   const testChannel = useSettingsStore((s) => s.testChannel);
   const syncCatalog = useSettingsStore((s) => s.syncCatalog);
+  // D2：策展面板（哪个渠道正在策展）
+  const [curationFor, setCurationFor] = useState<ChannelConfig | null>(null);
   const syncCredentials = useSettingsStore((s) => s.syncCredentials);
   const saveCredential = useSettingsStore((s) => s.saveCredential);
   const clearCredential = useSettingsStore((s) => s.clearCredential);
@@ -276,6 +279,17 @@ export default function SettingsChannelsPage() {
                     <RefreshCw className={cn('h-3.5 w-3.5', syncingId === c.id && 'animate-spin')} />
                     同步上游模型目录
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1.5 px-2 text-[11px]"
+                    title="策展上游模型：把该渠道同步进来的上游模型挑选进产品目录（加入后才对外可见、才参与路由）"
+                    onClick={() => setCurationFor(c)}
+                  >
+                    <Boxes className="h-3.5 w-3.5" />
+                    策展上游模型
+                  </Button>
                   <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => upsertChannel(c.id, { enabled: !c.enabled })} title={c.enabled ? '停用' : '启用'}>
                     <Power className={cn('h-3.5 w-3.5', c.enabled && 'text-success')} />
                   </Button>
@@ -368,6 +382,15 @@ export default function SettingsChannelsPage() {
       </p>
 
       {/* 编辑渠道（内置：名称/类型/鉴权方式锁定；自定义：全字段可改） */}
+      {/* D2：策展面板（把上游供给挑进产品目录） */}
+      <CurationPanel
+        channel={curationFor}
+        open={Boolean(curationFor)}
+        onOpenChange={(value) => {
+          if (!value) setCurationFor(null);
+        }}
+      />
+
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

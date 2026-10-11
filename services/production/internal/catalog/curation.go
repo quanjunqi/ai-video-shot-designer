@@ -116,24 +116,26 @@ func parsePricing(raw json.RawMessage) (float64, string, bool) {
 // 后者是目录接口的响应契约，策展字段（logical_model_id / route_priority / cost_* / price_*）
 // 属于管理路径；混在一起会悄悄改变对外 JSON 形状。
 type CuratedModel struct {
-	ID                 string
-	ChannelID          string
-	Family             string
-	Name               string
-	ProviderModel      string
-	Type               string
-	Status             string
-	Sort               int
-	Note               string
-	ProtocolTemplateID string
-	LogicalModelID     string
-	RoutePriority      int
-	CostAmount         *float64
-	CostUnit           string
-	PriceAmount        *float64
-	PriceUnit          string
-	PriceSource        string
-	Version            int
+	// ★ 必须有 JSON 标签：这个结构是**接口响应**，没有标签会输出 Go 风格字段名（ID/ChannelID…），
+	//   前端按驼峰读会全部拿到 undefined —— 而且不会报错（我第一次真机验证时正是如此）。
+	ID                 string   `json:"id"`
+	ChannelID          string   `json:"channelId"`
+	Family             string   `json:"family"`
+	Name               string   `json:"name"`
+	ProviderModel      string   `json:"providerModel"`
+	Type               string   `json:"type"`
+	Status             string   `json:"status"`
+	Sort               int      `json:"sort"`
+	Note               string   `json:"note"`
+	ProtocolTemplateID string   `json:"protocolTemplateId"`
+	LogicalModelID     string   `json:"logicalModelId"`
+	RoutePriority      int      `json:"routePriority"`
+	CostAmount         *float64 `json:"costAmount"`
+	CostUnit           string   `json:"costUnit"`
+	PriceAmount        *float64 `json:"priceAmount"`
+	PriceUnit          string   `json:"priceUnit"`
+	PriceSource        string   `json:"priceSource"`
+	Version            int      `json:"version"`
 }
 
 // CurateInput 是人工策展时给出的决定。凡"来自供给池"的字段都不在这里 ——
