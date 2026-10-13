@@ -2197,17 +2197,7 @@ components:
           type: array
           description: 版本历史。
           items:
-            type: object
-            required: [version, prompt, negative_prompt, status, created_at]
-            properties:
-              version: {type: integer}
-              prompt: {type: string}
-              negative_prompt: {type: string}
-              image_url: {type: string}
-              sha256: {type: string}
-              status: {type: string, description: 取值以服务端为准，契约待补。}
-              created_at: {type: integer, description: 前端声明为 number（疑似时间戳），以服务端为准。}
-            additionalProperties: true
+            $ref: '#/components/schemas/EpisodeAssetVersion'
         prompt: {type: string}
         negative_prompt: {type: string}
         image_url: {type: string}
@@ -2229,6 +2219,21 @@ components:
         updated_at: {type: string, format: date-time}
       additionalProperties: true
 
+    EpisodeAssetVersion:
+      type: object
+      description: 资产单版本历史条目。
+      required: [version, prompt, negative_prompt, status, created_at]
+      properties:
+        version: {type: integer}
+        prompt: {type: string}
+        negative_prompt: {type: string}
+        image_url: {type: string}
+        sha256: {type: string}
+        status: {type: string, description: 取值以服务端为准，契约待补。}
+        created_at: {type: integer, description: 前端声明为 number（疑似时间戳），以服务端为准。}
+      # 字段已穷举，禁用未声明字段
+      additionalProperties: false
+
     CreateEpisodeAssetRequest:
       type: object
       required: [id, kind, name]
@@ -2247,7 +2252,7 @@ components:
         current_version: {type: integer}
         versions:
           type: array
-          items: {$ref: '#/components/schemas/EpisodeAsset/properties/versions/items'}
+          items: {$ref: '#/components/schemas/EpisodeAssetVersion'}
         prompt: {type: string}
         negative_prompt: {type: string}
         image_url: {type: string}
@@ -2553,12 +2558,20 @@ components:
               additionalProperties: true
             - type: string
             - type: 'null'
+        result_payload:
+          description: 任务结果（execution 010 起与意图分离存放，服务端 jsonb，可能返回对象或 JSON 字符串）。010 之前历史结果在 intent_payload.result 中，读取须回退。
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: string
+            - type: 'null'
         cost_estimate: {type: string, description: 成本估算（字符串，如货币金额）。}
         error: {type: string}
         context_path: {type: string}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
-      additionalProperties: true
+      # 字段已完整枚举，禁用未声明字段（与 ServerTask 手写定义对齐）
+      additionalProperties: false
 
     CreateTaskRequest:
       type: object
@@ -2865,7 +2878,12 @@ components:
         enabled: {type: boolean}
         note: {type: string}
         sort: {type: integer}
-      additionalProperties: true
+        syncKind: {type: string, description: 同步状态（只读投影；同步配置是平台级的，前端不写它）。}
+        syncModelsPath: {type: string}
+        syncPricingPath: {type: string}
+        lastSyncAt: {type: [string, 'null'], format: date-time}
+      # 字段已与前端 ServerCatalogChannel 对齐，禁用未声明字段
+      additionalProperties: false
 
     CatalogChannelPatch:
       type: object
@@ -2934,7 +2952,8 @@ components:
         key: {type: string}
         value: {type: string}
         type: {type: string, description: 可选类型标注，取值以服务端为准。}
-      additionalProperties: true
+      # 字段已穷举，禁用未声明字段（与前端 ModelParam 对齐）
+      additionalProperties: false
 
     CreateCatalogModelRequest:
       type: object

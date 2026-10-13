@@ -33,7 +33,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import StageModelPicker from '@/features/comic/StageModelPicker';
 import type { ArtifactStatus, Episode, ShotCard } from '@/types';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api/client';
+import { api, type ServerTask } from '@/lib/api/client';
 import { resolveTaskResult } from '@/features/genworkbench/result-utils';
 
 const STATUS_META: Record<ArtifactStatus, { label: string; className: string; dot: string }> = {
@@ -609,17 +609,19 @@ function CharacterDetailDrawer({
       });
 
       if (!genRes.task_id) {
-        const err = genRes.error || (genRes as any)?.message || '未知错误';
+        // 同步分支（GenerateResponse）：失败时 ok=false 且带 error
+        const err = 'error' in genRes && genRes.error ? genRes.error : '未知错误';
         toast.error(`变体立绘生成失败：${err}`);
         return;
       }
+      const taskId: string = genRes.task_id as string;
 
       // 5. 轮询任务状态（最多6分钟）
       const maxPolls = 120;
-      let finalTask: any = null;
+      let finalTask: ServerTask | null = null;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 3000));
-        finalTask = await api.getTask(genRes.task_id);
+        finalTask = await api.getTask(taskId);
         if (finalTask.status === 'succeeded' || finalTask.status === 'failed' || finalTask.status === 'cancelled') {
           break;
         }
@@ -636,7 +638,7 @@ function CharacterDetailDrawer({
       for (let retry = 0; retry < 10; retry++) {
         if (retry > 0) {
           await new Promise((r) => setTimeout(r, 2000));
-          finalTask = await api.getTask(genRes.task_id);
+          finalTask = await api.getTask(taskId);
         }
         const result = resolveTaskResult(finalTask);
         url = (result['output.image_urls.0'] || result['output.data.0.url'] || result['data.0.url'] || result['url']) as string | undefined;

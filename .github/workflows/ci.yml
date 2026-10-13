@@ -26,6 +26,7 @@ jobs:
       frontend: ${{ steps.detect.outputs.frontend }}
       backend: ${{ steps.detect.outputs.backend }}
       security: ${{ steps.detect.outputs.security }}
+      openapi: ${{ steps.detect.outputs.openapi }}
       services: ${{ steps.detect.outputs.services }}
       reason: ${{ steps.detect.outputs.reason }}
     steps:
@@ -102,6 +103,13 @@ jobs:
         if: needs.changes.outputs.frontend == 'true'
         working-directory: apps/web
         run: npm run gate
+
+      - name: Contract sync check (契约生成类型同步)
+        if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
+        run: npm run api:check
+        # 说明：openapi/bff.yaml 或前端类型有改动时，生成类型必须与契约同步（openapi/* 已并入 frontend=true）。
+        # openapi-typescript --check 在生成物过期时退出非 0，阻断契约漂移（类型不一致）合入。
 
       - name: Unit tests
         if: needs.changes.outputs.frontend == 'true'
