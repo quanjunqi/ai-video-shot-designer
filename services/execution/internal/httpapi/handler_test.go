@@ -53,6 +53,28 @@ func executionRequest(method, path, body string) *http.Request {
 	return r
 }
 
+// TestAuditCostFor 锁定 T0 验收 #2 的成本提取语义：
+// 命中模型带权威价 → 返回 (金额, 单位)；未校准（nil）→ (0, "") 的"预估"口径。
+func TestAuditCostFor(t *testing.T) {
+	cost := 0.06
+	cases := []struct {
+		name       string
+		m          catalog.Model
+		wantAmount float64
+		wantUnit   string
+	}{
+		{"已校准（同步价）", catalog.Model{CostAmount: &cost, CostUnit: "per_call"}, 0.06, "per_call"},
+		{"已校准但无单位", catalog.Model{CostAmount: &cost}, 0.06, ""},
+		{"未校准（nil）", catalog.Model{}, 0, ""},
+	}
+	for _, c := range cases {
+		amt, unit := auditCostFor(c.m)
+		if amt != c.wantAmount || unit != c.wantUnit {
+			t.Fatalf("%s: auditCostFor = (%v,%q), want (%v,%q)", c.name, amt, unit, c.wantAmount, c.wantUnit)
+		}
+	}
+}
+
 func TestIntentCreateRequiresAuthAndContext(t *testing.T) {
 	store := &fakeStore{}
 	h := Handler{Store: store, Token: "test-token"}.Routes()

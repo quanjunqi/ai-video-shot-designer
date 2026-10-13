@@ -25,6 +25,7 @@ import (
 	"shotdesigner/services/execution/internal/mapping"
 	"shotdesigner/services/execution/internal/probe"
 	"shotdesigner/services/execution/internal/quota"
+	"shotdesigner/services/execution/internal/reconcile"
 )
 
 type Handler struct {
@@ -41,6 +42,8 @@ type Handler struct {
 	Probe *probe.Prober
 	// Artifacts 是产物落盘客户端（TASK-ASSET-001）。为 nil 时不落盘（best-effort 关闭）。
 	Artifacts *artifact.Client
+	// ReconcileStore 是 T0 价格校准台账（price_calibration_logs）。为 nil 时对账端点 503。
+	ReconcileStore *reconcile.Store
 }
 
 type Store interface {
@@ -73,6 +76,8 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /internal/v1/audit/export", h.exportAuditLogs)
 	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
 	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
+	// T0 价格对账：触发一次「审计实际成本 vs 目录权威价」的差异检查，写入校准台账。
+	mux.HandleFunc("POST /internal/v1/reconcile", h.reconcile)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 同步测试端点 /tasks/run 会真实等待上游生成（文本 ~5s、图片 30-120s、视频异步不在此同步执行），
 		// 超时按上游长任务放宽，避免图片/视频生成被掐断。
@@ -427,6 +432,12 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// 是「积分/百万 Token」（产品 UI 原文），而本表 cost_currency 硬编码 CNY，
 	// 单位未定；把积分写进 CNY 列是数据缺陷。价格换算待 Owner 定单位后另做（D4b）。
 	var auditTokenIn, auditTokenOut, auditTokenCached int
+	// T0 权威价格校准：命中模型的权威成本（model_catalog.cost_amount 经目录投影）。
+	// 在 AttemptEach 命中回调填入；未校准模型保持 0 + 空 unit（"预估"口径，T2 报表据此区分）。
+	// 这替换了上面 D4b 的搁置状态：037 迁移已建 cost_amount+cost_unit 六列、策展已写值，
+	// 权威价现在可可靠回写（ADR-004 §1 的 33 倍差价问题在此收口）。
+	var auditCostAmount float64
+	var auditCostUnit string
 	// writeAudit 写一条审计。审计失败不得阻断主流程，但【必须可见】（D1：不再用 _ = 丢弃）。
 	writeAudit := func(status string, respPayload json.RawMessage, errMsg string, jobID string, providerTaskID string) {
 		if h.AuditStore == nil {
@@ -441,6 +452,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			Status: status, LatencyMs: int(time.Since(startTime).Milliseconds()),
 			TokenInput: auditTokenIn, TokenOutput: auditTokenOut, TokenCached: auditTokenCached,
 			JobID: jobID, ProviderTaskID: providerTaskID, CostCurrency: "CNY",
+			CostAmount: auditCostAmount, CostUnit: auditCostUnit,
 		}
 		if err := h.AuditStore.Insert(r.Context(), auditLog); err != nil {
 			slog.Error("audit insert failed", "requestId", requestID, "status", status, "error", err)
@@ -684,6 +696,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	_, syncAttempts, syncErr := catalog.AttemptEach(candidates, func(m catalog.Model) error {
 		// 审计如实记录"这一刻尝试的是谁"
 		auditChannelID = m.ChannelID
+		// T0：命中模型的权威成本回写审计（契约含 costAmount；nil = 未校准，保持 0+空 unit 的预估口径）
+		auditCostAmount, auditCostUnit = auditCostFor(m)
 		var mTmpl *catalog.Template
 		for i := range dir.Templates {
 			if dir.Templates[i].ID == m.ProtocolTemplateID {
@@ -766,6 +780,16 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 }
 
 // genRequestID generates a unique request ID for audit tracing
+// auditCostFor 从命中模型取权威成本（T0 价格校准）。
+// 返回 (金额, 计费单位)：CostAmount=nil 表示该模型未校准 → (0, "")，即审计的"预估"口径
+// （T2 报表据此区分已校准/预估，不参与预算拦截的强口径）。
+func auditCostFor(m catalog.Model) (float64, string) {
+	if m.CostAmount == nil {
+		return 0, ""
+	}
+	return *m.CostAmount, m.CostUnit
+}
+
 func genRequestID() string {
 	b := make([]byte, 12)
 	_, _ = rand.Read(b)
@@ -854,6 +878,58 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 // 只接受 workspaceID + actorID + channelID：base URL 由 probe 包从服务端来源解析
 // （工作区用户渠道 / 凭据行 / 平台目录），**不接受请求体里的地址**——那正是原来的
 // SSRF 面。返回结构与旧 probe.Result 一致（前端 ProbeResult 不变）。
+// reconcile 触发一次 T0 价格对账（dev-plan T0 验收 #4）：
+//
+//	审计实际成本（最近 7 天成功调用，按 model_id 聚合） vs 目录权威价（model_catalog.cost_amount）
+//	差异 > 20% 记为 alert 并写入 price_calibration_logs；端点返回本次告警列表。
+//
+// 一次性触发（运营/调试）；后续周期调度复用同一 reconcile 包（纯函数，无 IO 依赖本端点）。
+func (h Handler) reconcile(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
+		return
+	}
+	if h.Catalog == nil || h.AuditStore == nil || h.ReconcileStore == nil {
+		writeError(w, 503, "RECONCILE_UNAVAILABLE", "price reconcile is not configured")
+		return
+	}
+	ws, actor, ok := ctxOf(r)
+	if !ok {
+		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
+		return
+	}
+	// 目录权威价（含工作区视角）：无校准价的模型不出现在 ledger —— 未校准不告警（对账非缺失）
+	dir, err := h.Catalog.Get(r.Context(), ws, actor)
+	if err != nil {
+		slog.Error("reconcile catalog", "workspace_id", ws, "error", err)
+		writeError(w, 503, "CATALOG_UNAVAILABLE", "catalog could not be loaded")
+		return
+	}
+	ledger := make(map[string]float64, len(dir.Models))
+	for _, m := range dir.Models {
+		if m.CostAmount != nil {
+			ledger[m.ID] = *m.CostAmount
+		}
+	}
+	actuals, err := h.AuditStore.AggregateRecentCosts(r.Context(), 200)
+	if err != nil {
+		slog.Error("reconcile aggregate", "error", err)
+		writeError(w, 503, "AUDIT_AGGREGATE_FAILED", "audit cost aggregation failed")
+		return
+	}
+	alerts := reconcile.Reconcile(actuals, ledger, reconcile.DefaultThresholdPct)
+	if err := h.ReconcileStore.WriteAlerts(r.Context(), alerts); err != nil {
+		// 台账写入失败不吞掉结果：告警列表仍返回（可见），但必须打日志（审计的审计）
+		slog.Error("reconcile write alerts", "count", len(alerts), "error", err)
+	}
+	writeJSON(w, 200, map[string]any{
+		"ok":           true,
+		"thresholdPct": reconcile.DefaultThresholdPct,
+		"checked":      len(actuals),
+		"alertCount":   len(alerts),
+		"alerts":       alerts,
+	})
+}
+
 func (h Handler) probeChannel(w http.ResponseWriter, r *http.Request) {
 	if !h.auth(w, r) {
 		return

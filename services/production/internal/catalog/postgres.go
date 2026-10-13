@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"sort"
@@ -45,6 +46,7 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 	}
 
 	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, COALESCE(protocol_template_id,''), request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority,
+		cost_amount, COALESCE(cost_unit,''), COALESCE(price_source,'manual'), price_synced_at,
 		workspace_id
 		FROM model_catalog
 		WHERE workspace_id = '' OR workspace_id = $1
@@ -63,8 +65,22 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 	for models.Next() {
 		var m Model
 		var ws string
-		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version, &m.LogicalModelID, &m.RoutePriority, &ws); err != nil {
+		var costAmt sql.NullFloat64
+		var costUnit sql.NullString
+		var priceSource sql.NullString
+		var priceSyncedAt sql.NullTime
+		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version, &m.LogicalModelID, &m.RoutePriority,
+			&costAmt, &costUnit, &priceSource, &priceSyncedAt,
+			&ws); err != nil {
 			return dir, err
+		}
+		if costAmt.Valid {
+			m.CostAmount = &costAmt.Float64
+		}
+		m.CostUnit = costUnit.String
+		m.PriceSource = priceSource.String
+		if priceSyncedAt.Valid {
+			m.PriceSyncedAt = &priceSyncedAt.Time
 		}
 		collected = append(collected, scoped{model: m, ws: ws})
 	}

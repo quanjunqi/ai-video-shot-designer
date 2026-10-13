@@ -66,6 +66,14 @@ type Model struct {
 	// 解析候选（零额外往返），而不是再加一次内部调用。
 	LogicalModelID string `json:"logicalModelId"`
 	RoutePriority  int    `json:"routePriority"`
+	// 权威成本价（ADR-004 D3，迁移 037）：cost_amount 为同步/人工维护的**我们付出的成本**；
+	// price_source = manual | synced 标记价格来源，price_synced_at 记录同步时间。
+	// 放进目录投影是 T0 价格校准的核心：execution 审计回写成本时用这里的权威价，
+	// 不再依赖手写 billing（ADR-004 §1 实测差 33 倍）。omitempty：无校准价的模型不出现键。
+	CostAmount    *float64   `json:"costAmount,omitempty"`
+	CostUnit      string     `json:"costUnit,omitempty"`
+	PriceSource   string     `json:"priceSource,omitempty"`
+	PriceSyncedAt *time.Time `json:"priceSyncedAt,omitempty"`
 }
 
 // ProtocolTemplate：协议模板实体（独立可管理）。

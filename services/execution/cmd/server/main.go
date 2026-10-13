@@ -23,6 +23,7 @@ import (
 	"shotdesigner/services/execution/internal/job"
 	"shotdesigner/services/execution/internal/probe"
 	"shotdesigner/services/execution/internal/quota"
+	"shotdesigner/services/execution/internal/reconcile"
 	"shotdesigner/shared/netguard"
 )
 
@@ -138,7 +139,9 @@ func main() {
 		}
 		log.Printf("execution: artifact persist enabled (asset=%s)", assetBaseURL)
 	}
-	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	// T0 价格校准台账：对账端点（POST /internal/v1/reconcile）写入 price_calibration_logs
+	reconcileStore := &reconcile.Store{Pool: pool}
+	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.
@@ -154,8 +157,8 @@ func main() {
 // 【本片明确未覆盖】failOrRetry 触发的终态（重试耗尽 / 死信）：那两处是否终态只有
 // failOrRetry 自己知道，需要它回报终态性 —— 属 D2b。
 func auditTerminal(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte) {
-	// 无用量场景（早退失败、panic 等）：用量本就为 0
-	auditTerminalT(ctx, as, j, ok, errMsg, result, 0, 0, 0, 0)
+	// 无用量场景（早退失败、panic 等）：用量本就为 0；成本同理（未执行成功，无权威价可回写）
+	auditTerminalT(ctx, as, j, ok, errMsg, result, 0, 0, 0, 0, 0, "")
 }
 
 // auditStatusFor 决定【审计行】里的终态词。
@@ -188,13 +191,16 @@ func auditStatusFor(ok bool) string {
 // 为什么必须补（D4a 的缺口）：D4a 只在同步路径记录了 token，worker 传的是
 //
 //	0,0,0 ⇒ **异步任务的 token 恒为 0**，而异步主要是视频类长任务（主要付费路径）。
-func auditTerminalUsage(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int) {
+//
+// costAmount/costUnit（T0 新增）：executeJob 命中模型（PickForAttempt）的权威成本，
+// 异步终态一并回写 —— 否则视频类长任务（主要付费路径）的成本恒为 0。
+func auditTerminalUsage(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int, costAmount float64, costUnit string) {
 	in, out, cached := engine.UsageFromExtracted(ex)
-	auditTerminalT(ctx, as, j, ok, errMsg, result, in, out, cached, elapsedMs)
+	auditTerminalT(ctx, as, j, ok, errMsg, result, in, out, cached, elapsedMs, costAmount, costUnit)
 }
 
 // auditTerminalT 是两条入口的公共实现。
-func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int) {
+func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int, costAmount float64, costUnit string) {
 	if as == nil {
 		return
 	}
@@ -206,7 +212,9 @@ func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, er
 	// 第 6 个参数是 latency_ms：原来硬编码 0 ⇒ 异步任务的耗时**永远是 0**，
 	// 而 P50/P95 与平均耗时都只统计 latency_ms > 0 的行 ⇒ **异步长任务（主要付费路径）
 	// 被整体排除在耗时分布之外**。引擎本来就测了 Duration，这里把它传下去。
-	n, err := as.UpdateResultByJobID(ctx, j.ID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, 0, "")
+	// 第 9-10 个参数是 costAmount/costUnit（T0）：命中模型的权威成本回写，
+	// 替换原硬编码 0 —— 异步成本不再恒为 0。
+	n, err := as.UpdateResultByJobID(ctx, j.ID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, costAmount, costUnit, "")
 	if err != nil {
 		log.Printf("execution worker: audit update failed for job %s: %v", j.ID, err)
 		return
@@ -324,6 +332,14 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 不在这里再套一层同步循环：那会把这段长流程重构得更脆，而收益相同。
 	chosen := catalog.PickForAttempt(candidates, j.Attempt)
 	model := &chosen
+	// T0：命中模型的权威成本（异步终态回写审计用；CostAmount=nil 表示未校准，
+	// 保持 0 + 空 unit 的"预估"口径 —— T2 报表据此区分已校准/预估）。
+	var hitCost float64
+	var hitUnit string
+	if model.CostAmount != nil {
+		hitCost = *model.CostAmount
+		hitUnit = model.CostUnit
+	}
 	if model.ProtocolTemplateID == "" {
 		auditTerminal(ctx, as, j, false, "model has no protocol template", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model has no protocol template")
@@ -421,12 +437,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
-		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs)
+		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
 	}
 
-	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs)
+	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
