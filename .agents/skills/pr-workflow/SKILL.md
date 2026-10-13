@@ -51,6 +51,13 @@ cd services/<svc> && go build ./... && go test ./... && go vet ./...
 - ❌ 跳过测试强制合并
 - ✅ 按路径 `git add`，提交前 `git diff --cached --name-only` 核对
 
+## Dependabot PR 规则（2026-10-13 事故沉淀）
+
+- **Dependabot PR 必须开向 develop**：dependabot.yml 的 `target-branch: develop` 在 master 分支上也必须配置（GitHub 读默认分支的配置；默认分支仍是 master 时，master 上的 dependabot.yml 缺 target-branch → PR 全打 master）
+- Dependabot 基于旧基座（旧 master）开出的 PR，改 base 到 develop 后 CI 仍可能假阴性（陈旧文件/旧 workflow 上下文）——**关闭旧 PR，从最新 origin/develop 重建分支 + 新 PR**，不要修旧 PR
+- 合并前本地实证：`go build ./... && go test ./...` 全绿才算依赖升级本身没问题
+- golangci-lint 与 go 指令要配套：pgx v5.9.2+ 要求 go 1.25；CI 的 setup-go 与 golangci-lint-action 版本要匹配（当前：Go 1.25.0 + golangci-lint-action@v7 + version v2.13.2）
+
 ## PR 流程
 
 1. push feature 分支到 origin
