@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"shotdesigner/services/execution/internal/reconcile"
 )
 
 // Log 网关调用审计日志记录
@@ -34,9 +36,13 @@ type Log struct {
 	TokenCached     int             `json:"token_cached"`
 	CostAmount      float64         `json:"cost_amount"`
 	CostCurrency    string          `json:"cost_currency"`
-	JobID           string          `json:"job_id,omitempty"`
-	ProviderTaskID  string          `json:"provider_task_id,omitempty"`
-	CreatedAt       time.Time       `json:"created_at"`
+	// CostUnit 记录本次调用成本的计费单位（per_call/per_second/per_mtok_input/per_mtok_output）。
+	// T0 价格校准新增：来源 = 命中模型的 model_catalog.cost_unit（迁移 012 新增列）。
+	// 空 = 该模型无校准价（成本为 0 的"预估"口径，T2 报表据此区分已校准/预估）。
+	CostUnit       string    `json:"cost_unit,omitempty"`
+	JobID          string    `json:"job_id,omitempty"`
+	ProviderTaskID string    `json:"provider_task_id,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // Store 审计日志存储
@@ -58,14 +64,14 @@ func (s Store) Insert(ctx context.Context, log Log) error {
 			product, model_id, channel_id, provider_model, mode,
 			request_payload, response_payload, error_message, status,
 			latency_ms, token_input, token_output, token_cached,
-			cost_amount, cost_currency, job_id, provider_task_id
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+			cost_amount, cost_currency, cost_unit, job_id, provider_task_id
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
 	`,
 		log.RequestID, log.WorkspaceID, log.ProjectID, log.EpisodeID, log.AssetID, log.UserID,
 		log.Product, log.ModelID, log.ChannelID, log.ProviderModel, log.Mode,
 		requestPayload, log.ResponsePayload, log.ErrorMessage, log.Status,
 		log.LatencyMs, log.TokenInput, log.TokenOutput, log.TokenCached,
-		log.CostAmount, log.CostCurrency, log.JobID, log.ProviderTaskID,
+		log.CostAmount, log.CostCurrency, log.CostUnit, log.JobID, log.ProviderTaskID,
 	)
 	return err
 }
@@ -97,9 +103,13 @@ func (s Store) UpdateResult(ctx context.Context, requestID string, status string
 //	（httpapi/handler.go 的 writeAudit("queued", …, j.ID, "")）。
 //	⇒ 按 job_id 定位无需任何 schema 变更。
 //
+// costUnit（第 11 参数，T0 新增）：异步终态把命中模型的计费单位一并回写；
+// 空 = 不覆盖既有值（提交时已写）或保持无校准口径。COALESCE(NULLIF(…)) 语义：
+// 空串不动原值，非空才覆盖 —— 避免"同步提交写了 unit、异步回写又把 unit 清空"。
+//
 // 返回受影响行数：0 表示该 job【没有提交时的审计行】（例如经 /internal/v1/tasks 提交的任务）。
 // 调用方必须把这个 0 打出来 —— 静默的空更新会重现"审计看起来有、其实没更新"的问题。
-func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, providerTaskID string) (int64, error) {
+func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, costUnit, providerTaskID string) (int64, error) {
 	// D5a：同一个收口点，异步终态也走 L0 脱敏
 	responsePayload = RedactJSON(responsePayload)
 	errorMessage = redactText(errorMessage)
@@ -113,9 +123,10 @@ func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, re
 			token_output = $7,
 			token_cached = $8,
 			cost_amount = $9,
-			provider_task_id = COALESCE(NULLIF($10, ''), provider_task_id)
+			cost_unit = COALESCE(NULLIF($10, ''), cost_unit),
+			provider_task_id = COALESCE(NULLIF($11, ''), provider_task_id)
 		WHERE job_id = $1
-	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, providerTaskID)
+	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, costUnit, providerTaskID)
 	if err != nil {
 		return 0, err
 	}
@@ -503,6 +514,38 @@ func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (Agg
 	}
 	if out.TokensByChannel, err = s.TokenUsageBy(ctx, workspaceID, f, "channel", 5); err != nil {
 		return AggregateResult{}, err
+	}
+	return out, nil
+}
+
+// AggregateRecentCosts 聚合最近 7 天成功调用的实际成本（按 model_id 分组，T0 对账用）。
+//
+// 语义：actual = 审计回写的权威成本（sync/async 路径均已接权威价）；
+// 返回 reconcile.ActualCost 供对账纯函数直接消费（同 unit 内聚合，避免跨单位相加）。
+// limit 限制返回的模型行数（按总成本降序），防止目录膨胀时对账集失控。
+func (s Store) AggregateRecentCosts(ctx context.Context, limit int) ([]reconcile.ActualCost, error) {
+	rows, err := s.Pool.Query(ctx, `
+		SELECT model_id, COALESCE(channel_id, ''), COALESCE(provider_model, ''), COALESCE(cost_unit, ''), SUM(cost_amount)
+		FROM gateway_audit_logs
+		WHERE status = 'success'
+		  AND created_at >= now() - interval '7 days'
+		GROUP BY model_id, channel_id, provider_model, cost_unit
+		ORDER BY SUM(cost_amount) DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("audit aggregate recent costs: %w", err)
+	}
+	defer rows.Close()
+	var out []reconcile.ActualCost
+	for rows.Next() {
+		var a reconcile.ActualCost
+		if err := rows.Scan(&a.ModelID, &a.ChannelID, &a.ProviderModel, &a.CostUnit, &a.Amount); err != nil {
+			return nil, fmt.Errorf("audit aggregate recent costs: %w", err)
+		}
+		out = append(out, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("audit aggregate recent costs: %w", err)
 	}
 	return out, nil
 }

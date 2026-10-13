@@ -53,6 +53,14 @@ type Model struct {
 	LogicalModelID string `json:"logicalModelId"`
 	RoutePriority  int    `json:"routePriority"`
 	Status         string `json:"status"`
+	// 权威成本价（T0 价格校准，契约来自 production 目录投影）：
+	// CostAmount 非 nil = 该模型有已校准成本（model_catalog.cost_amount），审计回写用它；
+	// CostUnit 跟随 cost_unit（per_call/per_second/per_mtok_input/per_mtok_output）；
+	// PriceSource=manual|synced 标记来源，PriceSyncedAt 记录同步时间。
+	CostAmount    *float64  `json:"costAmount,omitempty"`
+	CostUnit      string    `json:"costUnit,omitempty"`
+	PriceSource   string    `json:"priceSource,omitempty"`
+	PriceSyncedAt time.Time `json:"priceSyncedAt,omitempty"`
 }
 
 type Template struct {
