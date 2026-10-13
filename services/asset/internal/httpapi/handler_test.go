@@ -155,6 +155,7 @@ func TestCommitAndListGuards(t *testing.T) {
 	for _, c := range []struct{ name, method, target string }{
 		{"commit 缺 workspace", http.MethodPost, "/internal/v1/assets/uploads/up_1/commit"},
 		{"list 缺 workspace", http.MethodGet, "/internal/v1/assets"},
+		{"content 缺 workspace", http.MethodGet, "/internal/v1/assets/ast_1/content"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()

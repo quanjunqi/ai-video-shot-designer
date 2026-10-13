@@ -201,4 +201,30 @@ func (s Store) List(ctx context.Context, workspace, projectID string) ([]Asset, 
 	return result, rows.Err()
 }
 
+// Content 是资产读取端点（GET /internal/v1/assets/{id}/content）的返回投影：
+// 资产元数据 + MinIO 对象体。Body 由调用方关闭。
+type Content struct {
+	Asset
+	Body io.ReadCloser
+}
+
+// GetContent 按资产 id 读取落盘内容（TASK-ASSET-001 读取端点）。
+// 只允许读取本 workspace 的资产（workspace 隔离）；资产不存在返回 ErrNotFound。
+func (s Store) GetContent(ctx context.Context, workspace, assetID string) (Content, error) {
+	var a Asset
+	err := s.Pool.QueryRow(ctx, `SELECT id,upload_id,project_id,COALESCE(episode_id,''),kind,scope,name,prompt,object_key,sha256,byte_size,content_type,status,created_at FROM assets WHERE workspace_id=$1 AND id=$2`, workspace, assetID).
+		Scan(&a.ID, &a.UploadID, &a.ProjectID, &a.EpisodeID, &a.Kind, &a.Scope, &a.Name, &a.Prompt, &a.ObjectKey, &a.SHA256, &a.ByteSize, &a.ContentType, &a.Status, &a.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Content{}, ErrNotFound
+	}
+	if err != nil {
+		return Content{}, err
+	}
+	obj, err := s.Object.GetObject(ctx, s.Bucket, a.ObjectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return Content{}, err
+	}
+	return Content{Asset: a, Body: obj}, nil
+}
+
 func randomID() string { var b [12]byte; _, _ = rand.Read(b[:]); return hex.EncodeToString(b[:]) }

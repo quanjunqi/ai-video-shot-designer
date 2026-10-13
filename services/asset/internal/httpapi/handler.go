@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -32,6 +33,7 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /internal/v1/assets/uploads", h.create)
 	mux.HandleFunc("PUT /internal/v1/assets/uploads/{id}/content", h.put)
 	mux.HandleFunc("POST /internal/v1/assets/uploads/{id}/commit", h.commit)
+	mux.HandleFunc("GET /internal/v1/assets/{id}/content", h.content)
 	mux.HandleFunc("GET /internal/v1/assets", h.list)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
@@ -150,6 +152,33 @@ func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"items": out})
+}
+
+// content 返回已落盘资产的原始字节（TASK-ASSET-001 读取端点）。
+// workspace 隔离由 Store.GetContent 保证（跨 workspace 一律 404）。
+func (h Handler) content(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
+		return
+	}
+	if workspace(r) == "" {
+		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
+		return
+	}
+	c, err := h.Store.GetContent(r.Context(), workspace(r), r.PathValue("id"))
+	if err != nil {
+		status, code := 500, "CONTENT_FAILED"
+		if errors.Is(err, asset.ErrNotFound) {
+			status, code = 404, "NOT_FOUND"
+		}
+		writeError(w, status, code, err.Error())
+		return
+	}
+	defer c.Body.Close()
+	w.Header().Set("Content-Type", c.ContentType)
+	w.Header().Set("Content-Length", fmt.Sprint(c.ByteSize))
+	// 产物落盘后内容不可变，可安全缓存。
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	_, _ = io.Copy(w, c.Body)
 }
 func writeError(w http.ResponseWriter, s int, c, m string) {
 	writeJSON(w, s, map[string]string{"code": c, "message": m})
