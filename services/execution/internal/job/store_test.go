@@ -103,6 +103,43 @@ func TestIntentPayloadIsNotTaskStepsAndParticipatesInIdempotency(t *testing.T) {
 	}
 }
 
+// TestCreatePersistsAttribution 锁定 T1 归因贯穿：Input.ShotID/Feature 持久化并经
+// Get 读回（scanJob 列序与 fields() 一致，任何一侧错位都会让归因静默丢失/错位）。
+func TestCreatePersistsAttribution(t *testing.T) {
+	store := testStore(t)
+	ctx := context.Background()
+	in := Input{
+		IdempotencyKey: "attr-1", Kind: "video", Label: "分镜生成",
+		ProjectID: "project-1", EpisodeID: "episode-1", AssetID: "asset-1", ShotID: "shot-1",
+		Feature:       "storyboard",
+		IntentPayload: []byte(`{"modelId":"lm-video-standard","prompt":"x"}`),
+	}
+	created, replay, err := store.Create(ctx, "workspace-a", "actor-a", in)
+	if err != nil || replay {
+		t.Fatalf("create: job=%+v replay=%v err=%v", created, replay, err)
+	}
+	got, err := store.Get(ctx, "workspace-a", created.ID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.ShotID != "shot-1" || got.Feature != "storyboard" || got.ProjectID != "project-1" || got.EpisodeID != "episode-1" {
+		t.Fatalf("attribution not persisted through scan: %+v", got)
+	}
+	// 缺失归因不报错：仅 shot/feature 缺省时 Create 仍成功且读回空
+	minimal := Input{IdempotencyKey: "attr-2", Kind: "text", Label: "无归因", IntentPayload: []byte(`{"modelId":"m"}`)}
+	created2, _, err := store.Create(ctx, "workspace-a", "actor-a", minimal)
+	if err != nil {
+		t.Fatalf("minimal create should succeed without attribution: %v", err)
+	}
+	got2, err := store.Get(ctx, "workspace-a", created2.ID)
+	if err != nil {
+		t.Fatalf("get minimal: %v", err)
+	}
+	if got2.ShotID != "" || got2.Feature != "" {
+		t.Fatalf("missing attribution must decode as empty, got shot=%q feature=%q", got2.ShotID, got2.Feature)
+	}
+}
+
 func TestCreateRejectsNonArraySteps(t *testing.T) {
 	if validSteps([]byte(`{"prompt":"must not be steps"}`)) {
 		t.Fatal("expected object-valued steps to be rejected")

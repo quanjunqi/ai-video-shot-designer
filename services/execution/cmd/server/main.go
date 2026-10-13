@@ -157,8 +157,9 @@ func main() {
 // 【本片明确未覆盖】failOrRetry 触发的终态（重试耗尽 / 死信）：那两处是否终态只有
 // failOrRetry 自己知道，需要它回报终态性 —— 属 D2b。
 func auditTerminal(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte) {
-	// 无用量场景（早退失败、panic 等）：用量本就为 0；成本同理（未执行成功，无权威价可回写）
-	auditTerminalT(ctx, as, j, ok, errMsg, result, 0, 0, 0, 0, 0, "")
+	// 无用量场景（早退失败、panic 等）：用量本就为 0；成本同理（未执行成功，无权威价可回写）；
+	// channel/provider 在早退时未知，传空（UpdateResultByJobID 空串不覆盖既有值，T1）。
+	auditTerminalT(ctx, as, j, ok, errMsg, result, 0, 0, 0, 0, 0, "", "", "")
 }
 
 // auditStatusFor 决定【审计行】里的终态词。
@@ -194,13 +195,15 @@ func auditStatusFor(ok bool) string {
 //
 // costAmount/costUnit（T0 新增）：executeJob 命中模型（PickForAttempt）的权威成本，
 // 异步终态一并回写 —— 否则视频类长任务（主要付费路径）的成本恒为 0。
-func auditTerminalUsage(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int, costAmount float64, costUnit string) {
+// channelID/providerModel（T1 新增）：submit-time 行提交时未知，命中后补齐供给单元
+// （渠道×模型，T2 报表聚合字段）。
+func auditTerminalUsage(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, ex map[string]any, elapsedMs int, costAmount float64, costUnit, channelID, providerModel string) {
 	in, out, cached := engine.UsageFromExtracted(ex)
-	auditTerminalT(ctx, as, j, ok, errMsg, result, in, out, cached, elapsedMs, costAmount, costUnit)
+	auditTerminalT(ctx, as, j, ok, errMsg, result, in, out, cached, elapsedMs, costAmount, costUnit, channelID, providerModel)
 }
 
 // auditTerminalT 是两条入口的公共实现。
-func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int, costAmount float64, costUnit string) {
+func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, errMsg string, result []byte, tokenIn, tokenOut, tokenCached, latencyMs int, costAmount float64, costUnit, channelID, providerModel string) {
 	if as == nil {
 		return
 	}
@@ -214,7 +217,7 @@ func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, er
 	// 被整体排除在耗时分布之外**。引擎本来就测了 Duration，这里把它传下去。
 	// 第 9-10 个参数是 costAmount/costUnit（T0）：命中模型的权威成本回写，
 	// 替换原硬编码 0 —— 异步成本不再恒为 0。
-	n, err := as.UpdateResultByJobID(ctx, j.ID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, costAmount, costUnit, "")
+	n, err := as.UpdateResultByJobID(ctx, j.ID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, costAmount, costUnit, channelID, providerModel, "")
 	if err != nil {
 		log.Printf("execution worker: audit update failed for job %s: %v", j.ID, err)
 		return
@@ -314,7 +317,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
 	if err != nil {
-		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as)
+		// catalog 未命中：channel/provider 未知，传空（空串不覆盖，T1）
+		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as, "", "")
 		return
 	}
 	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
@@ -340,6 +344,11 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		hitCost = *model.CostAmount
 		hitUnit = model.CostUnit
 	}
+	// T1：命中模型即知供给单元（渠道×模型）——异步审计行终态补齐 channel_id/provider_model
+	// （submit-time 行提交时未知；T2 报表按供给单元聚合依赖此字段）。
+	var hitChannelID, hitProviderModel string
+	hitChannelID = model.ChannelID
+	hitProviderModel = model.ProviderModel
 	if model.ProtocolTemplateID == "" {
 		auditTerminal(ctx, as, j, false, "model has no protocol template", nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "model has no protocol template")
@@ -415,7 +424,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 
 	if err != nil {
-		failOrRetry(ctx, s, j, err.Error(), as)
+		// T1：引擎失败但模型已命中 —— 终态审计行补齐 channel/provider（供给单元）
+		failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel)
 		return
 	}
 
@@ -437,12 +447,12 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
-		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit)
+		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
 	}
 
-	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit)
+	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
@@ -518,7 +528,7 @@ func envInt(key string, def int) int {
 // 未达上限则退避重排，达到上限则进入死信。
 // 配置类/永久性错误不走这里，而是直接 Complete(false) —— 否则会白白消耗尝试次数
 // （例如「model not found」重试 3 次毫无意义）。
-func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store) {
+func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string) {
 	cfg := job.DefaultRetryConfig()
 	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
@@ -526,7 +536,8 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 	case err != nil:
 		log.Printf("execution worker: FailOrRetry job=%s err=%v（回退为标记失败）", j.ID, err)
 		// D2b：这是【终态】（回退为标记失败）
-		auditTerminal(ctx, as, j, false, msg, nil)
+		// T1：命中模型后的失败终态也补齐 channel/provider（空串不覆盖，供 T2 按供给单元聚合）
+		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 	case retried:
 		log.Printf("execution worker: job=%s 第 %d 次失败，%s 后重试: %s", j.ID, j.Attempt, backoff.Round(time.Second), msg)
@@ -535,6 +546,7 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		// D2b：这是【终态】（重试耗尽 → 死信）。
 		// 上面的 case retried 分支【不写】—— 那个任务还会重试，不是终态；
 		// 提前写会把"还在重试"记成"已失败"。
-		auditTerminal(ctx, as, j, false, msg, nil)
+		// T1：命中模型后的死信终态同样补齐 channel/provider
+		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
 	}
 }
