@@ -5,7 +5,7 @@
 # 实测日期：2026-10-14（W4 production 线补强后，带 DB 全量 ~59.6%）
 workspace      30
 production      50
-execution      48
+execution      55
 asset          23
 web-bff        40
 outbox-relay   28
