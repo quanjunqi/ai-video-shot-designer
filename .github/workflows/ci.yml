@@ -198,7 +198,7 @@ jobs:
         if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.x' # 自动最新 1.25 patch（含 net/http 等安全修复；固定 1.25.0 会带存量标准库漏洞）
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
@@ -323,11 +323,36 @@ jobs:
         if: needs.changes.outputs.security == 'true'
         uses: actions/checkout@v7
 
+      # W6：secrets 扫描 —— 检出硬编码密钥/凭据/Token 即阻断（零权限依赖：直接跑官方二进制）
+      - name: Gitleaks secrets scan
+        if: needs.changes.outputs.security == 'true'
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp
+          /tmp/gitleaks detect --source=. --no-banner --redact --config=.gitleaks.toml
+
       - name: Run Gosec Security Scanner
         if: needs.changes.outputs.security == 'true'
         uses: securego/gosec@master
         with:
           args: ./services/...
+
+      # W6：Go 依赖漏洞扫描（govulncheck，覆盖全部 7 个 module）。
+      # 退出码语义：0=无漏洞；1=代码受影响的漏洞（阻断）；3=依赖含漏洞但代码未调用（放行并提示）。
+      # 标准库漏洞由 setup-go 的 1.25.x 最新 patch 消除；工具链漏洞不在此阻断。
+      - name: Govulncheck (Go dependencies)
+        if: needs.changes.outputs.security == 'true'
+        run: |
+          for dir in shared workspace production execution asset web-bff outbox-relay; do
+            (cd "services/$dir" && go run golang.org/x/vuln/cmd/govulncheck@latest -mode=source ./...)
+            code=$?
+            case $code in
+              0) ;;
+              1) echo "::error::govulncheck：$dir 存在受影响漏洞"; exit 1 ;;
+              3) echo "::warning::govulncheck：$dir 依赖含漏洞但代码未调用（放行）" ;;
+              *) echo "::error::govulncheck 异常退出码 $code（$dir）"; exit 1 ;;
+            esac
+          done
 
       # 生产依赖：高危/严重直接阻断（当前 0 high / 0 critical，应始终通过）
       # 必须显式指定官方 registry：apps/web/.npmrc 指向 npmmirror，而该镜像未实现
