@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"os"
@@ -25,7 +25,12 @@ import (
 	"shotdesigner/services/execution/internal/quota"
 	"shotdesigner/services/execution/internal/reconcile"
 	"shotdesigner/shared/netguard"
+	"shotdesigner/shared/observability"
 )
+
+// executionLogger 是 worker/审计链路的统一结构化日志器（W5：可观测性深化）。
+// 包级初始化（LOG_LEVEL 环境变量在进程早期已就绪）；main 装配时复用同一实例。
+var executionLogger = observability.NewJSONLogger("execution")
 
 // jobPayload is the structured payload stored in job.intent_payload for model execution jobs.
 type jobPayload struct {
@@ -51,17 +56,20 @@ func main() {
 	workspaceURL := os.Getenv("EXECUTION_WORKSPACE_URL")
 	workspaceToken := os.Getenv("WORKSPACE_INTERNAL_TOKEN")
 	if dsn == "" || token == "" {
-		log.Fatal("EXECUTION_DATABASE_URL and EXECUTION_INTERNAL_TOKEN must be set")
+		executionLogger.Error("EXECUTION_DATABASE_URL and EXECUTION_INTERNAL_TOKEN must be set")
+		os.Exit(1)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
-		log.Fatal(err)
+		executionLogger.Error("pgxpool init failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatal(err)
+		executionLogger.Error("db ping failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 	store := job.Store{Pool: pool}
 	auditStore := &audit.Store{Pool: pool}
@@ -78,7 +86,7 @@ func main() {
 		credsClient = creds.NewClient(workspaceURL, workspaceToken)
 	}
 	if catalogClient == nil || credsClient == nil {
-		log.Printf("warning: execution engine partial config (catalog=%v creds=%v); /run unavailable", catalogClient != nil, credsClient != nil)
+		executionLogger.Warn("execution engine partial config; /run unavailable", "catalog", catalogClient != nil, "creds", credsClient != nil)
 	}
 	// 模型网关的 client 会请求「渠道凭据里的 base_url」——该 URL 由用户提供，
 	// 因此必须带 SSRF 防护（见 internal/netguard 的威胁模型说明）。
@@ -86,26 +94,24 @@ func main() {
 	// **不能**套用本防护，否则会自断链路。
 	upstreamPolicy := netguard.FromEnv(os.Getenv)
 	engineClient := upstreamPolicy.NewClient(600 * time.Second)
-	log.Printf("execution: upstream SSRF policy allow_private=%v allowed_hosts=%d",
-		upstreamPolicy.AllowPrivate, len(upstreamPolicy.AllowedHosts))
+	executionLogger.Info("upstream SSRF policy", "allow_private", upstreamPolicy.AllowPrivate, "allowed_hosts", len(upstreamPolicy.AllowedHosts))
 	// 渠道探测（TASK-INFRA-004）：全仓唯一实现，base URL 只从服务端来源解析
 	// （工作区用户渠道 / 凭据行 / 平台目录），出站走同一套 SSRF 防护。
 	prober := probe.New(catalogClient, credsClient, upstreamPolicy, 5*time.Second)
 	if catalogClient == nil && credsClient == nil {
 		prober = nil
-		log.Printf("warning: channel probe disabled (neither catalog nor workspace configured)")
+		executionLogger.Warn("warning: channel probe disabled (neither catalog nor workspace configured)")
 	}
 	// 并发闸门：原先每任务直接起 goroutine、**无上限**，一次批量提交就会同时
 	// 打满上游配额并耗尽本进程连接/内存。容量可配，默认 8。
 	// 配额与限流：QPS 令牌桶 + 日/月成本上限（默认 QPS 宽松、成本不限制）
 	quotaCfg := quota.FromEnv(os.Getenv)
 	quotaLimiter := quota.New(quotaCfg, auditStore)
-	log.Printf("execution: 配额 qps=%v burst=%d 日上限=%v 月上限=%v",
-		quotaCfg.QPS, quotaCfg.Burst, quotaCfg.DailyCostLimit, quotaCfg.MonthlyCostLimit)
+	executionLogger.Info("配额配置", "qps", quotaCfg.QPS, "burst", quotaCfg.Burst, "daily_cost_limit", quotaCfg.DailyCostLimit, "monthly_cost_limit", quotaCfg.MonthlyCostLimit)
 
 	maxConcurrent := envInt("EXECUTION_MAX_CONCURRENT_JOBS", 8)
 	gate := job.NewSemaphore(maxConcurrent)
-	log.Printf("execution: worker 并发上限 = %d", gate.Cap())
+	executionLogger.Info("worker 并发上限", "cap", gate.Cap())
 	go runWorker(store, catalogClient, credsClient, engineClient, gate, auditStore)
 
 	// D6：审计保留期清理。**默认关闭**（天数未设置 = 0）—— 清理是破坏性操作，
@@ -114,12 +120,12 @@ func main() {
 	failureDays := envInt("EXECUTION_AUDIT_FAILURE_RETENTION_DAYS", 0)
 	if successDays > 0 || failureDays > 0 {
 		purgeInterval := envDuration("EXECUTION_AUDIT_PURGE_INTERVAL", 24*time.Hour)
-		log.Printf("execution: 审计保留期清理【已启用】成功=%d天 失败=%d天 间隔=%s", successDays, failureDays, purgeInterval)
+		executionLogger.Info("审计保留期清理已启用", "success_days", successDays, "failure_days", failureDays, "interval", purgeInterval.String())
 		go runAuditPurger(auditStore, successDays, failureDays, purgeInterval)
 	} else {
-		log.Printf("execution: 审计保留期清理【未启用】（需显式设置 EXECUTION_AUDIT_RETENTION_DAYS / EXECUTION_AUDIT_FAILURE_RETENTION_DAYS）")
+		executionLogger.Info("execution: 审计保留期清理【未启用】（需显式设置 EXECUTION_AUDIT_RETENTION_DAYS / EXECUTION_AUDIT_FAILURE_RETENTION_DAYS）")
 	}
-	log.Printf("execution service listening on %s", addr)
+	executionLogger.Info("execution service listening", "addr", addr)
 	// 产物落盘（TASK-ASSET-001）：配置了 ASSET_BASE_URL/ASSET_INTERNAL_TOKEN 才启用。
 	// 下载上游 URL 走与模型网关同一套 netguard SSRF 防护；调 asset 内部 API 用普通 client
 	// （内网目标，套防护会自断链路）。
@@ -127,7 +133,8 @@ func main() {
 	if assetBaseURL := os.Getenv("ASSET_BASE_URL"); assetBaseURL != "" {
 		assetToken := os.Getenv("ASSET_INTERNAL_TOKEN")
 		if assetToken == "" {
-			log.Fatal("ASSET_INTERNAL_TOKEN must be set when ASSET_BASE_URL is set")
+			executionLogger.Error("ASSET_INTERNAL_TOKEN must be set when ASSET_BASE_URL is set")
+			os.Exit(1)
 		}
 		artifactClient = &artifact.Client{
 			AssetBaseURL: assetBaseURL,
@@ -137,11 +144,18 @@ func main() {
 			CheckURL:     upstreamPolicy.CheckURL,
 			MaxBytes:     artifact.DefaultMaxBytes,
 		}
-		log.Printf("execution: artifact persist enabled (asset=%s)", assetBaseURL)
+		executionLogger.Info("artifact persist enabled", "asset_base_url", assetBaseURL)
 	}
 	// T0 价格校准台账：对账端点（POST /internal/v1/reconcile）写入 price_calibration_logs
 	reconcileStore := &reconcile.Store{Pool: pool}
-	log.Fatal((&http.Server{Addr: addr, Handler: httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore}.Routes(), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	metrics := observability.NewMetrics()
+	observed := observability.WithObservability(executionLogger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore}.Routes())
+	server := &http.Server{Addr: addr, Handler: observed, ReadHeaderTimeout: 5 * time.Second}
+	executionLogger.Info("execution service listening", "addr", addr)
+	if err := server.ListenAndServe(); err != nil {
+		executionLogger.Error("execution server stopped", slog.Any("err", err))
+		os.Exit(1)
+	}
 }
 
 // runWorker dispatches queued jobs and executes them via the engine.
@@ -219,11 +233,11 @@ func auditTerminalT(ctx context.Context, as *audit.Store, j job.Job, ok bool, er
 	// 替换原硬编码 0 —— 异步成本不再恒为 0。
 	n, err := as.UpdateResultByJobID(ctx, j.ID, status, payload, errMsg, latencyMs, tokenIn, tokenOut, tokenCached, costAmount, costUnit, channelID, providerModel, "")
 	if err != nil {
-		log.Printf("execution worker: audit update failed for job %s: %v", j.ID, err)
+		executionLogger.Info("execution worker: audit update failed for job %s: %v", j.ID, err)
 		return
 	}
 	if n == 0 {
-		log.Printf("execution worker: job %s has NO submit-time audit row (status=%s) —— 该任务提交路径不写审计（D2 说明：经 /internal/v1/tasks 提交的任务属此列）", j.ID, status)
+		executionLogger.Info("execution worker: job %s has NO submit-time audit row (status=%s) —— 该任务提交路径不写审计（D2 说明：经 /internal/v1/tasks 提交的任务属此列）", j.ID, status)
 	}
 }
 
@@ -236,7 +250,7 @@ func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *htt
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		// Step 1: flip queued -> running
 		if err := s.Advance(ctx, 10); err != nil {
-			log.Printf("execution worker advance: %v", err)
+			executionLogger.Warn("execution worker advance failed", slog.Any("err", err))
 		}
 		cancel()
 
@@ -245,30 +259,30 @@ func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *htt
 		jobs, err := s.ListRunning(listCtx, 10)
 		listCancel()
 		if err != nil {
-			log.Printf("execution worker list running: %v", err)
+			executionLogger.Warn("execution worker list running failed", slog.Any("err", err))
 			continue
 		}
 		for _, j := range jobs {
 			// Skip if already executing (prevents duplicate dispatch on each poll)
 			if _, loaded := executing.LoadOrStore(j.ID, true); loaded {
-				log.Printf("execution worker: job %s already executing, skipping", j.ID)
+				executionLogger.Info("job already executing, skipping", "job_id", j.ID)
 				continue
 			}
 			// 闸门已满则本轮不派发：任务保持 running，下一轮 ticker 会再次列出
 			// （因此必须先撤销 executing 标记，否则它会被永久视为「已在执行」）
 			if !gate.TryAcquire() {
 				executing.Delete(j.ID)
-				log.Printf("execution worker: 并发已达上限 %d，本轮不派发 job %s", gate.Cap(), j.ID)
+				executionLogger.Info("并发已达上限，本轮不派发", "cap", gate.Cap(), "job_id", j.ID)
 				continue
 			}
-			log.Printf("execution worker: starting job %s", j.ID)
+			executionLogger.Info("starting job", "job_id", j.ID)
 			// Each job gets its own context with 10 min timeout
 			jobCtx, jobCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			go func(job job.Job, ctx context.Context, cancel context.CancelFunc) {
 				defer cancel()
 				defer gate.Release()
 				defer executing.Delete(job.ID)
-				log.Printf("execution worker: goroutine finished for job %s", job.ID)
+				executionLogger.Info("goroutine finished", "job_id", job.ID)
 				executeJob(ctx, s, cat, cred, client, job, as)
 			}(j, jobCtx, jobCancel)
 		}
@@ -279,7 +293,7 @@ func runWorker(s job.Store, cat *catalog.Client, cred *creds.Client, client *htt
 func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("execution worker: panic in job %s: %v", j.ID, r)
+			executionLogger.Info("execution worker: panic in job %s: %v", j.ID, r)
 			auditTerminal(ctx, as, j, false, fmt.Sprintf("internal panic: %v", r), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, fmt.Sprintf("internal panic: %v", r))
 		}
@@ -312,7 +326,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	jobWorkspace := j.WorkspaceID
 	if jobWorkspace == "" {
 		// 兼容历史行（000/早期 job 没写 workspace_id）：退回审计哨兵值，并在日志里显式可见
-		log.Printf("execution worker: job %s 没有 workspace_id（历史行），退回 %q", j.ID, audit.SystemWorkspace)
+		executionLogger.Info("execution worker: job %s 没有 workspace_id（历史行），退回 %q", j.ID, audit.SystemWorkspace)
 		jobWorkspace = audit.SystemWorkspace
 	}
 	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
@@ -388,7 +402,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	if ar, ok := payload.Runtime["aspect_ratio"].(string); ok && ar != "" {
 		if size, ok := aspectSizeMap[ar]; ok {
 			payload.Runtime["size"] = size
-			log.Printf("execution worker: aspect_ratio=%s -> size=%s", ar, size)
+			executionLogger.Info("execution worker: aspect_ratio=%s -> size=%s", ar, size)
 		}
 	}
 
@@ -433,7 +447,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	payload.Result = result.Extracted
 	resultBytes, marshalErr := json.Marshal(payload)
 	if marshalErr != nil {
-		log.Printf("execution worker: job %s marshal payload error: %v", j.ID, marshalErr)
+		executionLogger.Info("execution worker: job %s marshal payload error: %v", j.ID, marshalErr)
 		auditTerminal(ctx, as, j, false, "marshal result error: "+marshalErr.Error(), nil)
 		_ = s.Complete(ctx, j.ID, false, nil, "marshal result error: "+marshalErr.Error())
 		return
@@ -442,11 +456,11 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	for k := range result.Extracted {
 		extractedKeys = append(extractedKeys, k)
 	}
-	log.Printf("execution worker: job %s resultBytes len=%d, extracted keys=%v", j.ID, len(resultBytes), extractedKeys)
+	executionLogger.Info("job result", "job_id", j.ID, "result_bytes", len(resultBytes), "extracted_keys", extractedKeys)
 
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
-		log.Printf("execution worker: job %s WARNING: no image URL extracted, marking as failed", j.ID)
+		executionLogger.Warn("no image URL extracted, marking as failed", "job_id", j.ID)
 		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		return
@@ -456,9 +470,9 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
-		log.Printf("execution worker: job %s complete error: %v", j.ID, completeErr)
+		executionLogger.Info("execution worker: job %s complete error: %v", j.ID, completeErr)
 	}
-	log.Printf("execution worker: job %s completed (model=%s)", j.ID, payload.ModelID)
+	executionLogger.Info("execution worker: job %s completed (model=%s)", j.ID, payload.ModelID)
 }
 
 // envInt 读取整型环境变量，缺省或非法时返回 def。
@@ -479,7 +493,7 @@ func runAuditPurger(as *audit.Store, successDays, failureDays int, interval time
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		n, err := as.Purge(ctx, successDays, failureDays)
 		if err != nil {
-			log.Printf("execution: 审计清理失败（等下一轮）: %v", err)
+			executionLogger.Warn("审计清理失败（等下一轮）", slog.Any("err", err))
 			cancel()
 			continue
 		}
@@ -497,10 +511,10 @@ func runAuditPurger(as *audit.Store, successDays, failureDays int, interval time
 					`{"deleted":%d,"successDays":%d,"failureDays":%d}`, n, successDays, failureDays)),
 			}
 			if err := as.Insert(ctx, rec); err != nil {
-				log.Printf("execution: 清理记录写入审计失败: %v", err)
+				executionLogger.Warn("清理记录写入审计失败", slog.Any("err", err))
 			}
 		}
-		log.Printf("execution: 审计清理完成，删除 %d 行（成功 >%d天 / 其他 >%d天）", n, successDays, failureDays)
+		executionLogger.Info("审计清理完成", "deleted", n, "success_days", successDays, "failure_days", failureDays)
 		cancel()
 	}
 }
@@ -534,15 +548,15 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
 	switch {
 	case err != nil:
-		log.Printf("execution worker: FailOrRetry job=%s err=%v（回退为标记失败）", j.ID, err)
+		executionLogger.Warn("FailOrRetry 失败，回退为标记失败", "job_id", j.ID, slog.Any("err", err))
 		// D2b：这是【终态】（回退为标记失败）
 		// T1：命中模型后的失败终态也补齐 channel/provider（空串不覆盖，供 T2 按供给单元聚合）
 		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 	case retried:
-		log.Printf("execution worker: job=%s 第 %d 次失败，%s 后重试: %s", j.ID, j.Attempt, backoff.Round(time.Second), msg)
+		executionLogger.Warn("第 N 次失败，稍后重试", "job_id", j.ID, "attempt", j.Attempt, "backoff", backoff.Round(time.Second).String(), "reason", msg)
 	default:
-		log.Printf("execution worker: job=%s 重试耗尽（attempt=%d），进入死信: %s", j.ID, j.Attempt, msg)
+		executionLogger.Warn("重试耗尽，进入死信", "job_id", j.ID, "attempt", j.Attempt, "reason", msg)
 		// D2b：这是【终态】（重试耗尽 → 死信）。
 		// 上面的 case retried 分支【不写】—— 那个任务还会重试，不是终态；
 		// 提前写会把"还在重试"记成"已失败"。

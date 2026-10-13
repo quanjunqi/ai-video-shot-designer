@@ -6,9 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"shotdesigner/shared/observability"
 	"strconv"
 	"time"
 
@@ -31,31 +32,38 @@ type relay struct {
 	maxAttempts                   int
 }
 
+// relayLogger 是 outbox-relay 的统一结构化日志器（W5：可观测性深化）。
+var relayLogger = observability.NewJSONLogger("outbox-relay")
+
 func main() {
 	dsn := os.Getenv("OUTBOX_DATABASE_URL")
 	if dsn == "" {
-		log.Fatal("OUTBOX_DATABASE_URL must be set")
+		relayLogger.Error("OUTBOX_DATABASE_URL must be set")
+		os.Exit(1)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
-		log.Fatal(err)
+		relayLogger.Error("pgxpool init failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatal(err)
+		relayLogger.Error("db ping failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 	r := &relay{pool: pool, client: &http.Client{Timeout: 15 * time.Second}, executionURL: env("OUTBOX_EXECUTION_URL", "http://execution:8085"), token: os.Getenv("OUTBOX_EXECUTION_TOKEN"), workerID: id(), batch: envInt("OUTBOX_BATCH_SIZE", 20), lease: time.Duration(envInt("OUTBOX_LEASE_SECONDS", 60)) * time.Second, maxAttempts: envInt("OUTBOX_MAX_ATTEMPTS", 20)}
 	if r.token == "" {
-		log.Fatal("OUTBOX_EXECUTION_TOKEN must be set")
+		relayLogger.Error("OUTBOX_EXECUTION_TOKEN must be set")
+		os.Exit(1)
 	}
 	interval := time.Duration(envInt("OUTBOX_POLL_SECONDS", 2)) * time.Second
-	log.Printf("outbox relay %s -> %s", r.workerID, r.executionURL)
+	relayLogger.Info("outbox relay started", "worker_id", r.workerID, "execution_url", r.executionURL)
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), interval)
 		if err := r.runOnce(ctx); err != nil {
-			log.Printf("relay: %v", err)
+			relayLogger.Warn("relay poll failed", slog.Any("err", err))
 		}
 		cancel()
 		time.Sleep(interval)
@@ -69,12 +77,12 @@ func (r *relay) runOnce(ctx context.Context) error {
 	}
 	for _, e := range events {
 		if err := r.deliver(ctx, e); err != nil {
-			log.Printf("event %d: %v", e.ID, err)
+			relayLogger.Warn("event delivery failed", "event_id", e.ID, slog.Any("err", err))
 			if markErr := r.fail(ctx, e.ID, e.Attempts, err); markErr != nil {
-				log.Printf("event %d mark failed: %v", e.ID, markErr)
+				relayLogger.Warn("event mark failed", "event_id", e.ID, slog.Any("err", markErr))
 			}
 		} else if err := r.ack(ctx, e.ID, e.Workspace, e.Aggregate); err != nil {
-			log.Printf("event %d ack: %v", e.ID, err)
+			relayLogger.Warn("event ack failed", "event_id", e.ID, slog.Any("err", err))
 		}
 	}
 	return nil

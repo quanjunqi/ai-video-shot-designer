@@ -31,3 +31,7 @@ require (
 	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 )
+
+require shotdesigner/shared v0.0.0
+
+replace shotdesigner/shared => ../shared

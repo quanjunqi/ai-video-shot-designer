@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
+	"shotdesigner/shared/observability"
 	"strings"
 	"time"
 )
@@ -23,10 +24,25 @@ type server struct {
 
 var errAuthorizationDenied = errors.New("workspace authorization denied")
 
+// requestIDTransport 自动把 context 中的 request_id 注入每个上游请求头
+// （BFF 是所有内部服务的唯一入口，负责链路 ID 的生成与透传；
+//
+//	各 handler 无需逐处复制 header —— RoundTrip 统一处理）。
+type requestIDTransport struct{ base http.RoundTripper }
+
+func (t requestIDTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if rid := observability.RequestIDFrom(req.Context()); rid != "" {
+		req.Header.Set(observability.HeaderRequestID, rid)
+	}
+	return t.base.RoundTrip(req)
+}
+
 func main() {
-	s := &server{httpClient: &http.Client{Timeout: 300 * time.Second}, workspaceURL: env("BFF_WORKSPACE_URL", "http://workspace:8082"), productionURL: env("BFF_PRODUCTION_URL", "http://production:8081"), assetURL: env("BFF_ASSET_URL", "http://asset:8084"), executionURL: env("BFF_EXECUTION_URL", "http://execution:8085"), workspaceToken: os.Getenv("WORKSPACE_INTERNAL_TOKEN"), productionToken: os.Getenv("PRODUCTION_INTERNAL_TOKEN"), assetToken: os.Getenv("ASSET_INTERNAL_TOKEN"), executionToken: os.Getenv("EXECUTION_INTERNAL_TOKEN"), devWorkspace: env("BFF_DEV_WORKSPACE_ID", "ws_dev"), devActor: env("BFF_DEV_ACTOR_ID", "user_dev")}
+	logger := observability.NewJSONLogger("web-bff")
+	s := &server{httpClient: &http.Client{Timeout: 300 * time.Second, Transport: requestIDTransport{base: http.DefaultTransport}}, workspaceURL: env("BFF_WORKSPACE_URL", "http://workspace:8082"), productionURL: env("BFF_PRODUCTION_URL", "http://production:8081"), assetURL: env("BFF_ASSET_URL", "http://asset:8084"), executionURL: env("BFF_EXECUTION_URL", "http://execution:8085"), workspaceToken: os.Getenv("WORKSPACE_INTERNAL_TOKEN"), productionToken: os.Getenv("PRODUCTION_INTERNAL_TOKEN"), assetToken: os.Getenv("ASSET_INTERNAL_TOKEN"), executionToken: os.Getenv("EXECUTION_INTERNAL_TOKEN"), devWorkspace: env("BFF_DEV_WORKSPACE_ID", "ws_dev"), devActor: env("BFF_DEV_ACTOR_ID", "user_dev")}
 	if s.workspaceToken == "" || s.productionToken == "" || s.assetToken == "" || s.executionToken == "" {
-		log.Fatal("WORKSPACE_INTERNAL_TOKEN, PRODUCTION_INTERNAL_TOKEN, ASSET_INTERNAL_TOKEN and EXECUTION_INTERNAL_TOKEN must be set")
+		logger.Error("WORKSPACE_INTERNAL_TOKEN, PRODUCTION_INTERNAL_TOKEN, ASSET_INTERNAL_TOKEN and EXECUTION_INTERNAL_TOKEN must be set")
+		os.Exit(1)
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /live", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
@@ -61,8 +77,13 @@ func main() {
 	mux.HandleFunc("/api/v1/workspace/channels", s.workspaceChannels)
 	mux.HandleFunc("/api/v1/workspace/channels/", s.workspaceChannels)
 	addr := env("BFF_LISTEN_ADDR", "0.0.0.0:8080")
-	log.Printf("web bff listening on %s", addr)
-	log.Fatal((&http.Server{Addr: addr, Handler: withTimeout(mux), ReadHeaderTimeout: 5 * time.Second}).ListenAndServe())
+	metrics := observability.NewMetrics()
+	handler := observability.WithObservability(logger, metrics)(withTimeout(mux))
+	logger.Info("web bff listening", "addr", addr)
+	if err := (&http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second}).ListenAndServe(); err != nil {
+		logger.Error("web bff server stopped", slog.Any("err", err))
+		os.Exit(1)
+	}
 }
 
 func (s *server) generationIntents(w http.ResponseWriter, r *http.Request) {
