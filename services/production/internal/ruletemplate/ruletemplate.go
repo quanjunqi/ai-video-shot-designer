@@ -46,7 +46,8 @@ type CreateInput struct {
 	Content     string                 `json:"content,omitempty"`
 	Config      map[string]interface{} `json:"config,omitempty"`
 	Builtin     bool                   `json:"builtin,omitempty"`
-	Enabled     bool                   `json:"enabled,omitempty"`
+	// Enabled 可选：nil 表示未显式设置，Create 时走 DB 默认 true（新建默认启用）。
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 func (input CreateInput) Validate() error {

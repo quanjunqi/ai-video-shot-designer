@@ -69,13 +69,26 @@ func (store PostgresStore) Create(ctx context.Context, workspace string, input C
 	if config == nil {
 		config = map[string]interface{}{}
 	}
-	_, err := store.Pool.Exec(ctx, `INSERT INTO rule_templates
-		(workspace_id, id, kind, name, description, stage, content, config, builtin, enabled)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-		workspace, input.ID, input.Kind, input.Name, input.Description,
-		input.Stage, input.Content, config, input.Builtin, input.Enabled)
-	if err != nil {
-		return RuleTemplate{}, err
+	// enabled 未显式设置（nil）时走 DB 默认 true（新建默认启用）；
+	// 显式传 false 才真正禁用。不能直接传 input.Enabled（零值 false 会覆盖默认）。
+	if input.Enabled == nil {
+		_, err := store.Pool.Exec(ctx, `INSERT INTO rule_templates
+			(workspace_id, id, kind, name, description, stage, content, config, builtin)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			workspace, input.ID, input.Kind, input.Name, input.Description,
+			input.Stage, input.Content, config, input.Builtin)
+		if err != nil {
+			return RuleTemplate{}, err
+		}
+	} else {
+		_, err := store.Pool.Exec(ctx, `INSERT INTO rule_templates
+			(workspace_id, id, kind, name, description, stage, content, config, builtin, enabled)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+			workspace, input.ID, input.Kind, input.Name, input.Description,
+			input.Stage, input.Content, config, input.Builtin, *input.Enabled)
+		if err != nil {
+			return RuleTemplate{}, err
+		}
 	}
 	return store.Get(ctx, workspace, input.ID)
 }

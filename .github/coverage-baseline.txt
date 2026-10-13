@@ -2,9 +2,9 @@
 # 格式：<service> <floor>    以 # 开头为注释。
 # 下限当前都设在实测值略低处（留取整余量），目的是**先禁止回退**；
 # 随测试补齐逐步上调（见 docs/development/testing.md §3.3）。
-# 实测日期：2026-10-10
+# 实测日期：2026-10-14（W4 production 线补强后，带 DB 全量 ~59.6%）
 workspace      30
-production      17
+production      50
 execution      48
 asset          23
 web-bff        40
