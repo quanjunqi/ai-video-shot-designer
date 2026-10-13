@@ -228,7 +228,7 @@ test('the curation surface only ever reads supply for one channel (ADR-005 D4 na
   const page = readFileSync(join(import.meta.dirname, '..', 'src', 'pages', 'SettingsChannels.tsx'), 'utf8');
   assert.match(page, /setCurationFor\(c\)/, '策展入口必须由具体渠道触发');
   assert.ok(
-    readFileSync(join(import.meta.dirname, '..', '..', '..', 'docs', 'adr', '005-settings-information-architecture.md'), 'utf8').includes('人工策展入口'),
+    readFileSync(join(import.meta.dirname, '..', '..', '..', 'docs', 'adr', 'settings-information-architecture.md'), 'utf8').includes('人工策展入口'),
     'ADR-005 D4 必须写明"每渠道人工策展入口"是允许的场景（规则与实现同步）',
   );
 });

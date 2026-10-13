@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import SettingsAuditPage from '@/pages/SettingsAudit';
+import ModelAuditPage from '@/pages/ModelAudit';
 import { api, type ServerTask } from '@/lib/api/client';
 import type { JobKind, JobStatus } from '@/types';
 import { cn } from '@/lib/utils';
@@ -56,7 +56,7 @@ export default function TasksPage() {
     </div>}
     </TabsContent>
     <TabsContent value="ledger" className="space-y-4">
-      <SettingsAuditPage />
+      <ModelAuditPage />
     </TabsContent>
   </Tabs>
   </div>;

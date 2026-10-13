@@ -494,6 +494,9 @@ export interface AuditLog {
   project_id?: string;
   episode_id?: string;
   asset_id?: string;
+  // T1 业务归因（迁移 013）：钱花在哪个分镜 / 功能；缺失为空串
+  shot_id?: string;
+  feature?: string;
   user_id?: string;
   product: string;
   model_id: string;
@@ -513,6 +516,31 @@ export interface AuditLog {
   job_id?: string;
   provider_task_id?: string;
   created_at: string;
+}
+
+/** T2-1 四维排行单项（口径与 /internal/v1/audit/stats 一致） */
+export interface AuditStat {
+  key: string;
+  calls: number;
+  success_calls: number;
+  failed_calls: number;
+  /** 0-100，服务端算（仅成功行计入分母的 P95 独立） */
+  success_rate: number;
+  p95_latency_ms: number;
+  /** 已校准口径：cost_amount>0 且有 cost_unit 的合计 */
+  cost_calibrated: number;
+  /** 预估口径：其余行的调用计数（金额不可知） */
+  cost_estimated_calls: number;
+}
+
+/** T2-1 时间序列点（granularity=day|week|month） */
+export interface AuditTrendPoint {
+  bucket: string;
+  calls: number;
+  success_calls: number;
+  p95_latency_ms: number;
+  cost_calibrated: number;
+  cost_estimated_calls: number;
 }
 
 export interface GenerateResponse {
@@ -861,6 +889,8 @@ export const api = {
     // 任务卡 §2.1：按人/项目的操作清单（导出与列表共用同一套筛选口径）
     user_id?: string;
     project_id?: string;
+    // T1 业务归因（迁移 013）：按功能过滤
+    feature?: string;
   }) =>
     `/api/v1/audit/export?${new URLSearchParams({
       ...(params?.status ? { status: params.status } : {}),
@@ -868,6 +898,7 @@ export const api = {
       ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
       ...(params?.user_id ? { user_id: params.user_id } : {}),
       ...(params?.project_id ? { project_id: params.project_id } : {}),
+      ...(params?.feature ? { feature: params.feature } : {}),
       ...(params?.since ? { since: params.since } : {}),
       ...(params?.until ? { until: params.until } : {}),
     }).toString()}`,
@@ -881,6 +912,8 @@ export const api = {
     until?: string;
     user_id?: string;
     project_id?: string;
+    // T1 业务归因（迁移 013）：按功能过滤
+    feature?: string;
   }) =>
     request<{
       items: AuditLog[];
@@ -913,6 +946,62 @@ export const api = {
         ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
       ...(params?.user_id ? { user_id: params.user_id } : {}),
       ...(params?.project_id ? { project_id: params.project_id } : {}),
+      ...(params?.feature ? { feature: params.feature } : {}),
+        ...(params?.since ? { since: params.since } : {}),
+        ...(params?.until ? { until: params.until } : {}),
+      }).toString()}`,
+    ),
+  // T2 运营报表聚合（成本看板数据源）
+  listAuditStats: (params: {
+    dimension: 'channel' | 'model' | 'project' | 'member';
+    status?: string;
+    model_id?: string;
+    channel_id?: string;
+    user_id?: string;
+    project_id?: string;
+    feature?: string;
+    since?: string;
+    until?: string;
+    limit?: number;
+  }) =>
+    request<{ dimension: string; items: AuditStat[] }>(
+      `/api/v1/audit/stats?${new URLSearchParams({
+        dimension: params.dimension,
+        limit: String(params.limit ?? 20),
+        ...(params?.status ? { status: params.status } : {}),
+        ...(params?.model_id ? { model_id: params.model_id } : {}),
+        ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+        ...(params?.user_id ? { user_id: params.user_id } : {}),
+        ...(params?.project_id ? { project_id: params.project_id } : {}),
+        ...(params?.feature ? { feature: params.feature } : {}),
+        ...(params?.since ? { since: params.since } : {}),
+        ...(params?.until ? { until: params.until } : {}),
+      }).toString()}`,
+    ),
+  listAuditTrend: (params: {
+    granularity: 'day' | 'week' | 'month';
+    dimension?: string;
+    dimension_value?: string;
+    status?: string;
+    model_id?: string;
+    channel_id?: string;
+    user_id?: string;
+    project_id?: string;
+    feature?: string;
+    since?: string;
+    until?: string;
+  }) =>
+    request<{ granularity: string; items: AuditTrendPoint[] }>(
+      `/api/v1/audit/stats/trend?${new URLSearchParams({
+        granularity: params.granularity,
+        ...(params?.dimension ? { dimension: params.dimension } : {}),
+        ...(params?.dimension_value ? { dimension_value: params.dimension_value } : {}),
+        ...(params?.status ? { status: params.status } : {}),
+        ...(params?.model_id ? { model_id: params.model_id } : {}),
+        ...(params?.channel_id ? { channel_id: params.channel_id } : {}),
+        ...(params?.user_id ? { user_id: params.user_id } : {}),
+        ...(params?.project_id ? { project_id: params.project_id } : {}),
+        ...(params?.feature ? { feature: params.feature } : {}),
         ...(params?.since ? { since: params.since } : {}),
         ...(params?.until ? { until: params.until } : {}),
       }).toString()}`,
