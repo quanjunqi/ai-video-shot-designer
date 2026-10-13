@@ -255,6 +255,9 @@ func (s *server) workspaceChannels(w http.ResponseWriter, r *http.Request) {
 	}
 	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/workspace/channels")
 	upstreamPath := "/internal/v1/workspaces/" + s.devWorkspace + "/channels" + rel
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
 	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.workspaceURL+upstreamPath, bytes.NewReader(body))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
