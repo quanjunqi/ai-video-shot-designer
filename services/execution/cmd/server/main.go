@@ -317,7 +317,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
 	if err != nil {
-		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as)
+		// catalog 未命中：channel/provider 未知，传空（空串不覆盖，T1）
+		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as, "", "")
 		return
 	}
 	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
@@ -423,7 +424,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 
 	if err != nil {
-		failOrRetry(ctx, s, j, err.Error(), as)
+		// T1：引擎失败但模型已命中 —— 终态审计行补齐 channel/provider（供给单元）
+		failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel)
 		return
 	}
 
@@ -526,7 +528,7 @@ func envInt(key string, def int) int {
 // 未达上限则退避重排，达到上限则进入死信。
 // 配置类/永久性错误不走这里，而是直接 Complete(false) —— 否则会白白消耗尝试次数
 // （例如「model not found」重试 3 次毫无意义）。
-func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store) {
+func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string) {
 	cfg := job.DefaultRetryConfig()
 	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
@@ -534,7 +536,8 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 	case err != nil:
 		log.Printf("execution worker: FailOrRetry job=%s err=%v（回退为标记失败）", j.ID, err)
 		// D2b：这是【终态】（回退为标记失败）
-		auditTerminal(ctx, as, j, false, msg, nil)
+		// T1：命中模型后的失败终态也补齐 channel/provider（空串不覆盖，供 T2 按供给单元聚合）
+		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 	case retried:
 		log.Printf("execution worker: job=%s 第 %d 次失败，%s 后重试: %s", j.ID, j.Attempt, backoff.Round(time.Second), msg)
@@ -543,6 +546,7 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		// D2b：这是【终态】（重试耗尽 → 死信）。
 		// 上面的 case retried 分支【不写】—— 那个任务还会重试，不是终态；
 		// 提前写会把"还在重试"记成"已失败"。
-		auditTerminal(ctx, as, j, false, msg, nil)
+		// T1：命中模型后的死信终态同样补齐 channel/provider
+		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
 	}
 }
