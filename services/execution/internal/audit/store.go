@@ -557,3 +557,163 @@ func (s Store) AggregateRecentCosts(ctx context.Context, limit int) ([]reconcile
 	}
 	return out, nil
 }
+
+// ===== T2 运营报表聚合（维度排行 + 时间序列） =====
+
+// StatsDimensions：报表维度白名单（handler 校验 + store SQL 防注入共用）。
+// 维度名来自调用方，绝不能直接拼进 SQL —— 白名单是唯一的防线，必须是显式 map。
+var StatsDimensions = map[string]string{
+	"channel": "channel_id",
+	"model":   "model_id",
+	"project": "project_id",
+	"member":  "user_id",
+}
+
+// Granularities：趋势粒度白名单（date_trunc 的单位）。
+var Granularities = map[string]string{
+	"day":   "day",
+	"week":  "week",
+	"month": "month",
+}
+
+// DimensionStat 是按某维度聚合的一行排行结果。
+//
+// 双口径（与 T0 语义一致）：cost_amount>0 且有 cost_unit 的行 = 已校准（cost_calibrated，
+// 可进入预算拦截）；cost_amount<=0 或 unit 空 = 预估（cost_estimated_calls 计数，不
+// 进入已校准合计 —— 防止"精确地算错账"）。
+type DimensionStat struct {
+	Key                string  `json:"key"`
+	Calls              int64   `json:"calls"`
+	SuccessCalls       int64   `json:"success_calls"`
+	FailedCalls        int64   `json:"failed_calls"`
+	SuccessRate        float64 `json:"success_rate"` // 0-100，handler 计算
+	P95LatencyMs       int64   `json:"p95_latency_ms"`
+	CostCalibrated     float64 `json:"cost_calibrated"`
+	CostEstimatedCalls int64   `json:"cost_estimated_calls"`
+}
+
+// TrendPoint 是时间序列的一个桶（日/周/月粒度）。
+type TrendPoint struct {
+	Bucket             time.Time `json:"bucket"`
+	Calls              int64     `json:"calls"`
+	SuccessCalls       int64     `json:"success_calls"`
+	P95LatencyMs       int64     `json:"p95_latency_ms"`
+	CostCalibrated     float64   `json:"cost_calibrated"`
+	CostEstimatedCalls int64     `json:"cost_estimated_calls"`
+}
+
+// DimensionStatsBy 按白名单维度聚合审计日志（排行，topN）。
+//
+// feature 是归因过滤（T1 迁移 013 列）：空 = 不过滤。不并入 Filter 结构体，
+// 是为了不动 whereClause 的 $ 序号（列表/导出/Aggregate 共用同一 whereClause）。
+// 排序：成本降序 → 调用量降序 → key 字节序 —— 确定性次序，前端可直接渲染。
+func (s Store) DimensionStatsBy(ctx context.Context, workspaceID string, f Filter, feature, dimension string, limit int) ([]DimensionStat, error) {
+	col, ok := StatsDimensions[dimension]
+	if !ok {
+		return nil, fmt.Errorf("unsupported stats dimension %q (allowed: channel|model|project|member)", dimension)
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	rows, err := s.Pool.Query(ctx, `
+		SELECT COALESCE(NULLIF(`+col+`, ''), '(未标注)') AS key,
+		       count(*)::bigint AS calls,
+		       count(*) FILTER (WHERE status = 'success' OR status = 'succeeded')::bigint AS success_calls,
+		       count(*) FILTER (WHERE status <> 'success' AND status <> 'succeeded')::bigint AS failed_calls,
+		       percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)
+		         FILTER (WHERE status = 'success' OR status = 'succeeded') AS p95,
+		       COALESCE(sum(cost_amount) FILTER (WHERE cost_amount > 0 AND COALESCE(cost_unit, '') <> ''), 0) AS cost_calibrated,
+		       count(*) FILTER (WHERE cost_amount <= 0 OR COALESCE(cost_unit, '') = '')::bigint AS cost_estimated_calls
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1`+f.whereClause()+`
+		  AND ($9 = '' OR feature = $9)
+		-- GROUP BY / ORDER BY 用【完整表达式】而非位置序号：PG 在单组查询里会把
+		-- ORDER BY 的裸数字当成整数常量（报 collations not supported by type integer），
+		-- 位置引用不可靠；别名又会被解析为列名（key/calls 不是表列）⇒ 重复表达式最稳。
+		GROUP BY COALESCE(NULLIF(`+col+`, ''), '(未标注)')
+		ORDER BY COALESCE(sum(cost_amount) FILTER (WHERE cost_amount > 0 AND COALESCE(cost_unit, '') <> ''), 0) DESC,
+		         count(*) DESC,
+		         COALESCE(NULLIF(`+col+`, ''), '(未标注)') COLLATE "C" ASC
+		LIMIT $10`,
+		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, feature, limit)
+	if err != nil {
+		return nil, fmt.Errorf("audit stats by %s: %w", dimension, err)
+	}
+	defer rows.Close()
+	var out []DimensionStat
+	for rows.Next() {
+		var d DimensionStat
+		var p95 *float64 // 该维度下无成功行时 p95 为 NULL
+		if err := rows.Scan(&d.Key, &d.Calls, &d.SuccessCalls, &d.FailedCalls, &p95, &d.CostCalibrated, &d.CostEstimatedCalls); err != nil {
+			return nil, fmt.Errorf("audit stats by %s: %w", dimension, err)
+		}
+		if p95 != nil {
+			d.P95LatencyMs = int64(*p95)
+		}
+		out = append(out, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("audit stats by %s: %w", dimension, err)
+	}
+	return out, nil
+}
+
+// Trend 按日/周/月粒度聚合时间序列（可选按单一维度值下钻）。
+// dimension/dimensionValue 均为可选：dimension 空 = 全量趋势。
+func (s Store) Trend(ctx context.Context, workspaceID string, f Filter, feature, granularity, dimension, dimensionValue string) ([]TrendPoint, error) {
+	unit, ok := Granularities[granularity]
+	if !ok {
+		return nil, fmt.Errorf("unsupported trend granularity %q (allowed: day|week|month)", granularity)
+	}
+	dimCol := ""
+	drilldown := ""
+	if dimension != "" {
+		c, ok := StatsDimensions[dimension]
+		if !ok {
+			return nil, fmt.Errorf("unsupported stats dimension %q (allowed: channel|model|project|member)", dimension)
+		}
+		dimCol = c
+		// 下钻条件只在 dimension 非空时拼接 —— 空列名会生成 `OR  = $11` 语法错误。
+		drilldown = " AND ($11 = '' OR " + dimCol + " = $11)"
+	}
+	rows, err := s.Pool.Query(ctx, `
+		SELECT date_trunc($10::text, created_at) AS bucket,
+		       count(*)::bigint,
+		       count(*) FILTER (WHERE status = 'success' OR status = 'succeeded')::bigint,
+		       percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)
+		         FILTER (WHERE status = 'success' OR status = 'succeeded') AS p95,
+		       COALESCE(sum(cost_amount) FILTER (WHERE cost_amount > 0 AND COALESCE(cost_unit, '') <> ''), 0) AS cost_calibrated,
+		       count(*) FILTER (WHERE cost_amount <= 0 OR COALESCE(cost_unit, '') = '')::bigint
+		FROM gateway_audit_logs
+		WHERE workspace_id = $1`+f.whereClause()+`
+		  AND ($9 = '' OR feature = $9)`+drilldown+`
+		GROUP BY date_trunc($10::text, created_at)
+		ORDER BY date_trunc($10::text, created_at)`,
+		func() []any {
+			args := []any{workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, feature, unit}
+			if drilldown != "" {
+				args = append(args, dimensionValue)
+			}
+			return args
+		}()...)
+	if err != nil {
+		return nil, fmt.Errorf("audit trend: %w", err)
+	}
+	defer rows.Close()
+	var out []TrendPoint
+	for rows.Next() {
+		var t TrendPoint
+		var p95 *float64
+		if err := rows.Scan(&t.Bucket, &t.Calls, &t.SuccessCalls, &p95, &t.CostCalibrated, &t.CostEstimatedCalls); err != nil {
+			return nil, fmt.Errorf("audit trend: %w", err)
+		}
+		if p95 != nil {
+			t.P95LatencyMs = int64(*p95)
+		}
+		out = append(out, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("audit trend: %w", err)
+	}
+	return out, nil
+}
