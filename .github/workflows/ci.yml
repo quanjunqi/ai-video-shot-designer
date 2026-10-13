@@ -30,7 +30,7 @@ jobs:
       reason: ${{ steps.detect.outputs.reason }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0        # 需要与基线比较
 
@@ -73,7 +73,7 @@ jobs:
 
       - name: Checkout
         if: needs.changes.outputs.frontend == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         if: needs.changes.outputs.frontend == 'true'
@@ -176,7 +176,7 @@ jobs:
 
       - name: Checkout
         if: steps.rel.outputs.run == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Go
         if: steps.rel.outputs.run == 'true'
@@ -302,7 +302,7 @@ jobs:
 
       - name: Checkout
         if: needs.changes.outputs.security == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Gosec Security Scanner
         if: needs.changes.outputs.security == 'true'
@@ -339,7 +339,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0        # 校验提交信息需要完整历史
 
