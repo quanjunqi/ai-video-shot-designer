@@ -29,7 +29,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useShallow } from 'zustand/react/shallow';
 import { api } from '@/lib/api/client';
-import type { ProjectSceneForm } from '@/types';
+import type { ProjectScene, ProjectSceneForm } from '@/types';
 import { toast } from 'sonner';
 
 const EMPTY_FORM: ProjectSceneForm = {
@@ -71,7 +71,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectSceneForm>(EMPTY_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [viewing, setViewing] = useState<any>(null);
+  const [viewing, setViewing] = useState<ProjectScene | null>(null);
 
   const [extracting, setExtracting] = useState(false);
   const [extractOpen, setExtractOpen] = useState(false);
@@ -95,7 +95,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
     setEditOpen(true);
   };
 
-  const openEdit = (scene: any) => {
+  const openEdit = (scene: ProjectScene) => {
     setEditingId(scene.id);
     const { id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = scene;
     setForm(rest);
@@ -185,12 +185,12 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
         const raw = note.trim();
         const jsonStr = raw.startsWith('```') ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '') : raw;
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed: unknown = JSON.parse(jsonStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const valid = parsed.filter((s: any) => s.name && s.name.trim());
+            const valid = (parsed as ProjectSceneForm[]).filter((s) => s.name && s.name.trim());
             if (valid.length > 0) {
               setExtractedScenes(valid);
-              setSelectedExtractIds(new Set(valid.map((_: any, i: number) => i)));
+              setSelectedExtractIds(new Set(valid.map((_, i: number) => i)));
               setExtractOpen(true);
               toast.success(`已从剧本提取 ${valid.length} 个场景设定`);
             } else {

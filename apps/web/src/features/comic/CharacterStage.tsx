@@ -31,7 +31,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { useFakeGeneration } from '@/hooks/useFakeGeneration';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import StageModelPicker from '@/features/comic/StageModelPicker';
-import type { ArtifactStatus, Episode, ShotCard } from '@/types';
+import type { ArtifactStatus, Asset, AssetVersion, Episode, Project, ProjectCharacter, ShotCard, StyleEntry, StyleOption } from '@/types';
+import type { GenerateResponse, ServerTask } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api/client';
 import { resolveTaskResult } from '@/features/genworkbench/result-utils';
@@ -85,8 +86,19 @@ const EMPTY_PROFILE: CharacterProfile = {
   specialMarks: '', background: '',
 };
 
+// 分镜统计（与 shotStats useMemo 产物结构一致）
+interface ShotStat {
+  name: string;
+  shotCount: number;
+  sceneCount: number;
+  emotions: string[];
+  shotIds: string[];
+  bodyStates: string[];
+  costumeStates: string[];
+}
+
 // 从分镜统计推断角色档案
-function inferProfileFromShots(name: string, shotStat: any): CharacterProfile {
+function inferProfileFromShots(name: string, shotStat: ShotStat): CharacterProfile {
   const profile = { ...EMPTY_PROFILE, name };
   
   // 从情绪变化推断性格
@@ -212,8 +224,41 @@ function generateNegativePrompt(): string {
 }
 
 // 从项目级角色设定生成提示词（复用 generatePromptFromProfile）
-function generatePromptFromProjectCharacter(pc: any): string {
-  return generatePromptFromProfile(pc as CharacterProfile);
+function toCharacterProfile(pc: ProjectCharacter): CharacterProfile {
+  return {
+    name: pc.name,
+    gender: pc.gender,
+    age: pc.age,
+    identity: pc.identity,
+    hairstyle: pc.hairstyle,
+    hairColor: pc.hairColor ?? '',
+    eyeColor: pc.eyeColor,
+    facialFeatures: pc.facialFeatures,
+    bodyType: pc.bodyType,
+    height: pc.height ?? '',
+    top: pc.top,
+    bottom: pc.bottom,
+    shoes: pc.shoes,
+    accessories: pc.accessories ?? '',
+    clothingStyle: pc.clothingStyle,
+    personality: pc.personality ?? '',
+    typicalExpression: '',
+    behavior: '',
+    specialMarks: pc.specialMarks,
+    background: '',
+  };
+}
+
+// 项目级角色设定的展示视图：允许读取合并描述（performance）之外的细分展示字段
+interface ProjectCharacterView extends ProjectCharacter {
+  typicalExpression?: string;
+  behavior?: string;
+  background?: string;
+}
+
+// 从项目级角色设定生成提示词（复用 generatePromptFromProfile）
+function generatePromptFromProjectCharacter(pc: ProjectCharacter): string {
+  return generatePromptFromProfile(toCharacterProfile(pc));
 }
 
 function ProgressRing({ progress, size = 80 }: { progress: number; size?: number }) {
@@ -254,8 +299,8 @@ function CharacterGridCard({
   onToggleCheck,
   onDelete,
 }: {
-  char: any;
-  projectCharacter?: any;
+  char: Asset;
+  projectCharacter?: ProjectCharacter;
   shotCount?: number;
   selected: boolean;
   generatingTask?: { progress: number };
@@ -386,16 +431,16 @@ function CharacterDetailDrawer({
   onUpdateDescription,
   onUpdatePrompt,
 }: {
-  char: any;
+  char: Asset;
   shotCount?: number;
-  charShots: any[];
-  shotStat?: any;
+  charShots: ShotCard[];
+  shotStat?: ShotStat;
   generatingTask?: { progress: number };
   imageModelId: string;
   imageModelName: string;
   statement: string;
   setStatement: (v: string) => void;
-  projectCharacter?: any;
+  projectCharacter?: ProjectCharacterView;
   onClose: () => void;
   onGenerate: () => void;
   onApprove: () => void;
@@ -494,19 +539,20 @@ function CharacterDetailDrawer({
     // 如果引用了项目级设定，优先使用项目级设定，单集状态覆盖特定字段
     let finalProfile = { ...profile };
     if (projectCharacter) {
+      const base = toCharacterProfile(projectCharacter);
       finalProfile = {
-        ...projectCharacter,
-        name: profile.name || projectCharacter.name,
+        ...base,
+        name: profile.name || base.name,
         // 单集状态覆盖：只覆盖本集特有的变化
-        personality: profile.personality || projectCharacter.personality,
-        typicalExpression: profile.typicalExpression || projectCharacter.typicalExpression,
-        specialMarks: profile.specialMarks || projectCharacter.specialMarks,
+        personality: profile.personality || base.personality,
+        typicalExpression: profile.typicalExpression || base.typicalExpression,
+        specialMarks: profile.specialMarks || base.specialMarks,
         // 单集临时换装覆盖
-        top: profile.top || projectCharacter.top,
-        bottom: profile.bottom || projectCharacter.bottom,
-        shoes: profile.shoes || projectCharacter.shoes,
-        accessories: profile.accessories || projectCharacter.accessories,
-        clothingStyle: profile.clothingStyle || projectCharacter.clothingStyle,
+        top: profile.top || base.top,
+        bottom: profile.bottom || base.bottom,
+        shoes: profile.shoes || base.shoes,
+        accessories: profile.accessories || base.accessories,
+        clothingStyle: profile.clothingStyle || base.clothingStyle,
       };
     }
     const prompt = generatePromptFromProfile(finalProfile);
@@ -565,11 +611,11 @@ function CharacterDetailDrawer({
 
       // 2. 注入项目全局风格（保证色调一致）
       const projectState = useProjectStore.getState?.();
-      const project = projectState?.projects?.find((p: any) => p.id === char.projectId);
+      const project = projectState?.projects?.find((p: Project) => p.id === char.projectId);
       let stylePrompt = '';
       if (project) {
         const styleState = useStyleStore.getState?.();
-        const style = styleState?.styles?.find((s: any) => s.id === project.styleId) ?? DEFAULT_STYLE_OPTIONS.find((s: any) => s.id === project.styleId);
+        const style = styleState?.styles?.find((s: StyleEntry) => s.id === project.styleId) ?? DEFAULT_STYLE_OPTIONS.find((s: StyleOption) => s.id === project.styleId);
         stylePrompt = style?.prompt?.trim() || style?.description?.trim() || '';
       }
 
@@ -587,7 +633,7 @@ function CharacterDetailDrawer({
       });
 
       // 4. 调用统一网关API创建异步任务（图生图模式）
-      const genRes = await api.generate({
+      const genRes: GenerateResponse = await api.generate({
         modelId: imageModelId,
         modality: 'image',
         mode: 'image-to-image',
@@ -609,14 +655,14 @@ function CharacterDetailDrawer({
       });
 
       if (!genRes.task_id) {
-        const err = genRes.error || (genRes as any)?.message || '未知错误';
+        const err = genRes.error || genRes.run?.error || '未知错误';
         toast.error(`变体立绘生成失败：${err}`);
         return;
       }
 
       // 5. 轮询任务状态（最多6分钟）
       const maxPolls = 120;
-      let finalTask: any = null;
+      let finalTask: ServerTask | null = null;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 3000));
         finalTask = await api.getTask(genRes.task_id);
@@ -1041,7 +1087,7 @@ function CharacterDetailDrawer({
 
           {activeTab === 'versions' && (
             <div className="space-y-3">
-              {(char.versions || []).slice().reverse().map((ver: any, idx: number) => (
+              {(char.versions || []).slice().reverse().map((ver: AssetVersion, idx: number) => (
                 <div
                   key={ver.version}
                   className={cn(
@@ -1542,7 +1588,10 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
   };
 
   // 角色提取规则
-  const { isGroupCharacter, activeRuleId, rules, setActiveRule } = useCharacterExtractionRuleStore();
+  const isGroupCharacter = useCharacterExtractionRuleStore((s) => s.isGroupCharacter);
+  const activeRuleId = useCharacterExtractionRuleStore((s) => s.activeRuleId);
+  const rules = useCharacterExtractionRuleStore((s) => s.rules);
+  const setActiveRule = useCharacterExtractionRuleStore((s) => s.setActiveRule);
   const activeRule = rules.find((r) => r.id === activeRuleId);
 
   // 分镜需求统计
@@ -1635,7 +1684,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
   const getCharShots = (name: string) => {
     const stat = shotStats.find((s) => s.name === name);
     if (!stat) return [];
-    return (episode.directing ?? []).filter((s: any) => stat.shotIds.includes(s.id));
+    return (episode.directing ?? []).filter((s: ShotCard) => stat.shotIds.includes(s.id));
   };
   const getShotStat = (name: string) => shotStats.find((s) => s.name === name);
 

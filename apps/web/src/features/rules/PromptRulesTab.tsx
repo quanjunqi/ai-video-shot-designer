@@ -35,7 +35,12 @@ interface FormState {
 const EMPTY_FORM: FormState = { name: '', desc: '', content: '', enabled: true, note: '' };
 
 export default function PromptRulesTab() {
-  const { templates, upsertTemplate, removeTemplate, toggleEnabled, restoreVersion, loadFromServer } = usePromptRuleStore();
+  const templates = usePromptRuleStore((s) => s.templates);
+  const upsertTemplate = usePromptRuleStore((s) => s.upsertTemplate);
+  const removeTemplate = usePromptRuleStore((s) => s.removeTemplate);
+  const toggleEnabled = usePromptRuleStore((s) => s.toggleEnabled);
+  const restoreVersion = usePromptRuleStore((s) => s.restoreVersion);
+  const loadFromServer = usePromptRuleStore((s) => s.loadFromServer);
   const [stage, setStage] = useState<PromptStage>('interpretation');
   const [open, setOpen] = useState(false);
 
