@@ -182,7 +182,7 @@ jobs:
         if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25.0'
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
@@ -211,10 +211,13 @@ jobs:
       # 该模式只报告本 PR 改动行上的问题 —— 增量从严、存量从宽（与覆盖率棘轮同一思路）。
       # 未提供 .golangci.yml：使用官方默认 linter 集（errcheck/gosimple/govet/ineffassign/staticcheck/unused），
       # 避免自定义配置与 action 安装的 golangci-lint 版本产生 schema 冲突。
+      # 版本钉死 v2.13.2：v1.64.x（go1.24 构建）无法加载 go1.25 目标的模块（"can't load config"），
+      # 与 pgx v5.9.2+ 要求 go 1.25 配套。
       - name: Run golangci-lint (new issues only)
         if: steps.rel.outputs.run == 'true'
         uses: golangci/golangci-lint-action@v6
         with:
+          version: v2.13.2
           working-directory: services/${{ matrix.service }}
           only-new-issues: true
           args: --timeout=5m
