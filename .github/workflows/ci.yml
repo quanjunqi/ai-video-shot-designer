@@ -323,6 +323,14 @@ jobs:
         if: needs.changes.outputs.security == 'true'
         uses: actions/checkout@v7
 
+      # W6：govulncheck 需要 Go 工具链（ubuntu-latest 不自带）——版本与 backend 一致，
+      # 最新 1.25 patch 同时消除标准库 net/http 漏洞。
+      - name: Setup Go
+        if: needs.changes.outputs.security == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
       # W6：secrets 扫描 —— 检出硬编码密钥/凭据/Token 即阻断（零权限依赖：直接跑官方二进制）
       - name: Gitleaks secrets scan
         if: needs.changes.outputs.security == 'true'
