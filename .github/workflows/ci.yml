@@ -158,18 +158,11 @@ jobs:
       # asset 的 Put/Commit/GetContent 集成测试需要真实对象存储
       # （store_minio_integration_test.go / handler_integration_test.go）。
       # 口令是 CI 一次性凭据，不是任何真实密钥。
-      # 镜像走 quay.io 官方源：Docker Hub 的 minio/minio:latest 在 Actions runner
-      # 上拉取不稳定（实测 7 个 backend job 全量 Docker pull failed），
-      # quay.io 与 Docker Hub 是 minio 官方并列发布源，无此限流问题。
-      minio:
-        image: quay.io/minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports: ['9000:9000']
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 5s --health-timeout 5s --health-retries 12
+      # ★ 不用 service 容器跑 MinIO：minio/minio 是 Docker Hub 第三方镜像，
+      #   Actions runner 匿名拉取受 rate limit（实测 7 个 backend job 连续多轮
+      #   Docker pull failed，postgres:16 官方镜像同期可拉）；quay.io 无 minio
+      #   官方仓库。改为仅 asset job 下载 minio 二进制并本机启动（见下方
+      #   "Start MinIO" 步骤），绕过镜像源，行为与容器版等价。
     env:
       # 各服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
       # 它们都自建【随机 schema】并在结束时清理 ⇒ 共用同一个库是安全的。
@@ -257,6 +250,29 @@ jobs:
           working-directory: services/${{ matrix.service }}
           only-new-issues: true
           args: --timeout=5m
+
+      # 二进制方式启动 MinIO（仅 asset job）：绕过 Docker Hub 第三方镜像 rate limit。
+      # 下载源 dl.min.io 为 minio 官方发布源；--address 绑定本机 9000，
+      # 与 job env 的 ASSET_TEST_S3_ENDPOINT=127.0.0.1:9000 对应。
+      - name: Start MinIO (asset 集成测试需要)
+        if: steps.rel.outputs.run == 'true' && matrix.service == 'asset'
+        run: |
+          curl -sL --retry 3 https://dl.min.io/server/minio/release/linux-amd64/minio -o /tmp/minio
+          chmod +x /tmp/minio
+          MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin \
+            /tmp/minio server /tmp/minio-data --address 127.0.0.1:9000 > /tmp/minio.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:9000/minio/health/live > /dev/null 2>&1; then
+              echo "MinIO ready (attempt $i)"
+              break
+            fi
+            sleep 1
+          done
+          if ! curl -sf http://127.0.0.1:9000/minio/health/live > /dev/null 2>&1; then
+            echo "::error::MinIO 未就绪，日志如下"
+            cat /tmp/minio.log
+            exit 1
+          fi
 
       - name: Test
         if: steps.rel.outputs.run == 'true'
