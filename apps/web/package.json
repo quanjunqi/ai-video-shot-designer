@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json",
     "lint": "concurrently npm:typecheck npm:lint:eslint",
-    "lint:eslint": "eslint src",
+    "lint:eslint": "eslint src --max-warnings 0",
     "gate": "npm run typecheck && npm run lint:eslint && node scripts/quality-gate.mjs",
     "api:generate": "openapi-typescript ../../openapi/bff.yaml --output src/types/api-generated.ts",
     "api:check": "npm run api:generate -- --check",
