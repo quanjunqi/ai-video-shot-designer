@@ -14,12 +14,16 @@ import (
 
 // Log 网关调用审计日志记录
 type Log struct {
-	ID              int64           `json:"id"`
-	RequestID       string          `json:"request_id"`
-	WorkspaceID     string          `json:"workspace_id"`
-	ProjectID       string          `json:"project_id,omitempty"`
-	EpisodeID       string          `json:"episode_id,omitempty"`
-	AssetID         string          `json:"asset_id,omitempty"`
+	ID          int64  `json:"id"`
+	RequestID   string `json:"request_id"`
+	WorkspaceID string `json:"workspace_id"`
+	ProjectID   string `json:"project_id,omitempty"`
+	EpisodeID   string `json:"episode_id,omitempty"`
+	AssetID     string `json:"asset_id,omitempty"`
+	// ShotID/Feature 业务归因（T1，迁移 013）：回答"钱花在哪个分镜/功能"。
+	// 缺失一律置空容忍，不报错、不阻塞主流程（§3.7 协议）。
+	ShotID          string          `json:"shot_id,omitempty"`
+	Feature         string          `json:"feature,omitempty"`
 	UserID          string          `json:"user_id,omitempty"`
 	Product         string          `json:"product"` // comic/canvas/create
 	ModelID         string          `json:"model_id"`
@@ -60,14 +64,14 @@ func (s Store) Insert(ctx context.Context, log Log) error {
 	}
 	_, err := s.Pool.Exec(ctx, `
 		INSERT INTO gateway_audit_logs (
-			request_id, workspace_id, project_id, episode_id, asset_id, user_id,
+			request_id, workspace_id, project_id, episode_id, asset_id, shot_id, feature, user_id,
 			product, model_id, channel_id, provider_model, mode,
 			request_payload, response_payload, error_message, status,
 			latency_ms, token_input, token_output, token_cached,
 			cost_amount, cost_currency, cost_unit, job_id, provider_task_id
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
 	`,
-		log.RequestID, log.WorkspaceID, log.ProjectID, log.EpisodeID, log.AssetID, log.UserID,
+		log.RequestID, log.WorkspaceID, log.ProjectID, log.EpisodeID, log.AssetID, log.ShotID, log.Feature, log.UserID,
 		log.Product, log.ModelID, log.ChannelID, log.ProviderModel, log.Mode,
 		requestPayload, log.ResponsePayload, log.ErrorMessage, log.Status,
 		log.LatencyMs, log.TokenInput, log.TokenOutput, log.TokenCached,
@@ -109,10 +113,12 @@ func (s Store) UpdateResult(ctx context.Context, requestID string, status string
 //
 // 返回受影响行数：0 表示该 job【没有提交时的审计行】（例如经 /internal/v1/tasks 提交的任务）。
 // 调用方必须把这个 0 打出来 —— 静默的空更新会重现"审计看起来有、其实没更新"的问题。
-func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, costUnit, providerTaskID string) (int64, error) {
+func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, costUnit, channelID, providerModel, providerTaskID string) (int64, error) {
 	// D5a：同一个收口点，异步终态也走 L0 脱敏
 	responsePayload = RedactJSON(responsePayload)
 	errorMessage = redactText(errorMessage)
+	// channel_id/provider_model（T1）：submit-time 行提交时未知，终态由 worker 补齐
+	// （供给单元 = 渠道×模型，T2 报表聚合依赖；空串不覆盖既有值，与 cost_unit 同语义）。
 	tag, err := s.Pool.Exec(ctx, `
 		UPDATE gateway_audit_logs SET
 			status = $2,
@@ -124,9 +130,11 @@ func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, re
 			token_cached = $8,
 			cost_amount = $9,
 			cost_unit = COALESCE(NULLIF($10, ''), cost_unit),
-			provider_task_id = COALESCE(NULLIF($11, ''), provider_task_id)
+			channel_id = COALESCE(NULLIF($11, ''), channel_id),
+			provider_model = COALESCE(NULLIF($12, ''), provider_model),
+			provider_task_id = COALESCE(NULLIF($13, ''), provider_task_id)
 		WHERE job_id = $1
-	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, costUnit, providerTaskID)
+	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, costUnit, channelID, providerModel, providerTaskID)
 	if err != nil {
 		return 0, err
 	}

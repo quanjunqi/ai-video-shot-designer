@@ -104,6 +104,8 @@ func (h Handler) createFromIntent(w http.ResponseWriter, r *http.Request) {
 		ProjectID  string          `json:"project_id"`
 		EpisodeID  string          `json:"episode_id"`
 		AssetID    string          `json:"asset_id"`
+		ShotID     string          `json:"shot_id"`
+		Feature    string          `json:"feature"`
 		Kind       string          `json:"kind"`
 		Label      string          `json:"label"`
 		Payload    json.RawMessage `json:"payload"`
@@ -122,7 +124,7 @@ func (h Handler) createFromIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := "intent:" + in.IntentID
-	out, replayed, err := h.Store.Create(r.Context(), ws, actor, job.Input{IntentID: in.IntentID, IdempotencyKey: key, Kind: in.Kind, Label: in.Label, ProjectID: in.ProjectID, EpisodeID: in.EpisodeID, AssetID: in.AssetID, ScopeEpoch: in.ScopeEpoch, IntentPayload: in.Payload})
+	out, replayed, err := h.Store.Create(r.Context(), ws, actor, job.Input{IntentID: in.IntentID, IdempotencyKey: key, Kind: in.Kind, Label: in.Label, ProjectID: in.ProjectID, EpisodeID: in.EpisodeID, AssetID: in.AssetID, ShotID: in.ShotID, Feature: in.Feature, ScopeEpoch: in.ScopeEpoch, IntentPayload: in.Payload})
 	if errors.Is(err, job.ErrIdempotencyConflict) {
 		writeError(w, 409, "INTENT_CONFLICT", err.Error())
 		return
@@ -132,10 +134,44 @@ func (h Handler) createFromIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("X-Idempotent-Replay", boolString(replayed))
+	if !replayed {
+		// T1（§3.7）：异步提交路径创建 submit-time 审计行（status=queued，含业务归因 + job_id）。
+		// 终结「异步任务零审计」——worker 终态更新（UpdateResultByJobID）命中本行。
+		// 审计失败不得阻断主流程（D1），但必须可见。
+		h.writeSubmitAudit(r.Context(), ws, actor, genRequestID(), out, in.Kind, in.Payload)
+	}
 	if replayed {
 		writeJSON(w, 200, out)
 	} else {
 		writeJSON(w, 201, out)
+	}
+}
+
+// writeSubmitAudit 为异步任务写入提交时审计行（T1）。
+// 归因从意图上下文取；model_id 从 payload 尽力解析（best-effort，缺失置空容忍）；
+// channel_id/provider_model 提交时未知，由 worker 终态更新补齐（UpdateResultByJobID）。
+func (h Handler) writeSubmitAudit(ctx context.Context, ws, actor, requestID string, j job.Job, kind string, payload json.RawMessage) {
+	if h.AuditStore == nil {
+		return
+	}
+	modelID := ""
+	if len(payload) > 0 {
+		var m struct {
+			ModelID string `json:"modelId"`
+		}
+		if json.Unmarshal(payload, &m) == nil {
+			modelID = m.ModelID
+		}
+	}
+	auditLog := audit.Log{
+		RequestID: requestID, WorkspaceID: ws,
+		ProjectID: j.ProjectID, EpisodeID: j.EpisodeID, AssetID: j.AssetID, ShotID: j.ShotID, Feature: j.Feature,
+		UserID: actor, Product: kind, ModelID: modelID, Mode: "",
+		RequestPayload: payload, Status: "queued",
+		JobID: j.ID, CostCurrency: "CNY",
+	}
+	if err := h.AuditStore.Insert(ctx, auditLog); err != nil {
+		slog.Error("audit submit insert failed", "jobId", j.ID, "error", err)
 	}
 }
 func (h Handler) auth(w http.ResponseWriter, r *http.Request) bool {
@@ -168,6 +204,7 @@ func (h Handler) create(w http.ResponseWriter, r *http.Request) {
 		EpisodeID      string          `json:"episode_id"`
 		AssetID        string          `json:"asset_id"`
 		ShotID         string          `json:"shot_id"`
+		Feature        string          `json:"feature"`
 		Steps          json.RawMessage `json:"steps"`
 		Payload        json.RawMessage `json:"payload"`
 		CostEstimate   string          `json:"cost_estimate"`
@@ -186,7 +223,7 @@ func (h Handler) create(w http.ResponseWriter, r *http.Request) {
 	if key == "" {
 		key = in.IdempotencyKey
 	}
-	out, replayed, err := h.Store.Create(r.Context(), ws, actor, job.Input{IdempotencyKey: key, Kind: in.Kind, Label: in.Label, ProjectID: in.ProjectID, EpisodeID: in.EpisodeID, AssetID: in.AssetID, ShotID: in.ShotID, Steps: in.Steps, IntentPayload: in.Payload, CostEstimate: in.CostEstimate, ContextPath: in.ContextPath})
+	out, replayed, err := h.Store.Create(r.Context(), ws, actor, job.Input{IdempotencyKey: key, Kind: in.Kind, Label: in.Label, ProjectID: in.ProjectID, EpisodeID: in.EpisodeID, AssetID: in.AssetID, ShotID: in.ShotID, Feature: in.Feature, Steps: in.Steps, IntentPayload: in.Payload, CostEstimate: in.CostEstimate, ContextPath: in.ContextPath})
 	if errors.Is(err, job.ErrIdempotencyConflict) {
 		writeError(w, 409, "IDEMPOTENCY_CONFLICT", err.Error())
 		return
@@ -196,6 +233,10 @@ func (h Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("X-Idempotent-Replay", boolString(replayed))
+	if !replayed {
+		// T1（§3.7）：同 intent 提交路径，任务提交创建 submit-time 审计行（queued + 归因 + job_id）。
+		h.writeSubmitAudit(r.Context(), ws, actor, genRequestID(), out, in.Kind, in.Payload)
+	}
 	if replayed {
 		writeJSON(w, 200, out)
 		return
@@ -423,6 +464,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		projectID string
 		episodeID string
 		assetID   string
+		shotID    string
+		feature   string
 	)
 	// auditChannelID 在渠道解析之后填入；解析前为空 —— 这是【诚实】的结果：
 	// 那一刻系统确实还不知道渠道，写空串比事后回填/猜测更可信。
@@ -446,7 +489,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		reqBytes, _ := json.Marshal(map[string]any{"input": in.Input, "parameters": in.Parameters})
 		auditLog := audit.Log{
 			RequestID: requestID, WorkspaceID: ws, ChannelID: auditChannelID,
-			ProjectID: projectID, EpisodeID: episodeID, AssetID: assetID,
+			ProjectID: projectID, EpisodeID: episodeID, AssetID: assetID, ShotID: shotID, Feature: feature,
 			UserID: actor, Product: product, ModelID: in.ModelID, Mode: in.Mode,
 			RequestPayload: reqBytes, ResponsePayload: respPayload, ErrorMessage: errMsg,
 			Status: status, LatencyMs: int(time.Since(startTime).Milliseconds()),
@@ -468,6 +511,8 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	projectID = ""
 	episodeID = ""
 	assetID = ""
+	shotID = ""
+	feature = ""
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		writeAudit("failed", nil, "invalid generate request JSON", "", "")
 		writeError(w, 400, "INVALID_BODY", "invalid generate request JSON")
@@ -490,6 +535,13 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 		if v, ok := in.Metadata["asset_id"].(string); ok {
 			assetID = v
+		}
+		// T1（§3.7）：业务归因补齐 shot_id / feature（缺失置空容忍，不报错）
+		if v, ok := in.Metadata["shot_id"].(string); ok {
+			shotID = v
+		}
+		if v, ok := in.Metadata["feature"].(string); ok {
+			feature = v
 		}
 	}
 	// 配额与限流：超限**拒绝**并写审计（status=rate_limited / quota_exceeded），
