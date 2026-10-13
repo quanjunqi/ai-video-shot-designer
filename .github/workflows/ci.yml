@@ -211,7 +211,7 @@ jobs:
         if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.x' # 自动最新 1.25 patch（含 net/http 等安全修复；固定 1.25.0 会带存量标准库漏洞）
+          go-version: '1.26.x' # 与各服务 go.mod 的 go 1.26.0 一致；若低于 go.mod，GOTOOLCHAIN=auto 会下载另一版本并污染 GOCACHE（compile: version mismatch）
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
@@ -257,11 +257,12 @@ jobs:
       - name: Start MinIO (asset 集成测试需要)
         if: steps.rel.outputs.run == 'true' && matrix.service == 'asset'
         run: |
-          curl -sL --retry 3 https://dl.min.io/server/minio/release/linux-amd64/minio -o /tmp/minio
+          curl -sL --retry 3 --retry-all-errors --max-time 180 https://dl.min.io/server/minio/release/linux-amd64/minio -o /tmp/minio
           chmod +x /tmp/minio
+          ls -la /tmp/minio
           MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin \
             /tmp/minio server /tmp/minio-data --address 127.0.0.1:9000 > /tmp/minio.log 2>&1 &
-          for i in $(seq 1 30); do
+          for i in $(seq 1 90); do
             if curl -sf http://127.0.0.1:9000/minio/health/live > /dev/null 2>&1; then
               echo "MinIO ready (attempt $i)"
               break
@@ -365,7 +366,7 @@ jobs:
         if: needs.changes.outputs.security == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x' # 与 go.mod go 1.26.0 一致（govulncheck 扫描同样本标准库）
 
       # W6：secrets 扫描 —— 检出硬编码密钥/凭据/Token 即阻断（零权限依赖：直接跑官方二进制）
       - name: Gitleaks secrets scan
