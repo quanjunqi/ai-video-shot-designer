@@ -42,12 +42,22 @@ function checkFile(file, src) {
   });
 
   // R2b: grid 容器内的列没有 min-w-0（长文本会把 grid 列撑爆）
-  // 粗检测：同一文件里 grid-cols-* 之后紧跟的子 div className 缺 min-w-0
+  // 检测对象：grid-cols-* 容器的列 div（同行内联 或 下一行），列 div 的 className 缺 min-w-0 即建议。
+  // 注意：min-w-0 判定限定在 className 引号内（?![^"]*min-w-0），避免跨引号误报。
   for (let i = 0; i < lines.length; i++) {
-    if (/grid-cols-/.test(lines[i]) && /<(div|div) className="(?!.*min-w-0)[^"]*"/.test(lines[i + 1] ?? '')) {
-      const next = lines[i + 1].trim();
-      if (next.includes('grid') || next.includes('space-y') || next.includes('flex flex-col')) {
-        warnings.push(`${rel(file)}:${i + 2} grid 列容器建议加 min-w-0（防长文本撑爆列）：${next.slice(0, 90)}`);
+    if (!/grid-cols-/.test(lines[i])) continue;
+    // 同行内联列：grid 容器 div 之后紧跟的列 div，其 className 不含 min-w-0
+    const inline = lines[i].match(/className="grid grid-cols-[\d-]+[^"]*">\s*<(div)(?:\s+className="(?![^"]*min-w-0)[^"]*")?\s*>/);
+    if (inline) {
+      warnings.push(`${rel(file)}:${i + 1} grid 列容器建议加 min-w-0（防长文本撑爆列）：${lines[i].trim().slice(0, 90)}`);
+      continue;
+    }
+    // 下一行模式：grid 容器 div 在行尾、列 div 在下一行行首（列 className 不含 min-w-0）
+    const next = lines[i + 1] ?? '';
+    if (/^\s*<(div) className="(?![^"]*min-w-0)[^"]*"/.test(next)) {
+      const n = next.trim();
+      if (n.includes('grid') || n.includes('space-y') || n.includes('flex flex-col')) {
+        warnings.push(`${rel(file)}:${i + 2} grid 列容器建议加 min-w-0（防长文本撑爆列）：${n.slice(0, 90)}`);
       }
     }
   }

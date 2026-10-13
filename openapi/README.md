@@ -42,8 +42,8 @@
 1. 由各领域服务产出 `/internal/v1/*` 规范（或从 `Routes()` 生成），与 BFF 规范做引用校验，
    让「BFF 声明的上游」与「上游真实路由」在 CI 中自动对齐。
 2. 在 CI 增加一条校验：不得存在「BFF 转发但上游没有」或「上游有但 BFF 从未转发」的路径。
-3. 前端生成类型（`openapi-typescript` 等），替换 `client.ts` 中手写的 `Server*` 类型，
-   消除「TS 类型与 Go struct 漂移」。
+3. ~~前端生成类型，替换 `client.ts` 中手写的 `Server*` 类型~~ —— **已完成**
+   （`apps/web/src/types/generated/api.ts`，由 `bff.yaml` 生成；见 §2.3）。
 
 ### 1.3 也明确不在范围内
 
@@ -156,6 +156,21 @@ OK: bff.yaml parses, all $refs resolve, all operations well-formed
 改 `client.ts` 或 `bff.yaml` 时，建议同时跑一次路径比对：把 `client.ts` 中
 `request<T>('...')` 的路径字面量（把 `${...}` 视作 `{param}`）与 `bff.yaml` 的 path 做集合对比，
 差集必须为空（这是 review 时的最低要求，尚未进 CI）。任何新增前端方法**必须**同 PR 补 `bff.yaml`。
+
+### 2.3 前端类型生成（双向生成闭环）
+
+前端 API 类型由 `openapi/bff.yaml` **生成**，不是手写：
+
+```bash
+cd apps/web && npm run api:gen   # openapi-typescript → src/types/generated/api.ts
+```
+
+- `apps/web/src/types/generated/api.ts` 是**生成产物**，禁止手改；改契约后必须重新生成并提交。
+- `apps/web/src/lib/api/client.ts` 的响应类型一律引用 `components['schemas'][...]`（如
+  `export type ServerProject = components['schemas']['Project']`），不再手写 interface。
+- CI 的 `contract` job 保证：① 生成产物与契约同步（`api:gen` 后 `git diff` 为空）；
+  ② PR 对 `bff.yaml` 的改动由 `oasdiff` 做破坏性变更检测（`openapi/README.md §3` 的规则
+  与其一致，破坏性变更必须标 `BREAKING` 并同 PR 更新前端）。
 
 ### 2.2 可选：更严格的校验
 

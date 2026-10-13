@@ -3,7 +3,7 @@
 // 控制从分镜提取角色资产的过滤逻辑（群体角色关键词、无台词过滤等）
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CharacterExtractionRule, DEFAULT_GROUP_CHARACTER_KEYWORDS } from '@/types';
+import type { CharacterExtractionRule } from '@/types';
 
 const now = Date.now();
 

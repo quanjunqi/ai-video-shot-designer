@@ -83,7 +83,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
 
             {/* 画面比例 + 默认文本模型 */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="min-w-0 space-y-1.5">
                 <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">画面比例</Label>
                 <Select value={project.aspectRatio} onValueChange={(v) => updateProject(projectId, { aspectRatio: v as AspectRatio })}>
                   <SelectTrigger className="h-9">
@@ -113,7 +113,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
 
             {/* 图片模型 + 视频模型 */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="min-w-0 space-y-1.5">
                 <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">默认图片模型</Label>
                 <Select value={project.defaultImageModel ?? ''} onValueChange={(v) => updateProject(projectId, { defaultImageModel: v })}>
                   <SelectTrigger className="h-9">

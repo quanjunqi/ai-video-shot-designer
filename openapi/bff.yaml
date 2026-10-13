@@ -2247,7 +2247,18 @@ components:
         current_version: {type: integer}
         versions:
           type: array
-          items: {$ref: '#/components/schemas/EpisodeAsset/properties/versions/items'}
+          items:
+            type: object
+            required: [version, prompt, negative_prompt, status, created_at]
+            properties:
+              version: {type: integer}
+              prompt: {type: string}
+              negative_prompt: {type: string}
+              image_url: {type: string}
+              sha256: {type: string}
+              status: {type: string}
+              created_at: {type: number}
+            additionalProperties: true
         prompt: {type: string}
         negative_prompt: {type: string}
         image_url: {type: string}
@@ -2548,6 +2559,15 @@ components:
             additionalProperties: true
         intent_payload:
           description: 载荷，服务端可能返回对象、JSON 字符串或 null。
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: string
+            - type: 'null'
+        result_payload:
+          description: |
+            execution 010 起结果独立落列，与原始意图（intent_payload）分离；
+            服务端可能返回对象、JSON 字符串或 null。
           oneOf:
             - type: object
               additionalProperties: true
@@ -2865,6 +2885,18 @@ components:
         enabled: {type: boolean}
         note: {type: string}
         sort: {type: integer}
+        protocol:
+          type: string
+          description: 接入协议：HTTP API 渠道 vs 本地端口服务（如 ComfyUI/Ollama）。
+        syncKind:
+          type: string
+          description: 同步上游模型目录的状态（只读，来自平台目录投影）。
+        syncModelsPath: {type: string}
+        syncPricingPath: {type: string}
+        lastSyncAt: {type: string, format: date-time, nullable: true}
+        lastTestAt: {type: integer}
+        lastTestOk: {type: boolean}
+        testNote: {type: string}
       additionalProperties: true
 
     CatalogChannelPatch:
@@ -2934,7 +2966,7 @@ components:
         key: {type: string}
         value: {type: string}
         type: {type: string, description: 可选类型标注，取值以服务端为准。}
-      additionalProperties: true
+      additionalProperties: false
 
     CreateCatalogModelRequest:
       type: object

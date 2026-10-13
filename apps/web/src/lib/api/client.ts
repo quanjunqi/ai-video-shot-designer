@@ -1,4 +1,4 @@
-import type { ModelParam } from '@/config/models/model-catalog';
+import type { components } from '@/types/generated/api';
 
 export interface ApiErrorShape {
   code: string;
@@ -46,23 +46,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export interface ServerProject {
-  id: string;
-  title: string;
-  style_id: string;
-  style_version: string;
-  aspect_ratio: '16:9' | '9:16' | '1:1';
-  default_text_model?: string;
-  default_image_model: string;
-  default_video_model: string;
-  status: string;
-  current_source_version: number;
-  source_version: { version: number; sha256: string; created_at: string };
-  /** Returned by the detail endpoint; omitted from list responses. */
-  source_text?: string;
-  created_at: string;
-  updated_at: string;
-}
+export type ServerProject = components['schemas']['Project'];
+
 
 export interface CreateProjectRequest {
   title: string;
@@ -75,34 +60,8 @@ export interface CreateProjectRequest {
   source_text: string;
 }
 
-export interface ServerEpisode {
-  workspace_id: string;
-  project_id: string;
-  id: string;
-  index: number;
-  title: string;
-  summary: string;
-  source_span_start: number;
-  source_span_end: number;
-  stage: string;
-  status: string;
-  counts: Record<string, unknown>;
-  blocked_by?: string;
-  script_checked: boolean;
-  script_draft?: string;
-  interpretation?: Record<string, unknown>;
-  interpretation_confirmed: boolean;
-  execution_target?: Record<string, unknown>;
-  stage_models?: Record<string, unknown>;
-  performance?: Record<string, unknown>;
-  scene_variants?: Record<string, unknown>;
-  directing?: Record<string, unknown>;
-  directing_step?: number;
-  executable_units?: Record<string, unknown>;
-  production?: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
+export type ServerEpisode = components['schemas']['Episode'];
+
 
 export interface CreateEpisodeRequest {
   id: string;
@@ -113,39 +72,8 @@ export interface CreateEpisodeRequest {
   source_span_end?: number;
 }
 
-export interface ServerEpisodeAsset {
-  workspace_id: string;
-  project_id: string;
-  episode_id: string;
-  id: string;
-  kind: 'character' | 'prop' | 'scene' | 'other';
-  name: string;
-  description: string;
-  scope: 'episode' | 'global';
-  source_scene?: string;
-  holder?: string;
-  current_version: number;
-  versions: Array<{ version: number; prompt: string; negative_prompt: string; image_url?: string; sha256?: string; status: string; created_at: number }>;
-  prompt: string;
-  negative_prompt: string;
-  image_url?: string;
-  status: string;
-  model: string;
-  stale: boolean;
-  // 关联项目级资产
-  project_character_id?: string;
-  project_prop_id?: string;
-  project_scene_id?: string;
-  // 单集状态变体
-  episode_variant?: Record<string, string>;
-  // 单集变体立绘
-  variant_image_url?: string;
-  variant_image_status?: string;
-  variant_image_model?: string;
-  variant_image_generated_at?: string;
-  created_at: string;
-  updated_at: string;
-}
+export type ServerEpisodeAsset = components['schemas']['EpisodeAsset'];
+
 
 export interface CreateEpisodeAssetRequest {
   id: string;
@@ -165,37 +93,8 @@ export interface CreateEpisodeAssetRequest {
   stale?: boolean;
 }
 
-export interface ServerProjectCharacter {
-  id: string;
-  workspace_id: string;
-  project_id: string;
-  name: string;
-  gender: string;
-  age: string;
-  identity: string;
-  hairstyle: string;
-  eye_color: string;
-  facial_features: string;
-  special_marks: string;
-  body_type: string;
-  skin_texture: string;
-  top: string;
-  bottom: string;
-  shoes: string;
-  clothing_style: string;
-  performance: string;
-  image_url?: string;
-  image_status: string;
-  image_model?: string;
-  image_prompt?: string;
-  image_negative_prompt?: string;
-  image_generated_at: number;
-  image_job_id?: string;
-  image_error?: string;
-  image_aspect_ratio: string;
-  created_at: string;
-  updated_at: string;
-}
+export type ServerProjectCharacter = components['schemas']['ProjectCharacter'];
+
 
 export interface CreateProjectCharacterRequest {
   id: string;
@@ -222,22 +121,8 @@ export interface CreateProjectCharacterRequest {
   image_aspect_ratio?: string;
 }
 
-export interface ServerRuleTemplate {
-  workspace_id: string;
-  id: string;
-  kind: 'split' | 'prompt';
-  name: string;
-  description: string;
-  stage?: string;
-  content: string;
-  config: Record<string, unknown>;
-  version: number;
-  version_history: Array<{ version: number; savedAt: number; note?: string; snapshot: Record<string, unknown> }>;
-  builtin: boolean;
-  enabled: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type ServerRuleTemplate = components['schemas']['RuleTemplate'];
+
 
 export interface CreateRuleTemplateRequest {
   id: string;
@@ -251,22 +136,8 @@ export interface CreateRuleTemplateRequest {
   enabled?: boolean;
 }
 
-export interface ServerAsset {
-  id: string;
-  upload_id: string;
-  project_id: string;
-  episode_id?: string;
-  kind: 'character' | 'prop' | 'scene' | 'other' | 'script';
-  scope: 'project' | 'global' | 'episode';
-  name: string;
-  prompt: string;
-  object_key: string;
-  sha256: string;
-  byte_size: number;
-  content_type: string;
-  status: string;
-  created_at: string;
-}
+export type ServerAsset = components['schemas']['Asset'];
+
 
 export interface CreateAssetUploadRequest {
   project_id: string;
@@ -286,30 +157,8 @@ export interface AssetUploadSession {
   created_at: string;
 }
 
-export interface ServerTask {
-  id: string;
-  kind: 'split' | 'interpret' | 'image' | 'video' | 'audio' | 'canvas_export';
-  label: string;
-  project_id?: string;
-  episode_id?: string;
-  asset_id?: string;
-  shot_id?: string;
-  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
-  progress: number;
-  attempt: number;
-  steps?: { label: string; done: boolean }[];
-  intent_payload?: Record<string, unknown> | string | null;
-  /**
-   * 任务结果（execution 010 起与意图分离存放，服务端 jsonb，可能返回对象或 JSON 字符串）。
-   * 010 之前的历史任务结果被覆盖写在 `intent_payload.result` 里，读取时须回退（见 result-utils.ts）。
-   */
-  result_payload?: Record<string, unknown> | string | null;
-  cost_estimate?: string;
-  error?: string;
-  context_path?: string;
-  created_at: string;
-  updated_at: string;
-}
+export type ServerTask = components['schemas']['Task'];
+
 
 export interface CreateTaskRequest {
   kind: ServerTask['kind'];
@@ -324,19 +173,8 @@ export interface CreateTaskRequest {
   payload?: Record<string, unknown>;
 }
 
-export interface ServerGenerationIntent {
-  id: string;
-  project_id: string;
-  episode_id?: string;
-  asset_id?: string;
-  kind: ServerTask['kind'];
-  label: string;
-  payload: Record<string, unknown>;
-  scope_epoch: number;
-  status: 'pending' | 'dispatched' | 'failed';
-  created_at: string;
-  updated_at: string;
-}
+export type ServerGenerationIntent = components['schemas']['GenerationIntent'];
+
 
 export interface CreateGenerationIntentRequest {
   project_id: string;
@@ -350,40 +188,11 @@ export interface CreateGenerationIntentRequest {
 
 
 // ---- Model catalog (production service: platform-shared default directory) ----
-export interface ServerCatalogChannel {
-  id: string;
-  name: string;
-  kind: 'official' | 'aggregator' | 'local';
-  baseUrl: string;
-  authType: 'bearer' | 'none';
-  enabled: boolean;
-  note: string;
-  sort: number;
-  /** 同步状态（只读投影；同步配置是平台级的，前端不写它） */
-  syncKind?: string;
-  syncModelsPath?: string;
-  syncPricingPath?: string;
-  lastSyncAt?: string | null;
-}
+export type ServerCatalogChannel = components['schemas']['CatalogChannel'];
 
-export interface ServerCatalogModel {
-  id: string;
-  channelId: string;
-  family: string;
-  name: string;
-  providerModel?: string;
-  type: 'text' | 'image' | 'video';
-  status: 'enabled' | 'disabled';
-  sort: number;
-  note: string;
-  protocolTemplateId?: string;
-  requestPath?: string;
-  method?: 'POST' | 'GET';
-  params?: { key: string; value: string }[];
-  responseParams?: { key: string; value: string; type?: string }[];
-  capability: Record<string, unknown>;
-  version: number;
-}
+
+export type ServerCatalogModel = components['schemas']['CatalogModel'];
+
 
 export interface UserChannelItem {
   id: string;
@@ -404,47 +213,14 @@ export interface UserChannelItem {
   trustNote?: string;
 }
 
-export interface ServerCatalogDirectory {
-  channels: ServerCatalogChannel[];
-  models: ServerCatalogModel[];
-  templates: ServerProtocolTemplate[];
-}
+export type ServerCatalogDirectory = components['schemas']['CatalogDirectory'];
 
-export interface ServerProtocolTemplate {
-  id: string;
-  label: string;
-  desc: string;
-  method: 'POST' | 'GET';
-  requestPath: string;
-  params: { key: string; value: string }[];
-  responseParams: { key: string; value: string; type?: string }[];
-  async?: { enabled: boolean; taskIdField: string; statusField: string; doneValue: string; failValue: string; pollPath?: string };
-  builtin: boolean;
-  enabled: boolean;
-  refCount: number;
-  version: number;
-  // ADR-008 §3 两类证据并列：docRef 是【外部输入/线索】，observedEvidence 是【实测/事实】。
-  // 服务端为 NULL 时字段缺席（omitempty）⇒ 两者都是可选。
-  docRef?: Record<string, unknown>;
-  observedEvidence?: Record<string, unknown>;
-}
 
-export interface ServerCatalogModelPatch {
-  channelId?: string;
-  family?: string;
-  name?: string;
-  providerModel?: string;
-  type?: 'text' | 'image' | 'video';
-  status?: 'enabled' | 'disabled';
-  sort?: number;
-  note?: string;
-  protocolTemplateId?: string;
-  requestPath?: string;
-  method?: 'POST' | 'GET';
-  params?: ModelParam[];
-  responseParams?: ModelParam[];
-  capability?: Record<string, unknown>;
-}
+export type ServerProtocolTemplate = components['schemas']['ProtocolTemplate'];
+
+
+export type ServerCatalogModelPatch = components['schemas']['CatalogModelPatch'];
+
 
 /** 一次上游同步的结果计数（与 production 的 SyncResult 一一对应）。 */
 export interface ChannelSyncResult {
@@ -456,14 +232,8 @@ export interface ChannelSyncResult {
   price_changed: number;
 }
 
-export interface ServerCatalogChannelPatch {
-  name?: string;
-  baseUrl?: string;
-  authType?: 'bearer' | 'none';
-  enabled?: boolean;
-  note?: string;
-  sort?: number;
-}
+export type ServerCatalogChannelPatch = components['schemas']['CatalogChannelPatch'];
+
 
 // ---- Execution sync model test (real dispatch via engine) ----
 export interface RunModelTestResponse {
@@ -642,18 +412,8 @@ export interface CuratedModelResponse {
   version: number;
 }
 
-export interface ServerLogicalModel {
-  id: string;
-  label: string;
-  type: LogicalModelType;
-  capability: string;
-  status: LogicalModelStatus;
-  sort: number;
-  note: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type ServerLogicalModel = components['schemas']['LogicalModel'];
+
 
 /**
  * `POST /api/v1/logical-models` 请求体。
@@ -684,18 +444,8 @@ export interface UpdateLogicalModelRequest {
   note?: string;
 }
 
-export interface ServerLogicalModelCandidate {
-  id: string;
-  logicalModelId: string;
-  name: string;
-  family: string;
-  channelId: string;
-  providerModel: string;
-  type: LogicalModelType;
-  status: LogicalModelStatus;
-  /** 路由尝试顺序，小者优先；未提供时上游使用默认值 100。 */
-  routePriority: number;
-}
+export type ServerLogicalModelCandidate = components['schemas']['LogicalModelCandidate'];
+
 
 export interface BindLogicalModelCandidatesRequest {
   modelIds: string[];

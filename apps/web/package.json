@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.app.json",
     "lint": "concurrently npm:typecheck npm:lint:eslint",
     "lint:eslint": "eslint src",
+    "api:gen": "openapi-typescript ../../openapi/bff.yaml -o src/types/generated/api.ts",
     "gate": "npm run typecheck && npm run lint:eslint && node scripts/quality-gate.mjs"
   },
   "dependencies": {
@@ -86,6 +87,7 @@
     "eslint-plugin-react-hooks": "^7",
     "eslint-plugin-react-refresh": "^0.5",
     "globals": "^17",
+    "openapi-typescript": "^7.13.0",
     "typescript": "~5.9",
     "typescript-eslint": "^8",
     "vite": "^8"

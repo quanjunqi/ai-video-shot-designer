@@ -470,7 +470,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
 
   const openEdit = (char: ProjectCharacter) => {
     setEditingId(char.id);
-    const { id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = char;
+    const { id: _id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = char;
     setForm(rest);
     setEditOpen(true);
   };
@@ -1639,20 +1639,3 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
   );
 }
 
-function DetailSection({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h4 className={cn('mb-3 text-xs font-semibold', color)}>{title}</h4>
-      <div className="space-y-2 rounded-xl bg-muted/30 p-3">{children}</div>
-    </div>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-3 text-xs">
-      <span className="w-20 shrink-0 text-muted-foreground">{label}</span>
-      <span className="flex-1 text-foreground">{value || <span className="text-muted-foreground/50">未设置</span>}</span>
-    </div>
-  );
-}

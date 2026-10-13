@@ -15,6 +15,12 @@ const PAGE = readFileSync(
 );
 const CLIENT = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'api', 'client.ts'), 'utf8');
 const STORE = readFileSync(join(import.meta.dirname, '..', 'src', 'stores', 'useSettingsStore.ts'), 'utf8');
+// 契约生成化后，CatalogChannel 字段的唯一事实源在 openapi/bff.yaml → 生成产物；
+// client.ts 只保留类型别名（components['schemas']['CatalogChannel']），字段断言应落在生成产物上。
+const GENERATED = readFileSync(
+  join(import.meta.dirname, '..', 'src', 'types', 'generated', 'api.ts'),
+  'utf8',
+);
 
 test('渠道页提供「同步上游模型目录」，并调用后端同步接口', () => {
   assert.match(PAGE, /同步上游模型目录/, '按钮文案必须是 Owner 定的「同步上游模型目录」');
@@ -51,8 +57,12 @@ test('渠道卡片只读展示同步状态与上次同步时间（P2-1b）', () 
 });
 
 test('只读投影的类型与映射齐备（syncKind/syncModelsPath/syncPricingPath/lastSyncAt）', () => {
-  assert.match(CLIENT, /lastSyncAt/, 'ServerCatalogChannel 必须含 lastSyncAt');
-  assert.match(CLIENT, /syncModelsPath/, 'ServerCatalogChannel 必须含 syncModelsPath');
+  // 契约生成化后字段事实源在生成产物（bff.yaml CatalogChannel schema）
+  for (const field of ['lastSyncAt?', 'syncKind?', 'syncModelsPath?', 'syncPricingPath?']) {
+    assert.match(GENERATED, new RegExp(field), `生成产物的 CatalogChannel 必须含 ${field}（来自 bff.yaml）`);
+  }
+  // client.ts 应通过别名引用生成类型，不再手写字段（防漂移）
+  assert.match(CLIENT, /components\['schemas'\]\['CatalogChannel'\]/, 'client.ts 必须引用生成类型别名');
   assert.match(STORE, /lastSyncAt: c\.lastSyncAt/, 'store 必须把投影透传进 ChannelConfig');
 });
 
