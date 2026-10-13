@@ -108,6 +108,14 @@ jobs:
         working-directory: apps/web
         run: npm test
 
+      - name: Visual regression (截图基线 diff)
+        if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
+        run: npm run visual:check
+        # 说明：关键页面截图与 visual-baseline/ 基线比对，差异率 >2% 判回归。
+        # 基线由 `npm run visual:baseline` 在有意变更布局时刷新（本机运行，随 PR 入库）。
+        # CI 与本地同为无 BFF 的 error 态布局，基线可比；本步骤不依赖后端。
+
       - name: Skipped (无前端改动)
         if: needs.changes.outputs.frontend != 'true'
         run: echo "无 apps/web 改动，跳过前端门禁（本检查已如实上报成功）"

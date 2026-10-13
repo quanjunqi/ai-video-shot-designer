@@ -7,10 +7,13 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json",
     "lint": "concurrently npm:typecheck npm:lint:eslint",
     "lint:eslint": "eslint src",
-    "gate": "npm run typecheck && npm run lint:eslint && node scripts/quality-gate.mjs"
+    "gate": "npm run typecheck && npm run lint:eslint && node scripts/quality-gate.mjs",
+    "visual:baseline": "node scripts/visual-regression.mjs --update",
+    "visual:check": "node scripts/visual-regression.mjs"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
@@ -86,6 +89,8 @@
     "eslint-plugin-react-hooks": "^7",
     "eslint-plugin-react-refresh": "^0.5",
     "globals": "^17",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0",
     "typescript": "~5.9",
     "typescript-eslint": "^8",
     "vite": "^8"
