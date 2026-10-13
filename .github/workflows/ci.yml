@@ -158,8 +158,11 @@ jobs:
       # asset 的 Put/Commit/GetContent 集成测试需要真实对象存储
       # （store_minio_integration_test.go / handler_integration_test.go）。
       # 口令是 CI 一次性凭据，不是任何真实密钥。
+      # 镜像走 quay.io 官方源：Docker Hub 的 minio/minio:latest 在 Actions runner
+      # 上拉取不稳定（实测 7 个 backend job 全量 Docker pull failed），
+      # quay.io 与 Docker Hub 是 minio 官方并列发布源，无此限流问题。
       minio:
-        image: minio/minio:latest
+        image: quay.io/minio/minio:latest
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
