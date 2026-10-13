@@ -47,3 +47,26 @@
 
 所有 AI 模型调用必须写审计日志（`gateway_audit_logs` 表）。
 审计写入失败必须打 Error 日志，不能静默吞掉。
+
+### 运营报表聚合查询（T2）
+
+成本看板 / 运营报表的数据源，均为 `GET /internal/v1/audit/*` 内部端点（BFF 透传，前端不直连）：
+
+| 端点 | 用途 | 关键参数 |
+|---|---|---|
+| `GET /internal/v1/audit/stats` | 四维排行 | `dimension=channel\|model\|project\|member`（必填）；`since`/`until`（RFC3339）；`status`/`model_id`/`channel_id`/`user_id`/`project_id`/`feature` 过滤；`limit`（默认 20，上限 50） |
+| `GET /internal/v1/audit/stats/trend` | 时间序列 | `granularity=day\|week\|month`（必填）；`dimension`+`dimension_value` 可选下钻；筛选参数同上 |
+
+指标口径（与代码注释一致，前端渲染必须遵守）：
+
+- **调用量**：`calls` = 命中筛选的行数；`success_calls`/`failed_calls` 按状态切分。
+  「成功」兼容历史行的 `succeeded` 写法（读侧归一，与列表筛选同口径）。
+- **成功率**：`success_calls / calls`，由 handler 计算（0-100）。
+- **P95 延迟**：只统计成功行的 `latency_ms` 95 分位（`percentile_cont` 连续插值）；
+  无成功行时为 0。失败/超时行不入延迟统计。
+- **成本双口径**（T0 语义）：
+  - 已校准 `cost_calibrated` = `cost_amount > 0 AND cost_unit <> ''` 的行合计（可进入预算拦截）；
+  - 预估 `cost_estimated_calls` = `cost_amount <= 0 OR cost_unit = ''` 的行数（不进入已校准合计）。
+- **workspace 隔离**：所有查询以 `X-Workspace-Id` 为硬边界。
+
+SLO：报表查询 P95 < 2s（>5 万行造数断言，本地一次性跑；数据量增大时以索引/聚合下推演进）。

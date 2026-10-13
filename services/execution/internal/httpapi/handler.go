@@ -74,6 +74,9 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/generate", h.generate)
 	mux.HandleFunc("GET /internal/v1/audit/logs", h.listAuditLogs)
 	mux.HandleFunc("GET /internal/v1/audit/export", h.exportAuditLogs)
+	// T2 运营报表聚合：四维排行 + 日/周/月趋势（成本看板数据源）。
+	mux.HandleFunc("GET /internal/v1/audit/stats", h.listStats)
+	mux.HandleFunc("GET /internal/v1/audit/stats/trend", h.statsTrend)
 	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
 	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
 	// T0 价格对账：触发一次「审计实际成本 vs 目录权威价」的差异检查，写入校准台账。
@@ -922,6 +925,105 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 			"tokensByChannel": agg.TokensByChannel,
 			"aggregateOn":     "filtered_total",
 		},
+	})
+}
+
+// listStats 返回按维度聚合的排行（GET /internal/v1/audit/stats）。
+//
+// 参数：dimension=channel|model|project|member（必填）；筛选复用 auditFilterFrom
+// （status/model_id/channel_id/user_id/project_id/since/until）+ feature（T1 归因过滤）。
+// 指标：调用量（成功/失败）、成功率、P95（仅成功行）、成本（已校准/预估双口径）。
+// SLO：报表查询 P95 < 2s（数据量增大时以索引/聚合下推演进，见任务卡 §6）。
+func (h Handler) listStats(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
+		return
+	}
+	ws, _, ok := ctxOf(r)
+	if !ok {
+		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
+		return
+	}
+	if h.AuditStore == nil {
+		writeError(w, 503, "AUDIT_UNAVAILABLE", "audit store not configured")
+		return
+	}
+	dimension := r.URL.Query().Get("dimension")
+	if _, ok := audit.StatsDimensions[dimension]; !ok {
+		writeError(w, 400, "INVALID_DIMENSION", "dimension must be channel|model|project|member")
+		return
+	}
+	f, ferr := auditFilterFrom(r)
+	if ferr != "" {
+		writeError(w, 400, ferr, "since/until must be RFC3339")
+		return
+	}
+	feature := r.URL.Query().Get("feature")
+	limit := 20
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 50 {
+			limit = n
+		}
+	}
+	stats, err := h.AuditStore.DimensionStatsBy(r.Context(), ws, f, feature, dimension, limit)
+	if err != nil {
+		writeError(w, 500, "AUDIT_STATS_FAILED", err.Error())
+		return
+	}
+	for i := range stats {
+		if stats[i].Calls > 0 {
+			stats[i].SuccessRate = float64(stats[i].SuccessCalls) / float64(stats[i].Calls) * 100
+		}
+	}
+	writeJSON(w, 200, map[string]any{
+		"dimension": dimension,
+		"items":     stats,
+	})
+}
+
+// statsTrend 返回时间序列（GET /internal/v1/audit/stats/trend）。
+//
+// 参数：granularity=day|week|month（必填）；dimension+dimension_value 可选（按单一维度值下钻）；
+// 筛选与 listStats 同一口径。返回按桶升序的序列，前端直接渲染折线。
+func (h Handler) statsTrend(w http.ResponseWriter, r *http.Request) {
+	if !h.auth(w, r) {
+		return
+	}
+	ws, _, ok := ctxOf(r)
+	if !ok {
+		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
+		return
+	}
+	if h.AuditStore == nil {
+		writeError(w, 503, "AUDIT_UNAVAILABLE", "audit store not configured")
+		return
+	}
+	granularity := r.URL.Query().Get("granularity")
+	if _, ok := audit.Granularities[granularity]; !ok {
+		writeError(w, 400, "INVALID_GRANULARITY", "granularity must be day|week|month")
+		return
+	}
+	dimension := r.URL.Query().Get("dimension")
+	dimensionValue := r.URL.Query().Get("dimension_value")
+	if dimension != "" {
+		if _, ok := audit.StatsDimensions[dimension]; !ok {
+			writeError(w, 400, "INVALID_DIMENSION", "dimension must be channel|model|project|member")
+			return
+		}
+	}
+	f, ferr := auditFilterFrom(r)
+	if ferr != "" {
+		writeError(w, 400, ferr, "since/until must be RFC3339")
+		return
+	}
+	feature := r.URL.Query().Get("feature")
+	trend, err := h.AuditStore.Trend(r.Context(), ws, f, feature, granularity, dimension, dimensionValue)
+	if err != nil {
+		writeError(w, 500, "AUDIT_TREND_FAILED", err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{
+		"granularity": granularity,
+		"items":       trend,
 	})
 }
 
