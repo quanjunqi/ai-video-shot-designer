@@ -3,7 +3,7 @@
 // 每项在页面顶部给出「用户任务一句话」；「模型」下再分两个层级（对外能力 / 具体模型与来源渠道）。
 // 导航事实（项、层级、旧路径去向）在 features/settings/settings-navigation.ts，并已被单测锁定。
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Boxes, Cable, ScrollText, SlidersHorizontal } from 'lucide-react';
+import { Boxes, Cable, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   SETTINGS_CHANNEL_RULES_PATH,

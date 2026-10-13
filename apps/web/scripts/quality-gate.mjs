@@ -42,13 +42,16 @@ function checkFile(file, src) {
   });
 
   // R2b: grid 容器内的列没有 min-w-0（长文本会把 grid 列撑爆）
-  // 粗检测：同一文件里 grid-cols-* 之后紧跟的子 div className 缺 min-w-0
+  // 粗检测：grid-cols-* 行的下一行若是列容器（grid/space-y/flex flex-col）且缺 min-w-0 则提示。
+  // 实现用确定性提取（className 值字符串判断），不用零宽断言：断言里的 .* 会跨过
+  // 引号/标签扫到行尾，导致已含 min-w-0 的行误报（W2 基线回归实测）。
   for (let i = 0; i < lines.length; i++) {
-    if (/grid-cols-/.test(lines[i]) && /<(div|div) className="(?!.*min-w-0)[^"]*"/.test(lines[i + 1] ?? '')) {
-      const next = lines[i + 1].trim();
-      if (next.includes('grid') || next.includes('space-y') || next.includes('flex flex-col')) {
-        warnings.push(`${rel(file)}:${i + 2} grid 列容器建议加 min-w-0（防长文本撑爆列）：${next.slice(0, 90)}`);
-      }
+    if (!/grid-cols-/.test(lines[i])) continue;
+    const next = (lines[i + 1] ?? '').trim();
+    if (!(next.includes('grid') || next.includes('space-y') || next.includes('flex flex-col'))) continue;
+    const m = next.match(/<div[^>]*className="([^"]*)"/);
+    if (m && !m[1].includes('min-w-0')) {
+      warnings.push(`${rel(file)}:${i + 2} grid 列容器建议加 min-w-0（防长文本撑爆列）：${next.slice(0, 90)}`);
     }
   }
 

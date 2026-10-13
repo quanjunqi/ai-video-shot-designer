@@ -1,4 +1,3 @@
-import type { ModelParam } from '@/config/models/model-catalog';
 import type { components } from '@/types/api-generated';
 type ApiSchemas = components['schemas'];
 
