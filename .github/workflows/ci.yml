@@ -546,7 +546,8 @@ jobs:
           fi
           git show "origin/${{ github.base_ref }}:openapi/bff.yaml" > /tmp/contract-base.yaml
           cp openapi/bff.yaml /tmp/contract-head.yaml
-          docker run --rm -v /tmp:/spec tufin/oasdiff /spec/contract-base.yaml /spec/contract-head.yaml || {
+          # oasdiff 新版 CLI 需要子命令：breaking <base> <head>
+          docker run --rm -v /tmp:/spec tufin/oasdiff breaking /spec/contract-base.yaml /spec/contract-head.yaml || {
             echo "::error::oasdiff 检测到破坏性契约变更（详见上方 diff）"
             exit 1
           }
