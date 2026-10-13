@@ -215,7 +215,7 @@ jobs:
       # 与 pgx v5.9.2+ 要求 go 1.25 配套。
       - name: Run golangci-lint (new issues only)
         if: steps.rel.outputs.run == 'true'
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.13.2
           working-directory: services/${{ matrix.service }}
