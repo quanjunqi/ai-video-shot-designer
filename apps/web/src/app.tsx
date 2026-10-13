@@ -22,9 +22,12 @@ import {
 import SettingsChannelsPage from '@/pages/SettingsChannels';
 import SettingsModelsPage from '@/pages/SettingsModels';
 import SettingsProtocolsPage from '@/pages/SettingsProtocols';
-import SettingsAuditPage from '@/pages/SettingsAudit';
 import SettingsPreferencesPage from '@/pages/SettingsPreferences';
 import SettingsLogicalModelsPage from '@/pages/SettingsLogicalModels';
+import ModelCenterLayout, { ModelCenterPlaceholder } from '@/features/model-center/ModelCenterLayout';
+import { MODEL_CENTER_DEFAULT_PATH } from '@/features/model-center/model-center-navigation';
+import ModelCostsPage from '@/pages/ModelCosts';
+import ModelAuditPage from '@/pages/ModelAudit';
 import NotFoundPage from '@/pages/NotFoundPage/NotFoundPage';
 
 // 旧路由迁移：/drama/:projectId → /comic/projects/:projectId
@@ -50,6 +53,16 @@ export default function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="shot-language" element={<ShotLanguagePage />} />
         <Route path="assets" element={<AssetsPage />} />
+        {/* 模型中心（高保真稿 GATE-2）：独立一级导航；T2-2 实装成本与用量/审计日志，其余入口建设中占位 */}
+        <Route path="models" element={<ModelCenterLayout />}>
+          <Route index element={<Navigate to={MODEL_CENTER_DEFAULT_PATH} replace />} />
+          <Route path="catalog" element={<ModelCenterPlaceholder label="模型目录" />} />
+          <Route path="market" element={<ModelCenterPlaceholder label="模型广场" />} />
+          <Route path="channels" element={<ModelCenterPlaceholder label="渠道与凭据" />} />
+          <Route path="costs" element={<ModelCostsPage />} />
+          <Route path="audit" element={<ModelAuditPage />} />
+          <Route path="protocols" element={<ModelCenterPlaceholder label="协议模板" />} />
+        </Route>
         <Route path="settings" element={<SettingsLayout />}>
           {/* ADR-005 D2：设置中心默认落到「模型」 */}
           <Route index element={<Navigate to={SETTINGS_DEFAULT_PATH} replace />} />

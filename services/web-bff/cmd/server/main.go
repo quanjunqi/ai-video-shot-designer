@@ -43,6 +43,9 @@ func main() {
 	mux.HandleFunc("/api/v1/tasks/", s.tasks)
 	mux.HandleFunc("/api/v1/audit/logs", s.auditLogs)
 	mux.HandleFunc("/api/v1/audit/export", s.auditExport)
+	// T2 运营报表聚合（成本看板数据源）：透传 execution /internal/v1/audit/stats[/trend]
+	mux.HandleFunc("/api/v1/audit/stats", s.auditStatsProxy)
+	mux.HandleFunc("/api/v1/audit/stats/trend", s.auditTrendProxy)
 	mux.HandleFunc("/api/v1/generate", s.generate)
 	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
 	// 更具体的模式优先于上面的 "/api/v1/channels/"（Go 1.22 ServeMux 的最具体匹配）
@@ -630,6 +633,22 @@ func (s *server) auditExport(w http.ResponseWriter, r *http.Request) {
 
 // auditLogs forwards audit log queries to execution /internal/v1/audit/logs.
 func (s *server) auditLogs(w http.ResponseWriter, r *http.Request) {
+	s.auditGetProxy("/internal/v1/audit/logs", w, r)
+}
+
+// auditStatsProxy 转发 T2 运营报表排行到 execution /internal/v1/audit/stats。
+func (s *server) auditStatsProxy(w http.ResponseWriter, r *http.Request) {
+	s.auditGetProxy("/internal/v1/audit/stats", w, r)
+}
+
+// auditTrendProxy 转发 T2 时间序列到 execution /internal/v1/audit/stats/trend。
+func (s *server) auditTrendProxy(w http.ResponseWriter, r *http.Request) {
+	s.auditGetProxy("/internal/v1/audit/stats/trend", w, r)
+}
+
+// auditGetProxy 是审计读端点的通用透传（logs/stats/trend 共用同一守卫与转发逻辑，
+// 只换上游路径；与 auditExport 的区别：不解析响应体，只透传状态码与流）。
+func (s *server) auditGetProxy(upstreamPath string, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
@@ -642,7 +661,6 @@ func (s *server) auditLogs(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	upstreamPath := "/internal/v1/audit/logs"
 	if r.URL.RawQuery != "" {
 		upstreamPath += "?" + r.URL.RawQuery
 	}

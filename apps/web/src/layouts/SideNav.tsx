@@ -16,6 +16,7 @@ import {
   Palette,
   BookOpenCheck,
   ChevronDown,
+  Cpu,
   Image as ImageIcon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -58,6 +59,8 @@ const NAV: NavItem[] = [
   { key: 'styles', label: '风格库', path: '/comic/styles', icon: Palette },
   { key: 'rules', label: '规则中心', path: '/comic/rules', icon: BookOpenCheck },
   { key: 'assets', label: '资产库', path: '/assets', icon: FolderOpen },
+  // 模型中心（高保真稿 GATE-2）：算力接入的一级入口，独立于设置中心
+  { key: 'models', label: '模型中心', path: '/models', icon: Cpu },
 ];
 
 const SECONDARY: NavItem[] = [
