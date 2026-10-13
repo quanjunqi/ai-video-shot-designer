@@ -104,7 +104,8 @@ func TestPutAndCommitHappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetContent: %v", err)
 	}
-	defer c.Body.Close()
+	// 显式丢弃 Close 错误：测试读完整响应体后关闭，close 失败无断言价值。
+	defer func() { _ = c.Body.Close() }()
 	got, err := io.ReadAll(c.Body)
 	if err != nil {
 		t.Fatal(err)
