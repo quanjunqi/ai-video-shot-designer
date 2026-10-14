@@ -42,8 +42,8 @@
 1. 由各领域服务产出 `/internal/v1/*` 规范（或从 `Routes()` 生成），与 BFF 规范做引用校验，
    让「BFF 声明的上游」与「上游真实路由」在 CI 中自动对齐。
 2. 在 CI 增加一条校验：不得存在「BFF 转发但上游没有」或「上游有但 BFF 从未转发」的路径。
-3. 前端生成类型（`openapi-typescript` 等），替换 `client.ts` 中手写的 `Server*` 类型，
-   消除「TS 类型与 Go struct 漂移」。
+3. ~~前端生成类型，替换 `client.ts` 中手写的 `Server*` 类型~~ —— **已完成**
+   （`apps/web/src/types/api-generated.ts`，由 `bff.yaml` 生成；见 §2.3）。
 
 ### 1.3 也明确不在范围内
 
@@ -162,6 +162,25 @@ OK: bff.yaml parses, all $refs resolve, all operations well-formed
 本地如有 Docker 或已缓存的 `@redocly/cli` / `swagger-cli`，可额外跑
 `redocly lint openapi/bff.yaml` 或 `npx --offline @redocly/cli lint openapi/bff.yaml`。
 这属于加分项：**CI 与离线环境不得依赖它**，§2 的脚本是权威门禁。
+
+### 2.3 前端类型生成（契约 → 类型）
+
+前端 API 类型由 `openapi/bff.yaml` **生成**，不是手写：
+
+```bash
+cd apps/web
+npm run api:generate   # openapi-typescript → src/types/api-generated.ts
+npm run api:check      # 只校验：生成产物与契约是否同步（CI 用这条）
+```
+
+- `apps/web/src/types/api-generated.ts` 是**生成产物**，禁止手改；改契约后必须重新生成并提交。
+- `apps/web/src/lib/api/client.ts` 的类型一律引用生成类型（`type ApiSchemas = components['schemas']`，
+  再 `export type ServerProject = ApiSchemas['Project']`），不再手写 `interface`——从机制上消除
+  「TS 类型与 Go struct 漂移」。
+- CI 两道防线：① frontend job 跑 `npm run api:check`，生成产物过期即失败（契约**自洽**）；
+  ② `contract` job 跑 `oasdiff breaking --fail-on ERR`，PR 对 `bff.yaml` 的**破坏性**改动阻断合入
+  （判据即 §3；破坏性变更必须标 `BREAKING` 并同 PR 更新前端）。注意 `--fail-on` 不可省：
+  `oasdiff breaking` 默认只打印、恒以 0 退出，少了它就是一条永远绿的「假防线」。
 
 ---
 
