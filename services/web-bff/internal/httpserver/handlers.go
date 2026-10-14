@@ -594,7 +594,7 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodDelete && r.Method != http.MethodPatch {
-		http.Error(w, "method not allowed", 405)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	if err := s.authorize(r.Context()); err != nil {
@@ -607,7 +607,7 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
 	if err != nil {
-		http.Error(w, "invalid body", 400)
+		http.Error(w, "invalid body", http.StatusBadRequest)
 		return
 	}
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
@@ -617,7 +617,7 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 	}
 	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.productionURL+upstreamPath, bytes.NewReader(body))
 	if err != nil {
-		http.Error(w, "request failed", 500)
+		http.Error(w, "request failed", http.StatusInternalServerError)
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+s.productionToken)
