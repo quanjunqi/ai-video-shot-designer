@@ -84,11 +84,11 @@ export default function ScriptReview({
         剧本核对
         <span className="text-muted-foreground">{episode.title}</span>
         <span className="ml-auto flex items-center gap-1.5">
-          <Badge variant="outline" className="font-mono text-[9px]">
+          <Badge variant="outline" className="font-mono text-4xs">
             源版本 v{project?.currentSourceVersion} · {sourceHash}
           </Badge>
           {episode.scriptDraft && (
-            <Badge variant="outline" className="border-amber-500/40 font-mono text-[9px] text-amber-600 dark:text-amber-400">
+            <Badge variant="outline" className="border-amber-500/40 font-mono text-4xs text-amber-600 dark:text-amber-400">
               草稿（未锁版）
             </Badge>
           )}
@@ -105,7 +105,7 @@ export default function ScriptReview({
         </span>
       </div>
 
-      <div className="mb-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+      <div className="mb-2 flex items-center gap-3 text-3xs text-muted-foreground">
         <span>原文范围 L{episode.sourceSpan.start}–L{episode.sourceSpan.end}</span>
         {episode.scriptDraft && (
           <span className="text-amber-600 dark:text-amber-400">
@@ -130,7 +130,7 @@ export default function ScriptReview({
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {readOnly ? (
-          <span className="text-[10px] text-muted-foreground">只读浏览 · 编辑剧本请到首次解读阶段</span>
+          <span className="text-3xs text-muted-foreground">只读浏览 · 编辑剧本请到首次解读阶段</span>
         ) : editing ? (
           <>
             <Button type="button" size="sm" onClick={saveDraft}>
@@ -155,7 +155,7 @@ export default function ScriptReview({
           </>
         )}
         {!readOnly && (
-          <span className="ml-auto text-[10px] text-muted-foreground">
+          <span className="ml-auto text-3xs text-muted-foreground">
             源剧本为不可变版本；本集编辑以草稿新版本记录，不覆盖源文本
           </span>
         )}
@@ -163,17 +163,17 @@ export default function ScriptReview({
 
       {showImpact && !readOnly && (
         <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+          <div className="mb-2 flex items-center gap-1.5 text-2xs font-medium text-amber-700 dark:text-amber-400">
             <AlertTriangle className="h-3.5 w-3.5" />
             剧本草稿变更影响预览
             <span className="font-normal text-muted-foreground">本集已有解读产物，以下下游项基于旧剧本，需同步</span>
           </div>
           <div className="space-y-1">
             {impactItems.map((it) => (
-              <div key={it.label} className="flex items-center gap-2 rounded bg-muted/40 px-2.5 py-1 text-[11px]">
+              <div key={it.label} className="flex items-center gap-2 rounded bg-muted/40 px-2.5 py-1 text-2xs">
                 <span className="w-32 shrink-0 font-medium">{it.label}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">{it.desc}</span>
-                <span className="shrink-0 font-mono text-[10px] text-amber-600 dark:text-amber-400">{it.status}</span>
+                <span className="shrink-0 font-mono text-3xs text-amber-600 dark:text-amber-400">{it.status}</span>
               </div>
             ))}
           </div>
@@ -184,13 +184,13 @@ export default function ScriptReview({
                 重新解读本集（清解读与导演产物，资产标 STALE）
               </Button>
             ) : (
-              <span className="text-[11px] text-muted-foreground">解读产物重置需回到解读页执行</span>
+              <span className="text-2xs text-muted-foreground">解读产物重置需回到解读页执行</span>
             )}
             <Button type="button" size="sm" variant="ghost" onClick={() => setShowImpact(false)}>
               <EyeOff className="h-3.5 w-3.5" />
               暂不处理，保留现状
             </Button>
-            <span className="ml-auto text-[10px] text-muted-foreground">
+            <span className="ml-auto text-3xs text-muted-foreground">
               系统不自动清空产物；由用户决定何时同步，未同步前解读与草稿不一致
             </span>
           </div>

@@ -48,14 +48,14 @@ export default function AssetPromptCard({ asset, episode }: { asset: Asset; epis
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Input value={asset.name} disabled className="h-8 text-xs" />
-        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-3xs text-muted-foreground">
           v{asset.currentVersion}
         </span>
-        {approved && <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[10px] text-success">已批准</span>}
-        {asset.stale && <span className="shrink-0 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive">STALE</span>}
+        {approved && <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-3xs text-success">已批准</span>}
+        {asset.stale && <span className="shrink-0 rounded bg-destructive/10 px-1.5 py-0.5 text-3xs text-destructive">STALE</span>}
       </div>
       {asset.sourceScene && (
-        <p className="text-[11px] text-muted-foreground">来源场次：{asset.sourceScene} · {asset.description}</p>
+        <p className="text-2xs text-muted-foreground">来源场次：{asset.sourceScene} · {asset.description}</p>
       )}
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">图片提示词（可编辑）</Label>
@@ -107,7 +107,7 @@ export default function AssetPromptCard({ asset, episode }: { asset: Asset; epis
         </Button>
       </div>
       {approved && (
-        <p className="text-[10px] text-muted-foreground">已批准产物不可直接修改，请保存新版本后重新走候选确认。</p>
+        <p className="text-3xs text-muted-foreground">已批准产物不可直接修改，请保存新版本后重新走候选确认。</p>
       )}
     </div>
   );

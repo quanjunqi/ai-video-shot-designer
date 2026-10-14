@@ -186,7 +186,7 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
         <div className="flex items-center gap-2 text-xs font-medium">
           <Target className="h-3.5 w-3.5 text-primary" />
           执行目标
-          <Badge variant="outline" className="ml-auto font-mono text-[9px]">
+          <Badge variant="outline" className="ml-auto font-mono text-4xs">
             {episode.executionTarget?.confirmed ? episode.executionTarget.model : '待确认'}
           </Badge>
         </div>
@@ -200,7 +200,7 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
           />
         </div>
         <div className="mt-3">
-          <div className="mb-1.5 text-[11px] font-medium text-muted-foreground">视频衔接（生成单元参考图组合方式）</div>
+          <div className="mb-1.5 text-2xs font-medium text-muted-foreground">视频衔接（生成单元参考图组合方式）</div>
           <div className="grid gap-2 sm:grid-cols-2">
             {TRANSITION_MODES.map((m) => (
               <button
@@ -221,13 +221,13 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
                   />
                   {m.label}
                 </div>
-                <div className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{m.desc}</div>
+                <div className="mt-1 text-3xs leading-relaxed text-muted-foreground">{m.desc}</div>
               </button>
             ))}
           </div>
         </div>
         {episode.executionTarget?.confirmed && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-2xs text-muted-foreground">
             已锁定：{episode.executionTarget.model} · 单元上限 {episode.executionTarget.maxUnitSeconds}s · 衔接{' '}
             {TRANSITION_MODES.find((m) => m.id === episode.executionTarget?.transitionMode)?.label ?? '—'}
           </p>
@@ -237,23 +237,23 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
         <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[11px] font-medium text-primary">提示词契约</span>
-            <Badge variant="secondary" className="ml-auto font-mono text-[9px]">
+            <span className="text-2xs font-medium text-primary">提示词契约</span>
+            <Badge variant="secondary" className="ml-auto font-mono text-4xs">
               {promptContract?.name ?? '平台默认'}
             </Badge>
           </div>
-          <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="mt-1.5 text-3xs leading-relaxed text-muted-foreground">
             {promptContract?.desc ?? '根据选择的视频模型自动匹配对应的提示词结构与输出规范'}
           </p>
           {promptContract && (
             <div className="mt-2 max-h-24 overflow-y-auto rounded bg-muted/40 p-2">
-              <pre className="whitespace-pre-wrap font-mono text-[9px] leading-relaxed text-muted-foreground">
+              <pre className="whitespace-pre-wrap font-mono text-4xs leading-relaxed text-muted-foreground">
                 {promptContract.content.slice(0, 300)}
                 {promptContract.content.length > 300 ? '...' : ''}
               </pre>
             </div>
           )}
-          <p className="mt-1.5 text-[9px] text-muted-foreground">
+          <p className="mt-1.5 text-4xs text-muted-foreground">
             完整规则请前往 <span className="text-primary">规则中心 → 环节提示词规则 → 视频提示词</span> 查看
           </p>
         </div>
@@ -272,7 +272,7 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
       <div className="flex flex-wrap items-center gap-2">
         <Clapperboard className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">视频生产</span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-2xs text-muted-foreground">
           按已确认的 Unit 逐个拍摄，Take 候选由用户评审。演示模式不生成真实视频。
         </span>
       </div>
@@ -288,23 +288,23 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
                 {shot.takeImageUrl ? (
                   <img src={shot.takeImageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                  <div className="flex h-full items-center justify-center text-3xs text-muted-foreground">
                     {shot.takeStatus === 'running' ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : 'Take 预览'}
                   </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono text-[9px]">Unit {shot.index}</Badge>
-                  <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
+                  <Badge variant="outline" className="font-mono text-4xs">Unit {shot.index}</Badge>
+                  <span className="rounded bg-accent px-1.5 py-0.5 text-3xs font-medium text-accent-foreground">
                     {shot.shotType}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">{shot.sceneLabel}</span>
+                  <span className="text-2xs text-muted-foreground">{shot.sceneLabel}</span>
                   <Badge
                     variant={
                       shot.takeStatus === 'accepted' ? 'default' : shot.takeStatus === 'candidate' ? 'outline' : 'secondary'
                     }
-                    className="ml-auto font-mono text-[9px]"
+                    className="ml-auto font-mono text-4xs"
                   >
                     {meta}
                   </Badge>
@@ -313,21 +313,21 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
 
                 {/* 评审上下文（系统组织材料，判断权在用户） */}
                 <div className="mt-2 grid grid-cols-1 gap-1 rounded-lg border border-border bg-muted/30 p-2 md:grid-cols-3">
-                  <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="flex items-start gap-1.5 text-3xs text-muted-foreground">
                     <FileText className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
                     <span className="min-w-0">
                       <span className="font-medium text-foreground">剧本引用：</span>
                       <span className="break-words">{shot.content.slice(0, 40)}…（演示草稿，非原文引用）</span>
                     </span>
                   </div>
-                  <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="flex items-start gap-1.5 text-3xs text-muted-foreground">
                     <GitBranch className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
                     <span className="min-w-0">
                       <span className="font-medium text-foreground">连续性：</span>
                       {prevAccepted ? `承接单元 ${prevAccepted.index} 的计划尾态；真实尾帧未校验` : shot.index === 1 ? '首单元：计划首态进入' : '等待上一单元 Take 采纳'}
                     </span>
                   </div>
-                  <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="flex items-start gap-1.5 text-3xs text-muted-foreground">
                     <ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
                     <span className="min-w-0">
                       <span className="font-medium text-foreground">方案：</span>
@@ -357,7 +357,7 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
                         <X className="h-3.5 w-3.5" />
                         退回
                       </Button>
-                      <span className="text-[10px] text-muted-foreground">由你评审：表演/情绪/落点/视线/声音，系统不代替判断</span>
+                      <span className="text-3xs text-muted-foreground">由你评审：表演/情绪/落点/视线/声音，系统不代替判断</span>
                     </>
                   )}
                 </div>
@@ -381,13 +381,13 @@ export default function ProductionStage({ episode, projectId }: { episode: Episo
             <div className="mb-1.5 text-xs font-medium">本地状态检查（演示）</div>
             <ul className="space-y-1">
               {checks.map((c) => (
-                <li key={c.label} className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                <li key={c.label} className="flex items-start gap-2 text-2xs text-muted-foreground">
                   <span className={c.ok ? 'text-success' : 'text-destructive'}>{c.ok ? '✓' : '✗'}</span>
                   {c.label}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-[10px] text-muted-foreground">
+            <p className="mt-2 text-3xs text-muted-foreground">
               未验证真实视频尾帧、原文 EV/DLG 覆盖、资产文件哈希与上传绑定。此处完成仅表示演示工作流结束。
             </p>
           </div>

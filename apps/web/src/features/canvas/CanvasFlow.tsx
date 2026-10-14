@@ -32,7 +32,7 @@ function makeNode(type: string) {
     return (
       <div className={`w-44 rounded-xl border bg-card p-3 shadow-sm ${NODE_STYLES[type] ?? ''}`}>
         <div className="text-xs font-medium">{props.data.label}</div>
-        {props.data.note && <div className="mt-1 text-[10px] text-muted-foreground">{props.data.note}</div>}
+        {props.data.note && <div className="mt-1 text-3xs text-muted-foreground">{props.data.note}</div>}
       </div>
     );
   };

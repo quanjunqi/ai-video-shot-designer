@@ -207,7 +207,7 @@ export default function AssetsPage() {
                   decoding="async"
                   className="h-full w-full object-cover"
                 />
-                <span className="!absolute left-2 top-2 z-20 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-medium backdrop-blur">
+                <span className="!absolute left-2 top-2 z-20 rounded bg-background/80 px-1.5 py-0.5 text-3xs font-medium backdrop-blur">
                   {KIND_LABEL[item.kind]}
                 </span>
                 {item.scope === 'global' && (
@@ -220,12 +220,12 @@ export default function AssetsPage() {
               <div className="space-y-1 p-3">
                 <div className="flex items-center gap-1.5">
                   <span className="truncate text-sm font-medium">{item.name}</span>
-                  <span className="font-mono text-[9px] text-muted-foreground">v{item.currentVersion}</span>
+                  <span className="font-mono text-4xs text-muted-foreground">v{item.currentVersion}</span>
                 </div>
-                <div className="truncate text-[11px] text-muted-foreground">
+                <div className="truncate text-2xs text-muted-foreground">
                   {projectTitle(item.projectId)} · {episodeLabel(item.episodeId)}
                 </div>
-                <span className={cn('rounded px-1.5 py-px text-[10px]', sm.className)}>{sm.label}</span>
+                <span className={cn('rounded px-1.5 py-px text-3xs', sm.className)}>{sm.label}</span>
               </div>
             </button>
           );
@@ -248,10 +248,10 @@ export default function AssetsPage() {
               />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium">{item.name}</div>
-                <div className="truncate font-mono text-[10px] text-muted-foreground">{item.prompt}</div>
+                <div className="truncate font-mono text-3xs text-muted-foreground">{item.prompt}</div>
               </div>
-              <span className="font-mono text-[9px] text-muted-foreground">v{item.currentVersion}</span>
-              <span className={cn('rounded px-1.5 py-px text-[10px]', sm.className)}>{sm.label}</span>
+              <span className="font-mono text-4xs text-muted-foreground">v{item.currentVersion}</span>
+              <span className={cn('rounded px-1.5 py-px text-3xs', sm.className)}>{sm.label}</span>
               <Badge variant="outline">{KIND_LABEL[item.kind]}</Badge>
               {item.scope === 'global' && <Globe className="h-3.5 w-3.5 text-primary" />}
             </button>
@@ -281,7 +281,7 @@ export default function AssetsPage() {
             </div>
             <div className="space-y-1.5"><Label>资产名称</Label><Input value={uploadName} onChange={(e) => setUploadName(e.target.value)} placeholder="例如：林默正面立绘" /></div>
             <div className="space-y-1.5"><Label>提示词（可选）</Label><Input value={uploadPrompt} onChange={(e) => setUploadPrompt(e.target.value)} placeholder="记录生成或来源说明" /></div>
-            <div className="space-y-1.5"><Label>文件</Label><Input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)} />{uploadFile && <p className="text-[11px] text-muted-foreground">{uploadFile.name} · {(uploadFile.size / 1024).toFixed(1)} KB</p>}</div>
+            <div className="space-y-1.5"><Label>文件</Label><Input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)} />{uploadFile && <p className="text-2xs text-muted-foreground">{uploadFile.name} · {(uploadFile.size / 1024).toFixed(1)} KB</p>}</div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" disabled={uploading} onClick={() => setUploadOpen(false)}>取消</Button>
@@ -299,10 +299,10 @@ export default function AssetsPage() {
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2 break-all">
                 <span className="text-sm font-semibold">{detail.name}</span>
-                <Badge variant="outline" className="font-mono text-[9px]">v{detail.currentVersion}</Badge>
-                <span className="font-mono text-[9px] text-muted-foreground">{detail.id}</span>
+                <Badge variant="outline" className="font-mono text-4xs">v{detail.currentVersion}</Badge>
+                <span className="font-mono text-4xs text-muted-foreground">{detail.id}</span>
               </div>
-              <div className="space-y-1 break-all rounded-lg bg-muted/60 p-3 font-mono text-[10px] text-muted-foreground">
+              <div className="space-y-1 break-all rounded-lg bg-muted/60 p-3 font-mono text-3xs text-muted-foreground">
                 <div>类型：{KIND_LABEL[detail.kind]} · 范围：{detail.scope === 'global' ? '全局' : '本集'}</div>
                 <div>来源项目：{projectTitle(detail.projectId)} · 剧集：{episodeLabel(detail.episodeId)}</div>
                 <div>当前哈希：{detail.versions.find((v) => v.version === detail.currentVersion)?.sha256 ?? '暂无'}</div>
@@ -315,10 +315,10 @@ export default function AssetsPage() {
                 </div>
                 <div className="space-y-1">
                   {[...detail.versions].reverse().map((v) => (
-                    <div key={v.version} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <div key={v.version} className="flex items-center gap-2 text-2xs text-muted-foreground">
                       <span className="font-mono text-primary">v{v.version}</span>
                       <span className="min-w-0 flex-1 truncate">{v.prompt}</span>
-                      <span className="font-mono text-[9px]">{v.sha256.slice(0, 8)}</span>
+                      <span className="font-mono text-4xs">{v.sha256.slice(0, 8)}</span>
                     </div>
                   ))}
                 </div>
@@ -329,14 +329,14 @@ export default function AssetsPage() {
                   审核日志（追加式）
                 </div>
                 {detailAudits.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground">暂无审核记录</p>
+                  <p className="text-2xs text-muted-foreground">暂无审核记录</p>
                 ) : (
                   <div className="space-y-1.5">
                     {detailAudits.map((l) => (
-                      <div key={l.id} className="rounded-lg border border-border p-2 text-[11px]">
+                      <div key={l.id} className="rounded-lg border border-border p-2 text-2xs">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="font-mono text-[9px]">{l.action}</Badge>
-                          <span className="font-mono text-[9px] text-muted-foreground">
+                          <Badge variant="outline" className="font-mono text-4xs">{l.action}</Badge>
+                          <span className="font-mono text-4xs text-muted-foreground">
                             v{l.version} · {l.sha256.slice(0, 12)}…
                           </span>
                         </div>

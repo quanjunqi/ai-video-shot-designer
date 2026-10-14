@@ -75,7 +75,7 @@ export default function SettingsLayout() {
                   >
                     {s.label}
                     {s.level === 'secondary' && (
-                      <span className="rounded border border-border px-1 font-mono text-[9px] text-muted-foreground">次级</span>
+                      <span className="rounded border border-border px-1 font-mono text-4xs text-muted-foreground">次级</span>
                     )}
                   </NavLink>
                 ))}
@@ -86,7 +86,7 @@ export default function SettingsLayout() {
             {section.key === 'channels' && (
               <NavLink
                 to={onChannelRules ? '/settings/channels' : SETTINGS_CHANNEL_RULES_PATH}
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                className="inline-flex items-center gap-1 text-2xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 {onChannelRules ? '← 返回渠道' : '连接规则（协议模板）→'}
               </NavLink>

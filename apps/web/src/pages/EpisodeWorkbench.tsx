@@ -122,7 +122,7 @@ export default function EpisodeWorkbenchPage() {
           第 {episode.index} 集 · {episode.title.replace(/^第 \d+ 集：/, '')}
         </span>
         <span className="text-xs text-muted-foreground">/ {STAGE_DEFS.find((s) => s.key === validStage)?.label}</span>
-        <Badge variant="outline" className="font-mono text-[9px]">
+        <Badge variant="outline" className="font-mono text-4xs">
           {EP_STATUS_LABEL[episode.status]}
         </Badge>
         <span className="ml-auto flex items-center gap-2">
@@ -142,7 +142,7 @@ export default function EpisodeWorkbenchPage() {
               </div>
             </DialogContent>
           </Dialog>
-          <span className="flex items-center gap-1 font-mono text-[9px] text-muted-foreground">
+          <span className="flex items-center gap-1 font-mono text-4xs text-muted-foreground">
             <Database className="h-3 w-3" />
             已保存
           </span>
@@ -166,7 +166,7 @@ export default function EpisodeWorkbenchPage() {
               >
                 <span
                   className={cn(
-                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[9px]',
+                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-4xs',
                     g.done ? 'bg-success text-success-foreground' : isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
                   )}
                 >

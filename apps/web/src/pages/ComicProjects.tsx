@@ -258,7 +258,7 @@ export default function ComicProjectsPage() {
                   <div className="min-w-0 flex-1 truncate text-sm font-medium">{p.title}</div>
                   <SingleDeleteButton id={p.id} />
                 </div>
-                <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                <div className="mt-0.5 font-mono text-3xs text-muted-foreground">
                   {p.episodeIds.length} 集 · 更新于 {format(p.updatedAt, 'MM-dd HH:mm')}
                 </div>
                 <div className="mt-2 flex items-center gap-2">
@@ -266,11 +266,11 @@ export default function ComicProjectsPage() {
                     value={p.progress.totalEpisodes === 0 ? 0 : Math.round((p.progress.doneEpisodes / p.progress.totalEpisodes) * 100)}
                     className="h-1.5 flex-1"
                   />
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-mono text-3xs text-muted-foreground">
                     {p.progress.doneEpisodes}/{p.progress.totalEpisodes}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-[11px]">
+                <div className="mt-2 flex items-center gap-2 text-2xs">
                   {p.progress.pendingReview > 0 && <span className="text-amber-600">待确认 {p.progress.pendingReview}</span>}
                   <span className="truncate text-muted-foreground">{nextStep(p)}</span>
                 </div>
@@ -300,7 +300,7 @@ export default function ComicProjectsPage() {
               />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{p.title}</div>
-                <div className="font-mono text-[10px] text-muted-foreground">
+                <div className="font-mono text-3xs text-muted-foreground">
                   {p.episodeIds.length} 集 · {format(p.updatedAt, 'MM-dd HH:mm')}
                 </div>
               </div>
@@ -309,11 +309,11 @@ export default function ComicProjectsPage() {
                   value={p.progress.totalEpisodes === 0 ? 0 : Math.round((p.progress.doneEpisodes / p.progress.totalEpisodes) * 100)}
                   className="h-1.5 flex-1"
                 />
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="font-mono text-3xs text-muted-foreground">
                   {p.progress.doneEpisodes}/{p.progress.totalEpisodes}
                 </span>
               </div>
-              {p.progress.pendingReview > 0 && <span className="hidden shrink-0 text-[11px] text-amber-600 md:inline">待确认 {p.progress.pendingReview}</span>}
+              {p.progress.pendingReview > 0 && <span className="hidden shrink-0 text-2xs text-amber-600 md:inline">待确认 {p.progress.pendingReview}</span>}
               <Badge variant={meta.tone} className="shrink-0">
                 {meta.label}
               </Badge>
@@ -322,7 +322,7 @@ export default function ComicProjectsPage() {
           );
         }}
       />
-      <div className="fixed bottom-3 right-4 z-30 rounded-md border border-border bg-background/90 px-2.5 py-1 text-[10px] text-muted-foreground shadow-sm backdrop-blur">
+      <div className="fixed bottom-3 right-4 z-30 rounded-md border border-border bg-background/90 px-2.5 py-1 text-3xs text-muted-foreground shadow-sm backdrop-blur">
         数据来源：{dataSource === 'server' ? '服务端' : dataSource === 'offline-fallback' ? '离线演示回退' : '演示数据连接中'}
       </div>
       <NewProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
@@ -334,7 +334,7 @@ export default function ComicProjectsPage() {
             <AlertDialogTitle>删除 {selectedCount} 个项目？</AlertDialogTitle>
             <AlertDialogDescription>
               将同时删除这些项目的全部剧集、解读产物与资产，且不可恢复。
-              <span className="mt-2 block font-mono text-[11px] text-muted-foreground">
+              <span className="mt-2 block font-mono text-2xs text-muted-foreground">
                 {selectedCount <= 3
                   ? items.filter((p) => selected.has(p.id)).map((p) => p.title).join('、')
                   : `${items.filter((p) => selected.has(p.id)).slice(0, 3).map((p) => p.title).join('、')} 等 ${selectedCount} 个`}

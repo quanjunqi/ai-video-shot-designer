@@ -46,10 +46,10 @@ function CandidateCard({
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="mb-1.5 flex items-center gap-2">
-        <span className="rounded bg-accent px-1.5 py-0.5 font-mono text-[10px] font-semibold text-accent-foreground">
+        <span className="rounded bg-accent px-1.5 py-0.5 font-mono text-3xs font-semibold text-accent-foreground">
           EP{String(candidate.index).padStart(2, '0')}
         </span>
-        <span className="font-mono text-[9px] text-muted-foreground">
+        <span className="font-mono text-4xs text-muted-foreground">
           原文 {start}–{end} · {end - start} 字符
         </span>
         {onDelete && (
@@ -72,7 +72,7 @@ function CandidateCard({
       <button
         type="button"
         onClick={() => setScriptOpen(true)}
-        className="mt-2 flex w-full items-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+        className="mt-2 flex w-full items-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-3xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
       >
         <BookOpen className="h-3.5 w-3.5" />
         查看 / 编辑本集剧本（{start}–{end}，共 {end - start} 字符）
@@ -185,7 +185,7 @@ export default function EpisodeAnalysisRun({ projectId, onAddEpisode }: { projec
           <div className="mb-4 flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <span className="text-sm font-medium">正在解析剧本并拆分剧集</span>
-            <span className="ml-auto font-mono text-[10px] text-muted-foreground">{step}/{steps.length}</span>
+            <span className="ml-auto font-mono text-3xs text-muted-foreground">{step}/{steps.length}</span>
           </div>
           <div className="space-y-2">
             {steps.map((s, i) => (
@@ -240,7 +240,7 @@ export default function EpisodeAnalysisRun({ projectId, onAddEpisode }: { projec
               )}
               {resplitAsk ? (
                 <>
-                  <span className="text-[11px] text-amber-600 dark:text-amber-400">将丢弃候选编辑并按当前规则重拆</span>
+                  <span className="text-2xs text-amber-600 dark:text-amber-400">将丢弃候选编辑并按当前规则重拆</span>
                   <Button type="button" size="sm" onClick={doResplit}>
                     <RefreshCw className="h-3.5 w-3.5" />
                     确认重拆
@@ -276,7 +276,7 @@ export default function EpisodeAnalysisRun({ projectId, onAddEpisode }: { projec
             ))}
           </div>
           <div className="mt-4 flex items-center justify-end gap-2">
-            <span className={cn('text-[11px]', validation ? 'text-destructive' : 'text-muted-foreground')}>
+            <span className={cn('text-2xs', validation ? 'text-destructive' : 'text-muted-foreground')}>
               {validation ?? '确认后原文覆盖完整、顺序不变'}
             </span>
             <Button type="button" size="sm" disabled={Boolean(validation)} onClick={handleLock}>

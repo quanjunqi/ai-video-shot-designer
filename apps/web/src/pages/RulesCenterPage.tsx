@@ -166,7 +166,7 @@ export default function RulesCenterPage() {
           <CardTitle className="flex items-center gap-2 text-sm">
             <ScrollText className="h-4 w-4 text-muted-foreground" />
             平台默认规则
-            <Badge variant="secondary" className="text-[10px]">只读 · v{SPLIT_POLICY.version ?? '1.0'}</Badge>
+            <Badge variant="secondary" className="text-3xs">只读 · v{SPLIT_POLICY.version ?? '1.0'}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 text-xs text-muted-foreground md:grid-cols-3">
@@ -199,9 +199,9 @@ export default function RulesCenterPage() {
           <CardTitle className="flex items-center gap-2 text-sm">
             <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
             我的规则模板
-            <span className="text-[10px] font-normal text-muted-foreground">平台默认打底 · 模板自定义优先 · 不同剧本格式可配置</span>
+            <span className="text-3xs font-normal text-muted-foreground">平台默认打底 · 模板自定义优先 · 不同剧本格式可配置</span>
           </CardTitle>
-          <Button size="sm" className="h-7 gap-1 text-[11px]" onClick={openCreate}>
+          <Button size="sm" className="h-7 gap-1 text-2xs" onClick={openCreate}>
             <Plus className="h-3.5 w-3.5" />
             新建模板
           </Button>
@@ -217,21 +217,21 @@ export default function RulesCenterPage() {
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{t.name}</span>
-                  <Badge variant="secondary" className="font-mono text-[10px]">v{t.version ?? 1}</Badge>
+                  <Badge variant="secondary" className="font-mono text-3xs">v{t.version ?? 1}</Badge>
                   <Switch checked={t.enabled} onCheckedChange={() => toggleEnabled(t.id)} className="scale-75" />
                 </div>
                 {t.desc && <div className="text-xs text-muted-foreground">{t.desc}</div>}
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {t.episodePattern && (
-                    <Badge variant="outline" className="font-mono text-[10px]">章节 {t.episodePattern}</Badge>
+                    <Badge variant="outline" className="font-mono text-3xs">章节 {t.episodePattern}</Badge>
                   )}
                   {t.scenePattern && (
-                    <Badge variant="outline" className="font-mono text-[10px]">场次 {t.scenePattern}</Badge>
+                    <Badge variant="outline" className="font-mono text-3xs">场次 {t.scenePattern}</Badge>
                   )}
-                  {t.targetEpisodes && <Badge variant="outline" className="text-[10px]">目标 {t.targetEpisodes} 集</Badge>}
-                  {t.maxScenesPerEpisode && <Badge variant="outline" className="text-[10px]">每集 ≤ {t.maxScenesPerEpisode} 场</Badge>}
-                  {t.maxUnitSeconds && <Badge variant="outline" className="text-[10px]">单元 ≤ {t.maxUnitSeconds}s</Badge>}
-                  {!t.enabled && <Badge variant="secondary" className="text-[10px]">已停用</Badge>}
+                  {t.targetEpisodes && <Badge variant="outline" className="text-3xs">目标 {t.targetEpisodes} 集</Badge>}
+                  {t.maxScenesPerEpisode && <Badge variant="outline" className="text-3xs">每集 ≤ {t.maxScenesPerEpisode} 场</Badge>}
+                  {t.maxUnitSeconds && <Badge variant="outline" className="text-3xs">单元 ≤ {t.maxUnitSeconds}s</Badge>}
+                  {!t.enabled && <Badge variant="secondary" className="text-3xs">已停用</Badge>}
                 </div>
                 <RuleVersionList
                   currentVersion={t.version ?? 1}
@@ -276,7 +276,7 @@ export default function RulesCenterPage() {
           <CardTitle className="flex items-center gap-2 text-sm">
             <FlaskConical className="h-4 w-4 text-muted-foreground" />
             格式识别测试
-            <span className="text-[10px] font-normal text-muted-foreground">粘贴剧本 → 实时预览拆集结果与切点（场次为最小不可分单元）</span>
+            <span className="text-3xs font-normal text-muted-foreground">粘贴剧本 → 实时预览拆集结果与切点（场次为最小不可分单元）</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -303,7 +303,7 @@ export default function RulesCenterPage() {
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
-              <div className="rounded-md border border-border bg-muted/40 p-2 text-[10px] leading-relaxed text-muted-foreground">
+              <div className="rounded-md border border-border bg-muted/40 p-2 text-3xs leading-relaxed text-muted-foreground">
                 {testRule
                   ? `按模板识别：${testRule.scenePattern ? '场次标记命中，' : ''}${testRule.episodePattern ? '章节标记命中，' : ''}切点只落场次边界`
                   : '平台默认：识别 场次：N-M / 场景N / 第N场 / Markdown # 前缀'}
@@ -317,7 +317,7 @@ export default function RulesCenterPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+              <div className="flex flex-wrap gap-2 text-2xs text-muted-foreground">
                 <Badge variant="secondary">章节标记 {testEpisodeMarks} 处</Badge>
                 <Badge variant="secondary">场次标记 {testSceneMarks} 处</Badge>
                 <Badge variant="secondary">拆出 {testCandidates.length} 集候选</Badge>
@@ -335,18 +335,18 @@ export default function RulesCenterPage() {
                       <div className="flex items-center gap-2 text-xs font-medium">
                         <span className="text-primary">第 {c.index} 集</span>
                         <span className="truncate">{c.title}</span>
-                        <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                        <span className="ml-auto shrink-0 font-mono text-3xs text-muted-foreground">
                           [{c.span.start}–{c.span.end}]
                         </span>
                       </div>
                       {sceneTitles && sceneTitles.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
                           {sceneTitles.map((t) => (
-                            <Badge key={t} variant="outline" className="font-mono text-[10px]">{t}</Badge>
+                            <Badge key={t} variant="outline" className="font-mono text-3xs">{t}</Badge>
                           ))}
                         </div>
                       )}
-                      <div className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                      <div className="mt-1.5 line-clamp-2 text-2xs leading-relaxed text-muted-foreground">
                         {c.summary}
                       </div>
                     </div>

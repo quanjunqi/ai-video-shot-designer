@@ -220,15 +220,15 @@ export default function SettingsChannelsPage() {
     <div className="mx-auto max-w-none space-y-4">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold">渠道配置</h1>
-        {catalogSource === 'server' && <Badge className="font-mono text-[9px] bg-success/15 text-success">服务端目录</Badge>}
-        {catalogSource === 'offline-fallback' && <Badge variant="outline" className="font-mono text-[9px] text-amber-500">服务端不可达 · 本地缓存</Badge>}
+        {catalogSource === 'server' && <Badge className="font-mono text-4xs bg-success/15 text-success">服务端目录</Badge>}
+        {catalogSource === 'offline-fallback' && <Badge variant="outline" className="font-mono text-4xs text-amber-500">服务端不可达 · 本地缓存</Badge>}
         <Button type="button" size="sm" className="ml-auto" onClick={() => setOpen(true)}>
           <Plus className="h-3.5 w-3.5" />
           添加渠道
         </Button>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-2xs text-muted-foreground">
         内置渠道为平台集中接入（即梦/MiniMax/Grsai/Google/OpenAI/ComfyUI）；自定义渠道由你自建，可随时删除。API Key 经 workspace 服务加密存储，只写不读、不回显。
       </p>
 
@@ -252,7 +252,7 @@ export default function SettingsChannelsPage() {
             </Button>
           </>
         ) : (
-          <span className="ml-auto text-[11px] text-muted-foreground">支持勾选多个渠道后批量删除，也可对单个渠道单独删除</span>
+          <span className="ml-auto text-2xs text-muted-foreground">支持勾选多个渠道后批量删除，也可对单个渠道单独删除</span>
         )}
       </div>
 
@@ -276,22 +276,22 @@ export default function SettingsChannelsPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="truncate text-sm font-semibold">{c.name}</span>
-                      <Badge variant="outline" className="shrink-0 font-mono text-[9px]">{KIND_LABEL[c.kind]}</Badge>
-                      <Badge variant="outline" className="shrink-0 font-mono text-[9px]" title={PROTOCOL_DESC[c.protocol ?? 'api']}>{PROTOCOL_LABEL[c.protocol ?? 'api']}</Badge>
+                      <Badge variant="outline" className="shrink-0 font-mono text-4xs">{KIND_LABEL[c.kind]}</Badge>
+                      <Badge variant="outline" className="shrink-0 font-mono text-4xs" title={PROTOCOL_DESC[c.protocol ?? 'api']}>{PROTOCOL_LABEL[c.protocol ?? 'api']}</Badge>
                       {builtin ? (
-                        <Badge variant="secondary" className="shrink-0 font-mono text-[9px]" title="平台集中接入，可从当前工作区移出">
+                        <Badge variant="secondary" className="shrink-0 font-mono text-4xs" title="平台集中接入，可从当前工作区移出">
                           <Lock className="mr-0.5 inline h-2.5 w-2.5" />内置
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="shrink-0 font-mono text-[9px] text-sky-500">
+                        <Badge variant="secondary" className="shrink-0 font-mono text-4xs text-sky-500">
                           <UserRound className="mr-0.5 inline h-2.5 w-2.5" />自定义
                         </Badge>
                       )}
-                      <Badge className={cn('shrink-0 font-mono text-[9px]', c.enabled ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground')}>
+                      <Badge className={cn('shrink-0 font-mono text-4xs', c.enabled ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground')}>
                         {c.enabled ? '已启用' : '已停用'}
                       </Badge>
                     </div>
-                    {c.note && <p className="mt-1 truncate text-[11px] text-muted-foreground">{c.note}</p>}
+                    {c.note && <p className="mt-1 truncate text-2xs text-muted-foreground">{c.note}</p>}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -301,7 +301,7 @@ export default function SettingsChannelsPage() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-7 gap-1.5 px-2 text-[11px]"
+                    className="h-7 gap-1.5 px-2 text-2xs"
                     disabled={syncingId === c.id}
                     title="同步上游模型目录：拉取该渠道的模型（与其价格）到本平台"
                     onClick={async () => {
@@ -329,7 +329,7 @@ export default function SettingsChannelsPage() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-7 gap-1.5 px-2 text-[11px]"
+                    className="h-7 gap-1.5 px-2 text-2xs"
                     title="策展上游模型：把该渠道同步进来的上游模型挑选进产品目录（加入后才对外可见、才参与路由）"
                     onClick={() => setCurationFor(c)}
                   >
@@ -360,19 +360,19 @@ export default function SettingsChannelsPage() {
               {/* 主体：键值信息网格 */}
               <div className="space-y-2.5 px-4 py-3">
                 {c.testNote && (
-                  <p className={cn('rounded-md px-2.5 py-1.5 text-[11px]', c.lastTestOk ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive')}>{c.testNote}</p>
+                  <p className={cn('rounded-md px-2.5 py-1.5 text-2xs', c.lastTestOk ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive')}>{c.testNote}</p>
                 )}
                 <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                   <div className="min-w-0">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{c.protocol === 'local' ? '服务地址' : '接口地址'}</p>
+                    <p className="text-4xs uppercase tracking-wide text-muted-foreground">{c.protocol === 'local' ? '服务地址' : '接口地址'}</p>
                     <p className="mt-0.5 truncate font-mono text-xs" title={c.baseUrl}>{c.baseUrl || '未配置'}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">鉴权方式</p>
+                    <p className="text-4xs uppercase tracking-wide text-muted-foreground">鉴权方式</p>
                     <p className="mt-0.5 font-mono text-xs">{c.authType}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">同步上游模型目录</p>
+                    <p className="text-4xs uppercase tracking-wide text-muted-foreground">同步上游模型目录</p>
                     <p className="mt-0.5 font-mono text-xs">
                       {c.syncKind && c.syncKind !== 'none'
                         ? `${c.syncKind}${c.syncModelsPath ? ` · ${c.syncModelsPath}` : ''}`
@@ -380,28 +380,28 @@ export default function SettingsChannelsPage() {
                     </p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">上次同步</p>
+                    <p className="text-4xs uppercase tracking-wide text-muted-foreground">上次同步</p>
                     <p className="mt-0.5 font-mono text-xs">
                       {c.lastSyncAt ? c.lastSyncAt.replace('T', ' ').slice(0, 19) : '从未同步'}
                     </p>
                     {syncResults[c.id] && (
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      <p className="mt-0.5 text-3xs text-muted-foreground">
                         最近一次：新增 {syncResults[c.id].added} · 更新 {syncResults[c.id].updated} · 缺失{' '}
                         {syncResults[c.id].missing}
                       </p>
                     )}
                   </div>
                   <div className="min-w-0 sm:col-span-2">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground">凭据状态</p>
+                    <p className="text-4xs uppercase tracking-wide text-muted-foreground">凭据状态</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2">
                       {cred?.hasKey ? (
-                        <Badge className="font-mono text-[9px] bg-success/15 text-success">
+                        <Badge className="font-mono text-4xs bg-success/15 text-success">
                           <ShieldCheck className="mr-1 inline h-2.5 w-2.5" />Key 已加密存储（{cred.updatedAt.slice(0, 10)}）
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="font-mono text-[9px] text-muted-foreground">未配置 Key</Badge>
+                        <Badge variant="outline" className="font-mono text-4xs text-muted-foreground">未配置 Key</Badge>
                       )}
-                      <span className="text-[10px] text-muted-foreground">Key 不展示在卡片，编辑渠道后可查看/修改</span>
+                      <span className="text-3xs text-muted-foreground">Key 不展示在卡片，编辑渠道后可查看/修改</span>
                     </div>
                   </div>
                 </div>
@@ -414,7 +414,7 @@ export default function SettingsChannelsPage() {
                   {testingId === c.id ? '检测中…' : '测试连通性'}
                 </Button>
                 {c.lastTestAt && (
-                  <span className="shrink-0 font-mono text-[9px] text-muted-foreground">上次测试 {new Date(c.lastTestAt).toLocaleTimeString()}</span>
+                  <span className="shrink-0 font-mono text-4xs text-muted-foreground">上次测试 {new Date(c.lastTestAt).toLocaleTimeString()}</span>
                 )}
               </div>
             </div>
@@ -422,7 +422,7 @@ export default function SettingsChannelsPage() {
         })}
       </div>
 
-      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-2xs text-muted-foreground">
         <Cloud className="h-3.5 w-3.5" />
         连通性检测由 production 服务发起真实 HTTP 探测（网络层 + 鉴权层），结果如实上报；凭据存储依赖 WORKSPACE_CRED_KEY（生产环境须注入真实密钥）。
       </p>
@@ -459,7 +459,7 @@ export default function SettingsChannelsPage() {
                     <SelectItem value="local">本地端口服务（ComfyUI / Ollama 等）</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground">{PROTOCOL_DESC[editForm.protocol]}</p>
+                <p className="text-3xs text-muted-foreground">{PROTOCOL_DESC[editForm.protocol]}</p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="min-w-0 space-y-1.5">
@@ -511,7 +511,7 @@ export default function SettingsChannelsPage() {
                           清除
                         </Button>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">原始 Key 仅在点击眼睛时解密显示，关闭弹窗即清除，不缓存</p>
+                      <p className="text-3xs text-muted-foreground">原始 Key 仅在点击眼睛时解密显示，关闭弹窗即清除，不缓存</p>
                     </div>
                   ) : (
                     <Input type="password" value={editKey} onChange={(e) => setEditKey(e.target.value)} className="h-9 text-xs" placeholder="输入 API Key（加密存储，只写不读）" />
@@ -522,13 +522,13 @@ export default function SettingsChannelsPage() {
                   <Label className="text-xs text-muted-foreground">API Key / 令牌</Label>
                   {credFor(editing.id)?.hasKey ? (
                     <div className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5">
-                      <span className="text-[11px] text-muted-foreground">已配置凭据，但当前鉴权方式为 none（请求不会携带令牌）</span>
+                      <span className="text-2xs text-muted-foreground">已配置凭据，但当前鉴权方式为 none（请求不会携带令牌）</span>
                       <Button type="button" size="sm" variant="ghost" className="h-6 text-destructive" onClick={() => { void clearCredential(editing.id).then(() => { void syncCredentials(); toast.info('已清除该渠道 Key'); }); }}>
                         清除
                       </Button>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground">无需鉴权：请求不携带 Authorization 头，无需配置令牌。</p>
+                    <p className="text-3xs text-muted-foreground">无需鉴权：请求不携带 Authorization 头，无需配置令牌。</p>
                   )}
                 </div>
               )}
@@ -540,8 +540,8 @@ export default function SettingsChannelsPage() {
           )}
                         {editing && !isBuiltin(editing.id) && (
                 <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
-                  <p className="text-[11px] font-medium">同步配置（本渠道自己的）</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-2xs font-medium">同步配置（本渠道自己的）</p>
+                  <p className="text-2xs text-muted-foreground">
                     {describeSyncSource(effectiveSync(
                       { syncKind: editForm.syncKind, syncModelsPath: editForm.syncModelsPath, syncPricingPath: editForm.syncPricingPath },
                       { syncKind: editing.syncKind, syncModelsPath: editing.syncModelsPath, syncPricingPath: editing.syncPricingPath },
@@ -612,7 +612,7 @@ export default function SettingsChannelsPage() {
                   <SelectItem value="local">本地端口服务（ComfyUI / Ollama 等）</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground">{PROTOCOL_DESC[form.protocol]}</p>
+              <p className="text-3xs text-muted-foreground">{PROTOCOL_DESC[form.protocol]}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="min-w-0 space-y-1.5">
@@ -646,7 +646,7 @@ export default function SettingsChannelsPage() {
               <Input value={form.baseUrl} onChange={(e) => setForm({ ...form, baseUrl: e.target.value })} placeholder={form.protocol === 'local' ? '如：http://127.0.0.1:8188' : 'https://api.example.com/v1'} />
             </div>
             {form.protocol === 'local' && form.authType === 'none' && (
-              <p className="text-[10px] text-muted-foreground">本地端口服务通常无需鉴权；如需令牌请在鉴权方式中选择 bearer 并配置 Key。</p>
+              <p className="text-3xs text-muted-foreground">本地端口服务通常无需鉴权；如需令牌请在鉴权方式中选择 bearer 并配置 Key。</p>
             )}
             {form.authType !== 'none' && (
               <div className="space-y-1.5">

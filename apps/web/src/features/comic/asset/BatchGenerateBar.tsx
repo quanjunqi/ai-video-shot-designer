@@ -26,7 +26,7 @@ export default function BatchGenerateBar({
       <span className="text-xs">
         已选 <span className="font-semibold">{selectedCount}</span> 个资产
       </span>
-      <span className="font-mono text-[10px] text-muted-foreground">预估费用 {totalCost}</span>
+      <span className="font-mono text-3xs text-muted-foreground">预估费用 {totalCost}</span>
       <Button
         type="button"
         size="sm"
@@ -36,7 +36,7 @@ export default function BatchGenerateBar({
       >
         批量生成
       </Button>
-      <span className="text-[10px] text-muted-foreground">每个任务独立进度，完成后停在候选待选择</span>
+      <span className="text-3xs text-muted-foreground">每个任务独立进度，完成后停在候选待选择</span>
     </div>
   );
 }

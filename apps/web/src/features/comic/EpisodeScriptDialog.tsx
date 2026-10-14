@@ -37,7 +37,7 @@ export default function EpisodeScriptDialog({
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2">
             <span>原文 {episode.sourceSpan.start}–{episode.sourceSpan.end} · {sliced.length} 字符</span>
-            {isEdited && <Badge variant="secondary" className="text-[10px]">已编辑（保存后同步源剧本）</Badge>}
+            {isEdited && <Badge variant="secondary" className="text-3xs">已编辑（保存后同步源剧本）</Badge>}
           </DialogDescription>
         </DialogHeader>
         <textarea

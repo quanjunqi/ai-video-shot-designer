@@ -47,11 +47,11 @@
 | TASK-SUPPLY-001 | ① 算力接入（设置中心）实施计划 | — | — | — | [TASK-SUPPLY-001-supply-access-plan-2026-10-11.md](TASK-SUPPLY-001-supply-access-plan-2026-10-11.md) |
 | TASK-UI-001 | UI 组件与设计 token 清单（专业级 · 可成长） | P1 | 进行中 | ✅ | [TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md) |
 | TASK-UI-002 | 组件库展示页受众分离改版（产品/设计可用） | P1 | 进行中 | ✅ | [TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md) |
-| TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 待开工 | — | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
+| TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 待验收 | ✅ | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
 
 ## 现状（自动统计，供 Owner 看缺口）
 
 - 任务卡：**32** 张；写明 **优先级** 14 张、**状态** 5 张。
-- 验收清单：**2** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
-- 验收留痕机制自 `TASK-UI-001` 起启用：目前带清单的卡都是 UI 线（TASK-UI-001/002）。
+- 验收清单：**3** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 验收留痕机制自 `TASK-UI-001` 起启用。
 

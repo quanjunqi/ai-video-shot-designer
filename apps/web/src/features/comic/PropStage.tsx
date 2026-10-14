@@ -108,20 +108,20 @@ export default function PropStage({ episode }: { episode: Episode }) {
       <div className="flex items-center gap-2">
         <Package className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">道具资产</span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-2xs text-muted-foreground">
           记录来源事件 · 持有者 · 位置状态变化；道具确认后进入场景阶段
         </span>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="ml-auto h-7 gap-1 text-[11px]"
+          className="ml-auto h-7 gap-1 text-2xs"
           onClick={() => setLibraryOpen(true)}
         >
           <BookOpen className="h-3 w-3" />
           从项目道具库引用
           {projectProps.length > 0 && (
-            <Badge variant="outline" className="ml-1 font-mono text-[9px]">{projectProps.length}</Badge>
+            <Badge variant="outline" className="ml-1 font-mono text-4xs">{projectProps.length}</Badge>
           )}
         </Button>
       </div>
@@ -164,13 +164,13 @@ export default function PropStage({ episode }: { episode: Episode }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{p.name}</span>
-                  <Badge variant="outline" className="font-mono text-[9px]">v{p.currentVersion}</Badge>
-                  {p.stale && <span className="text-[10px] text-destructive">STALE</span>}
+                  <Badge variant="outline" className="font-mono text-4xs">v{p.currentVersion}</Badge>
+                  {p.stale && <span className="text-3xs text-destructive">STALE</span>}
                 </div>
-                <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                <div className="mt-1 space-y-0.5 text-2xs text-muted-foreground">
                   <div>来源事件：{p.description}</div>
                   <div>持有者：{p.holder ?? '—'} · 出现集：{episode.index}</div>
-                  <div className="truncate font-mono text-[10px]">{p.prompt}</div>
+                  <div className="truncate font-mono text-3xs">{p.prompt}</div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Button type="button" size="sm" variant="outline" disabled={Boolean(task)} onClick={() => generate(p.id, { modelId: imageModelId, modelName: imageModelName })}>
@@ -204,7 +204,7 @@ export default function PropStage({ episode }: { episode: Episode }) {
           );
         })}
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-2xs text-muted-foreground">
         道具无需为每个场次强制生成新图，但使用中的状态差异必须显式建模；标记「全局」仅表示本项目内可复用。
       </p>
 
@@ -215,9 +215,9 @@ export default function PropStage({ episode }: { episode: Episode }) {
             <DialogTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-emerald-500" />
               从项目道具库引用
-              <Badge variant="outline" className="text-[10px]">{projectProps.length} 个可用</Badge>
+              <Badge variant="outline" className="text-3xs">{projectProps.length} 个可用</Badge>
             </DialogTitle>
-            <p className="text-[11px] text-muted-foreground">选择需要引用到本集的道具，已存在的道具不会重复添加</p>
+            <p className="text-2xs text-muted-foreground">选择需要引用到本集的道具，已存在的道具不会重复添加</p>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto py-4">
             {projectProps.length === 0 ? (
@@ -243,16 +243,16 @@ export default function PropStage({ episode }: { episode: Episode }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{p.name}</span>
-                          {p.propType && <Badge variant="outline" className="text-[9px]">{p.propType}</Badge>}
-                          {p.category && <Badge variant="outline" className="text-[9px]">{p.category}</Badge>}
-                          {exists && <Badge variant="outline" className="border-muted text-muted-foreground text-[9px]">已存在</Badge>}
+                          {p.propType && <Badge variant="outline" className="text-4xs">{p.propType}</Badge>}
+                          {p.category && <Badge variant="outline" className="text-4xs">{p.category}</Badge>}
+                          {exists && <Badge variant="outline" className="border-muted text-muted-foreground text-4xs">已存在</Badge>}
                         </div>
-                        <div className="mt-1 text-[10px] text-muted-foreground">
+                        <div className="mt-1 text-3xs text-muted-foreground">
                           {p.material && <span>材质：{p.material} · </span>}
                           {p.color && <span>颜色：{p.color} · </span>}
                           {p.defaultHolder && <span className="text-emerald-500">持有者：{p.defaultHolder}</span>}
                         </div>
-                        {p.usage && <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground/80">用途：{p.usage}</div>}
+                        {p.usage && <div className="mt-1 line-clamp-1 text-3xs text-muted-foreground/80">用途：{p.usage}</div>}
                       </div>
                     </div>
                   );
@@ -261,7 +261,7 @@ export default function PropStage({ episode }: { episode: Episode }) {
             )}
           </div>
           <DialogFooter className="border-t border-border/60 pt-4">
-            <p className="mr-auto text-[10px] text-muted-foreground">已选 {selectedPropIds.size} 个</p>
+            <p className="mr-auto text-3xs text-muted-foreground">已选 {selectedPropIds.size} 个</p>
             <Button type="button" variant="outline" onClick={() => setLibraryOpen(false)}>取消</Button>
             <Button type="button" onClick={handleImportFromLibrary} className="bg-gradient-to-r from-emerald-500 to-teal-600" disabled={selectedPropIds.size === 0}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />

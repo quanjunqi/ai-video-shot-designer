@@ -95,7 +95,7 @@ export default function CanvasPage() {
         <PenTool className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">独立无限画布</span>
         <DemoBadge />
-        <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+        <span className="ml-auto font-mono text-3xs text-muted-foreground">
           文档 v{canvas.version}{canvas.savedAt ? ` · 上次保存 ${new Date(canvas.savedAt).toLocaleTimeString()}` : ''}
         </span>
         <Button type="button" variant="outline" size="sm" onClick={() => setExportOpen(true)}>
@@ -172,7 +172,7 @@ export default function CanvasPage() {
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               画布结果作为候选资产提交漫剧审核，不得直接成为 canonical 版本。
             </p>
           </div>

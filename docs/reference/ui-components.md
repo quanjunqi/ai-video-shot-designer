@@ -12,7 +12,7 @@
 | 组件文件 | 55 个 / 6739 行 |
 | 死组件（零引用） | 35 个 |
 | 语义 token（:root/.dark） | 69 个 |
-| Tailwind 工具类映射（@theme inline） | 54 条 |
+| Tailwind 工具类映射（@theme inline） | 58 条 |
 | 字体族 / prose 映射（typography.css） | 3 / 36 |
 | 语义注记覆盖 | 55/55 |
 | 展示页 demo 覆盖 | 55/55 |
@@ -170,6 +170,10 @@
 | `--shadow-lg` | `var(--shadow-lg)` | 阴影 | `shadow-lg` |
 | `--shadow-xl` | `var(--shadow-xl)` | 阴影 | `shadow-xl` |
 | `--shadow-2xl` | `var(--shadow-2xl)` | 阴影 | `shadow-2xl` |
+| `--text-4xs` | `0.5625rem` | 字号 | `text-4xs` |
+| `--text-3xs` | `0.625rem` | 字号 | `text-3xs` |
+| `--text-2xs` | `0.6875rem` | 字号 | `text-2xs` |
+| `--text-md` | `0.8125rem` | 字号 | `text-md` |
 
 ### 3.1 排版（typography）
 
@@ -221,13 +225,13 @@
 
 | 类别 | 常用档位（次数） | 离散步长（建议收敛） |
 |---|---|---|
-| 字号 | `xs`(370) · `sm`(207) · `lg`(20) · `base`(11) · `xl`(2) · `2xl`(1) | `10px`(438) · `11px`(298) · `9px`(201) · `12px`(33) · `8px`(13) · `13px`(5) |
+| 字号 | `xs`(403) · `sm`(207) · `lg`(20) · `base`(11) · `xl`(2) · `2xl`(1) | `0.8rem`(2) |
 | 间距 | `2`(716) · `1`(521) · `3`(437) · `1.5`(398) · `4`(249) · `0.5`(131) | `-0.45rem`(2) · `-0.35rem`(2) · `--spacing(var(--gap))`(1) |
 | 圆角 | `lg`(198) · `xl`(163) · `DEFAULT`(128) · `md`(108) · `full`(66) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
 | 阴影 | `DEFAULT`(65) · `md`(34) · `lg`(29) · `sm`(13) · `xs`(7) · `2xl`(5) | `0_0_0_1px_hsl(var(--sidebar-border))`(1) · `0_0_0_1px_hsl(var(--sidebar-accent))`(1) |
 | 行高 / 字距 | `relaxed`(75) · `none`(8) · `5`(7) · `snug`(4) · `wide`(12) · `wider`(7) · `widest`(6) · `tight`(4) | — |
 
-> ⚠️ 离散步长合计 **1006** 处：
+> ⚠️ 离散步长合计 **17** 处：
 > 小字号尤其集中（如 `text-[10px]`），说明"尺度 token 之外还有一套事实上的离散值"。新增 UI 请优先用尺度 token；标题禁 `text-[Npx]`（V-003）。
 
 

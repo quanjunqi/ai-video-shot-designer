@@ -4132,6 +4132,26 @@ export const UI_CATALOG: UiCatalog = {
       "name": "--shadow-2xl",
       "value": "var(--shadow-2xl)",
       "group": "阴影"
+    },
+    {
+      "name": "--text-4xs",
+      "value": "0.5625rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-3xs",
+      "value": "0.625rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-2xs",
+      "value": "0.6875rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-md",
+      "value": "0.8125rem",
+      "group": "字号"
     }
   ],
   "typography": {
@@ -4288,7 +4308,7 @@ export const UI_CATALOG: UiCatalog = {
     "text": [
       {
         "value": "xs",
-        "count": 370
+        "count": 403
       },
       {
         "value": "sm",
@@ -4317,36 +4337,8 @@ export const UI_CATALOG: UiCatalog = {
     ],
     "textArbitrary": [
       {
-        "value": "10px",
-        "count": 438
-      },
-      {
-        "value": "11px",
-        "count": 298
-      },
-      {
-        "value": "9px",
-        "count": 201
-      },
-      {
-        "value": "12px",
-        "count": 33
-      },
-      {
-        "value": "8px",
-        "count": 13
-      },
-      {
-        "value": "13px",
-        "count": 5
-      },
-      {
         "value": "0.8rem",
         "count": 2
-      },
-      {
-        "value": "10.5px",
-        "count": 1
       }
     ],
     "spacing": [
@@ -4598,5 +4590,5 @@ export const UI_CATALOG: UiCatalog = {
       }
     ]
   },
-  "themeUtilityCount": 54
+  "themeUtilityCount": 58
 };

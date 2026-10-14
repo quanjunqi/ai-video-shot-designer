@@ -84,13 +84,13 @@ export function ParamEditor({
   return (
     <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-2.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-muted-foreground">{title}</p>
+        <p className="min-w-0 flex-1 truncate text-2xs font-medium text-muted-foreground">{title}</p>
         <div className="flex shrink-0 items-center gap-1">
-          <Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => setJsonOpen((v) => !v)}>
+          <Button type="button" size="sm" variant="outline" className="h-6 text-2xs" onClick={() => setJsonOpen((v) => !v)}>
             <Code2 className="h-3 w-3" />
             {jsonOpen ? '收起' : '粘贴 JSON'}
           </Button>
-          <Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => onChange([...params, mode === 'response' ? { key: '', value: '', type: 'string' } : { key: '', value: '', role: 'static' }])}>
+          <Button type="button" size="sm" variant="outline" className="h-6 text-2xs" onClick={() => onChange([...params, mode === 'response' ? { key: '', value: '', type: 'string' } : { key: '', value: '', role: 'static' }])}>
             <Plus className="h-3 w-3" />
             添加{mode === 'response' ? '字段' : '参数'}
           </Button>
@@ -99,7 +99,7 @@ export function ParamEditor({
       {jsonOpen && (
         <div className="space-y-1.5">
           <Input
-            className="h-16 whitespace-pre font-mono text-[11px] leading-4"
+            className="h-16 whitespace-pre font-mono text-2xs leading-4"
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
             placeholder={mode === 'response'
@@ -107,12 +107,12 @@ export function ParamEditor({
               : '[{"key":"temperature","value":"0.7","type":"number","role":"static","desc":"采样温度"}]'}
           />
           <div className="flex items-center justify-end gap-1.5">
-            <Button type="button" size="sm" variant="ghost" className="h-6 text-[11px]" onClick={() => { setJsonOpen(false); setJsonText(''); }}>取消</Button>
-            <Button type="button" size="sm" className="h-6 text-[11px]" onClick={applyJson}>导入（替换）</Button>
+            <Button type="button" size="sm" variant="ghost" className="h-6 text-2xs" onClick={() => { setJsonOpen(false); setJsonText(''); }}>取消</Button>
+            <Button type="button" size="sm" className="h-6 text-2xs" onClick={applyJson}>导入（替换）</Button>
           </div>
         </div>
       )}
-      {params.length === 0 && !jsonOpen && <p className="text-[10px] text-muted-foreground">{desc}</p>}
+      {params.length === 0 && !jsonOpen && <p className="text-3xs text-muted-foreground">{desc}</p>}
       {params.length > 0 && (
         <div className="space-y-1.5">
           {params.map((p, i) => (
@@ -125,12 +125,12 @@ export function ParamEditor({
                     onChange={(e) => onChange(params.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}
                     placeholder={keyPlaceholder}
                   />
-                  {p.required && <span className="shrink-0 text-[11px] font-semibold leading-none text-destructive" title="必填">*</span>}
+                  {p.required && <span className="shrink-0 text-2xs font-semibold leading-none text-destructive" title="必填">*</span>}
                 </div>
               </div>
               {mode === 'request' ? (
                 <Select value={p.role ?? 'static'} onValueChange={(v) => setRole(i, v as ParamSource)}>
-                  <SelectTrigger className="h-8 w-[76px] px-2 text-[10px]" title="参数来源：静态默认 / 模型注入（providerModel）/ 运行时注入（执行器按业务构造）">
+                  <SelectTrigger className="h-8 w-[76px] px-2 text-3xs" title="参数来源：静态默认 / 模型注入（providerModel）/ 运行时注入（执行器按业务构造）">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -141,7 +141,7 @@ export function ParamEditor({
                 </Select>
               ) : (
                 <Select value={p.type ?? 'string'} onValueChange={(v) => setType(i, v)}>
-                  <SelectTrigger className="h-8 w-[86px] px-2 text-[10px]">
+                  <SelectTrigger className="h-8 w-[86px] px-2 text-3xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -161,11 +161,11 @@ export function ParamEditor({
               <div className="flex shrink-0 items-center gap-1">
                 {mode === 'request' ? (
                   <>
-                    {p.type && <Badge className={`h-4 px-1 font-mono text-[9px] ${TYPE_BADGE_COLOR[p.type] ?? TYPE_BADGE_COLOR.string}`}>{p.type}</Badge>}
-                    <Badge className={`h-4 px-1 text-[9px] ${ROLE_BADGE[p.role ?? 'static'].cls}`}>{ROLE_BADGE[p.role ?? 'static'].label}</Badge>
+                    {p.type && <Badge className={`h-4 px-1 font-mono text-4xs ${TYPE_BADGE_COLOR[p.type] ?? TYPE_BADGE_COLOR.string}`}>{p.type}</Badge>}
+                    <Badge className={`h-4 px-1 text-4xs ${ROLE_BADGE[p.role ?? 'static'].cls}`}>{ROLE_BADGE[p.role ?? 'static'].label}</Badge>
                   </>
                 ) : (
-                  <span className="max-w-[120px] truncate text-[9px] text-muted-foreground" title={p.desc}>{p.desc ?? '—'}</span>
+                  <span className="max-w-[120px] truncate text-4xs text-muted-foreground" title={p.desc}>{p.desc ?? '—'}</span>
                 )}
               </div>
               <Button type="button" size="sm" variant="ghost" className="h-8 w-7" onClick={() => onChange(params.filter((_, j) => j !== i))} title="删除该参数">

@@ -67,7 +67,7 @@ export default function SourceVersionDialog({
             {project.sourceVersions.map((v) => (
               <div
                 key={v.version}
-                className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 font-mono text-[10px]"
+                className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 font-mono text-3xs"
               >
                 <span className={v.version === project.currentSourceVersion ? 'font-semibold text-primary' : 'text-muted-foreground'}>
                   v{v.version}
@@ -92,11 +92,11 @@ export default function SourceVersionDialog({
               className="w-full resize-y rounded-md border border-border bg-background px-2.5 py-2 font-mono text-xs leading-relaxed outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
               onChange={(e) => setDraft(e.target.value)}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               当前 {draft.length} 字
               {!dirty && draft.length > 0 ? '（未修改）' : ''}
             </p>
-            <p className="flex items-start gap-1.5 rounded-md bg-muted/40 p-2 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="flex items-start gap-1.5 rounded-md bg-muted/40 p-2 text-2xs leading-relaxed text-muted-foreground">
               <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               保存后：当前源版本切换为 v{nextVersion}，旧版本剧集投影被清空，系统按新原文重新拆集并回到「候选待核对」；已确认的解读 / 资产 / 生产产物均属于旧版本，不会迁移。
             </p>

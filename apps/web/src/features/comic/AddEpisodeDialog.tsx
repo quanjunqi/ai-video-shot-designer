@@ -73,7 +73,7 @@ export default function AddEpisodeDialog({
                 ))}
                 <option value={episodeLabels.length}>末尾（追加为新一集）</option>
               </select>
-              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{insertLabel}</span>
+              <span className="shrink-0 font-mono text-3xs text-muted-foreground">{insertLabel}</span>
             </div>
           </div>
 
@@ -92,7 +92,7 @@ export default function AddEpisodeDialog({
               <label className="text-xs font-medium text-muted-foreground">本集剧本内容（将并入源剧本）</label>
               <button
                 type="button"
-                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-3xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 onClick={() => setShowSlice((v) => !v)}
               >
                 <Scissors className="h-3 w-3" />
@@ -104,19 +104,19 @@ export default function AddEpisodeDialog({
               <div className="rounded-md border border-border p-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="min-w-0 space-y-0.5">
-                    <span className="text-[9px] text-muted-foreground">起点（0–{len}）</span>
-                    <Input type="number" min={0} max={len} value={start} className="h-7 text-[10px]" onChange={(e) => setStart(Number(e.target.value))} />
+                    <span className="text-4xs text-muted-foreground">起点（0–{len}）</span>
+                    <Input type="number" min={0} max={len} value={start} className="h-7 text-3xs" onChange={(e) => setStart(Number(e.target.value))} />
                   </div>
                   <div className="min-w-0 space-y-0.5">
-                    <span className="text-[9px] text-muted-foreground">终点（0–{len}）</span>
-                    <Input type="number" min={0} max={len} value={end} className="h-7 text-[10px]" onChange={(e) => setEnd(Number(e.target.value))} />
+                    <span className="text-4xs text-muted-foreground">终点（0–{len}）</span>
+                    <Input type="number" min={0} max={len} value={end} className="h-7 text-3xs" onChange={(e) => setEnd(Number(e.target.value))} />
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-2">
-                  <Button type="button" size="sm" variant="outline" className="h-6 text-[10px]" onClick={fillFromSlice}>
+                  <Button type="button" size="sm" variant="outline" className="h-6 text-3xs" onClick={fillFromSlice}>
                     填入内容
                   </Button>
-                  <span className="font-mono text-[9px] text-muted-foreground">填入后仍可编辑</span>
+                  <span className="font-mono text-4xs text-muted-foreground">填入后仍可编辑</span>
                 </div>
               </div>
             )}
@@ -128,7 +128,7 @@ export default function AddEpisodeDialog({
               onChange={(e) => setContent(e.target.value)}
             />
             {content.trim() && (
-              <p className="font-mono text-[9px] text-muted-foreground">{content.length} 字符</p>
+              <p className="font-mono text-4xs text-muted-foreground">{content.length} 字符</p>
             )}
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 > **开工前**须按 `.agents/skills/acceptance-checklist/SKILL.md` 产出验收清单文件
 > （`TASK-UI-003-acceptance.md`，与本卡同目录）；本卡 §4 是清单判据的来源。
-> 本卡当前状态为**待开工**，清单尚未产出（AC-008：清单在开工前落盘）。
+> 验收清单已产出：`.github/tasks/TASK-UI-003-acceptance.md`（含逐项实测结果）。
 
 ## 基本信息
 
@@ -13,7 +13,7 @@
 - **AI 执行者**：待认领
 - **优先级**：P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血）
 - **预计工时**：建 token + 门禁 ≈ 0.5 人日；批量替换 ≈ 2–4 人日（按页面分批）
-- **状态**：待开工
+- **状态**：待验收
 
 ---
 
@@ -70,14 +70,15 @@
 
 > 每条都要能回答「怎么证明它过了」。**判据绑定机器数字**，不写"看起来统一了"。
 
-- [ ] 验收清单文件已产出：`.github/tasks/TASK-UI-003-acceptance.md`
-- [ ] **token 落地**：`tailwind-theme.css` 新增的小字号 token ≤4 个，且每个都有配套 `line-height`；`npm run ui:generate` 后 `UI_CATALOG.tokens` 含这些 token
-- [ ] **存量下降**：`UI_CATALOG.scales.textArbitrary` 的**合计次数**从 **991** 降到 **≤200**（8/13/33 次那几档优先并入，不新增 token）（判据：`node -e` 读 catalog 打印合计；基线数字写进验收清单）
-- [ ] **无视觉回归**：`npm run visual:check` 7 页差异 ≤2%（判据：既有基线 diff；如某页因等值替换产生微量抗锯齿差异，需在验收清单里逐页说明并重生成基线）
-- [ ] **门禁能拦新用例**：`quality-gate.mjs` 的 `V-003b` 在「新增/修改文件里写 `text-[Npx]`」时**退出码 1**（判据：**反例验证**——临时造一个文件写 `text-[10px]`，`npm run gate` 必须红；删掉后恢复绿）
-- [ ] **基线只减不增**：`ui-text-debt-baseline.json` 的条目数在后续 PR 中不得增加（判据：基线文件 + 门禁逻辑）
-- [ ] **门禁 0/0**：`npm run gate`；`npm test` 全过
-- [ ] **文档同步**：两份清单文档的"待收敛"数字已随生成物下降
+- [x] 验收清单文件已产出：`.github/tasks/TASK-UI-003-acceptance.md`
+- [x] **token 落地**：新增小字号 token **4 个**（`--text-4xs` 9px / `--text-3xs` 10px / `--text-2xs` 11px / `--text-md` 13px）；`npm run ui:generate` 后可在 catalog 的 `themeUtilities` 查到
+  - ⚠️ **修正原判据**：原写「每个都有配套 line-height」，实测后**刻意不声明 line-height**——`text-[10px]` 这类任意值只设 `font-size`，若 token 带 line-height，替换就会改行高、产生视觉差异；等值替换是硬要求。构建产物已验证：`.text-3xs{font-size:.625rem}`
+- [x] **存量下降**：范围内实测 **991 → 0**（超额达成 ≤200）；`components/ui/**` 2 处按范围外豁免（8/13/33 次那几档优先并入，不新增 token）（判据：`node -e` 读 catalog 打印合计；基线数字写进验收清单）
+- [x] **无视觉回归**：`npm run visual:check` 7 页全部 0.00%（6 个业务页 **0px**；ui-kit 38px，因清单文档新增 4 行）（判据：既有基线 diff；如某页因等值替换产生微量抗锯齿差异，需在验收清单里逐页说明并重生成基线）
+- [x] **门禁能拦新用例**：`quality-gate.mjs` 的 `V-003b` 在「新增/修改文件里写 `text-[Npx]`」时**退出码 1**（判据：**反例验证**——临时造一个文件写 `text-[10px]`，`npm run gate` 必须红；删掉后恢复绿）
+- [x] **基线只减不增**：`ui-text-debt-baseline.json` 的条目数在后续 PR 中不得增加（判据：基线文件 + 门禁逻辑）
+- [x] **门禁 0/0**：`npm run gate`；`npm test` 全过
+- [x] **文档同步**：两份清单文档的"待收敛"数字已随生成物下降
 
 ---
 

@@ -61,7 +61,7 @@ export default function RecentProjects({ onNew }: { onNew: () => void }) {
               </div>
               <div className="p-3">
                 <div className="truncate text-sm font-medium">{p.title}</div>
-                <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+                <div className="mt-0.5 flex items-center gap-2 font-mono text-3xs text-muted-foreground">
                   <span>{p.episodeIds.length} 集</span>
                   {p.progress.pendingReview > 0 && <span className="text-amber-600">待确认 {p.progress.pendingReview}</span>}
                   {p.progress.blocked > 0 && <span className="text-destructive">阻塞 {p.progress.blocked}</span>}
@@ -71,11 +71,11 @@ export default function RecentProjects({ onNew }: { onNew: () => void }) {
                     value={p.progress.totalEpisodes === 0 ? 0 : Math.round((p.progress.doneEpisodes / p.progress.totalEpisodes) * 100)}
                     className="h-1.5 flex-1"
                   />
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-mono text-3xs text-muted-foreground">
                     {p.progress.doneEpisodes}/{p.progress.totalEpisodes} 集
                   </span>
                 </div>
-                <div className="mt-2 truncate text-[11px] text-muted-foreground">{nextStep(p)}</div>
+                <div className="mt-2 truncate text-2xs text-muted-foreground">{nextStep(p)}</div>
               </div>
             </Link>
           );

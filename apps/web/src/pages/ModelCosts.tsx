@@ -243,7 +243,7 @@ export default function ModelCostsPage() {
                     </span>
                     <span className="shrink-0 font-medium text-foreground">{fmtMoney(s.cost_calibrated)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-2xs text-muted-foreground">
                     <span>{fmtNum(s.calls)} 次</span>
                     <span>P95 {fmtLatency(s.p95_latency_ms)}</span>
                   </div>
@@ -262,10 +262,10 @@ export default function ModelCostsPage() {
           <span className="font-medium text-foreground">月度预算</span>
           <span className="text-muted-foreground">未配置 · T3 开放</span>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground">预算拦截只基于已校准价格，配置功能随 T3 上线。</p>
+        <p className="mt-1 text-2xs text-muted-foreground">预算拦截只基于已校准价格，配置功能随 T3 上线。</p>
       </section>
 
-      <p className="border-t border-dashed border-border pt-2 text-[11px] text-muted-foreground">
+      <p className="border-t border-dashed border-border pt-2 text-2xs text-muted-foreground">
         成本双口径：已校准（权威价格回写）与预估（价格未校准的调用计数）。预算拦截只基于已校准价格。
       </p>
     </div>
@@ -275,9 +275,9 @@ export default function ModelCostsPage() {
 function KpiCard({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <div className="rounded-xl border border-card-border bg-card p-3.5">
-      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-2xs text-muted-foreground">{label}</p>
       <p className="mt-1.5 text-xl font-semibold tracking-tight text-foreground">{value}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+      <p className="mt-1 text-2xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
