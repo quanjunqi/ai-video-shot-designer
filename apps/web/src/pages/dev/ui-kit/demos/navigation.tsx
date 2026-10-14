@@ -1,12 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import {
-  BookOpenIcon,
-  CalendarIcon,
   CopyIcon,
   FileTextIcon,
   FolderIcon,
   ImageIcon,
-  LogOutIcon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
@@ -38,21 +35,6 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import {
-  ContextMenu,
-  ContextMenuCheckboxItem,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuLabel,
-  ContextMenuRadioGroup,
-  ContextMenuRadioItem,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -68,31 +50,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Menubar,
-  MenubarCheckboxItem,
-  MenubarContent,
-  MenubarItem,
-  MenubarLabel,
-  MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarSeparator,
-  MenubarShortcut,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
-  MenubarTrigger,
-} from '@/components/ui/menubar';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from '@/components/ui/navigation-menu';
 import {
   Pagination,
   PaginationContent,
@@ -250,113 +207,7 @@ export const NAVIGATION_DEMOS: Record<string, ReactNode> = {
       <CommandDialogDemo />
     </div>
   ),
-  "context-menu": (
-    <ContextMenu>
-      <ContextMenuTrigger className="text-muted-foreground flex h-32 w-full min-w-0 max-w-3xl items-center justify-center rounded-md border border-dashed text-sm">
-        在此区域点击鼠标右键
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-56">
-        <ContextMenuLabel>镜头 3</ContextMenuLabel>
-        <ContextMenuSeparator />
-        <ContextMenuItem><UserIcon /> 重命名<ContextMenuShortcut>⌘R</ContextMenuShortcut></ContextMenuItem>
-        <ContextMenuItem><CopyIcon /> 复制</ContextMenuItem>
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>导出为</ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            <ContextMenuItem>PNG</ContextMenuItem>
-            <ContextMenuItem>MP4</ContextMenuItem>
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-        <ContextMenuSeparator />
-        <ContextMenuCheckboxItem checked>显示网格</ContextMenuCheckboxItem>
-        <ContextMenuRadioGroup value="medium">
-          <ContextMenuLabel>镜头时长</ContextMenuLabel>
-          <ContextMenuRadioItem value="short">短（≤ 2s）</ContextMenuRadioItem>
-          <ContextMenuRadioItem value="medium">中（2 ~ 5s）</ContextMenuRadioItem>
-        </ContextMenuRadioGroup>
-        <ContextMenuSeparator />
-        <ContextMenuItem variant="destructive"><Trash2Icon /> 删除</ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  ),
   "dropdown-menu": (<DropdownMenuDemo />),
-  "menubar": (
-    <Menubar className="w-fit">
-      <MenubarMenu>
-        <MenubarTrigger>文件</MenubarTrigger>
-        <MenubarContent>
-          <MenubarLabel>项目</MenubarLabel>
-          <MenubarSeparator />
-          <MenubarItem><PlusIcon /> 新建项目<MenubarShortcut>⌘N</MenubarShortcut></MenubarItem>
-          <MenubarItem><FolderIcon /> 打开…</MenubarItem>
-          <MenubarSub>
-            <MenubarSubTrigger>最近打开</MenubarSubTrigger>
-            <MenubarSubContent>
-              <MenubarItem>第 1 集</MenubarItem>
-              <MenubarItem>第 2 集</MenubarItem>
-            </MenubarSubContent>
-          </MenubarSub>
-          <MenubarSeparator />
-          <MenubarItem variant="destructive"><Trash2Icon /> 删除项目</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-      <MenubarMenu>
-        <MenubarTrigger>视图</MenubarTrigger>
-        <MenubarContent>
-          <MenubarCheckboxItem checked>显示网格</MenubarCheckboxItem>
-          <MenubarCheckboxItem>显示标尺</MenubarCheckboxItem>
-          <MenubarSeparator />
-          <MenubarRadioGroup value="comfortable">
-            <MenubarLabel>密度</MenubarLabel>
-            <MenubarRadioItem value="compact">紧凑</MenubarRadioItem>
-            <MenubarRadioItem value="comfortable">舒适</MenubarRadioItem>
-          </MenubarRadioGroup>
-        </MenubarContent>
-      </MenubarMenu>
-      <MenubarMenu>
-        <MenubarTrigger>帮助</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem>
-            <BookOpenIcon /> 组件库文档
-          </MenubarItem>
-          <MenubarItem disabled>
-            <LogOutIcon /> 退出登录（禁用）
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-    </Menubar>
-  ),
-  "navigation-menu": (
-    <div className="w-full min-w-0 max-w-3xl">
-      <NavigationMenu className="items-start justify-start">
-        <NavigationMenuList>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>制作</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-80 min-w-0 gap-1 p-2">
-                <li className="min-w-0"><NavigationMenuLink href="#navigation-menu"><span className="font-medium">分镜脚本</span><span className="text-muted-foreground text-xs">按场次拆分镜头</span></NavigationMenuLink></li>
-                <li className="min-w-0"><NavigationMenuLink href="#navigation-menu"><span className="font-medium">素材库</span><span className="text-muted-foreground text-xs">角色、场景与道具</span></NavigationMenuLink></li>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>资源</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="w-64 min-w-0 p-2">
-                <li className="min-w-0"><NavigationMenuLink href="#navigation-menu" className="flex-row items-center gap-2"><CalendarIcon /> 生成历史</NavigationMenuLink></li>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink href="#navigation-menu" className={navigationMenuTriggerStyle()}>直接链接</NavigationMenuLink>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-      <p className="text-muted-foreground mt-3 text-xs">
-        悬停「制作 / 资源」展开视图；viewport 属性可关闭浮层容器。
-      </p>
-    </div>
-  ),
   "pagination": (
     <div className="flex flex-col gap-4">
       <Pagination>

@@ -20,7 +20,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,21 +31,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -144,54 +128,6 @@ export const FEEDBACK_DEMOS: Record<string, ReactNode> = {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  ),
-  "drawer": (
-    <Drawer>
-      <DrawerTrigger asChild>
-        <Button variant="outline" className="w-fit">
-          打开底部抽屉
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>选择分镜模板</DrawerTitle>
-          <DrawerDescription>抽屉适合移动端底部操作；确认后会应用到当前镜头。</DrawerDescription>
-        </DrawerHeader>
-        <div className="text-muted-foreground px-4 text-sm">
-          模板：三分法构图 / 过肩镜头 / 大特写情绪镜头
-        </div>
-        <DrawerFooter>
-          <Button>应用模板</Button>
-          <DrawerClose asChild>
-            <Button variant="outline">取消</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  ),
-  "hover-card": (
-    <HoverCard>
-      <HoverCardTrigger asChild>
-        <a href="#hover-card" className="text-primary w-fit text-sm underline underline-offset-4">
-          @林小满
-        </a>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-72">
-        <div className="flex min-w-0 gap-3">
-          <Avatar className="size-10">
-            <AvatarImage src="/placeholders/p00.jpg" alt="林小满" />
-            <AvatarFallback>林</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <p className="text-sm font-medium">林小满</p>
-            <p className="text-muted-foreground text-xs">分镜师 · 已参与 24 个项目</p>
-            <p className="text-muted-foreground mt-2 text-xs">
-              HoverCard 悬停 700ms 后出现，用于展示轻量上下文，不放需要点击的操作。
-            </p>
-          </div>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
   ),
   "popover": (
     <Popover>

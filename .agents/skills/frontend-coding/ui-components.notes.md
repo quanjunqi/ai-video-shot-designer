@@ -35,12 +35,6 @@
 - 反例：删除无确认直接执行（清单 1）；确认按钮只写确定不说清后果（UC-004）
 - 相关：dialog、sonner、button
 
-## aspect-ratio
-- 分类：基础
-- 何时用：锁定媒体容器比例（16:9 预览、3:4 立绘）防加载跳动
-- 别用：高度自适应的文本块别锁比例；业务零引用（UC-006）
-- 反例：用固定 height 代替比例致窄屏变形（3.1 图片比例）；外层不设 overflow-hidden 致图片溢出（R-UI-006）
-- 相关：image、card、skeleton
 
 ## avatar
 - 分类：基础
@@ -70,12 +64,6 @@
 - 反例：用 button 做链接导航（该用 asChild + Link）（UC-006）；自写颜色类不走 variant（UC-002）；请求中不禁用致重复提交（FE-API-005）
 - 相关：button-group、toggle、spinner
 
-## button-group
-- 分类：基础
-- 何时用：把 2–3 个同类操作按钮贴合成组（批量删除、视图切换）
-- 别用：需要持久选中态用 toggle-group；业务零引用（UC-006）
-- 反例：用 button-group 承载互斥选中态（应换 toggle-group）（UC-002）；组内链接按钮不走 asChild（UC-006）
-- 相关：button、toggle-group、select
 
 ## calendar
 - 分类：数据录入
@@ -91,12 +79,6 @@
 - 反例：卡片套卡片导致层级混乱（R3）；CardTitle 长文本不截断溢出（R-UI-006）；卡片内 grid 列缺 min-w-0 挤爆（R2）
 - 相关：item、separator、empty
 
-## carousel
-- 分类：数据展示
-- 何时用：横向浏览一组同质媒体或卡片（参考图、模板预览）
-- 别用：条目少于一屏时直接铺开；业务零引用（UC-006）
-- 反例：用 carousel 藏关键内容只看得到一部分（R7）；轮播无键盘方向键控制（UC-005）
-- 相关：card、image、scroll-area
 
 ## chart
 - 分类：数据展示
@@ -126,12 +108,6 @@
 - 反例：用 command 替代普通下拉选择多一次交互（UC-006）；把 command 当 tabs 切换页面（UC-006）
 - 相关：popover、input、dropdown-menu
 
-## context-menu
-- 分类：导航
-- 何时用：右键或长按目标弹出的上下文操作菜单
-- 别用：没有右键入口的场景用 dropdown-menu；业务零引用（UC-006）
-- 反例：只做右键菜单不给可见操作入口（触屏不可达）（UC-005）；菜单内删除项无二次确认（清单 1）
-- 相关：dropdown-menu、alert-dialog、item
 
 ## dialog
 - 分类：反馈
@@ -140,12 +116,6 @@
 - 反例：用 dialog 做破坏性确认（应换 alert-dialog）（UC-006）；缺 DialogTitle 致 a11y 缺失（UC-005）；弹窗内容不滚动致底部按钮不可达（清单 2）
 - 相关：alert-dialog、sheet、drawer
 
-## drawer
-- 分类：反馈
-- 何时用：移动端底部手势抽屉，可下拉关闭（底部操作面板）
-- 别用：桌面端侧栏面板用 sheet；业务零引用（UC-006）
-- 反例：桌面主流程用 drawer 手势（鼠标不友好）（UC-005）；drawer 内长内容无独立滚动区（清单 2）
-- 相关：sheet、dialog、sidebar
 
 ## dropdown-menu
 - 分类：导航
@@ -175,12 +145,6 @@
 - 反例：在 FormField 外调用 useFormContext 报错（UC-002）；同一表单混用 store 与 RHF 两套状态（FE-STATE-004）
 - 相关：field、input、label
 
-## hover-card
-- 分类：反馈
-- 何时用：鼠标悬停即预览补充信息（用户卡、模型说明），无需点击
-- 别用：触屏无悬停的场景用 popover；业务零引用（UC-006）
-- 反例：把必读信息放进 hover-card（触屏键盘不可达）（UC-005）；用 hover-card 装可交互表单（UC-006）
-- 相关：popover、tooltip、avatar
 
 ## image
 - 分类：基础
@@ -203,12 +167,6 @@
 - 反例：绝对定位手写后缀图标（应换 input-group）（UC-006）；内嵌图标按钮缺 aria-label（FE-A11Y-001）
 - 相关：input、button、field
 
-## input-otp
-- 分类：数据录入
-- 何时用：固定位数验证码输入，逐格填写并自动前进
-- 别用：任意长度文本用 input；业务零引用（UC-006）
-- 反例：用多个独立 input 手写验证码（粘贴退格失效）（UC-006）；OTP 无 label 说明来源（FE-A11Y-002）
-- 相关：input、field、form
 
 ## item
 - 分类：布局
@@ -217,12 +175,6 @@
 - 反例：每处手写 li 与 flex 拼列表项（应复用 item）（UC-006）；ItemDescription 不截断撑破行（R-UI-006）
 - 相关：table、avatar、badge
 
-## kbd
-- 分类：基础
-- 何时用：标注快捷键（⌘K、Esc），多见于菜单项与 tooltip 内
-- 别用：普通按键文字或代码别用 kbd；业务零引用（UC-006）
-- 反例：快捷键写在普通 span 里样式不一（UC-006）；把 kbd 做成可点击元素（应换 button）（UC-006）
-- 相关：tooltip、command、menubar
 
 ## label
 - 分类：数据录入
@@ -231,12 +183,6 @@
 - 反例：label 无 htmlFor 仅靠视觉对齐（FE-A11Y-002）；把 label 当区块标题用（应换 field-legend）（UC-005）
 - 相关：input、field、form
 
-## menubar
-- 分类：导航
-- 何时用：桌面应用式菜单栏（文件、编辑、视图），常配快捷键
-- 别用：Web 常规操作用 dropdown-menu；业务零引用（UC-006）
-- 反例：为两三个按钮套 menubar（应换 dropdown-menu）（UC-006）；快捷键用纯文本未用 MenubarShortcut（UC-005）
-- 相关：dropdown-menu、command、kbd
 
 ## native-select
 - 分类：数据录入
@@ -245,12 +191,6 @@
 - 反例：20 个以上选项仍用 native-select 不可搜索（UC-006）；控件无 label 关联（FE-A11Y-002）
 - 相关：select、input、field
 
-## navigation-menu
-- 分类：导航
-- 何时用：顶部横向主导航，含子菜单浮层（站点级菜单）
-- 别用：侧边多级导航用 sidebar；业务零引用（UC-006）
-- 反例：用 navigation-menu 做页内 tab 切换（应换 tabs）（UC-006）；子菜单不可键盘操作（UC-005）
-- 相关：sidebar、breadcrumb、menubar
 
 ## pagination
 - 分类：导航
@@ -280,12 +220,6 @@
 - 反例：用 radio 铺 20 个模型选项（应换 select）（UC-006）；无默认选中造成空白占位（R7）
 - 相关：checkbox、select、field
 
-## resizable
-- 分类：布局
-- 何时用：用户需要拖拽调整分栏宽度或高度的编辑器、对比视图
-- 别用：固定比例布局用 grid 与 flex；业务零引用（UC-006）
-- 反例：用 resizable 做响应式降列（应换 grid 断点）（FE-STYLE-005）；面板内不设独立滚动致底部截断（清单 2）
-- 相关：scroll-area、sidebar、card
 
 ## scroll-area
 - 分类：布局
@@ -378,19 +312,7 @@
 - 反例：用 input 装长提示词致横向滚动（UC-006）；固定 rows 过小且不可自适应（UC-004）
 - 相关：input、field、label
 
-## toggle
-- 分类：数据录入
-- 何时用：单一开关态的工具按钮（加粗、收藏、仅看未读），点击即切换
-- 别用：开关用switch；多选用toggle-group；业务零引用（UC-006）
-- 反例：用 toggle 当无状态普通按钮（UC-002）；纯图标 toggle 缺 title 或 aria-label（FE-A11Y-001）
-- 相关：toggle-group、switch、button
 
-## toggle-group
-- 分类：数据录入
-- 何时用：一组小图标按钮表示当前生效的视图或格式（互斥或多选）
-- 别用：一次性动作用 button-group；业务零引用（UC-006）
-- 反例：用 toggle-group 承载提交动作（应换 button）（UC-006）；纯图标项缺 title 或 aria-label（FE-A11Y-001）
-- 相关：toggle、button-group、tabs
 
 ## tooltip
 - 分类：反馈

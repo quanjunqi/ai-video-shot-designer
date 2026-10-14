@@ -243,10 +243,14 @@ function collectComponents(allSrcFiles, tokenNames) {
       const slots = [...new Set([...src.matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1]))];
       const props = [...new Set([...src.matchAll(/React\.ComponentProps(?:WithoutRef)?<[^>]+>|VariantProps<typeof\s+[A-Za-z0-9_]+>/g)].map((m) => m[0]))];
       const used = allSrcFiles
-        .filter((f) => !f.startsWith(UI_DIR))
+        // 自身不算引用；**但其它 ui 组件的引用要算**（修正口径：原来排除整个 components/ui/**，
+        // 导致 separator/skeleton/item/alert/empty/toggle/image/radio-group 这 8 个被别的 ui 组件
+        // 正常使用的组件被误判为"零引用"，让棘轮与画廊折叠区的数字误导决策）。
+        .filter((f) => f !== file)
         // 展示页（src/pages/dev/**）会 import **全部**组件用于渲染，不能算「被业务使用」——
-        // 否则展示页一上线，35 个零引用组件就全"复活"，死代码信号与棘轮同时失效。
+        // 否则展示页一上线，零引用组件就全"复活"，死代码信号与棘轮同时失效。
         .filter((f) => !f.startsWith(path.join(SRC, 'pages', 'dev')))
+        .filter((f) => !f.startsWith(path.join(SRC, 'generated')))
         .filter((f) => new RegExp(`components/ui/${name}['"]`).test(read(f)))
         .map((f) => rel(f))
         .sort();
