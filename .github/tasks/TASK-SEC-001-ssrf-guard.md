@@ -1,6 +1,6 @@
 # TASK-SEC-001：模型网关出站 SSRF 防护
 
-> 按 `AGENTS.md` §5.3 填写。阶段 1 三项 P0 加固的第 1 项。
+> 按 `.github/TASK_TEMPLATE.md` 填写。阶段 1 三项 P0 加固的第 1 项。
 
 ## 目标
 

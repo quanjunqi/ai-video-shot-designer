@@ -119,7 +119,7 @@ npm run gate
 
 ### 必须遵守
 
-- [ ] 遵循 `AGENTS.md` §4.1 前端规范（TS 严格模式、禁止 `any`、Tailwind、统一 api client）
+- [ ] 遵循 `.agents/skills/frontend-coding/SKILL.md`（禁止 `any`、Tailwind、统一 api client）
 - [ ] 前端只能调用 BFF（`/api/v1/*`）
 - [ ] 遵循 `.agents/skills/frontend-quality/rules.md`：交付前完整执行六步硬门禁
 

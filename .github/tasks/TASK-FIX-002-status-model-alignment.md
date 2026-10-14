@@ -1,6 +1,6 @@
 # TASK-FIX-002：状态模型三处不一致的约束修复
 
-> 按 `AGENTS.md` §5.3 填写。承接 `TASK-FIX-001`，修的是**缺陷**。
+> 按 `.github/TASK_TEMPLATE.md` 填写。承接 `TASK-FIX-001`，修的是**缺陷**。
 
 ## 目标
 
@@ -27,7 +27,7 @@
 
 ## 非范围
 
-- ❌ 不修改任何已执行迁移（`AGENTS.md` §7 禁区）
+- ❌ 不修改任何已执行迁移（`.agents/skills/database-migrations/SKILL.md` 铁律）
 - ❌ **不实现状态跃迁校验**（只做取值约束；`archived → parsing` 这类非法跃迁仍会被允许）
 - ❌ 不在 `project.Update` 里暴露 status（属功能实现，另立任务）
 - ❌ 不改 Go / TS 业务代码

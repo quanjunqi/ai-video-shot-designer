@@ -13,7 +13,7 @@ import (
 
 // WorkspaceCredentials 通过 workspace 的内部 reveal 端点取渠道密钥。
 //
-// 为什么由 production 去 reveal：AGENTS §3.1 规定密钥由 workspace 拥有、其他服务**运行时 reveal**。
+// 为什么由 production 去 reveal：`.agents/skills/backend-coding/rules.md`（服务边界）规定密钥由 workspace 拥有、其他服务**运行时 reveal**。
 // 同步器要访问上游，必须有同一把钥匙 —— 这个端点与响应形状与 execution 的
 // `creds/client.go` **完全一致**，避免"同一个渠道两套取密钥口径"。
 //

@@ -28,7 +28,7 @@ description: 当 CI 失败、需要排查 GitHub Actions、或修改 .github/wor
 |---|---|
 | Detect Changes | 始终（秒级） |
 | Frontend Quality Gate | `apps/web/**` 有改动 |
-| Backend Build & Test × 6 | 对应 `services/<svc>/**` 有改动 |
+| Backend Build & Test × 7（矩阵含 `shared`） | 对应 `services/<svc>/**` 有改动 |
 | Security Scan | `services/**` 或 `apps/web/**` 有改动 |
 | Documentation Check | 始终 |
 | Merge Check | PR 汇总 |
@@ -47,6 +47,13 @@ description: 当 CI 失败、需要排查 GitHub Actions、或修改 .github/wor
 | 覆盖率棘轮 | `.github/coverage-baseline.txt` 下限 |
 | Documentation Check 红 | 缺文件存在性检查 |
 
+## 禁止事项
+
+- ❌ 给必需检查 job 加 **job 级** `if:`（该 job 不上报检查记录 → 必需检查永远停在 Expected → 卡死所有 PR）
+- ❌ 用 `continue-on-error: true`、`|| true`、`set +e` 让本该阻断的步骤变绿；存量豁免必须写清「修复后改回阻断」
+- ❌ 把「未验证」当「通过」（缺工具、区间为空、依赖缺失时静默 exit 0 —— 未验证 ≠ 通过，应当红）
+- ❌ 只跑本地「记得住」的那几道门就推送（CI 有六道关；用 `scripts/preflight.sh` 跑同口径全量）
+
 ## 完整文档
 
-→ `docs/how-to/ci.md`（§3 核心不变量 + §7 SKIP 守卫）
+→ `docs/how-to/ci.md`（CI 跑什么 / CI 红了怎么排查）；SKIP 守卫与结构不变量见 `.github/workflows/ci.yml`

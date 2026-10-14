@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 推送并【显式校验】。规范：AGENTS.md §12.7.3、§5.5。
+# 推送并【显式校验】。规范：`.agents/skills/pr-workflow/SKILL.md`（PR 流程）· `.agents/skills/parallel-worktree/SKILL.md`。
 #
 # 为什么不是 pre-push 钩子：
 #   钩子在推送【之前】运行，那时「本地 ≠ 远端」是必然的，因此钩子无法校验推送结果。

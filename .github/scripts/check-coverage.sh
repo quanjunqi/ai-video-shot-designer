@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 覆盖率下限门禁（棘轮策略）——见 docs/development/testing.md §3.3
+# 覆盖率下限门禁（棘轮策略）——见 `.agents/skills/backend-standards/SKILL.md`（覆盖率棘轮口径）
 #
 # 用法：
 #   check-coverage.sh <service> [profile]     检查单个服务
@@ -97,6 +97,6 @@ fi
 if [ "$rc" = "0" ]; then
   echo "   → 覆盖率门禁通过"
 else
-  echo "   → 覆盖率门禁未通过（见 docs/development/testing.md §3.3 棘轮策略）"
+  echo "   → 覆盖率门禁未通过（见 `.agents/skills/backend-standards/SKILL.md` 覆盖率棘轮口径）"
 fi
 exit "$rc"

@@ -228,7 +228,7 @@ stateDiagram-v2
 | 2 | `projects.status` 被 `CHECK` 冻结为 `pending_parse` | ✅ `production/022_projects_status_machine.sql` —— 放宽为前端 6 态 |
 | 3 | `episodes.status` 默认 `draft` 与前端枚举不符；`stage`/`status` 无 `CHECK` | ✅ `production/023_episodes_state_checks.sql` —— 归一为 `pending` + 两列补 `CHECK` |
 
-三项修复**全部以新增迁移实现，未修改任何已执行文件**（遵守 `AGENTS.md` §7）。
+三项修复**全部以新增迁移实现，未修改任何已执行文件**（遵守 `.agents/skills/database-migrations/SKILL.md`）。
 每个迁移都保证可重复执行（执行器无版本跟踪，会重跑全部文件），
 并已用真实 PostgreSQL 16 验证**接受路径与拒绝路径**（不只是 happy path）。
 

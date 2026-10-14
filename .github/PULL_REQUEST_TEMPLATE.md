@@ -7,6 +7,7 @@
 
 **关联任务**：TASK-XXX
 **任务卡**：[链接到任务卡]
+**验收清单**：`.github/tasks/TASK-XXX-acceptance.md`（开工前产出，见 `.agents/skills/acceptance-checklist/SKILL.md`）
 **变更类型**：
 - [ ] ✨ 新功能
 - [ ] 🐛 Bug 修复
@@ -44,6 +45,22 @@
 | | | |
 
 **变更统计**：+XXX 行 / -XXX 行 / XX 个文件
+
+---
+
+## 🎯 验收勾对（必填 · AC-005）
+
+> 逐项勾对写在**验收清单文件**里（`.github/tasks/<TASK-ID>-acceptance.md`），本小节只放**汇总**。
+> 规则与字段说明见 `.agents/skills/acceptance-checklist/SKILL.md`（模板同目录 `templates/`）。
+> **不得只写「全部通过」**：未过项必须如实列出，由 Owner 决定是否放行（隐瞒 = 评审打回）。
+
+- **验收清单文件**：`.github/tasks/____-acceptance.md`
+- 需求点：__/__ 通过（未过项：）
+- 设计稿映射：__/__ 无偏差（如无设计稿写 N/A）
+- 三态与边界：__/__ 通过
+- 反模式自查：__/__ 未命中（命中并修复：）
+- 门禁：`npm run gate` = 0 error/0 warning；后端全绿；L3 浏览器验证（如涉及 UI）
+- 未过项及原因：
 
 ---
 
@@ -132,7 +149,7 @@
 - [ ] `docs/architecture/technical-architecture.md` 已更新（如涉及架构）
 - [ ] `docs/product/design.md` 已更新（如涉及设计）
 - [ ] `docs/adr/` 已新增 ADR（如涉及架构决策）
-- [ ] `AGENTS.md` 已更新（如涉及规则变更）
+- [ ] `.agents/skills/` 或 `AGENTS.md` 已更新（如涉及规则变更）
 - [ ] README 已更新（如涉及使用方式）
 
 ---
@@ -141,7 +158,7 @@
 
 > 本 PR 是否已执行迭代自检？
 
-- [ ] 功能验证：按验收标准逐项验证
+- [ ] 功能验证：按验收标准逐项验证（汇总见上方「🎯 验收勾对」）
 - [ ] 代码质量：typecheck + lint + 测试通过
 - [ ] UI 检查：排版、留白、视觉层级、响应式
 - [ ] 架构合规：服务边界、无硬编码

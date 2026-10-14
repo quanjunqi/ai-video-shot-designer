@@ -1,6 +1,6 @@
 # TASK-INFRA-002：CI 按改动范围执行
 
-> 按 `AGENTS.md` §5.3 填写。
+> 按 `.github/TASK_TEMPLATE.md` 填写。
 
 ## 目标
 
@@ -19,7 +19,7 @@
 - ✅ `ci.yml`：新增 `changes` job；前端/后端/安全 job 改为**步骤级**条件过滤
 - ✅ 新增 `docs/how-to/ci.md`（含核心不变量说明）
 - ✅ 新增 shell 脚本检查：禁止 `$var` 紧跟非 ASCII 字符
-- ✅ 同步 `AGENTS.md` §10 与 CI 的关键文档检查列表
+- ✅ 同步 CI 的关键文档检查列表（`.github/workflows/ci.yml` 的 `Check key docs and contract exist` 步骤）
 
 ## 非范围
 
@@ -61,7 +61,7 @@ python3 -c "import yaml;d=yaml.safe_load(open('.github/workflows/ci.yml'));print
 - 分支 `feat/ci-path-filtering-2026-10-10` + PR
 - 测试结果：见 PR 描述（8 条分类路径 + 不变量校验）
 - 风险说明：判定脚本自身的 bug 可能导致「该跑没跑」；已用 fail-safe + 单测覆盖
-  主要路径，并在 `docs/how-to/ci.md` §5 给出排障手段
+  主要路径，并在 `.agents/skills/ci-triage/SKILL.md`（常见失败排查）给出排障手段
 
 ## 附：后续可选优化
 

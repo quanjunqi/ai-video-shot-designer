@@ -1,7 +1,7 @@
 # 事故复盘：<一句话标题>
 
 > 复制本模板创建 Issue 或文档。**目标不是追责，而是让同一类事故不再发生。**
-> 事故处理后 **48 小时内**完成初稿（见 [`docs/how-to/release.md`](../docs/how-to/release.md) §5）。
+> 事故处理后 **48 小时内**完成初稿（见 [`docs/how-to/release.md`](../docs/how-to/release.md)「热修」）。
 
 | 字段 | 内容 |
 |---|---|
@@ -83,4 +83,4 @@
 - [ ] 已追加教训到 [`.agents/skills/frontend-quality/lessons.md`](../.agents/skills/frontend-quality/lessons.md)（若属交付质量问题）
 - [ ] 已补充/修正 `CHANGELOG.md` Known Issues
 - [ ] 已新增测试或 CI 检查，使同类问题**在 CI 阶段即被拦住**
-- [ ] 已更新相关文档（`AGENTS.md` §10 文档维护表）
+- [ ] 已更新相关文档（相关 `docs/` 与 `.agents/skills/` 均已同步）

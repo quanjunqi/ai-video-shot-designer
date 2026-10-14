@@ -1,6 +1,6 @@
 # TASK-INFRA-003：worker 可靠性（重试 / 死信 / 并发闸门）
 
-> 按 `AGENTS.md` §5.3 填写。阶段 1 三项 P0 的第 2 项。
+> 按 `.github/TASK_TEMPLATE.md` 填写。阶段 1 三项 P0 的第 2 项。
 
 ## 目标
 

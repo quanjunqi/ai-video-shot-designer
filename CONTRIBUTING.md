@@ -80,7 +80,7 @@ docs(p1): 补齐架构图集 — C4/时序图/ER图/状态机/部署图
 | 硬编码模型参数映射 | 必须走模板 `capabilities` |
 | 跳过失败的门禁合并 | 质量保证 |
 
-完整禁区与 AI 自主行动边界见 [AGENTS.md](AGENTS.md) §7。
+完整禁区与 AI 自主行动边界见本文 §4「禁区（摘要）」与 [SECURITY.md](SECURITY.md)。
 
 ## 5. 需要帮助
 

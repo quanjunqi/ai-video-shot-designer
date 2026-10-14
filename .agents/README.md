@@ -13,6 +13,7 @@
     ├── frontend-quality/      # 前端交付质量门禁（SKILL + rules + lessons）
     ├── frontend-coding/       # 前端编码规范（SKILL + rules：FE-* / UC-* / FE-TEST-*）
     ├── backend-coding/        # 后端编码规范（SKILL + rules：BE-* / BE-DATA-* / CT-* / SEC-* / RV-*）
+    ├── backend-standards/     # 后端分层纪律与门禁（SKILL + rules：分层 / 文件粒度 / 覆盖率棘轮）
     ├── acceptance-checklist/  # 需求验收清单（SKILL + 模板：需求点→判据→自检→PR勾对）
     ├── pr-workflow/           # 分支命名 / commit / PR 流程
     ├── parallel-worktree/     # 多开发线并行（worktree + 号段认领）
@@ -27,7 +28,7 @@
 |---|---|
 | 承接任何开发任务（开工前/提交前必读） | `.agents/skills/acceptance-checklist/SKILL.md` |
 | 改 `apps/web/` 下任何前端代码 | `.agents/skills/frontend-coding/SKILL.md`（怎么写）+ `.agents/skills/frontend-quality/SKILL.md`（交付门禁） |
-| 改 `services/` 下任何 Go 代码 / 建表 / 契约 / 安全 | `.agents/skills/backend-coding/SKILL.md` |
+| 改 `services/` 下任何 Go 代码（含建表 / 契约 / 安全） | **怎么写**：`.agents/skills/backend-coding/SKILL.md`　**分层 / 覆盖率棘轮**：`.agents/skills/backend-standards/SKILL.md` |
 | 准备提交 / 推送 / 开 PR | `.agents/skills/pr-workflow/SKILL.md` |
 | 并行开新开发线 / 建 worktree | `.agents/skills/parallel-worktree/SKILL.md` |
 | CI 红了 / 改 workflows | `.agents/skills/ci-triage/SKILL.md` |
@@ -45,7 +46,7 @@
 
 | 层 | 文件 | 职责 | 长度 |
 |---|---|---|---|
-| 速查 | `SKILL.md` | frontmatter `name`/`description` + 触发条件 + 核心规则速查 + 完整文档链接 | ≤ 80 行 |
+| 速查 | `SKILL.md` | frontmatter `name`/`description` + 触发条件 + 速查清单 + 结尾深链（`## 完整文档` 或 `## 完整规则`） | ≤ 80 行 |
 | 全量 | `rules.md`（可选） | 唯一权威的完整规则，供需要深读时查阅 | 不限 |
 | 深链 | `docs/` 对应文档 | 人类可读的完整说明，SKILL.md 末尾用 `→` 指向 | 不限 |
 
@@ -60,10 +61,15 @@ description: 当<触发场景>时加载。包含<一句话内容摘要>。
 
 ### 3. SKILL.md 必备小节
 
-- `## 什么时候加载这个 skill`（触发条件清单，逐条可判定）
-- `## 核心规则速查`（表格：规则 / 检测方式）
-- `## 禁止事项`（有禁区必有清单）
-- `## 完整文档`（`→` 指向 docs 深链）
+| 小节 | 要求 |
+|---|---|
+| `## 什么时候加载这个 skill` | **必备**。触发条件清单，逐条可判定 |
+| 速查小节 | **必备**。标题随域而定（`## 核心规则速查` / `## 铁律` / `## 核心不变量` / `## 核心原则`…），但内容必须是**可直接照做的清单或表格**（建议「规则 / 检测方式」两列） |
+| `## 禁止事项` | **该域存在禁区时必备**，且必须单列成 ❌ 清单——散落在正文里等于没有（agent 不会自己归纳） |
+| 结尾深链 | **必备**。`## 完整文档` 或 `## 完整规则`，用 `→` 指向 docs 深链或同目录 `rules.md` |
+
+> 只写进 SKILL.md、检测方式却是「代码审查」的规则，对 agent 等于不存在（全仓曾有 102 条）。
+> 新增规则时**要么给出机检方式，要么明确标注「人工审查」并说明由谁在何时审**。
 
 ### 4. 编号纪律
 

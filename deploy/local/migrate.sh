@@ -9,7 +9,7 @@
 #       DROP CONSTRAINT 无守卫）→ 第二次执行必然失败。实测在 006 报
 #       `column "response_params" of relation "model_catalog" already exists`。
 #   2. 没有已应用记录，就无法知道「这个库到哪一版了」。
-#   3. 无法发现「已应用的迁移被改过」—— 而 AGENTS.md §7 明令禁止修改已执行迁移。
+#   3. 无法发现「已应用的迁移被改过」—— 而 `.agents/skills/database-migrations/SKILL.md`「铁律」明令禁止修改已执行迁移。
 #
 # 本脚本用 schema_migrations 表记录每个已应用文件的**校验和**，因此：
 #   · 每个文件只执行一次 → 不再要求迁移幂等，重复 up 安全
@@ -91,7 +91,7 @@ for file in $files; do
        数据库记录校验和: $recorded
        当前文件校验和:   $checksum
 
-       禁止修改已执行的迁移（AGENTS.md §7）—— 否则各环境的 schema 会静默分叉。
+       禁止修改已执行的迁移（`.agents/skills/database-migrations/SKILL.md`）—— 否则各环境的 schema 会静默分叉。
        正确做法是新增一个迁移文件来做变更。"
         fi
         skipped=$((skipped + 1))
