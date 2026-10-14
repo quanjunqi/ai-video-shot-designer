@@ -84,6 +84,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 | 开 PR 前自检 | `.agents/skills/pr-workflow/SKILL.md` |
 | 改审计日志/网关 | `.agents/skills/audit-ledger/SKILL.md` |
 | 新增/修改数据库迁移 | `.agents/skills/database-migrations/SKILL.md` |
+| 改后端 Go 代码/分层/覆盖率 | `.agents/skills/backend-standards/SKILL.md` |
 
 ## 人类技术文档（参考，不要用来约束自己）
 
