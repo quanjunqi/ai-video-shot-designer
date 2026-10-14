@@ -57,19 +57,19 @@ export default function SplitRulePicker({ projectId, compact = false }: { projec
             ))}
           </SelectContent>
         </Select>
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-3xs leading-relaxed text-muted-foreground">
           规则在规则中心先定义；选择模板后按模板的剧本格式（章节/场次标记）拆集，未锁定剧集重新拆分
         </p>
       </div>
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"
-          className="text-[10px] text-primary underline-offset-2 hover:underline"
+          className="text-3xs text-primary underline-offset-2 hover:underline"
           onClick={() => navigate('/comic/rules')}
         >
           管理规则（规则中心）
         </button>
-        <Button type="button" size="sm" variant="outline" className="h-7 text-[11px]" onClick={saveRuleSelection}>
+        <Button type="button" size="sm" variant="outline" className="h-7 text-2xs" onClick={saveRuleSelection}>
           保存规则
         </Button>
       </div>
@@ -84,7 +84,7 @@ export default function SplitRulePicker({ projectId, compact = false }: { projec
           type="button"
           onClick={() => setOpen((v) => !v)}
           className={cn(
-            'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors',
+            'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-2xs transition-colors',
             open ? 'border-primary/50 bg-accent/40 text-foreground' : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
           )}
         >
@@ -110,7 +110,7 @@ export default function SplitRulePicker({ projectId, compact = false }: { projec
       >
         <Settings2 className="h-4 w-4 text-primary" />
         <span className="text-xs font-medium">拆集规则</span>
-        <span className="truncate text-[11px] text-muted-foreground">
+        <span className="truncate text-2xs text-muted-foreground">
           {currentRule ? currentRule.name : '平台默认规则（结构拆集 · 场次窗口 1–6 · 上限 8 集）'}
         </span>
         <ChevronDown className={cn('ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform', open && 'rotate-180')} />

@@ -108,7 +108,7 @@ export default function StageModelPicker({
             <SelectItem key={m.id} value={m.id} className="text-xs">
               <span className="flex items-center gap-2">
                 <span>{m.name}</span>
-                <span className="text-[10px] text-muted-foreground">{m.family || m.channelId}</span>
+                <span className="text-3xs text-muted-foreground">{m.family || m.channelId}</span>
               </span>
             </SelectItem>
           ))}
@@ -116,7 +116,7 @@ export default function StageModelPicker({
       </Select>
       {effective && (
         <span
-          className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+          className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-3xs leading-none ${
             sourceTag === '阶段覆盖' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
           }`}
         >
@@ -124,7 +124,7 @@ export default function StageModelPicker({
           {sourceTag}
         </span>
       )}
-      {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-3xs text-muted-foreground">{hint}</span>}
     </div>
   );
 }

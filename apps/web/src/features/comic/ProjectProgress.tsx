@@ -18,7 +18,7 @@ export default function ProjectProgress({ projectId }: { projectId: string }) {
           {doneEpisodes}/{totalEpisodes} 集已完成
         </span>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-2xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <CheckCircle2 className="h-3.5 w-3.5 text-success" />
           已完成 {doneEpisodes} 集

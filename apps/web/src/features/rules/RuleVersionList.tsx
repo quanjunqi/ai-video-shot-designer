@@ -33,7 +33,7 @@ export default function RuleVersionList({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+        className="flex items-center gap-1 text-3xs text-muted-foreground hover:text-foreground"
       >
         <History className="h-3 w-3" />
         版本历史（{versions.length}）
@@ -44,20 +44,20 @@ export default function RuleVersionList({
         <div className="mt-1.5 space-y-1.5">
           {[...versions].reverse().map((v) => (
             <div key={v.version} className="flex items-start gap-2 rounded-md bg-muted/40 p-2">
-              <Badge variant="outline" className="shrink-0 font-mono text-[10px]">v{v.version}</Badge>
+              <Badge variant="outline" className="shrink-0 font-mono text-3xs">v{v.version}</Badge>
               <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-3xs text-muted-foreground">
                   <span>{fmt(v.savedAt)}</span>
                   {v.note && <span className="truncate text-primary">{v.note}</span>}
                 </div>
-                <div className="line-clamp-2 text-[10px] leading-relaxed text-muted-foreground">
+                <div className="line-clamp-2 text-3xs leading-relaxed text-muted-foreground">
                   {renderSummary(v.snapshot)}
                 </div>
               </div>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-5 shrink-0 gap-1 px-1.5 text-[10px]"
+                className="h-5 shrink-0 gap-1 px-1.5 text-3xs"
                 onClick={() => {
                   onRestore(v.version);
                   setOpen(false);

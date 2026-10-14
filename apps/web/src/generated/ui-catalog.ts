@@ -1,7 +1,7 @@
 // ┌─────────────────────────────────────────────────────────────────────────┐
 // │ 由 scripts/ui-inventory.mjs 生成 —— 禁止手改；改代码或注记后跑 `npm run ui:generate`。 │
 // └─────────────────────────────────────────────────────────────────────────┘
-export type UiVariant = { name: string; values: string[]; defaultValue?: string };
+export type UiVariant = { name: string; values: string[]; defaultValue?: string; classes?: Record<string, string> };
 export type UiNotes = { when: string; avoid: string; antiPatterns: string[]; related: string[] };
 export type UiComponent = {
   name: string; file: string; lines: number; exports: string[]; primitives: string[];
@@ -12,11 +12,18 @@ export type UiComponent = {
 export type UiToken = { name: string; light: string; dark: string | null; group: string; utilities: string[] };
 export type UiThemeUtility = { name: string; value: string; group: string };
 export type UiTypography = { plugin: string | null; prose: { name: string; value: string }[] };
+export type UiScaleStep = { value: string; count: number };
+export type UiScales = {
+  scannedFiles: number; text: UiScaleStep[]; textArbitrary: UiScaleStep[];
+  spacing: UiScaleStep[]; spacingArbitrary: UiScaleStep[];
+  radius: UiScaleStep[]; radiusArbitrary: UiScaleStep[]; shadow: UiScaleStep[]; shadowArbitrary: UiScaleStep[];
+  leading: UiScaleStep[]; tracking: UiScaleStep[];
+};
 export type UiCatalog = {
   stats: { components: number; lines: number; dead: number; tokens: number; withNotes: number; withDemo: number };
   categories: string[]; components: UiComponent[]; tokens: UiToken[];
   missingNotes: string[]; missingDemos: string[]; unknownNotes: string[];
-  themeUtilities: UiThemeUtility[]; typography: UiTypography; themeUtilityCount: number;
+  themeUtilities: UiThemeUtility[]; typography: UiTypography; themeUtilityCount: number; scales: UiScales;
 };
 
 export const UI_CATALOG: UiCatalog = {
@@ -115,7 +122,13 @@ export const UI_CATALOG: UiCatalog = {
             "success",
             "warning"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "bg-card text-card-foreground",
+            "destructive": "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+            "success": "bg-success text-success-foreground border-success/50 [&>svg]:text-success-foreground *:data-[slot=alert-description]:text-success-foreground/90",
+            "warning": "bg-warning text-warning-foreground border-warning/50 [&>svg]:text-warning-foreground *:data-[slot=alert-description]:text-warning-foreground/90"
+          }
         }
       ],
       "usage": {
@@ -326,7 +339,13 @@ export const UI_CATALOG: UiCatalog = {
             "destructive",
             "outline"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "border-transparent bg-primary text-primary-foreground shadow-xs",
+            "secondary": "border-transparent bg-secondary text-secondary-foreground",
+            "destructive": "border-transparent bg-destructive text-destructive-foreground shadow-xs",
+            "outline": "border [border-color:var(--badge-outline)] shadow-xs"
+          }
         }
       ],
       "usage": {
@@ -476,7 +495,14 @@ export const UI_CATALOG: UiCatalog = {
             "secondary",
             "ghost"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "bg-primary text-primary-foreground border border-primary-border",
+            "destructive": "bg-destructive text-destructive-foreground border border-destructive-border",
+            "outline": "border [border-color:var(--button-outline)] shadow-xs active:shadow-none",
+            "secondary": "bg-secondary text-secondary-foreground border border-secondary-border",
+            "ghost": "border border-transparent"
+          }
         },
         {
           "name": "size",
@@ -486,7 +512,13 @@ export const UI_CATALOG: UiCatalog = {
             "lg",
             "icon"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "min-h-9 px-4 py-2",
+            "sm": "min-h-8 rounded-md px-3 text-xs",
+            "lg": "min-h-10 rounded-md px-8",
+            "icon": "h-9 w-9"
+          }
         }
       ],
       "usage": {
@@ -589,7 +621,11 @@ export const UI_CATALOG: UiCatalog = {
             "horizontal",
             "vertical"
           ],
-          "defaultValue": "horizontal"
+          "defaultValue": "horizontal",
+          "classes": {
+            "horizontal": "[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none",
+            "vertical": "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none"
+          }
         }
       ],
       "usage": {
@@ -1306,7 +1342,11 @@ export const UI_CATALOG: UiCatalog = {
             "default",
             "icon"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "bg-transparent",
+            "icon": "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6"
+          }
         }
       ],
       "usage": {
@@ -1373,7 +1413,8 @@ export const UI_CATALOG: UiCatalog = {
         {
           "name": "orientation",
           "values": [],
-          "defaultValue": "vertical"
+          "defaultValue": "vertical",
+          "classes": {}
         }
       ],
       "usage": {
@@ -1634,7 +1675,13 @@ export const UI_CATALOG: UiCatalog = {
             "block-start",
             "block-end"
           ],
-          "defaultValue": "inline-start"
+          "defaultValue": "inline-start",
+          "classes": {
+            "inline-start": "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]",
+            "inline-end": "order-last pr-3 has-[>button]:mr-[-0.45rem] has-[>kbd]:mr-[-0.35rem]",
+            "block-start": "order-first w-full justify-start px-3 pt-3 [.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5",
+            "block-end": "order-last w-full justify-start px-3 pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5"
+          }
         }
       ],
       "usage": {
@@ -1753,7 +1800,12 @@ export const UI_CATALOG: UiCatalog = {
             "outline",
             "muted"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "bg-transparent",
+            "outline": "border-border",
+            "muted": "bg-muted/50"
+          }
         },
         {
           "name": "size",
@@ -1761,7 +1813,11 @@ export const UI_CATALOG: UiCatalog = {
             "default",
             "sm"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "p-4 gap-4",
+            "sm": "py-3 px-4 gap-2.5"
+          }
         },
         {
           "name": "variant",
@@ -1770,7 +1826,12 @@ export const UI_CATALOG: UiCatalog = {
             "icon",
             "image"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "bg-transparent",
+            "icon": "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4",
+            "image": "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover"
+          }
         }
       ],
       "usage": {
@@ -2637,7 +2698,11 @@ export const UI_CATALOG: UiCatalog = {
             "default",
             "outline"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "not-disabled:hover:bg-sidebar-accent not-disabled:hover:text-sidebar-accent-foreground",
+            "outline": "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] not-disabled:hover:bg-sidebar-accent not-disabled:hover:text-sidebar-accent-foreground not-disabled:hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]"
+          }
         },
         {
           "name": "size",
@@ -2646,7 +2711,12 @@ export const UI_CATALOG: UiCatalog = {
             "sm",
             "lg"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "h-8 text-sm",
+            "sm": "h-7 text-xs",
+            "lg": "h-12 text-sm group-data-[collapsible=icon]:p-0!"
+          }
         }
       ],
       "usage": {
@@ -3063,7 +3133,11 @@ export const UI_CATALOG: UiCatalog = {
             "default",
             "outline"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "bg-transparent",
+            "outline": "border border-input bg-transparent enabled:hover:bg-accent enabled:hover:text-accent-foreground"
+          }
         },
         {
           "name": "size",
@@ -3072,7 +3146,12 @@ export const UI_CATALOG: UiCatalog = {
             "sm",
             "lg"
           ],
-          "defaultValue": "default"
+          "defaultValue": "default",
+          "classes": {
+            "default": "h-9 px-2 min-w-9",
+            "sm": "h-8 px-1.5 min-w-8",
+            "lg": "h-10 px-2.5 min-w-10"
+          }
         }
       ],
       "usage": {
@@ -4053,6 +4132,26 @@ export const UI_CATALOG: UiCatalog = {
       "name": "--shadow-2xl",
       "value": "var(--shadow-2xl)",
       "group": "阴影"
+    },
+    {
+      "name": "--text-4xs",
+      "value": "0.5625rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-3xs",
+      "value": "0.625rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-2xs",
+      "value": "0.6875rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-md",
+      "value": "0.8125rem",
+      "group": "字号"
     }
   ],
   "typography": {
@@ -4204,5 +4303,292 @@ export const UI_CATALOG: UiCatalog = {
       }
     ]
   },
-  "themeUtilityCount": 54
+  "scales": {
+    "scannedFiles": 197,
+    "text": [
+      {
+        "value": "xs",
+        "count": 403
+      },
+      {
+        "value": "sm",
+        "count": 207
+      },
+      {
+        "value": "lg",
+        "count": 20
+      },
+      {
+        "value": "base",
+        "count": 11
+      },
+      {
+        "value": "xl",
+        "count": 2
+      },
+      {
+        "value": "2xl",
+        "count": 1
+      },
+      {
+        "value": "6xl",
+        "count": 1
+      }
+    ],
+    "textArbitrary": [
+      {
+        "value": "0.8rem",
+        "count": 2
+      }
+    ],
+    "spacing": [
+      {
+        "value": "2",
+        "count": 716
+      },
+      {
+        "value": "1",
+        "count": 521
+      },
+      {
+        "value": "3",
+        "count": 437
+      },
+      {
+        "value": "1.5",
+        "count": 398
+      },
+      {
+        "value": "4",
+        "count": 249
+      },
+      {
+        "value": "0.5",
+        "count": 131
+      },
+      {
+        "value": "2.5",
+        "count": 113
+      },
+      {
+        "value": "6",
+        "count": 74
+      },
+      {
+        "value": "0",
+        "count": 34
+      },
+      {
+        "value": "8",
+        "count": 31
+      },
+      {
+        "value": "5",
+        "count": 29
+      },
+      {
+        "value": "12",
+        "count": 9
+      },
+      {
+        "value": "7",
+        "count": 6
+      },
+      {
+        "value": "10",
+        "count": 6
+      },
+      {
+        "value": "16",
+        "count": 4
+      },
+      {
+        "value": "14",
+        "count": 3
+      },
+      {
+        "value": "24",
+        "count": 3
+      },
+      {
+        "value": "3.5",
+        "count": 2
+      },
+      {
+        "value": "9",
+        "count": 1
+      },
+      {
+        "value": "11",
+        "count": 1
+      },
+      {
+        "value": "20",
+        "count": 1
+      }
+    ],
+    "spacingArbitrary": [
+      {
+        "value": "-0.45rem",
+        "count": 2
+      },
+      {
+        "value": "-0.35rem",
+        "count": 2
+      },
+      {
+        "value": "--spacing(var(--gap))",
+        "count": 1
+      }
+    ],
+    "radius": [
+      {
+        "value": "lg",
+        "count": 198
+      },
+      {
+        "value": "xl",
+        "count": 163
+      },
+      {
+        "value": "DEFAULT",
+        "count": 128
+      },
+      {
+        "value": "md",
+        "count": 108
+      },
+      {
+        "value": "full",
+        "count": 66
+      },
+      {
+        "value": "2xl",
+        "count": 27
+      },
+      {
+        "value": "sm",
+        "count": 18
+      },
+      {
+        "value": "none",
+        "count": 6
+      },
+      {
+        "value": "3xl",
+        "count": 4
+      }
+    ],
+    "radiusArbitrary": [
+      {
+        "value": "2px",
+        "count": 3
+      },
+      {
+        "value": "calc(var(--radius)-5px)",
+        "count": 3
+      },
+      {
+        "value": "4px",
+        "count": 1
+      },
+      {
+        "value": "inherit",
+        "count": 1
+      }
+    ],
+    "shadow": [
+      {
+        "value": "DEFAULT",
+        "count": 65
+      },
+      {
+        "value": "md",
+        "count": 34
+      },
+      {
+        "value": "lg",
+        "count": 29
+      },
+      {
+        "value": "sm",
+        "count": 13
+      },
+      {
+        "value": "xs",
+        "count": 7
+      },
+      {
+        "value": "2xl",
+        "count": 5
+      },
+      {
+        "value": "none",
+        "count": 4
+      },
+      {
+        "value": "xl",
+        "count": 2
+      }
+    ],
+    "shadowArbitrary": [
+      {
+        "value": "0_0_0_1px_hsl(var(--sidebar-border))",
+        "count": 1
+      },
+      {
+        "value": "0_0_0_1px_hsl(var(--sidebar-accent))",
+        "count": 1
+      }
+    ],
+    "leading": [
+      {
+        "value": "relaxed",
+        "count": 75
+      },
+      {
+        "value": "none",
+        "count": 8
+      },
+      {
+        "value": "5",
+        "count": 7
+      },
+      {
+        "value": "snug",
+        "count": 4
+      },
+      {
+        "value": "4",
+        "count": 2
+      },
+      {
+        "value": "normal",
+        "count": 2
+      },
+      {
+        "value": "tight",
+        "count": 1
+      }
+    ],
+    "tracking": [
+      {
+        "value": "wide",
+        "count": 12
+      },
+      {
+        "value": "wider",
+        "count": 7
+      },
+      {
+        "value": "widest",
+        "count": 6
+      },
+      {
+        "value": "tight",
+        "count": 4
+      }
+    ]
+  },
+  "themeUtilityCount": 58
 };

@@ -181,14 +181,14 @@ export default function SettingsProtocolsPage() {
             )}
           >
             {t.label}
-            <span className="ml-1 font-mono text-[9px] text-muted-foreground/60">
+            <span className="ml-1 font-mono text-4xs text-muted-foreground/60">
               {t.key === 'all' ? templates.length : templates.filter((x) => (x.type ?? 'all') === t.key || (x.type ?? 'all') === 'all').length}
             </span>
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
         <Checkbox checked={templates.length > 0 && selected.length === templates.length} onCheckedChange={toggleSelectAll} className="h-3.5 w-3.5" />
         <span>全选（{selected.length}/{templates.length}）</span>
       </div>
@@ -209,12 +209,12 @@ export default function SettingsProtocolsPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="truncate text-sm font-semibold">{t.label}</span>
-                      <Badge variant="outline" className={`shrink-0 font-mono text-[9px] ${t.type === 'all' ? 'text-violet-400' : t.type === 'text' ? 'text-primary' : t.type === 'image' ? 'text-emerald-400' : 'text-amber-400'}`}>{TYPE_LABEL[t.type ?? 'all']}</Badge>
-                      {t.builtin && <Badge variant="secondary" className="shrink-0 font-mono text-[9px]">平台预置</Badge>}
-                      <Badge variant={t.enabled ? 'outline' : 'destructive'} className="shrink-0 font-mono text-[9px]">{t.enabled ? '启用' : '停用'}</Badge>
-                      <Badge variant="outline" className="shrink-0 font-mono text-[9px]">v{t.version}</Badge>
+                      <Badge variant="outline" className={`shrink-0 font-mono text-4xs ${t.type === 'all' ? 'text-violet-400' : t.type === 'text' ? 'text-primary' : t.type === 'image' ? 'text-emerald-400' : 'text-amber-400'}`}>{TYPE_LABEL[t.type ?? 'all']}</Badge>
+                      {t.builtin && <Badge variant="secondary" className="shrink-0 font-mono text-4xs">平台预置</Badge>}
+                      <Badge variant={t.enabled ? 'outline' : 'destructive'} className="shrink-0 font-mono text-4xs">{t.enabled ? '启用' : '停用'}</Badge>
+                      <Badge variant="outline" className="shrink-0 font-mono text-4xs">v{t.version}</Badge>
                     </div>
-                    {t.desc && <p className="mt-1 truncate text-[11px] text-muted-foreground">{t.desc}</p>}
+                    {t.desc && <p className="mt-1 truncate text-2xs text-muted-foreground">{t.desc}</p>}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -241,17 +241,17 @@ export default function SettingsProtocolsPage() {
               <div className="space-y-1.5 px-4 py-3">
                 <div className="flex items-center gap-2">
                   {t.async?.enabled && (
-                    <Badge className="shrink-0 gap-1 bg-primary/10 font-mono text-[10px] text-primary">
+                    <Badge className="shrink-0 gap-1 bg-primary/10 font-mono text-3xs text-primary">
                       <TimerReset className="h-2.5 w-2.5" />异步任务
                     </Badge>
                   )}
-                  <Badge variant="outline" className="shrink-0 font-mono text-[10px] text-primary">{t.method}</Badge>
+                  <Badge variant="outline" className="shrink-0 font-mono text-3xs text-primary">{t.method}</Badge>
                   <span className="min-w-0 flex-1 truncate font-mono text-xs" title={t.requestPath || '（渠道 BaseURL）'}>{t.requestPath || '（渠道 BaseURL）'}</span>
-                  <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 gap-1 text-[10px]" onClick={() => setPreview(t)}>
+                  <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 gap-1 text-3xs" onClick={() => setPreview(t)}>
                     <Eye className="h-3 w-3" />预览请求
                   </Button>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-3 text-3xs text-muted-foreground">
                   <span>请求参数 {t.params.length} 项</span>
                   <span>响应映射 {t.responseParams.length} 项</span>
                   <span>引用模型 {refs} 个</span>
@@ -335,41 +335,41 @@ export default function SettingsProtocolsPage() {
             </div>
             <Collapsible open={asyncOpen} onOpenChange={setAsyncOpen} className="rounded-lg border border-border bg-muted/30">
               <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2">
-                <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className="flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">
                   {asyncOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                   异步任务模式
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {form.async?.enabled && <Badge className="bg-primary/10 font-mono text-[9px] text-primary">已启用</Badge>}
+                  {form.async?.enabled && <Badge className="bg-primary/10 font-mono text-4xs text-primary">已启用</Badge>}
                   <Switch checked={!!form.async?.enabled} onCheckedChange={(v) => setForm({ ...form, async: { enabled: v, taskIdField: form.async?.taskIdField ?? '', statusField: form.async?.statusField ?? '', doneValue: form.async?.doneValue ?? '', failValue: form.async?.failValue ?? '', pollPath: form.async?.pollPath ?? '' } })} className="h-4 w-7" />
                 </span>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 px-2.5 pb-2.5">
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-3xs text-muted-foreground">
                   适用于「提交 → 轮询 → 完成/失败」的异步生成类协议（视频/长任务）；轮询间隔与超时由执行器内置，模板只声明字段与判定值。
                 </p>
                 {form.async?.enabled && (
                   <div className="grid grid-cols-2 gap-2">
                     <div className="min-w-0 space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">任务 ID 字段</Label>
+                      <Label className="text-3xs text-muted-foreground">任务 ID 字段</Label>
                       <Input className="h-8 text-xs" value={form.async?.taskIdField ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), taskIdField: e.target.value } })} placeholder="如 task_id" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">状态字段</Label>
+                      <Label className="text-3xs text-muted-foreground">状态字段</Label>
                       <Input className="h-8 text-xs" value={form.async?.statusField ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), statusField: e.target.value } })} placeholder="如 status" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">完成判定值</Label>
+                      <Label className="text-3xs text-muted-foreground">完成判定值</Label>
                       <Input className="h-8 text-xs" value={form.async?.doneValue ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), doneValue: e.target.value } })} placeholder="如 SUCCESS" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-muted-foreground">失败判定值</Label>
+                      <Label className="text-3xs text-muted-foreground">失败判定值</Label>
                       <Input className="h-8 text-xs" value={form.async?.failValue ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), failValue: e.target.value } })} placeholder="如 FAILED" />
                     </div>
                       <div className="col-span-2 min-w-0 space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">轮询路径（必填）</Label>
+                        <Label className="text-3xs text-muted-foreground">轮询路径（必填）</Label>
                         <Input className="h-8 text-xs" value={form.async?.pollPath ?? ''} onChange={(e) => setForm({ ...form, async: { ...(form.async ?? { enabled: true, taskIdField: '', statusField: '', doneValue: '', failValue: '', pollPath: '' }), pollPath: e.target.value } })} placeholder="如 /v1/video/generations/{task_id}" />
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-3xs text-muted-foreground">
                           必须包含 <span className="font-mono">{"{task_id}"}</span> 占位符 —— 执行器用 ReplaceAll 替换它；
                           留空或不含占位符会静默指向错误地址（曾导致视频异步任务全部轮询失败）
                         </p>
@@ -381,11 +381,11 @@ export default function SettingsProtocolsPage() {
 
             <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced} className="rounded-lg border border-border bg-muted/30">
               <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2">
-                <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className="flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">
                   {showAdvanced ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                   请求参数 / 响应映射
                 </span>
-                <span className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] text-muted-foreground">{showAdvanced ? '收起' : '展开'}</span>
+                <span className="shrink-0 rounded border px-1.5 py-0.5 text-4xs text-muted-foreground">{showAdvanced ? '收起' : '展开'}</span>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 px-2.5 pb-2.5">
                 <ParamEditor

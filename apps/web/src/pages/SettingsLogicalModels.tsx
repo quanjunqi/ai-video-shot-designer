@@ -256,10 +256,10 @@ export default function SettingsLogicalModelsPage() {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {catalogSource === 'server' && (
-            <Badge variant="outline" className="font-mono text-[9px] text-success">目录已连接</Badge>
+            <Badge variant="outline" className="font-mono text-4xs text-success">目录已连接</Badge>
           )}
           {catalogSource === 'offline-fallback' && (
-            <Badge variant="outline" className="font-mono text-[9px] text-amber-500">目录离线降级</Badge>
+            <Badge variant="outline" className="font-mono text-4xs text-amber-500">目录离线降级</Badge>
           )}
           <Button type="button" size="sm" className="h-8 gap-1 text-xs" onClick={openCreate}>
             <Plus className="h-3.5 w-3.5" />新建逻辑模型
@@ -293,7 +293,7 @@ export default function SettingsLogicalModelsPage() {
             <SelectItem value="disabled">仅停用</SelectItem>
           </SelectContent>
         </Select>
-        <span className="text-[10px] text-muted-foreground">当前筛选 {logicalModels.length} 个</span>
+        <span className="text-3xs text-muted-foreground">当前筛选 {logicalModels.length} 个</span>
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
@@ -311,7 +311,7 @@ export default function SettingsLogicalModelsPage() {
                   </div>
                 </div>
               ))}
-              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-2xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />正在加载逻辑模型…
               </p>
             </div>
@@ -333,7 +333,7 @@ export default function SettingsLogicalModelsPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-6 py-10 text-center">
               <Boxes className="h-7 w-7 text-muted-foreground/50" />
               <p className="text-sm font-medium">{hasFilter ? '当前筛选没有逻辑模型' : '还没有逻辑模型'}</p>
-              <p className="max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+              <p className="max-w-sm text-2xs leading-relaxed text-muted-foreground">
                 逻辑模型把「能力」与「具体模型」解耦：调用方只写逻辑模型 id，候选按 routePriority 小者优先依次兜底。
               </p>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
@@ -378,23 +378,23 @@ export default function SettingsLogicalModelsPage() {
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-1.5">
                         <span className="truncate text-sm font-semibold">{m.label}</span>
-                        <Badge variant="outline" className={cn('shrink-0 font-mono text-[9px]', TYPE_COLOR[m.type])}>
+                        <Badge variant="outline" className={cn('shrink-0 font-mono text-4xs', TYPE_COLOR[m.type])}>
                           {LOGICAL_MODEL_TYPE_LABEL[m.type]}
                         </Badge>
-                        <Badge variant={m.status === 'enabled' ? 'outline' : 'destructive'} className="shrink-0 font-mono text-[9px]">
+                        <Badge variant={m.status === 'enabled' ? 'outline' : 'destructive'} className="shrink-0 font-mono text-4xs">
                           {LOGICAL_MODEL_STATUS_LABEL[m.status]}
                         </Badge>
-                        <Badge variant="secondary" className="shrink-0 font-mono text-[9px]">sort {m.sort}</Badge>
+                        <Badge variant="secondary" className="shrink-0 font-mono text-4xs">sort {m.sort}</Badge>
                       </span>
-                      <span className="mt-1 block truncate font-mono text-[11px] text-muted-foreground" title={m.id}>{m.id}</span>
-                      <span className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                      <span className="mt-1 block truncate font-mono text-2xs text-muted-foreground" title={m.id}>{m.id}</span>
+                      <span className="mt-1 flex flex-wrap items-center gap-2 text-3xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <Route className="h-3 w-3" />
                           候选 {countOfModel === undefined ? '读取中…' : countOfModel < 0 ? '读取失败' : countOfModel}
                         </span>
                         {m.capability && <span className="truncate font-mono" title={m.capability}>{m.capability}</span>}
                       </span>
-                      {m.note && <span className="mt-1 block truncate text-[10px] text-muted-foreground" title={m.note}>{m.note}</span>}
+                      {m.note && <span className="mt-1 block truncate text-3xs text-muted-foreground" title={m.note}>{m.note}</span>}
                     </span>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
@@ -429,7 +429,7 @@ export default function SettingsLogicalModelsPage() {
             );
           })}
 
-          <p className="pt-1 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="pt-1 text-3xs leading-relaxed text-muted-foreground">
             错误码如实透传：<span className="font-mono">400 ID_IMMUTABLE</span>（id 是对外接口名）·{' '}
             <span className="font-mono">409 MODEL_ALREADY_BOUND</span>（含归属逻辑模型）·{' '}
             <span className="font-mono">404 LOGICAL_MODEL_NOT_FOUND / MODEL_NOT_FOUND / CANDIDATE_NOT_FOUND</span>。
@@ -448,7 +448,7 @@ export default function SettingsLogicalModelsPage() {
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-10 text-center">
               <Route className="h-6 w-6 text-muted-foreground/50" />
               <p className="text-xs font-medium">尚未选择逻辑模型</p>
-              <p className="text-[10px] leading-relaxed text-muted-foreground">
+              <p className="text-3xs leading-relaxed text-muted-foreground">
                 从左侧选择一个逻辑模型即可管理它的候选路由；列表中还没有逻辑模型时，先「新建逻辑模型」。
               </p>
             </div>
@@ -467,7 +467,7 @@ export default function SettingsLogicalModelsPage() {
               {editing ? (
                 <>
                   <Input value={form.id} readOnly disabled className="font-mono text-xs" />
-                  <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="text-3xs leading-relaxed text-muted-foreground">
                     id 是对外接口名，创建后不可修改——服务端对改名请求返回{' '}
                     <span className="font-mono">400 ID_IMMUTABLE</span>。如需更换标识，请新建逻辑模型并把候选重新绑定过去。
                   </p>
@@ -480,12 +480,12 @@ export default function SettingsLogicalModelsPage() {
                     placeholder="image-t2i-high"
                     className="font-mono text-xs"
                   />
-                  <p className={cn('text-[10px] leading-relaxed', idInvalid ? 'text-destructive' : 'text-muted-foreground')}>
+                  <p className={cn('text-3xs leading-relaxed', idInvalid ? 'text-destructive' : 'text-muted-foreground')}>
                     能力型 kebab-case：小写字母/数字、单连字符分隔、不能以连字符开头或结尾、最长 {LOGICAL_MODEL_MAX_ID_LENGTH}{' '}
                     字符；创建后不可改名。
                   </p>
                   <div className="flex flex-wrap items-center gap-1">
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-3xs text-muted-foreground">
                       <Sparkles className="h-3 w-3" />示例
                     </span>
                     {ID_SUGGESTIONS[form.type].map((s) => (
@@ -493,7 +493,7 @@ export default function SettingsLogicalModelsPage() {
                         key={s}
                         type="button"
                         onClick={() => setForm({ ...form, id: s })}
-                        className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        className="rounded border border-border px-1.5 py-0.5 font-mono text-3xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
                         {s}
                       </button>
@@ -571,7 +571,7 @@ export default function SettingsLogicalModelsPage() {
             </div>
 
             {formError && (
-              <p className="flex items-start gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-[10px] leading-relaxed text-destructive">
+              <p className="flex items-start gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-3xs leading-relaxed text-destructive">
                 <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
                 <span className="min-w-0 break-words">{formError}</span>
               </p>

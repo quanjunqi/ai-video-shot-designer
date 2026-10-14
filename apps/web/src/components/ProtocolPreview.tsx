@@ -66,8 +66,8 @@ export function ProtocolPreview({
     <div className="space-y-3">
       {async?.enabled && (
         <div>
-          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">异步任务流程</p>
-          <div className="mt-1 space-y-1 rounded-md border border-primary/25 bg-primary/5 px-2.5 py-2 font-mono text-[11px] leading-5">
+          <p className="text-4xs uppercase tracking-wide text-muted-foreground">异步任务流程</p>
+          <div className="mt-1 space-y-1 rounded-md border border-primary/25 bg-primary/5 px-2.5 py-2 font-mono text-2xs leading-5">
             <div><span className="text-muted-foreground">提交</span> → 取 <span className="text-primary">{async.taskIdField || 'task_id'}</span></div>
             <div><span className="text-muted-foreground">轮询</span> <span className="text-primary">{async.statusField || 'status'}</span>：</div>
             <div>
@@ -85,10 +85,10 @@ export function ProtocolPreview({
       )}
       {/* 请求行 */}
       <div>
-        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">请求</p>
+        <p className="text-4xs uppercase tracking-wide text-muted-foreground">请求</p>
         <div className="mt-1 overflow-x-auto rounded-md border bg-muted/40 px-2.5 py-2">
-          <code className="whitespace-nowrap text-[11px]">
-            <Badge variant="outline" className="mr-1.5 h-4 px-1 font-mono text-[9px] text-primary">{method}</Badge>
+          <code className="whitespace-nowrap text-2xs">
+            <Badge variant="outline" className="mr-1.5 h-4 px-1 font-mono text-4xs text-primary">{method}</Badge>
             <span className="font-mono text-foreground">{url || '（未配置请求路径）'}</span>
             {!base && <span className="font-mono text-muted-foreground">{' '}← 渠道 BaseURL + 请求路径</span>}
           </code>
@@ -96,9 +96,9 @@ export function ProtocolPreview({
       </div>
       {/* Headers */}
       <div>
-        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Headers</p>
+        <p className="text-4xs uppercase tracking-wide text-muted-foreground">Headers</p>
         <div className="mt-1 overflow-x-auto rounded-md border bg-muted/40 px-2.5 py-2">
-          <code className="block whitespace-nowrap text-[11px]">
+          <code className="block whitespace-nowrap text-2xs">
             {authType === 'none'
               ? <><span className="font-mono text-muted-foreground">Content-Type: </span><span className="font-mono">application/json</span></>
               : <><span className="font-mono text-muted-foreground">Authorization: </span><span className="font-mono">Bearer sk-********（实际请求注入加密存储的 Key）</span><br />
@@ -108,36 +108,36 @@ export function ProtocolPreview({
       </div>
       {/* Body */}
       <div>
-        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Body</p>
+        <p className="text-4xs uppercase tracking-wide text-muted-foreground">Body</p>
         <div className="mt-1 overflow-x-auto rounded-md border bg-muted/40 px-2.5 py-2">
-          <pre className="font-mono text-[11px] leading-5 text-foreground">{`{\n${bodyLines.join(',\n')}\n}`}</pre>
+          <pre className="font-mono text-2xs leading-5 text-foreground">{`{\n${bodyLines.join(',\n')}\n}`}</pre>
         </div>
-        {!hasParams && <p className="mt-1 text-[10px] text-muted-foreground">无请求参数，执行器将按 provider 内置字段构造。</p>}
-        <p className="mt-1 text-[9px] text-muted-foreground">
+        {!hasParams && <p className="mt-1 text-3xs text-muted-foreground">无请求参数，执行器将按 provider 内置字段构造。</p>}
+        <p className="mt-1 text-4xs text-muted-foreground">
           来源：<span className="text-zinc-400">静态默认</span>（模板存值）· <span className="text-primary">模型注入</span>（providerModel）· <span className="text-violet-400">运行时注入</span>（执行器按业务构造）
         </p>
       </div>
       {/* 响应解析 */}
       <div>
-        <p className="text-[9px] uppercase tracking-wide text-muted-foreground">响应解析</p>
+        <p className="text-4xs uppercase tracking-wide text-muted-foreground">响应解析</p>
         <div className="mt-1 rounded-md border bg-muted/40 px-2.5 py-2">
           {responseParams.length > 0 ? (
             <div className="space-y-1">
               {responseParams.filter((p) => p.key.trim()).map((p, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-2 text-[11px]">
+                <div key={i} className="flex flex-wrap items-center gap-2 text-2xs">
                   <code className="font-mono text-primary">{p.key}</code>
                   <span className="text-muted-foreground">→</span>
                   <span className="text-muted-foreground">{p.value || '提取该字段'}</span>
-                  {p.type && <Badge className={`h-4 px-1 font-mono text-[9px] ${p.type === 'array' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-zinc-500/10 text-zinc-400'}`}>{p.type}</Badge>}
+                  {p.type && <Badge className={`h-4 px-1 font-mono text-4xs ${p.type === 'array' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-zinc-500/10 text-zinc-400'}`}>{p.type}</Badge>}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground">按已知 provider 内置解析（如 OpenAI 兼容取 choices.0.message.content）。</p>
+            <p className="text-2xs text-muted-foreground">按已知 provider 内置解析（如 OpenAI 兼容取 choices.0.message.content）。</p>
           )}
         </div>
       </div>
-      <p className="text-[9px] text-muted-foreground">预览仅为请求形态示意，Key 已打码；实际执行由 execution 服务注入凭据后发送。</p>
+      <p className="text-4xs text-muted-foreground">预览仅为请求形态示意，Key 已打码；实际执行由 execution 服务注入凭据后发送。</p>
     </div>
   );
 }

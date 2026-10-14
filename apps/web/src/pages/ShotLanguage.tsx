@@ -131,9 +131,9 @@ export default function ShotLanguagePage() {
             </div>
             <div className="space-y-1 p-3">
               <div className="text-sm font-medium">{item.name}</div>
-              <div className="text-[11px] text-muted-foreground">{item.usage}</div>
-              <div className="font-mono text-[10px] text-primary">{item.shotParams}</div>
-              <div className="line-clamp-2 text-[11px] text-muted-foreground">{item.prompt}</div>
+              <div className="text-2xs text-muted-foreground">{item.usage}</div>
+              <div className="font-mono text-3xs text-primary">{item.shotParams}</div>
+              <div className="line-clamp-2 text-2xs text-muted-foreground">{item.prompt}</div>
             </div>
           </div>
         )}
@@ -142,7 +142,7 @@ export default function ShotLanguagePage() {
             <img src={item.cover} alt="" loading="lazy" decoding="async" className="h-12 w-16 rounded object-cover" />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium">{item.name}</div>
-              <div className="truncate font-mono text-[10px] text-muted-foreground">{item.prompt}</div>
+              <div className="truncate font-mono text-3xs text-muted-foreground">{item.prompt}</div>
             </div>
             <Badge variant="outline">{item.category}</Badge>
             <Button type="button" size="sm" variant="outline" onClick={() => quote(item)}>

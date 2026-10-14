@@ -27,7 +27,7 @@ export default function StageRuleBadge({
     <button
       type="button"
       onClick={() => navigate('/comic/rules')}
-      className="group flex max-w-full items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+      className="group flex max-w-full items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-3xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
       title={`${label}生效规则：${rule.name}\n${rule.content.slice(0, 120)}…\n点击前往规则中心管理`}
     >
       <BookOpenCheck className="h-3 w-3 shrink-0 text-primary" />
@@ -36,7 +36,7 @@ export default function StageRuleBadge({
         {rule.name}
         {!isDefault && <span className="text-primary">（已覆盖）</span>}
       </span>
-      <span className="hidden shrink-0 rounded bg-muted px-1 font-mono text-[9px] md:inline">
+      <span className="hidden shrink-0 rounded bg-muted px-1 font-mono text-4xs md:inline">
         {rule.content.length} 字
       </span>
     </button>

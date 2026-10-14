@@ -258,16 +258,16 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
     return (
       <div className="mx-auto max-w-2xl space-y-4 py-6">
         <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-3xs font-bold text-primary-foreground">1</span>
           <span className="text-sm font-medium">剧本核对</span>
-          <span className="text-[11px] text-muted-foreground">查看本集剧本，判断是否需要编辑；源剧本为不可变版本</span>
+          <span className="text-2xs text-muted-foreground">查看本集剧本，判断是否需要编辑；源剧本为不可变版本</span>
         </div>
         <ScriptReview episode={episode} projectId={projectId} />
 
         <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-3xs font-bold text-primary-foreground">2</span>
           <span className="text-sm font-medium">导演解读规则</span>
-          <span className="text-[11px] text-muted-foreground">本次解读将按生效规则执行；编辑规则请到规则中心</span>
+          <span className="text-2xs text-muted-foreground">本次解读将按生效规则执行；编辑规则请到规则中心</span>
         </div>
         {directorRule && (() => {
           const parsed = parseDirectorRule(directorRule.content);
@@ -279,7 +279,7 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                 <BookOpenCheck className="h-4 w-4 shrink-0 text-primary" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{directorRule.name}</span>
                 <span className={cn(
-                  'shrink-0 rounded px-1.5 py-0.5 text-[10px]',
+                  'shrink-0 rounded px-1.5 py-0.5 text-3xs',
                   isBuiltin ? 'bg-muted/60 text-muted-foreground' : 'bg-primary/10 text-primary',
                 )}>
                   {isBuiltin ? '平台默认' : '已覆盖'}
@@ -287,7 +287,7 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                 <button
                   type="button"
                   onClick={() => setShowRule((v) => !v)}
-                  className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground"
+                  className="shrink-0 text-3xs text-muted-foreground hover:text-foreground"
                 >
                   {showRule ? '收起' : '完整规则'}
                 </button>
@@ -297,13 +297,13 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
               {parsed ? (
                 <div className="grid grid-cols-2 gap-0">
                   <div className="border-r border-border/60 p-3">
-                    <div className="mb-1.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-primary">
+                    <div className="mb-1.5 flex items-center gap-1 text-3xs font-medium uppercase tracking-wide text-primary">
                       <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                       解读重点
                     </div>
                     <ul className="space-y-1">
                       {parsed.inputs.map((item, i) => (
-                        <li key={i} className="flex gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                        <li key={i} className="flex gap-1.5 text-2xs leading-relaxed text-muted-foreground">
                           <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
                           <span>{translateTerm(item)}</span>
                         </li>
@@ -311,13 +311,13 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                     </ul>
                   </div>
                   <div className="p-3">
-                    <div className="mb-1.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                    <div className="mb-1.5 flex items-center gap-1 text-3xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       解读产出
                     </div>
                     <ul className="space-y-1">
                       {parsed.outputs.map((item, i) => (
-                        <li key={i} className="flex gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                        <li key={i} className="flex gap-1.5 text-2xs leading-relaxed text-muted-foreground">
                           <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
                           <span>{translateTerm(item)}</span>
                         </li>
@@ -327,14 +327,14 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                 </div>
               ) : (
                 <div className="p-3">
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">{translateTerm(directorRule.content)}</p>
+                  <p className="text-2xs leading-relaxed text-muted-foreground">{translateTerm(directorRule.content)}</p>
                 </div>
               )}
 
               {/* 完整规则（折叠） */}
               {showRule && (
                 <div className="border-t border-border/60 bg-muted/30 px-3 py-2.5">
-                  <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-[10px] leading-relaxed text-muted-foreground">
+                  <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-3xs leading-relaxed text-muted-foreground">
                     {directorRule.content}
                   </pre>
                 </div>
@@ -342,8 +342,8 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
 
               {/* 底部操作引导 */}
               <div className="flex items-center justify-between border-t border-border/60 px-3 py-2">
-                <span className="text-[10px] text-muted-foreground">想调整解读侧重点？</span>
-                <Link to="/comic/rules" className="text-[10px] font-medium text-primary hover:underline">
+                <span className="text-3xs text-muted-foreground">想调整解读侧重点？</span>
+                <Link to="/comic/rules" className="text-3xs font-medium text-primary hover:underline">
                   去规则中心自定义 →
                 </Link>
               </div>
@@ -352,9 +352,9 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
         })()}
 
         <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-3xs font-bold text-primary-foreground">3</span>
           <span className="text-sm font-medium">解读文本模型</span>
-          <span className="ml-auto text-[11px] text-muted-foreground">每阶段可随时换模型</span>
+          <span className="ml-auto text-2xs text-muted-foreground">每阶段可随时换模型</span>
         </div>
         <div className="rounded-xl border border-border bg-card p-3">
           <StageModelPicker
@@ -364,13 +364,13 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
             episodeId={episode.id}
             hint="导演解读由真实文本模型生成，可随时更换"
           />
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-2xs text-muted-foreground">
             解读由所选文本模型真实调用生成；质量由你评审，系统只负责制片。
           </p>
         </div>
         <div className="flex items-center justify-end gap-3">
           {!episode.scriptChecked && (
-            <span className="text-[11px] text-amber-600 dark:text-amber-400">请先核对剧本（第 1 步）再生成解读</span>
+            <span className="text-2xs text-amber-600 dark:text-amber-400">请先核对剧本（第 1 步）再生成解读</span>
           )}
           <Button type="button" size="sm" disabled={!episode.scriptChecked || generating} onClick={confirmTarget}>
             {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
@@ -389,7 +389,7 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
         <div className="mb-4 flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span className="text-sm font-medium">正在运行导演解读任务</span>
-          <span className="ml-auto font-mono text-[10px] text-muted-foreground">{progress}%</span>
+          <span className="ml-auto font-mono text-3xs text-muted-foreground">{progress}%</span>
         </div>
         <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-muted">
           <motion.div
@@ -462,9 +462,9 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
       {/* ═══════ 导演创作决策（6 个核心板块，直接服务分镜与视频生成）═══════ */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 px-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">导演创作决策</span>
+          <span className="text-3xs font-bold uppercase tracking-widest text-primary">导演创作决策</span>
           <span className="h-px flex-1 bg-border" />
-          <span className="text-[10px] text-muted-foreground">文本模型产出 · 质量交用户评审</span>
+          <span className="text-3xs text-muted-foreground">文本模型产出 · 质量交用户评审</span>
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -485,7 +485,7 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
               <div className="space-y-2">
                 {di.characterArc.map((c, i) => (
                   <div key={i} className="rounded-lg bg-muted/30 p-2">
-                    <div className="mb-1 text-[11px] font-medium">{c.character}</div>
+                    <div className="mb-1 text-2xs font-medium">{c.character}</div>
                     <Field label="开场状态" value={c.startingState} />
                     <Field label="结尾状态" value={c.endingState} />
                     <Field label="核心动机" value={c.motivation} />
@@ -504,11 +504,11 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                 {di.emotionalArc.climax && <Field label="高潮位置" value={di.emotionalArc.climax} />}
                 <div className="space-y-1">
                   {di.emotionalArc.beats.map((b, i) => (
-                    <div key={i} className="flex items-center gap-2 text-[11px]">
+                    <div key={i} className="flex items-center gap-2 text-2xs">
                       <span className="w-2 h-2 rounded-full bg-primary/60" />
                       <span className="font-medium">{b.label}</span>
                       <span className="text-muted-foreground">{b.emotion}</span>
-                      <span className="ml-auto font-mono text-[10px]">{b.intensity}/10</span>
+                      <span className="ml-auto font-mono text-3xs">{b.intensity}/10</span>
                     </div>
                   ))}
                 </div>
@@ -547,12 +547,12 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
               </div>
             ) : interp.coverage?.beats?.length ? (
               <div className="space-y-1">
-                <p className="text-[10px] text-muted-foreground mb-1">叙事节拍</p>
+                <p className="text-3xs text-muted-foreground mb-1">叙事节拍</p>
                 {interp.coverage.beats.map((b, i) => (
-                  <div key={b.id} className="flex items-center gap-2 text-[11px]">
-                    <span className="w-4 h-4 flex items-center justify-center rounded-full bg-muted font-mono text-[9px]">{i + 1}</span>
+                  <div key={b.id} className="flex items-center gap-2 text-2xs">
+                    <span className="w-4 h-4 flex items-center justify-center rounded-full bg-muted font-mono text-4xs">{i + 1}</span>
                     <span className="min-w-0 flex-1 truncate">{b.label}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground">{b.beatSeconds}s</span>
+                    <span className="font-mono text-3xs text-muted-foreground">{b.beatSeconds}s</span>
                   </div>
                 ))}
               </div>
@@ -565,7 +565,7 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
               <div className="space-y-2">
                 {di.keySceneFocus.map((k, i) => (
                   <div key={i} className="rounded-lg bg-muted/30 p-2">
-                    <div className="mb-1 text-[11px] font-medium">{k.scene}</div>
+                    <div className="mb-1 text-2xs font-medium">{k.scene}</div>
                     <Field label="导演意图" value={k.directorIntent} />
                     {k.performanceNote && <Field label="表演要求" value={k.performanceNote} />}
                     {k.cameraSuggestion && <Field label="镜头建议" value={k.cameraSuggestion} />}
@@ -580,24 +580,24 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
             {di?.narrativeStructure ? (
               <div className="space-y-2">
                 <div>
-                  <div className="mb-1 text-[10px] font-medium text-muted-foreground">起承转合</div>
+                  <div className="mb-1 text-3xs font-medium text-muted-foreground">起承转合</div>
                   <div className="space-y-1">
                     {di.narrativeStructure.actBreakdown.map((a, i) => (
-                      <div key={i} className="flex gap-2 text-[11px]">
+                      <div key={i} className="flex gap-2 text-2xs">
                         <span className="w-12 shrink-0 font-medium text-primary">{a.act}</span>
-                        <span className="w-16 shrink-0 font-mono text-[10px] text-muted-foreground">{a.scenes}</span>
+                        <span className="w-16 shrink-0 font-mono text-3xs text-muted-foreground">{a.scenes}</span>
                         <span className="min-w-0 flex-1">{a.description}</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <div className="mb-1 text-[10px] font-medium text-muted-foreground">关键节点</div>
+                  <div className="mb-1 text-3xs font-medium text-muted-foreground">关键节点</div>
                   <div className="space-y-1">
                     {di.narrativeStructure.keyNodes.map((n, i) => (
-                      <div key={i} className="flex gap-2 text-[11px]">
-                        <span className="w-16 shrink-0 rounded bg-primary/10 px-1 py-0.5 text-center text-[10px] font-medium text-primary">{n.type}</span>
-                        <span className="w-12 shrink-0 font-mono text-[10px] text-muted-foreground">{n.location}</span>
+                      <div key={i} className="flex gap-2 text-2xs">
+                        <span className="w-16 shrink-0 rounded bg-primary/10 px-1 py-0.5 text-center text-3xs font-medium text-primary">{n.type}</span>
+                        <span className="w-12 shrink-0 font-mono text-3xs text-muted-foreground">{n.location}</span>
                         <span className="min-w-0 flex-1">{n.description}</span>
                       </div>
                     ))}
@@ -605,10 +605,10 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                 </div>
                 {di.narrativeStructure.storylines?.length > 0 && (
                   <div>
-                    <div className="mb-1 text-[10px] font-medium text-muted-foreground">故事线</div>
+                    <div className="mb-1 text-3xs font-medium text-muted-foreground">故事线</div>
                     <div className="space-y-1">
                       {di.narrativeStructure.storylines.map((s, i) => (
-                        <div key={i} className="flex gap-2 text-[11px]">
+                        <div key={i} className="flex gap-2 text-2xs">
                           <span className="w-16 shrink-0 font-medium">{s.name}</span>
                           <span className="min-w-0 flex-1 text-muted-foreground">{s.progression}</span>
                         </div>
@@ -625,10 +625,10 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
             {di?.scenePriorityAndTransitions ? (
               <div className="space-y-2">
                 <div>
-                  <div className="mb-1 text-[10px] font-medium text-rose-600">关键场景（精心设计）</div>
+                  <div className="mb-1 text-3xs font-medium text-rose-600">关键场景（精心设计）</div>
                   <div className="space-y-1">
                     {di.scenePriorityAndTransitions.keyScenes.map((k, i) => (
-                      <div key={i} className="flex gap-2 text-[11px]">
+                      <div key={i} className="flex gap-2 text-2xs">
                         <span className="w-20 shrink-0 font-medium">{k.scene}</span>
                         <span className="min-w-0 flex-1 text-muted-foreground">{k.reason}</span>
                       </div>
@@ -639,14 +639,14 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                   <Field label="过渡场景" value={di.scenePriorityAndTransitions.transitionScenes.join('、')} />
                 )}
                 <div>
-                  <div className="mb-1 text-[10px] font-medium text-muted-foreground">转场策略</div>
+                  <div className="mb-1 text-3xs font-medium text-muted-foreground">转场策略</div>
                   <div className="space-y-1">
                     {di.scenePriorityAndTransitions.transitions.map((t, i) => (
-                      <div key={i} className="flex items-center gap-1 text-[11px]">
+                      <div key={i} className="flex items-center gap-1 text-2xs">
                         <span className="font-medium">{t.from}</span>
                         <span className="text-muted-foreground">→</span>
                         <span className="font-medium">{t.to}</span>
-                        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px]">{t.method}</span>
+                        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-3xs">{t.method}</span>
                       </div>
                     ))}
                   </div>
@@ -663,19 +663,19 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
                   {di.performanceDirection.characterTone.map((c, i) => (
                     <div key={i} className="rounded-lg bg-muted/30 p-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-medium">{c.character}</span>
-                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">{c.tone}</span>
+                        <span className="text-2xs font-medium">{c.character}</span>
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary">{c.tone}</span>
                       </div>
-                      {c.keyMoment && <p className="mt-1 text-[10px] text-muted-foreground">关键表演：{c.keyMoment}</p>}
+                      {c.keyMoment && <p className="mt-1 text-3xs text-muted-foreground">关键表演：{c.keyMoment}</p>}
                     </div>
                   ))}
                 </div>
                 {di.performanceDirection.interactionNotes?.length > 0 && (
                   <div>
-                    <div className="mb-1 text-[10px] font-medium text-muted-foreground">对手戏张力</div>
+                    <div className="mb-1 text-3xs font-medium text-muted-foreground">对手戏张力</div>
                     <ul className="space-y-0.5">
                       {di.performanceDirection.interactionNotes.map((n, i) => (
-                        <li key={i} className="flex gap-2 text-[11px]">
+                        <li key={i} className="flex gap-2 text-2xs">
                           <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
                           <span>{n}</span>
                         </li>
@@ -698,19 +698,19 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
         >
           <ListOrdered className="h-3.5 w-3.5" />
           剧本事实依据（场次 / EV / DLG / LOCK · 系统提取）
-          <span className="ml-auto text-[10px]">{showFacts ? '收起' : '展开'}</span>
+          <span className="ml-auto text-3xs">{showFacts ? '收起' : '展开'}</span>
         </button>
         {showFacts && (
           <div className="border-t border-border/60 p-4 space-y-3">
             {/* 场次清单 */}
             <div>
-              <div className="mb-1.5 text-[10px] font-medium uppercase text-muted-foreground">场次清单（{interp.breakdown?.length ?? 0} 场）</div>
+              <div className="mb-1.5 text-3xs font-medium uppercase text-muted-foreground">场次清单（{interp.breakdown?.length ?? 0} 场）</div>
               <div className="space-y-1">
                 {(interp.breakdown ?? []).map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-2 rounded bg-card px-2 py-1.5 text-[11px]">
-                    <span className="w-8 shrink-0 font-mono text-[10px] text-muted-foreground">{s.label.split('·')[0]?.trim() || `${i + 1}`}</span>
+                  <div key={s.id} className="flex items-center gap-2 rounded bg-card px-2 py-1.5 text-2xs">
+                    <span className="w-8 shrink-0 font-mono text-3xs text-muted-foreground">{s.label.split('·')[0]?.trim() || `${i + 1}`}</span>
                     <span className="min-w-0 flex-1 truncate">{s.label.split('·').slice(1).join('·').trim() || s.label}</span>
-                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{s.span}</span>
+                    <span className="shrink-0 font-mono text-3xs text-muted-foreground">{s.span}</span>
                   </div>
                 ))}
               </div>
@@ -718,30 +718,30 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
             {/* EV / DLG / LOCK 三栏 */}
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
               <div className="rounded bg-card p-2">
-                <div className="mb-1 text-[10px] font-medium text-blue-600">EV 事件</div>
+                <div className="mb-1 text-3xs font-medium text-blue-600">EV 事件</div>
                 <div className="space-y-0.5">
                   {interp.rawFacts?.filter((f) => f.label === 'EV').map((f, i) => (
-                    <p key={i} className="text-[10px] leading-relaxed text-muted-foreground">{f.text}</p>
+                    <p key={i} className="text-3xs leading-relaxed text-muted-foreground">{f.text}</p>
                   ))}
-                  {!interp.rawFacts?.some((f) => f.label === 'EV') && <p className="text-[10px] text-muted-foreground/40">无</p>}
+                  {!interp.rawFacts?.some((f) => f.label === 'EV') && <p className="text-3xs text-muted-foreground/40">无</p>}
                 </div>
               </div>
               <div className="rounded bg-card p-2">
-                <div className="mb-1 text-[10px] font-medium text-emerald-600">DLG 对白</div>
+                <div className="mb-1 text-3xs font-medium text-emerald-600">DLG 对白</div>
                 <div className="space-y-0.5">
                   {interp.rawFacts?.filter((f) => f.label === 'DLG').map((f, i) => (
-                    <p key={i} className="text-[10px] leading-relaxed text-muted-foreground">{f.text}</p>
+                    <p key={i} className="text-3xs leading-relaxed text-muted-foreground">{f.text}</p>
                   ))}
-                  {!interp.rawFacts?.some((f) => f.label === 'DLG') && <p className="text-[10px] text-muted-foreground/40">无</p>}
+                  {!interp.rawFacts?.some((f) => f.label === 'DLG') && <p className="text-3xs text-muted-foreground/40">无</p>}
                 </div>
               </div>
               <div className="rounded bg-card p-2">
-                <div className="mb-1 text-[10px] font-medium text-amber-600">LOCK 连续性</div>
+                <div className="mb-1 text-3xs font-medium text-amber-600">LOCK 连续性</div>
                 <div className="space-y-0.5">
                   {interp.rawFacts?.filter((f) => f.label === 'LOCK').map((f, i) => (
-                    <p key={i} className="text-[10px] leading-relaxed text-muted-foreground">{f.text}</p>
+                    <p key={i} className="text-3xs leading-relaxed text-muted-foreground">{f.text}</p>
                   ))}
-                  {!interp.rawFacts?.some((f) => f.label === 'LOCK') && <p className="text-[10px] text-muted-foreground/40">无</p>}
+                  {!interp.rawFacts?.some((f) => f.label === 'LOCK') && <p className="text-3xs text-muted-foreground/40">无</p>}
                 </div>
               </div>
             </div>
@@ -764,7 +764,7 @@ export default function InterpretStage({ episode, projectId }: { episode: Episod
           </Link>
         ) : (
           <>
-            <span className="ml-auto text-[11px] text-muted-foreground">确认创作决策后推进分镜设计</span>
+            <span className="ml-auto text-2xs text-muted-foreground">确认创作决策后推进分镜设计</span>
             <Button type="button" size="sm" onClick={confirmInterpretation}>
               <Check className="h-3.5 w-3.5" />
               确认解读
@@ -790,7 +790,7 @@ function InterpretCard({ icon, title, hasContent, children }: {
       <div className="mb-3 flex items-center gap-2 text-xs font-medium">
         <span className="text-sm">{icon}</span>
         {title}
-        {!hasContent && <span className="ml-auto text-[9px] text-muted-foreground/50">待生成</span>}
+        {!hasContent && <span className="ml-auto text-4xs text-muted-foreground/50">待生成</span>}
       </div>
       {children}
     </div>
@@ -799,7 +799,7 @@ function InterpretCard({ icon, title, hasContent, children }: {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex gap-2 text-[11px] leading-relaxed">
+    <div className="flex gap-2 text-2xs leading-relaxed">
       <span className="w-16 shrink-0 text-muted-foreground/70">{label}</span>
       <span className="min-w-0 flex-1 text-foreground/90">{value}</span>
     </div>
@@ -807,5 +807,5 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 function EmptyHint() {
-  return <p className="text-[11px] text-muted-foreground/40">后端结构化解读尚未输出，当前为占位状态</p>;
+  return <p className="text-2xs text-muted-foreground/40">后端结构化解读尚未输出，当前为占位状态</p>;
 }

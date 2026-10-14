@@ -40,7 +40,7 @@ export default function CreateLaunchpad({ onNewComic }: { onNewComic: () => void
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{l.label}</span>
-                <span className="block truncate text-[11px] text-muted-foreground">{l.desc}</span>
+                <span className="block truncate text-2xs text-muted-foreground">{l.desc}</span>
               </span>
               <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </button>
@@ -55,7 +55,7 @@ export default function CreateLaunchpad({ onNewComic }: { onNewComic: () => void
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{l.label}</span>
-                <span className="block truncate text-[11px] text-muted-foreground">{l.desc}</span>
+                <span className="block truncate text-2xs text-muted-foreground">{l.desc}</span>
               </span>
               <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>

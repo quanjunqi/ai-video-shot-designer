@@ -21,12 +21,12 @@ function Column({
     <div className="min-w-0 space-y-1">
       <div className="flex items-center gap-1.5">
         <span className={tone}>{icon}</span>
-        <span className="text-[10px] font-medium">{title}</span>
-        <span className="truncate text-[9px] text-muted-foreground">{hint}</span>
+        <span className="text-3xs font-medium">{title}</span>
+        <span className="truncate text-4xs text-muted-foreground">{hint}</span>
       </div>
       <dl className="space-y-0.5">
         {items.map((it) => (
-          <div key={`${it.label}:${it.value}`} className="flex gap-1.5 text-[10px]">
+          <div key={`${it.label}:${it.value}`} className="flex gap-1.5 text-3xs">
             <dt className="shrink-0 text-muted-foreground">{it.label}</dt>
             <dd className="min-w-0 flex-1 truncate font-mono" title={it.value}>
               {it.href ? (
@@ -59,11 +59,11 @@ export function ProtocolEvidence({ template }: { template: ProtocolTemplate }) {
         <div className="flex items-start gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
           <div className="min-w-0 space-y-0.5">
-            <div className="text-[10px] font-medium text-amber-500">
+            <div className="text-3xs font-medium text-amber-500">
               文档与实测不一致（以实测为准，差异保留可见）
             </div>
             {s.discrepancies.map((d) => (
-              <div key={d} className="truncate font-mono text-[10px]" title={d}>
+              <div key={d} className="truncate font-mono text-3xs" title={d}>
                 {d}
               </div>
             ))}
@@ -87,7 +87,7 @@ export function ProtocolEvidence({ template }: { template: ProtocolTemplate }) {
         />
       </div>
       {s.observed.length === 0 && (
-        <Badge variant="outline" className="font-mono text-[9px]">尚未实测</Badge>
+        <Badge variant="outline" className="font-mono text-4xs">尚未实测</Badge>
       )}
     </div>
   );

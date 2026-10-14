@@ -95,7 +95,7 @@ export default function ComicProjectDetailPage() {
         <ButtonLink to="/comic/projects" />
         <h1 className="text-lg font-semibold">{project.title}</h1>
         <Badge variant={meta.tone}>{meta.label}</Badge>
-        <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+        <span className="ml-auto font-mono text-3xs text-muted-foreground">
           源版本 v{project.currentSourceVersion} · 风格 {project.styleVersion}
         </span>
         <Button
@@ -126,7 +126,7 @@ export default function ComicProjectDetailPage() {
         >
           <Clapperboard className="h-4 w-4" />
           剧集
-          <Badge variant="outline" className="ml-1 font-mono text-[10px]">{episodes.length}</Badge>
+          <Badge variant="outline" className="ml-1 font-mono text-3xs">{episodes.length}</Badge>
         </button>
         <button
           type="button"
@@ -140,7 +140,7 @@ export default function ComicProjectDetailPage() {
         >
           <Users className="h-4 w-4" />
           角色库
-          <Badge variant="outline" className="ml-1 font-mono text-[10px]">{characterCount}</Badge>
+          <Badge variant="outline" className="ml-1 font-mono text-3xs">{characterCount}</Badge>
         </button>
         <button
           type="button"
@@ -154,7 +154,7 @@ export default function ComicProjectDetailPage() {
         >
           <Package className="h-4 w-4" />
           道具库
-          <Badge variant="outline" className="ml-1 font-mono text-[10px]">{propCount}</Badge>
+          <Badge variant="outline" className="ml-1 font-mono text-3xs">{propCount}</Badge>
         </button>
         <button
           type="button"
@@ -168,7 +168,7 @@ export default function ComicProjectDetailPage() {
         >
           <MapPin className="h-4 w-4" />
           场景库
-          <Badge variant="outline" className="ml-1 font-mono text-[10px]">{sceneCount}</Badge>
+          <Badge variant="outline" className="ml-1 font-mono text-3xs">{sceneCount}</Badge>
         </button>
       </div>
 
@@ -186,14 +186,14 @@ export default function ComicProjectDetailPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-semibold">剧集卡</h2>
-                    <Badge variant="outline" className="font-mono text-[10px]">
+                    <Badge variant="outline" className="font-mono text-3xs">
                       {episodes.length} 集
                     </Badge>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="ml-auto h-7 gap-1 text-[11px]"
+                      className="ml-auto h-7 gap-1 text-2xs"
                       onClick={() => setUnlockOpen(true)}
                       title="解锁分集结构，回到候选核对态（可重新拆分、插入或删除剧集）；已制作的剧集产物保留"
                     >

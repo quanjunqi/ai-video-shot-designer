@@ -114,7 +114,7 @@ export default function StylePickerDialog({
         {/* 当前风格提示词区：只读预览 + 编辑按钮；编辑态内联 textarea */}
         <div className="shrink-0 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-3xs text-muted-foreground">
               画面风格提示词（{active?.name ?? '未选择'}
               {active && !active.enabled ? ' · 已停用' : ''}）
             </span>
@@ -123,7 +123,7 @@ export default function StylePickerDialog({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
+                className="h-5 px-1.5 text-3xs text-primary hover:text-primary"
                 onClick={startEdit}
               >
                 编辑
@@ -135,7 +135,7 @@ export default function StylePickerDialog({
               <Textarea
                 value={draft}
                 rows={3}
-                className="text-[11px] leading-relaxed"
+                className="text-2xs leading-relaxed"
                 onChange={(e) => setDraft(e.target.value)}
               />
               <div className="flex justify-end gap-1.5">
@@ -143,7 +143,7 @@ export default function StylePickerDialog({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-3xs"
                   onClick={() => setEditing(false)}
                 >
                   取消
@@ -151,7 +151,7 @@ export default function StylePickerDialog({
                 <Button
                   type="button"
                   size="sm"
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-3xs"
                   disabled={!draft.trim()}
                   onClick={saveEdit}
                 >
@@ -160,7 +160,7 @@ export default function StylePickerDialog({
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 text-[11px] leading-relaxed text-foreground/80">
+            <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 text-2xs leading-relaxed text-foreground/80">
               {activePrompt || '选择一个风格查看其画面风格提示词'}
             </div>
           )}
@@ -182,7 +182,7 @@ export default function StylePickerDialog({
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-xs text-muted-foreground">
               没有匹配的风格
-              <div className="mt-1 text-[10px]">可到风格库中新增或启用风格</div>
+              <div className="mt-1 text-3xs">可到风格库中新增或启用风格</div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -201,7 +201,7 @@ export default function StylePickerDialog({
                     <div className="relative aspect-video overflow-hidden bg-muted">
                       <img src={s.cover} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       {selected === s.id && (
-                        <span className="absolute left-1.5 top-1.5 z-20 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-medium text-primary-foreground">
+                        <span className="absolute left-1.5 top-1.5 z-20 rounded-full bg-primary px-1.5 py-0.5 text-4xs font-medium text-primary-foreground">
                           已选
                         </span>
                       )}
@@ -209,9 +209,9 @@ export default function StylePickerDialog({
                     <div className="p-2">
                       <div className="flex items-center gap-1">
                         <span className="truncate text-xs font-medium">{s.name}</span>
-                        <span className="ml-auto shrink-0 font-mono text-[9px] text-muted-foreground">{s.version}</span>
+                        <span className="ml-auto shrink-0 font-mono text-4xs text-muted-foreground">{s.version}</span>
                       </div>
-                      <div className="mt-0.5 line-clamp-2 text-[10px] text-muted-foreground">{prompt}</div>
+                      <div className="mt-0.5 line-clamp-2 text-3xs text-muted-foreground">{prompt}</div>
                     </div>
                   </button>
                 );
@@ -223,12 +223,12 @@ export default function StylePickerDialog({
         <DialogFooter className="shrink-0 gap-2 pt-3">
           <Link
             to="/comic/styles"
-            className="mr-auto flex items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-primary"
+            className="mr-auto flex items-center gap-1 text-3xs text-muted-foreground transition-colors hover:text-primary"
           >
             <Settings2 className="h-3 w-3" />
             管理风格库
           </Link>
-          <p className="mr-auto text-[10px] leading-relaxed text-muted-foreground">
+          <p className="mr-auto text-3xs leading-relaxed text-muted-foreground">
             {projectId ? '确认后旧风格资产将标记待复核（重新生成）' : '确认后用于该项目的全局视觉风格'}
           </p>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -380,21 +380,21 @@ export default function CreateWorkbench({
         <div className="flex items-center gap-2">
           <Icon className={cn('h-4 w-4', meta.accent)} />
           <span className="text-sm font-medium">{meta.title}</span>
-          <span className={cn('ml-auto rounded px-1.5 py-px text-[10px]', sourceNote.className)}>{sourceNote.label}</span>
+          <span className={cn('ml-auto rounded px-1.5 py-px text-3xs', sourceNote.className)}>{sourceNote.label}</span>
         </div>
 
         {/* 草稿恢复提示：只恢复了参数文本与模型，参考图不入草稿（dataURL 会爆本地配额） */}
         {draftRestored && (
           <div className="flex items-start gap-2 rounded-lg border border-border bg-accent/40 px-2 py-1.5">
             <Info className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <div className="min-w-0 flex-1 text-[10px] leading-relaxed text-muted-foreground">
+            <div className="min-w-0 flex-1 text-3xs leading-relaxed text-muted-foreground">
               已恢复上次未提交的输入（参考图不在草稿中，需重新添加）。
             </div>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-5 shrink-0 px-1.5 text-[10px]"
+              className="h-5 shrink-0 px-1.5 text-3xs"
               onClick={() => controls.resetDraft()}
             >
               清空
@@ -421,14 +421,14 @@ export default function CreateWorkbench({
               })}
             </SelectContent>
           </Select>
-          {model?.note && <p className="text-[10px] leading-relaxed text-muted-foreground">{model.note}</p>}
+          {model?.note && <p className="text-3xs leading-relaxed text-muted-foreground">{model.note}</p>}
         </div>
 
         {/* 能力胶囊：来自 capability.modes，模型支持什么就显示什么 */}
         {schema.modes.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {schema.modes.map((mode) => (
-              <span key={mode} className="rounded-full bg-accent/70 px-2 py-0.5 text-[10px] text-accent-foreground">
+              <span key={mode} className="rounded-full bg-accent/70 px-2 py-0.5 text-3xs text-accent-foreground">
                 {GENERATION_MODE_LABEL[mode]}
               </span>
             ))}
@@ -441,7 +441,7 @@ export default function CreateWorkbench({
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
                 参考图
-                <span className="ml-1 text-[10px] font-normal">上限 {schema.limits.maxRefImages} 张</span>
+                <span className="ml-1 text-3xs font-normal">上限 {schema.limits.maxRefImages} 张</span>
               </Label>
               <ReferenceBar
                 mode={kind === 'video' ? 'video' : 'image'}
@@ -467,7 +467,7 @@ export default function CreateWorkbench({
               localRefs={buildLocalRefs(refs)}
               placeholder="描述画面；输入 @ 可引用参考图，Enter 提交，Shift+Enter 换行"
             />
-            {promptIssue && <p className="text-[10px] text-destructive">{promptIssue}</p>}
+            {promptIssue && <p className="text-3xs text-destructive">{promptIssue}</p>}
           </div>
 
           {/* 预设：平台独有资产（风格库 / 镜头语言库）→ 提示词片段。
@@ -475,23 +475,23 @@ export default function CreateWorkbench({
               因此永远与用户手改后的文本一致（ADR-006 D7）。 */}
           {(showStylePresets || showLensPresets) && (
             <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
-              <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground">
+              <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground">
                 <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', presetsOpen && 'rotate-180')} />
                 预设
-                <span className="ml-1 font-mono text-[10px]">
+                <span className="ml-1 font-mono text-3xs">
                   {showStylePresets ? `风格 ${styles.length}` : ''}
                   {showStylePresets && showLensPresets ? ' · ' : ''}
                   {showLensPresets ? `镜头 ${lensItems.length}` : ''}
                 </span>
-                <span className="ml-auto text-[10px]">点选即并入提示词，再点移除</span>
+                <span className="ml-auto text-3xs">点选即并入提示词，再点移除</span>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 pt-2">
                 {showStylePresets && (
                   <div className="space-y-1">
-                    <div className="text-[10px] text-muted-foreground">风格</div>
+                    <div className="text-3xs text-muted-foreground">风格</div>
                     <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto">
                       {styles.length === 0 ? (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-3xs text-muted-foreground">
                           风格库为空，可在「镜头语言/风格库」页添加
                         </span>
                       ) : (
@@ -505,7 +505,7 @@ export default function CreateWorkbench({
                               title={fragment}
                               onClick={() => setValue('prompt', toggleFragment(promptText, fragment).prompt)}
                               className={cn(
-                                'rounded-full border px-2 py-0.5 text-[10px] transition',
+                                'rounded-full border px-2 py-0.5 text-3xs transition',
                                 applied
                                   ? 'border-primary bg-primary/10 text-primary'
                                   : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
@@ -521,7 +521,7 @@ export default function CreateWorkbench({
                 )}
                 {showLensPresets && (
                   <div className="space-y-1">
-                    <div className="text-[10px] text-muted-foreground">镜头语言</div>
+                    <div className="text-3xs text-muted-foreground">镜头语言</div>
                     <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto">
                       {lensItems.map((item) => {
                         const fragment = lensFragment(item);
@@ -533,7 +533,7 @@ export default function CreateWorkbench({
                             title={`${item.shotParams}｜${item.usage}`}
                             onClick={() => setValue('prompt', toggleFragment(promptText, fragment).prompt)}
                             className={cn(
-                              'rounded-full border px-2 py-0.5 text-[10px] transition',
+                              'rounded-full border px-2 py-0.5 text-3xs transition',
                               applied
                                 ? 'border-sky-500 bg-sky-500/10 text-sky-600 dark:text-sky-400'
                                 : 'border-border text-muted-foreground hover:border-sky-500/40 hover:text-foreground',
@@ -553,7 +553,7 @@ export default function CreateWorkbench({
           {/* 参数：披露档位 + 表单/JSON 双视图（专业级改造：默认只露基础，
               深度按需展开；JSON 是同一份 schema 的另一种投影） */}
           <div className="flex items-center gap-1.5 border-t border-border pt-2">
-            <span className="text-[10px] text-muted-foreground">参数</span>
+            <span className="text-3xs text-muted-foreground">参数</span>
             <div className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5">
               {(['basic', 'advanced', 'expert'] as const).map((option) => {
                 // 该档没有控件就不显示按钮，避免出现点进去是空的
@@ -565,7 +565,7 @@ export default function CreateWorkbench({
                     type="button"
                     onClick={() => setTier(kind, option)}
                     className={cn(
-                      'rounded px-2 py-0.5 text-[10px] transition',
+                      'rounded px-2 py-0.5 text-3xs transition',
                       tier === option ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
@@ -577,7 +577,7 @@ export default function CreateWorkbench({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-3xs text-muted-foreground">
               {view === 'form' ? `共 ${visibleControls.length} 项` : 'JSON 视图'}
             </span>
             <div className="ml-auto flex items-center gap-0.5 rounded-md border border-border p-0.5">
@@ -592,7 +592,7 @@ export default function CreateWorkbench({
                     if (option === 'json') setJsonDraft(toParamJson(values, schema.controls));
                   }}
                   className={cn(
-                    'rounded px-2 py-0.5 text-[10px] transition',
+                    'rounded px-2 py-0.5 text-3xs transition',
                     view === option ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
@@ -609,11 +609,11 @@ export default function CreateWorkbench({
                 onChange={(e) => { setJsonDraft(e.target.value); setJsonError(undefined); }}
                 rows={10}
                 spellCheck={false}
-                className="font-mono text-[11px] leading-5"
+                className="font-mono text-2xs leading-5"
                 placeholder='{"ratio": "16:9", "count": "2"}'
               />
               {jsonError && (
-                <p className="flex items-start gap-1 text-[10px] text-destructive">
+                <p className="flex items-start gap-1 text-3xs text-destructive">
                   <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
                   {jsonError}
                 </p>
@@ -623,7 +623,7 @@ export default function CreateWorkbench({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-6 gap-1 text-[10px]"
+                  className="h-6 gap-1 text-3xs"
                   onClick={() => {
                     const parsed = parseParamJson(jsonDraft, schema.controls);
                     if (parsed.error) {
@@ -645,12 +645,12 @@ export default function CreateWorkbench({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="h-6 text-[10px]"
+                  className="h-6 text-3xs"
                   onClick={() => setJsonDraft(toParamJson(values, schema.controls))}
                 >
                   从当前值重载
                 </Button>
-                <span className="ml-auto text-[10px] text-muted-foreground">键为业务参数名，只接受当前模型声明的键</span>
+                <span className="ml-auto text-3xs text-muted-foreground">键为业务参数名，只接受当前模型声明的键</span>
               </div>
             </div>
           ) : (
@@ -671,14 +671,14 @@ export default function CreateWorkbench({
                             <HelpCircle className="h-3 w-3" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-64 text-[11px] leading-relaxed">{control.hint}</TooltipContent>
+                        <TooltipContent className="max-w-64 text-2xs leading-relaxed">{control.hint}</TooltipContent>
                       </Tooltip>
                     )}
                     {control.source === 'count-fallback' && (
-                      <span className="text-[10px] text-muted-foreground/70">·取值待目录声明</span>
+                      <span className="text-3xs text-muted-foreground/70">·取值待目录声明</span>
                     )}
                     {control.tier && control.tier !== 'basic' && (
-                      <span className="rounded bg-muted px-1 text-[9px] text-muted-foreground">{TIER_LABEL[control.tier]}</span>
+                      <span className="rounded bg-muted px-1 text-4xs text-muted-foreground">{TIER_LABEL[control.tier]}</span>
                     )}
                   </div>
                   {control.type === 'textarea' ? (
@@ -698,7 +698,7 @@ export default function CreateWorkbench({
                           type="button"
                           onClick={() => setValue(control.key, option)}
                           className={cn(
-                            'rounded-md border px-2 py-1 font-mono text-[11px] transition',
+                            'rounded-md border px-2 py-1 font-mono text-2xs transition',
                             values[control.key] === option
                               ? 'border-primary bg-primary/10 text-primary'
                               : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
@@ -732,9 +732,9 @@ export default function CreateWorkbench({
                       className="h-9 text-xs"
                     />
                   )}
-                  {issueFor(control.key) && <p className="text-[10px] text-destructive">{issueFor(control.key)}</p>}
+                  {issueFor(control.key) && <p className="text-3xs text-destructive">{issueFor(control.key)}</p>}
                   {control.min !== undefined && control.max !== undefined && control.type === 'number' && !issueFor(control.key) && (
-                    <p className="text-[10px] text-muted-foreground">该模型支持 {control.min}–{control.max}</p>
+                    <p className="text-3xs text-muted-foreground">该模型支持 {control.min}–{control.max}</p>
                   )}
                 </div>
               ))}
@@ -744,18 +744,18 @@ export default function CreateWorkbench({
 
         {/* 费用 + 提交 */}
         <div className="space-y-2 border-t border-border pt-3">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
             <Wallet className="h-3.5 w-3.5" />
             {cost ? (
               <>
                 <span className="font-mono text-foreground">{cost.points} 积分</span>
-                <span className="truncate text-[10px]">{cost.detail}</span>
+                <span className="truncate text-3xs">{cost.detail}</span>
               </>
             ) : (
-              <span className="text-[10px]">该模型按上游用量结算，提交前无法预估</span>
+              <span className="text-3xs">该模型按上游用量结算，提交前无法预估</span>
             )}
           </div>
-          <p className="text-[10px] leading-relaxed text-muted-foreground">排队等待不消耗积分；失败退回以平台额度账本为准。</p>
+          <p className="text-3xs leading-relaxed text-muted-foreground">排队等待不消耗积分；失败退回以平台额度账本为准。</p>
           <Button type="button" size="sm" className="w-full" disabled={submitting || !canSubmit} onClick={() => void submit()}>
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             {submitting ? '提交中…' : '生成'}
@@ -763,7 +763,7 @@ export default function CreateWorkbench({
           {!canSubmit && controls.issues.length > 0 && (
             <ul className="space-y-0.5">
               {controls.issues.slice(0, 3).map((issue) => (
-                <li key={`${issue.field}-${issue.message}`} className="flex items-start gap-1 text-[10px] text-destructive">
+                <li key={`${issue.field}-${issue.message}`} className="flex items-start gap-1 text-3xs text-destructive">
                   <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
                   {issue.message}
                 </li>
@@ -778,9 +778,9 @@ export default function CreateWorkbench({
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">结果</span>
-          <Badge variant="outline" className="font-mono text-[10px]">{jobs.length}</Badge>
+          <Badge variant="outline" className="font-mono text-3xs">{jobs.length}</Badge>
           {activeCount > 0 && (
-            <span className="flex items-center gap-1 text-[10px] text-primary">
+            <span className="flex items-center gap-1 text-3xs text-primary">
               <Loader2 className="h-3 w-3 animate-spin" />
               {activeCount} 个进行中
             </span>
@@ -801,10 +801,10 @@ export default function CreateWorkbench({
 
         {/* 已有结果但刷新失败：保留旧数据，同时如实提示 */}
         {jobsError && jobs.length > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-[10px] text-destructive">
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-3xs text-destructive">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0 flex-1 truncate">刷新失败：{jobsError}（以下为上次成功获取的结果）</span>
-            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-[10px]" onClick={() => void loadJobs('manual')}>
+            <Button type="button" variant="ghost" size="sm" className="h-5 px-1.5 text-3xs" onClick={() => void loadJobs('manual')}>
               重试
             </Button>
           </div>
@@ -820,7 +820,7 @@ export default function CreateWorkbench({
             <AlertTriangle className="h-5 w-5 text-destructive" />
             <div className="space-y-1">
               <div className="text-xs font-medium text-destructive">任务服务暂时不可用</div>
-              <div className="text-[11px] text-muted-foreground">{jobsError}</div>
+              <div className="text-2xs text-muted-foreground">{jobsError}</div>
             </div>
             <Button type="button" size="sm" variant="outline" onClick={() => void loadJobs('manual')}>
               <RefreshCw className="mr-1 h-3.5 w-3.5" /> 重试
@@ -839,7 +839,7 @@ export default function CreateWorkbench({
                   {isActive(preview) ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span className="font-mono text-[11px]">
+                      <span className="font-mono text-2xs">
                         {preview.status === 'queued' ? '排队中' : `${preview.progress}%`}
                       </span>
                     </div>
@@ -855,7 +855,7 @@ export default function CreateWorkbench({
                           decoding="async"
                           className="h-full w-full object-contain"
                         />
-                        <span className="absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-px text-[10px] text-muted-foreground">
+                        <span className="absolute bottom-2 left-2 rounded bg-background/80 px-1.5 py-px text-3xs text-muted-foreground">
                           演示占位图（该任务未返回真实产物地址）
                         </span>
                       </>
@@ -863,23 +863,23 @@ export default function CreateWorkbench({
                   ) : (
                     <div className="max-w-[80%] space-y-2 text-center">
                       <AlertTriangle className="mx-auto h-5 w-5 text-destructive" />
-                      <div className="text-[11px] text-destructive">{preview.error ?? (preview.status === 'cancelled' ? '已取消' : '生成失败')}</div>
+                      <div className="text-2xs text-destructive">{preview.error ?? (preview.status === 'cancelled' ? '已取消' : '生成失败')}</div>
                     </div>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-t border-border p-2">
-                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{preview.label}</span>
+                  <span className="min-w-0 flex-1 truncate text-2xs font-medium">{preview.label}</span>
                   <Badge
                     variant="outline"
                     className={cn(
-                      'font-mono text-[9px]',
+                      'font-mono text-4xs',
                       preview.status === 'succeeded' && 'border-success/40 text-success',
                       preview.status === 'failed' && 'border-destructive/40 text-destructive',
                     )}
                   >
                     {preview.status}
                   </Badge>
-                  <span className="font-mono text-[9px] text-muted-foreground">{preview.cost_estimate ?? '—'}</span>
+                  <span className="font-mono text-4xs text-muted-foreground">{preview.cost_estimate ?? '—'}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 border-t border-border p-2">
                   {/* 复用：两种意图分开（沿用全部参数 / 仅用提示词），不合成一个按钮 */}
@@ -887,7 +887,7 @@ export default function CreateWorkbench({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-6 gap-1 text-[10px]"
+                    className="h-6 gap-1 text-3xs"
                     title="把该任务的提示词与参数套回左侧输入区"
                     onClick={() => reuse(preview, 'all')}
                   >
@@ -898,7 +898,7 @@ export default function CreateWorkbench({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="h-6 gap-1 text-[10px]"
+                    className="h-6 gap-1 text-3xs"
                     title="只把提示词套回左侧，保留当前参数"
                     onClick={() => reuse(preview, 'prompt-only')}
                   >
@@ -908,7 +908,7 @@ export default function CreateWorkbench({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="h-6 text-[10px]"
+                    className="h-6 text-3xs"
                     onClick={() => setDetailJob(preview)}
                   >
                     详情
@@ -919,7 +919,7 @@ export default function CreateWorkbench({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-6 gap-1 text-[10px]"
+                      className="h-6 gap-1 text-3xs"
                       disabled={busyId === preview.id}
                       onClick={() => setCancelTarget(preview)}
                     >
@@ -932,7 +932,7 @@ export default function CreateWorkbench({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-6 gap-1 text-[10px]"
+                      className="h-6 gap-1 text-3xs"
                       disabled={busyId === preview.id}
                       title="沿用原参数重新排队"
                       onClick={() => void doRetry(preview)}
@@ -946,7 +946,7 @@ export default function CreateWorkbench({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="ml-auto h-6 gap-1 text-[10px]"
+                      className="ml-auto h-6 gap-1 text-3xs"
                       disabled={!previewUrl}
                       title={previewUrl ? '打开产物地址' : '该任务未返回真实产物地址'}
                       onClick={() => {
@@ -979,15 +979,15 @@ export default function CreateWorkbench({
                     ) : job.status === 'succeeded' ? (
                       <JobThumb job={job} />
                     ) : (
-                      <span className="text-[10px] text-muted-foreground">{job.status === 'cancelled' ? '已取消' : '失败'}</span>
+                      <span className="text-3xs text-muted-foreground">{job.status === 'cancelled' ? '已取消' : '失败'}</span>
                     )}
                   </div>
-                  <div className="truncate px-1.5 py-1 text-[10px] text-muted-foreground">{job.label}</div>
+                  <div className="truncate px-1.5 py-1 text-3xs text-muted-foreground">{job.label}</div>
                 </button>
               ))}
             </div>
 
-            <p className="flex items-start gap-1 text-[10px] leading-relaxed text-muted-foreground">
+            <p className="flex items-start gap-1 text-3xs leading-relaxed text-muted-foreground">
               <Info className="mt-px h-3 w-3 shrink-0" />
               结果历史与任务中心同源；「沿用参数」读的是该任务落库的提交负载。
               产物预览需要上游结果写回链路（当前缺失，已登记 BACKLOG），因此未返回地址时以占位图如实标注。
@@ -1003,10 +1003,10 @@ export default function CreateWorkbench({
             <>
               <SheetHeader>
                 <SheetTitle className="pr-6 text-sm">{detailJob.label}</SheetTitle>
-                <SheetDescription className="font-mono text-[10px]">任务 {detailJob.id}</SheetDescription>
+                <SheetDescription className="font-mono text-3xs">任务 {detailJob.id}</SheetDescription>
               </SheetHeader>
               <div className="mt-4 space-y-4 px-4 pb-6">
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="grid grid-cols-2 gap-2 text-2xs">
                   <DetailRow label="状态" value={detailJob.status} />
                   <DetailRow label="类型" value={detailJob.kind} />
                   <DetailRow label="费用" value={detailJob.cost_estimate ?? '—'} />
@@ -1018,19 +1018,19 @@ export default function CreateWorkbench({
                 </div>
 
                 {detailJob.error && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-[11px] text-destructive">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-2xs text-destructive">
                     {detailJob.error}
                   </div>
                 )}
 
                 {detailResultUrl && (
                   <div className="space-y-1">
-                    <div className="text-[11px] font-medium">产物地址</div>
+                    <div className="text-2xs font-medium">产物地址</div>
                     <a
                       href={detailResultUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block truncate font-mono text-[10px] text-primary underline"
+                      className="block truncate font-mono text-3xs text-primary underline"
                     >
                       {detailResultUrl}
                     </a>
@@ -1038,13 +1038,13 @@ export default function CreateWorkbench({
                 )}
 
                 <div className="space-y-1">
-                  <div className="text-[11px] font-medium">提交时的参数快照</div>
+                  <div className="text-2xs font-medium">提交时的参数快照</div>
                   {Object.keys(detailPayload.parameters ?? {}).length === 0 ? (
-                    <p className="text-[10px] text-muted-foreground">该任务没有记录参数快照。</p>
+                    <p className="text-3xs text-muted-foreground">该任务没有记录参数快照。</p>
                   ) : (
                     <div className="overflow-hidden rounded-lg border border-border">
                       {Object.entries(detailPayload.parameters ?? {}).map(([key, value]) => (
-                        <div key={key} className="flex gap-2 border-b border-border px-2 py-1 text-[10px] last:border-b-0">
+                        <div key={key} className="flex gap-2 border-b border-border px-2 py-1 text-3xs last:border-b-0">
                           <span className="w-24 shrink-0 truncate font-mono text-muted-foreground">{key}</span>
                           <span className="min-w-0 flex-1 break-words">{value}</span>
                         </div>
@@ -1054,25 +1054,25 @@ export default function CreateWorkbench({
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                  <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => reuse(detailJob, 'all')}>
+                  <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-2xs" onClick={() => reuse(detailJob, 'all')}>
                     <Wand2 className="h-3 w-3" /> 沿用全部参数
                   </Button>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => reuse(detailJob, 'prompt-only')}>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-2xs" onClick={() => reuse(detailJob, 'prompt-only')}>
                     仅用提示词
                   </Button>
                   {canCancel(detailJob.status) && (
-                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setCancelTarget(detailJob)}>
+                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-2xs" onClick={() => setCancelTarget(detailJob)}>
                       <Ban className="h-3 w-3" /> 取消
                     </Button>
                   )}
                   {canRetry(detailJob.status) && (
-                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => void doRetry(detailJob)}>
+                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-2xs" onClick={() => void doRetry(detailJob)}>
                       <RotateCw className="h-3 w-3" /> 重试
                     </Button>
                   )}
                 </div>
 
-                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                <p className="text-3xs leading-relaxed text-muted-foreground">
                   「沿用全部参数」复现同一组设置；「仅用提示词」保留当前参数只换提示词 ——
                   两者是不同意图，故不做成一个按钮。种子若上游未返回则不在快照中。
                 </p>
@@ -1091,7 +1091,7 @@ export default function CreateWorkbench({
                 <AlertDialogTitle>{cancelPlan(cancelTarget.status)?.title}</AlertDialogTitle>
                 <AlertDialogDescription className="space-y-2">
                   <span className="block">{cancelPlan(cancelTarget.status)?.description}</span>
-                  <span className="block font-mono text-[11px]">{cancelPlan(cancelTarget.status)?.billNote}</span>
+                  <span className="block font-mono text-2xs">{cancelPlan(cancelTarget.status)?.billNote}</span>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -1141,7 +1141,7 @@ function JobThumb({ job }: { job: ServerTask }) {
     return (
       <span className="flex flex-col items-center gap-1 text-muted-foreground">
         <Icon className="h-4 w-4" />
-        <span className="text-[9px]">{kind === 'video' ? '视频' : '音频'}</span>
+        <span className="text-4xs">{kind === 'video' ? '视频' : '音频'}</span>
       </span>
     );
   }

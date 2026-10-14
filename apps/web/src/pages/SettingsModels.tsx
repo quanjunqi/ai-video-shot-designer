@@ -54,7 +54,7 @@ function BillingLine({ m }: { m: CatalogModel }) {
     const c = m.capability as TextCapability | undefined;
     const b = c?.billing;
     return (
-      <span className="font-mono text-[11px] text-primary">
+      <span className="font-mono text-2xs text-primary">
         {b && b.inputPerMTok > 0 ? `输入 ${b.inputPerMTok}、输出 ${b.outputPerMTok} 积分/百万Token` : '计费待校准'}
         {b && b.minCharge > 0 ? ` · 每次至少 ${b.minCharge} 积分` : ''}
       </span>
@@ -63,14 +63,14 @@ function BillingLine({ m }: { m: CatalogModel }) {
   if (m.type === 'image') {
     const c = m.capability as ImageCapability | undefined;
     return (
-      <span className="font-mono text-[11px] text-primary">
+      <span className="font-mono text-2xs text-primary">
         {c?.billing && c.billing.perImage > 0 ? `${c.billing.perImage} 积分/张` : '计费待校准'}
       </span>
     );
   }
   const c = m.capability as VideoCapability | undefined;
   return (
-    <span className="font-mono text-[11px] text-primary">
+    <span className="font-mono text-2xs text-primary">
       {c?.billing && c.billing.perSecondStart > 0 ? `${c.billing.perSecondStart} 积分/秒起` : '计费待校准'}
     </span>
   );
@@ -82,11 +82,11 @@ function CapabilityTags({ m }: { m: CatalogModel }) {
     const c = m.capability as TextCapability;
     return (
       <>
-        {c.isReasoning && <Badge variant="outline" className="font-mono text-[9px] text-amber-500 dark:text-amber-400">推理模型</Badge>}
-        {c.streaming && <Badge variant="outline" className="font-mono text-[9px]">支持流式输出</Badge>}
-        {c.systemPrompt && <Badge variant="outline" className="font-mono text-[9px]">支持系统提示词</Badge>}
-        <Badge variant="outline" className="font-mono text-[9px]">Max Tokens {c.maxTokens}</Badge>
-        <Badge variant="outline" className="font-mono text-[9px]">Temperature {c.temperature}</Badge>
+        {c.isReasoning && <Badge variant="outline" className="font-mono text-4xs text-amber-500 dark:text-amber-400">推理模型</Badge>}
+        {c.streaming && <Badge variant="outline" className="font-mono text-4xs">支持流式输出</Badge>}
+        {c.systemPrompt && <Badge variant="outline" className="font-mono text-4xs">支持系统提示词</Badge>}
+        <Badge variant="outline" className="font-mono text-4xs">Max Tokens {c.maxTokens}</Badge>
+        <Badge variant="outline" className="font-mono text-4xs">Temperature {c.temperature}</Badge>
       </>
     );
   }
@@ -94,9 +94,9 @@ function CapabilityTags({ m }: { m: CatalogModel }) {
     const c = m.capability as ImageCapability;
     return (
       <>
-        {c.refImage && <Badge variant="outline" className="font-mono text-[9px]">支持参考图生图</Badge>}
-        <Badge variant="outline" className="font-mono text-[9px]">{c.aspectRatioCount}种比例</Badge>
-        <Badge variant="outline" className="font-mono text-[9px]">{c.qualityTiers}档清晰度</Badge>
+        {c.refImage && <Badge variant="outline" className="font-mono text-4xs">支持参考图生图</Badge>}
+        <Badge variant="outline" className="font-mono text-4xs">{c.aspectRatioCount}种比例</Badge>
+        <Badge variant="outline" className="font-mono text-4xs">{c.qualityTiers}档清晰度</Badge>
       </>
     );
   }
@@ -104,12 +104,12 @@ function CapabilityTags({ m }: { m: CatalogModel }) {
   return (
     <>
       {c.modes.map((mode) => (
-        <Badge key={mode} variant="outline" className="font-mono text-[9px]">{MODE_LABEL[mode]}</Badge>
+        <Badge key={mode} variant="outline" className="font-mono text-4xs">{MODE_LABEL[mode]}</Badge>
       ))}
-      <Badge variant="outline" className="font-mono text-[9px]">最长 {c.maxDurationSeconds}s</Badge>
-      {c.maxRefImages > 0 && <Badge variant="outline" className="font-mono text-[9px]">最多 {c.maxRefImages} 张参考图</Badge>}
-      {c.maxRefAudios > 0 && <Badge variant="outline" className="font-mono text-[9px]">最多 {c.maxRefAudios} 条音频</Badge>}
-      <Badge variant="outline" className="font-mono text-[9px]">{c.qualityTiers}档清晰度</Badge>
+      <Badge variant="outline" className="font-mono text-4xs">最长 {c.maxDurationSeconds}s</Badge>
+      {c.maxRefImages > 0 && <Badge variant="outline" className="font-mono text-4xs">最多 {c.maxRefImages} 张参考图</Badge>}
+      {c.maxRefAudios > 0 && <Badge variant="outline" className="font-mono text-4xs">最多 {c.maxRefAudios} 条音频</Badge>}
+      <Badge variant="outline" className="font-mono text-4xs">{c.qualityTiers}档清晰度</Badge>
     </>
   );
 }
@@ -311,8 +311,8 @@ export default function SettingsModelsPage() {
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold">模型配置</h1>
-        {catalogSource === 'server' && <Badge className="font-mono text-[9px] bg-success/15 text-success">服务端目录</Badge>}
-        {catalogSource === 'offline-fallback' && <Badge variant="outline" className="font-mono text-[9px] text-amber-500">服务端不可达 · 本地缓存</Badge>}
+        {catalogSource === 'server' && <Badge className="font-mono text-4xs bg-success/15 text-success">服务端目录</Badge>}
+        {catalogSource === 'offline-fallback' && <Badge variant="outline" className="font-mono text-4xs text-amber-500">服务端不可达 · 本地缓存</Badge>}
         <Button type="button" size="sm" className="ml-auto" onClick={openAdd}>
           <Plus className="h-3.5 w-3.5" />
           添加模型
@@ -334,7 +334,7 @@ export default function SettingsModelsPage() {
             {t.label}模型
           </button>
         ))}
-        <span className="ml-auto hidden pr-2 text-[10px] text-muted-foreground sm:block">
+        <span className="ml-auto hidden pr-2 text-3xs text-muted-foreground sm:block">
           {TYPE_TABS.find((t) => t.key === tab)?.desc} · 按起步单价从低到高排列
         </span>
       </div>
@@ -345,7 +345,7 @@ export default function SettingsModelsPage() {
           <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="accent-primary" />
           全选
         </label>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-2xs text-muted-foreground">
           {selected.length > 0 ? `已选 ${selected.length} 个模型` : '支持多选后批量删除，也可对单个模型单独删除'}
         </span>
         {selected.length > 0 && (
@@ -359,7 +359,7 @@ export default function SettingsModelsPage() {
       {/* 模型卡片列表 */}
       <div className="space-y-2">
         {candidateGroups.size > 0 && (
-          <p className="px-1 text-[11px] text-muted-foreground">
+          <p className="px-1 text-2xs text-muted-foreground">
             本页有 {candidateGroups.size} 组「同款模型多渠道」—— 徽标里能看到各渠道的优先级与启用状态（停用的候选不会被路由到）。
           </p>
         )}
@@ -370,29 +370,29 @@ export default function SettingsModelsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggleSelect(m.id)} className="accent-primary" title="选择" />
               <span className="text-sm font-medium">{m.name}</span>
-              <Badge variant="secondary" className="font-mono text-[9px]">
+              <Badge variant="secondary" className="font-mono text-4xs">
                 <Layers className="mr-1 inline h-2.5 w-2.5" />
                 {channelName(channels, m.channelId)} · {channelKind(channels, m.channelId) === 'official' ? '官方' : channelKind(channels, m.channelId) === 'aggregator' ? '聚合' : '本地'}
               </Badge>
               {peers && peers.length > 1 && (
-                <Badge variant="outline" className="font-mono text-[9px]" title={candidateTooltip(peers)}>
+                <Badge variant="outline" className="font-mono text-4xs" title={candidateTooltip(peers)}>
                   <Layers className="mr-1 inline h-2.5 w-2.5" />
                   {candidateSummary(peers)}
                 </Badge>
               )}
               {m.logicalModelId && (
-                <Badge variant="secondary" className="font-mono text-[9px]" title="对外能力（逻辑模型）：同一 id 的多行即候选渠道，按优先级路由">
+                <Badge variant="secondary" className="font-mono text-4xs" title="对外能力（逻辑模型）：同一 id 的多行即候选渠道，按优先级路由">
                   对外能力：{m.logicalModelId}
                 </Badge>
               )}
               <BillingLine m={m} />
-              <Badge className={cn('ml-auto font-mono text-[9px]', m.status === 'enabled' ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground')}>
+              <Badge className={cn('ml-auto font-mono text-4xs', m.status === 'enabled' ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground')}>
                 {m.status === 'enabled' ? '已启用' : '已停用'}
               </Badge>
               <div className="flex items-center gap-1">
                 <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-primary" onClick={() => openTest(m)} title="测试调用：真实发请求验证模型/渠道/协议">
                   <Play className="h-3.5 w-3.5" />
-                  <span className="ml-1 text-[11px]">测试</span>
+                  <span className="ml-1 text-2xs">测试</span>
                 </Button>
                 <Button type="button" size="sm" variant="ghost" className="h-7 w-7" onClick={() => openEdit(m)} title="编辑能力">
                   <Pencil className="h-3.5 w-3.5" />
@@ -408,20 +408,20 @@ export default function SettingsModelsPage() {
                 </Button>
               </div>
             </div>
-            {m.note && <p className="mt-1.5 text-[11px] text-muted-foreground">{m.note}</p>}
+            {m.note && <p className="mt-1.5 text-2xs text-muted-foreground">{m.note}</p>}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {m.requestPath && (
-                <Badge variant="outline" className="font-mono text-[9px] text-muted-foreground">
+                <Badge variant="outline" className="font-mono text-4xs text-muted-foreground">
                   端点 {m.method} {m.requestPath}
                 </Badge>
               )}
               {m.providerModel && m.providerModel !== m.name && (
-                <Badge variant="outline" className="font-mono text-[9px] text-muted-foreground">
+                <Badge variant="outline" className="font-mono text-4xs text-muted-foreground">
                   ID {m.providerModel}
                 </Badge>
               )}
               {(m.params ?? []).filter((p) => p.key).length > 0 && (
-                <Badge variant="outline" className="font-mono text-[9px] text-muted-foreground">
+                <Badge variant="outline" className="font-mono text-4xs text-muted-foreground">
                   {m.params.filter((p) => p.key).length} 个参数
                 </Badge>
               )}
@@ -437,7 +437,7 @@ export default function SettingsModelsPage() {
         )}
       </div>
 
-      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-2xs text-muted-foreground">
         <Boxes className="h-3.5 w-3.5" />
         模型目录 = 平台默认共享（渠道/能力/计费），production 服务版本化留档；已提交任务固定模型 / 参数版本，未知模型保持不可执行。
       </p>
@@ -457,7 +457,7 @@ export default function SettingsModelsPage() {
                     type="button"
                     onClick={() => setTab(t.key)}
                     className={cn(
-                      'flex-1 rounded-md px-2 py-1 text-[11px] transition-colors',
+                      'flex-1 rounded-md px-2 py-1 text-2xs transition-colors',
                       tab === t.key ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground',
                     )}
                   >
@@ -483,7 +483,7 @@ export default function SettingsModelsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground">{templates.find((x) => x.id === form.protocolTemplateId)?.desc ?? '选择协议模板：自动带出端点、请求参数与响应解析；未选择则使用模型级字段'}{form.protocolTemplateId ? '；换模板会保留同名覆盖参数' : ''}</p>
+              <p className="text-3xs text-muted-foreground">{templates.find((x) => x.id === form.protocolTemplateId)?.desc ?? '选择协议模板：自动带出端点、请求参数与响应解析；未选择则使用模型级字段'}{form.protocolTemplateId ? '；换模板会保留同名覆盖参数' : ''}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="min-w-0 space-y-1.5">
@@ -541,22 +541,22 @@ export default function SettingsModelsPage() {
               className="rounded-lg border border-border bg-muted/30"
             >
               <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2">
-                <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className="flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">
                   {showAdvanced ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                   <span className="truncate">高级配置 · 协议预置（{templates.find((x) => x.id === form.protocolTemplateId)?.label ?? '未关联'}），一般无需修改</span>
                 </span>
-                <span className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] text-muted-foreground">{showAdvanced ? '收起' : '展开'}</span>
+                <span className="shrink-0 rounded border px-1.5 py-0.5 text-4xs text-muted-foreground">{showAdvanced ? '收起' : '展开'}</span>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 px-2.5 pb-2.5">
             <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-2.5">
-              <p className="text-[11px] font-medium text-muted-foreground">请求配置（渠道 BaseURL 之上）</p>
+              <p className="text-2xs font-medium text-muted-foreground">请求配置（渠道 BaseURL 之上）</p>
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <div className="min-w-0 space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">请求路径（端点）</Label>
+                  <Label className="text-3xs text-muted-foreground">请求路径（端点）</Label>
                   <Input value={form.requestPath} onChange={(e) => setForm({ ...form, requestPath: e.target.value })} placeholder="如：/video_generation（留空=跟随协议模板路径）" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">方式</Label>
+                  <Label className="text-3xs text-muted-foreground">方式</Label>
                   <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v as 'POST' | 'GET' })}>
                     <SelectTrigger className="h-9 w-24">
                       <SelectValue />
@@ -568,13 +568,13 @@ export default function SettingsModelsPage() {
                   </Select>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">执行时请求 = 渠道 BaseURL + 模型请求路径；不同厂商同渠道（如聚合网关）可各自指定端点。</p>
+              <p className="text-3xs text-muted-foreground">执行时请求 = 渠道 BaseURL + 模型请求路径；不同厂商同渠道（如聚合网关）可各自指定端点。</p>
             </div>
 
             {/* 能力字段（按类型） */}
             {tab === 'text' && (
               <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-2.5">
-                <div className="flex flex-wrap gap-3 text-[11px]">
+                <div className="flex flex-wrap gap-3 text-2xs">
                   {(['isReasoning', 'streaming', 'systemPrompt'] as const).map((k) => (
                     <label key={k} className="flex cursor-pointer items-center gap-1">
                       <input type="checkbox" checked={form.text[k]} onChange={(e) => setForm({ ...form, text: { ...form.text, [k]: e.target.checked } })} className="accent-primary" />
@@ -584,19 +584,19 @@ export default function SettingsModelsPage() {
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="min-w-0 space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Max Tokens</Label>
+                    <Label className="text-3xs text-muted-foreground">Max Tokens</Label>
                     <Input type="number" value={form.text.maxTokens} onChange={(e) => setForm({ ...form, text: { ...form.text, maxTokens: Number(e.target.value) || 0 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Temperature</Label>
+                    <Label className="text-3xs text-muted-foreground">Temperature</Label>
                     <Input type="number" step="0.1" value={form.text.temperature} onChange={(e) => setForm({ ...form, text: { ...form.text, temperature: Number(e.target.value) || 0 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">输入 积分/百万Token</Label>
+                    <Label className="text-3xs text-muted-foreground">输入 积分/百万Token</Label>
                     <Input type="number" step="0.01" value={form.text.billing.inputPerMTok} onChange={(e) => setForm({ ...form, text: { ...form.text, billing: { ...form.text.billing, inputPerMTok: Number(e.target.value) || 0 } } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">输出 积分/百万Token</Label>
+                    <Label className="text-3xs text-muted-foreground">输出 积分/百万Token</Label>
                     <Input type="number" step="0.01" value={form.text.billing.outputPerMTok} onChange={(e) => setForm({ ...form, text: { ...form.text, billing: { ...form.text.billing, outputPerMTok: Number(e.target.value) || 0 } } })} />
                   </div>
                 </div>
@@ -604,21 +604,21 @@ export default function SettingsModelsPage() {
             )}
             {tab === 'image' && (
               <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-2.5">
-                <label className="flex cursor-pointer items-center gap-1 text-[11px]">
+                <label className="flex cursor-pointer items-center gap-1 text-2xs">
                   <input type="checkbox" checked={form.image.refImage} onChange={(e) => setForm({ ...form, image: { ...form.image, refImage: e.target.checked } })} className="accent-primary" />
                   支持参考图生图
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="min-w-0 space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">比例数量</Label>
+                    <Label className="text-3xs text-muted-foreground">比例数量</Label>
                     <Input type="number" value={form.image.aspectRatioCount} onChange={(e) => setForm({ ...form, image: { ...form.image, aspectRatioCount: Number(e.target.value) || 1 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">清晰度档位</Label>
+                    <Label className="text-3xs text-muted-foreground">清晰度档位</Label>
                     <Input type="number" value={form.image.qualityTiers} onChange={(e) => setForm({ ...form, image: { ...form.image, qualityTiers: Number(e.target.value) || 1 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">积分/张</Label>
+                    <Label className="text-3xs text-muted-foreground">积分/张</Label>
                     <Input type="number" step="0.5" value={form.image.billing.perImage} onChange={(e) => setForm({ ...form, image: { ...form.image, billing: { ...form.image.billing, perImage: Number(e.target.value) || 0 } } })} />
                   </div>
                 </div>
@@ -627,7 +627,7 @@ export default function SettingsModelsPage() {
             {tab === 'video' && (
               <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-2.5">
                 {/* 能力字段 video 开头占位 */}
-                <div className="flex flex-wrap gap-2 text-[11px]">
+                <div className="flex flex-wrap gap-2 text-2xs">
                   {(['t2v', 'i2v', 'first_last_frame', 'multi_ref', 'audio_ref'] as const).map((mode) => (
                     <label key={mode} className="flex cursor-pointer items-center gap-1">
                       <input
@@ -650,19 +650,19 @@ export default function SettingsModelsPage() {
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="min-w-0 space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">最短秒数</Label>
+                    <Label className="text-3xs text-muted-foreground">最短秒数</Label>
                     <Input type="number" value={form.video.minDurationSeconds} onChange={(e) => setForm({ ...form, video: { ...form.video, minDurationSeconds: Number(e.target.value) || 1 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">最长秒数（容量）</Label>
+                    <Label className="text-3xs text-muted-foreground">最长秒数（容量）</Label>
                     <Input type="number" value={form.video.maxDurationSeconds} onChange={(e) => setForm({ ...form, video: { ...form.video, maxDurationSeconds: Number(e.target.value) || 1 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">最多参考图</Label>
+                    <Label className="text-3xs text-muted-foreground">最多参考图</Label>
                     <Input type="number" value={form.video.maxRefImages} onChange={(e) => setForm({ ...form, video: { ...form.video, maxRefImages: Number(e.target.value) || 0 } })} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">积分/秒起</Label>
+                    <Label className="text-3xs text-muted-foreground">积分/秒起</Label>
                     <Input type="number" step="0.5" value={form.video.billing.perSecondStart} onChange={(e) => setForm({ ...form, video: { ...form.video, billing: { ...form.video.billing, perSecondStart: Number(e.target.value) || 0 } } })} />
                   </div>
                 </div>
@@ -719,7 +719,7 @@ export default function SettingsModelsPage() {
               providerModel={form.providerModel.trim() || form.name.trim()}
             />
             {form.protocolTemplateId && (
-              <p className="mt-2 text-[10px] text-muted-foreground">
+              <p className="mt-2 text-3xs text-muted-foreground">
                 协议模板：{templates.find((x) => x.id === form.protocolTemplateId)?.label ?? '未关联'}（基线参数 + 本模型覆盖合并渲染；
                 请求路径未单独填写时跟随协议）
               </p>
@@ -739,7 +739,7 @@ export default function SettingsModelsPage() {
           </DialogHeader>
           <div className="max-h-[68vh] space-y-3 overflow-y-auto pr-1">
             {testModel && (
-              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-2xs leading-relaxed text-muted-foreground">
                 渠道 <span className="font-mono text-foreground">{channelName(channels, testModel.channelId)}</span>
                 <span className="mx-1.5 text-muted-foreground/60">·</span>
                 协议 <span className="font-mono text-foreground">{templates.find((t) => t.id === testModel.protocolTemplateId)?.label ?? '未关联'}</span>
@@ -756,7 +756,7 @@ export default function SettingsModelsPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">运行时字段（role=runtime 的业务值：messages 等）</Label>
-                <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-muted-foreground" onClick={() => setTestResult(null)} title="清空上次结果">
+                <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-2xs text-muted-foreground" onClick={() => setTestResult(null)} title="清空上次结果">
                   清空结果
                 </Button>
               </div>
@@ -764,9 +764,9 @@ export default function SettingsModelsPage() {
                 value={testRuntime}
                 onChange={(e) => setTestRuntime(e.target.value)}
                 spellCheck={false}
-                className="h-28 w-full resize-none rounded-lg border border-border bg-card p-2.5 font-mono text-[11px] leading-relaxed text-foreground outline-none focus:border-primary/60"
+                className="h-28 w-full resize-none rounded-lg border border-border bg-card p-2.5 font-mono text-2xs leading-relaxed text-foreground outline-none focus:border-primary/60"
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-3xs text-muted-foreground">
                 该模型引用协议中 role=model 字段自动注入 provider ID、role=static 字段使用模板默认值；这里只需填写本次业务内容（如对话消息）。
               </p>
             </div>
@@ -779,19 +779,19 @@ export default function SettingsModelsPage() {
                     <XCircle className="h-3.5 w-3.5 text-destructive" />
                   )}
                   <span className="text-xs font-medium">{testResult.status >= 200 && testResult.status < 300 ? '调用成功' : '调用失败'}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground">HTTP {testResult.status || '-'} · {testResult.duration}</span>
-                  {testResult.error && <span className="w-full break-all font-mono text-[10px] text-destructive">{decodeEscapedUnicode(testResult.error)}</span>}
+                  <span className="font-mono text-3xs text-muted-foreground">HTTP {testResult.status || '-'} · {testResult.duration}</span>
+                  {testResult.error && <span className="w-full break-all font-mono text-3xs text-destructive">{decodeEscapedUnicode(testResult.error)}</span>}
                 </div>
                 {testResult.extracted && Object.keys(testResult.extracted).length > 0 && (
                   <div className="rounded-md bg-card p-2.5">
-                    <p className="mb-1.5 text-[10px] font-medium text-muted-foreground">响应映射提取（按模型响应解析规则）</p>
-                    <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all font-mono text-[10px] leading-relaxed text-foreground">{JSON.stringify(testResult.extracted, null, 2)}</pre>
+                    <p className="mb-1.5 text-3xs font-medium text-muted-foreground">响应映射提取（按模型响应解析规则）</p>
+                    <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all font-mono text-3xs leading-relaxed text-foreground">{JSON.stringify(testResult.extracted, null, 2)}</pre>
                   </div>
                 )}
                 {testResult.rawBody && (
                   <details className="group">
-                    <summary className="cursor-pointer text-[10px] text-muted-foreground">原始响应体</summary>
-                    <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-md bg-card p-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">{decodeEscapedUnicode(testResult.rawBody)}</pre>
+                    <summary className="cursor-pointer text-3xs text-muted-foreground">原始响应体</summary>
+                    <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-md bg-card p-2.5 font-mono text-3xs leading-relaxed text-muted-foreground">{decodeEscapedUnicode(testResult.rawBody)}</pre>
                   </details>
                 )}
               </div>

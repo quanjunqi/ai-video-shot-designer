@@ -48,7 +48,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
       >
         <Settings2 className="h-4 w-4 shrink-0 text-primary" />
         <span className="whitespace-nowrap text-sm font-semibold">项目设置</span>
-        <span className="ml-auto hidden truncate text-[11px] text-muted-foreground xl:inline">
+        <span className="ml-auto hidden truncate text-2xs text-muted-foreground xl:inline">
           {currentStyle?.name ?? '未选风格'} · {project.aspectRatio}
         </span>
         <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
@@ -65,7 +65,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
           <div className="space-y-3 border-t border-border p-4">
             {/* 视觉风格：全宽突出卡片 */}
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-              <Label className="text-[10px] font-medium uppercase tracking-wider text-primary">视觉风格 · 全局可切换</Label>
+              <Label className="text-3xs font-medium uppercase tracking-wider text-primary">视觉风格 · 全局可切换</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -77,14 +77,14 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
                   <img src={currentStyle.cover} alt="" className="h-7 w-10 shrink-0 rounded object-cover" />
                 )}
                 <span className="truncate text-sm font-medium">{currentStyle?.name ?? '未选择风格'}</span>
-                <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">v{currentStyle?.version}</span>
+                <span className="ml-auto shrink-0 font-mono text-3xs text-muted-foreground">v{currentStyle?.version}</span>
               </Button>
             </div>
 
             {/* 画面比例 + 默认文本模型 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0 space-y-1.5">
-                <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">画面比例</Label>
+                <Label className="text-3xs font-medium uppercase tracking-wider text-muted-foreground">画面比例</Label>
                 <Select value={project.aspectRatio} onValueChange={(v) => updateProject(projectId, { aspectRatio: v as AspectRatio })}>
                   <SelectTrigger className="h-9">
                     <SelectValue />
@@ -97,7 +97,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">默认文本模型</Label>
+                <Label className="text-3xs font-medium uppercase tracking-wider text-muted-foreground">默认文本模型</Label>
                 <Select value={(project.defaultTextModel || textModelOptions[0]?.name) ?? ''} onValueChange={(v) => updateProject(projectId, { defaultTextModel: v })}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="未配置" />
@@ -114,7 +114,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
             {/* 图片模型 + 视频模型 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0 space-y-1.5">
-                <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">默认图片模型</Label>
+                <Label className="text-3xs font-medium uppercase tracking-wider text-muted-foreground">默认图片模型</Label>
                 <Select value={project.defaultImageModel ?? ''} onValueChange={(v) => updateProject(projectId, { defaultImageModel: v })}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="未配置" />
@@ -127,7 +127,7 @@ export default function ProjectParams({ projectId }: { projectId: string }) {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">默认视频模型</Label>
+                <Label className="text-3xs font-medium uppercase tracking-wider text-muted-foreground">默认视频模型</Label>
                 <Select value={project.defaultVideoModel ?? ''} onValueChange={(v) => updateProject(projectId, { defaultVideoModel: v })}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="未配置" />

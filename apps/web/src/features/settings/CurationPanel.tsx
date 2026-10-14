@@ -137,8 +137,8 @@ export default function CurationPanel({
 
         {!loading && !loadError && (
           <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
-            <div className="flex items-center gap-2 pb-1 text-[11px] text-muted-foreground">
-              <Badge variant="secondary" className="font-mono text-[9px]">
+            <div className="flex items-center gap-2 pb-1 text-2xs text-muted-foreground">
+              <Badge variant="secondary" className="font-mono text-4xs">
                 未策展 {uncurated.length}
               </Badge>
               <span>共 {rows.length} 条上游供给</span>
@@ -148,22 +148,22 @@ export default function CurationPanel({
               <div key={row.item.providerModel} className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2.5">
                 <span className="font-mono text-xs">{row.item.providerModel}</span>
                 {row.item.displayName && <span className="text-xs text-muted-foreground">{row.item.displayName}</span>}
-                <Badge variant="outline" className="font-mono text-[9px]">
+                <Badge variant="outline" className="font-mono text-4xs">
                   上游标签 {row.item.upstreamType || '—'}
                 </Badge>
                 {row.item.pricingAmount != null && (
-                  <Badge variant="outline" className="font-mono text-[9px]">
+                  <Badge variant="outline" className="font-mono text-4xs">
                     {row.item.pricingAmount} {row.item.pricingUnit}
                   </Badge>
                 )}
                 {row.missing && (
-                  <Badge className="bg-destructive/15 font-mono text-[9px] text-destructive">上游已下架</Badge>
+                  <Badge className="bg-destructive/15 font-mono text-4xs text-destructive">上游已下架</Badge>
                 )}
                 <Badge
                   className={
                     row.curated
-                      ? 'ml-auto bg-success/15 font-mono text-[9px] text-success'
-                      : 'ml-auto bg-muted font-mono text-[9px] text-muted-foreground'
+                      ? 'ml-auto bg-success/15 font-mono text-4xs text-success'
+                      : 'ml-auto bg-muted font-mono text-4xs text-muted-foreground'
                   }
                 >
                   {row.curated ? '已策展' : '未策展'}
@@ -172,7 +172,7 @@ export default function CurationPanel({
                   type="button"
                   size="sm"
                   variant={row.curated ? 'ghost' : 'default'}
-                  className="h-7 px-2 text-[11px]"
+                  className="h-7 px-2 text-2xs"
                   onClick={() => startCurate(row)}
                   title={row.curated ? '它会覆盖目录里同一 (渠道, 上游模型) 的那条' : '把这条上游模型加入产品目录'}
                 >
@@ -213,7 +213,7 @@ export default function CurationPanel({
                     </SelectContent>
                   </Select>
                   {!draft.type && (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-2xs text-muted-foreground">
                       上游标签是「{target?.item.upstreamType || '—'}」，无法判断类型 ⇒ 必须人工选择（猜错会写出能力错误的模型）。
                     </p>
                   )}
@@ -286,7 +286,7 @@ export default function CurationPanel({
                   <Label className="text-xs">说明</Label>
                   <Input value={draft.note ?? ''} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
                 </div>
-                {validationError && <p className="text-[11px] text-destructive">{validationError}</p>}
+                {validationError && <p className="text-2xs text-destructive">{validationError}</p>}
               </div>
             )}
             <DialogFooter>

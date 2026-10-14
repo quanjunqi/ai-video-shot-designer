@@ -50,6 +50,11 @@ function miaodaOutputPlugin(): Plugin {
       const routes = collectRoutePaths(
         path.resolve(import.meta.dirname, 'src'),
       ).map((p) => ({ path: p, file: 'index.html' }));
+      // 展示页被显式开启（VITE_ENABLE_UI_KIT=1）时必须同时进路由枚举：
+      // 否则托管层不会把 /dev/ui-kit 回落到 index.html，产品/设计同学打开就是 404。
+      if (process.env.VITE_ENABLE_UI_KIT === '1' && !routes.some((r) => r.path === '/dev/ui-kit')) {
+        routes.push({ path: '/dev/ui-kit', file: 'index.html' });
+      }
       fs.writeFileSync(
         path.join(output, 'routes.json'),
         JSON.stringify(routes, null, 2) + '\n',
