@@ -27,6 +27,15 @@
 | Temporal UI | 8233 |
 | Keycloak | 8083 |
 
+## 前端构建开关
+
+| 变量 | 取值 | 作用 |
+|---|---|---|
+| `VITE_ENABLE_UI_KIT` | 空（默认）/ `1` | 非开发环境是否注册组件库展示页 `/dev/ui-kit`。开发环境（`npm run dev`）恒可用；开启后该页与 55 个组件 demo 会进入构建产物，建议只在预览/内网环境开启 |
+
+> 组件与设计 token 清单的权威文档：`docs/reference/ui-components.md`（生成物，人看）与
+> `.agents/skills/frontend-coding/ui-components.md`（生成物，agent 看）；改组件后跑 `npm run ui:generate`。
+
 ## 环境变量（按服务分组）
 
 ### 基础设施

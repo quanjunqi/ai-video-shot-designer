@@ -113,9 +113,10 @@ test('生成物完整：组件/token/映射都真的落在两份清单里（防�
   assert.equal(catalog.stats.tokens, catalog.tokens.length);
 });
 
-test('展示页只在 DEV 注册（prod 不打包 ui-kit）', () => {
+test('展示页默认不进 prod：DEV 或 VITE_ENABLE_UI_KIT=1 才注册（且必须动态 import）', () => {
   const src = readFileSync(APP, 'utf8');
   assert.match(src, /import\.meta\.env\.DEV/, 'app.tsx 必须用 import.meta.env.DEV 守卫展示页路由');
+  assert.match(src, /VITE_ENABLE_UI_KIT/, '非开发环境必须靠显式开关 VITE_ENABLE_UI_KIT=1 才能打开展示页');
   assert.match(src, /dev\/ui-kit/);
   assert.match(src, /lazy\(\(\) => import\('@\/pages\/dev\/ui-kit\/UiKitPage'\)\)/, '必须是动态 import，否则会进 prod 主包');
   assert.match(readFileSync(NOTES, 'utf8'), /## button/, '注记文件必须保留逐组件段落格式');

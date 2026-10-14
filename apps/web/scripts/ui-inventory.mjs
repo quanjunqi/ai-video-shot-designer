@@ -136,6 +136,26 @@ function collectTokens() {
 }
 
 // ── 2. 组件抽取 ─────────────────────────────────────────────────────────────
+// 取某个 variant 值对应的 className（支持跨行字符串与 `"a" + "b"` 拼接）。
+// 用途：规范页的 redline 标注（如 button/default 的 min-h-9 → px-4 → rounded-md）与属性表。
+function classOfValue(block, value) {
+  const re = new RegExp('(^|\\n)\\s*[\'"]?' + value + '[\'"]?\\s*:\\s*');
+  const m = re.exec(block);
+  if (!m) return '';
+  // 值前面可能有注释行（如 button 的 `// Solid primary button …`），先剥掉再取字符串
+  let rest = block.slice(m.index + m[0].length).replace(/\/\/[^\n]*\n/g, '\n');
+  const parts = [];
+  const lit = /^\s*(['"])([\s\S]*?)\1\s*(\+)?/;
+  for (let i = 0; i < 8; i++) {
+    const mm = lit.exec(rest);
+    if (!mm) break;
+    parts.push(mm[2]);
+    if (!mm[3]) break;
+    rest = rest.slice(mm[0].length);
+  }
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 function parseCva(src) {
   // 抓最外层 cva( ... )，再解析 variants / defaultVariants
   const out = [];
@@ -176,7 +196,10 @@ function parseCva(src) {
       for (const line of block.split('\n')) {
         const km = line.match(/^\s{6,8}([a-zA-Z0-9_]+)\s*:\s*\{/);
         if (km && d3 === 0) {
-          if (key) out.push({ name: key, values: valuesOf(buf), defaultValue: defaults[key] });
+          if (key) {
+            const values = valuesOf(buf);
+            out.push({ name: key, values, defaultValue: defaults[key], classes: Object.fromEntries(values.map((v) => [v, classOfValue(buf, v)])) });
+          }
           key = km[1];
           buf = '';
           d3 += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
@@ -187,7 +210,10 @@ function parseCva(src) {
           d3 += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
         }
       }
-      if (key) out.push({ name: key, values: valuesOf(buf), defaultValue: defaults[key] });
+      if (key) {
+        const values = valuesOf(buf);
+        out.push({ name: key, values, defaultValue: defaults[key], classes: Object.fromEntries(values.map((v) => [v, classOfValue(buf, v)])) });
+      }
     }
     idx = src.indexOf('cva(', i);
   }
@@ -241,6 +267,62 @@ function collectComponents(allSrcFiles, tokenNames) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// ── 2b. 设计尺度实际用法（从源码统计，供"设计规范"视图用）───────────────────
+// 为什么要它：设计同学问的不只是"有哪些 token"，而是"**实际在用哪几档**"。
+// 光靠 Tailwind 默认值回答不了这个问题——必须从代码里数。另单独统计**离散步长**
+// （如 text-[11px]），它们是要收敛的例外（V-003 禁标题用 text-[Npx]）。
+const SCALE_KINDS = {
+  text: () => /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl)\b/g,
+  radius: () => /\brounded(?:-(sm|md|lg|xl|2xl|3xl|full|none))?\b/g,
+  shadow: () => /\bshadow(?:-(2xs|xs|sm|md|lg|xl|2xl|none))?\b/g,
+  leading: () => /\bleading-(none|tight|snug|normal|relaxed|loose|\d+)\b/g,
+  tracking: () => /\btracking-(tighter|tight|normal|wide|wider|widest)\b/g,
+  spacing: () => /\b(?:gap|gap-x|gap-y|space-x|space-y|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr)-(\d+(?:\.\d+)?)\b/g,
+};
+const ARBITRARY_KINDS = {
+  text: () => /\btext-\[([^\]]+)\]/g,
+  spacing: () => /\b(?:gap|gap-x|gap-y|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr)-\[([^\]]+)\]/g,
+  radius: () => /\brounded-\[([^\]]+)\]/g,
+  shadow: () => /\bshadow-\[([^\]]+)\]/g,
+};
+function collectScales() {
+  const files = walk(SRC, ['.tsx', '.ts']).filter(
+    (f) => !f.startsWith(path.join(SRC, 'pages', 'dev')) && !f.startsWith(path.join(SRC, 'generated')),
+  );
+  const bump = (map, key) => map.set(key, (map.get(key) || 0) + 1);
+  const usage = {};
+  const arbitrary = {};
+  for (const [kind, re] of Object.entries(SCALE_KINDS)) usage[kind] = new Map();
+  for (const [kind, re] of Object.entries(ARBITRARY_KINDS)) arbitrary[kind] = new Map();
+  for (const f of files) {
+    const src = read(f);
+    for (const [kind, mk] of Object.entries(SCALE_KINDS)) {
+      for (const m of src.matchAll(mk())) {
+        const step = m[1] ? `${kind === 'text' ? 'text' : kind}-${m[1]}` : kind;
+        bump(usage[kind], m[1] ?? 'DEFAULT');
+        void step;
+      }
+    }
+    for (const [kind, mk] of Object.entries(ARBITRARY_KINDS)) {
+      for (const m of src.matchAll(mk())) bump(arbitrary[kind], m[1]);
+    }
+  }
+  const toList = (map) => [...map.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
+  return {
+    scannedFiles: files.length,
+    text: toList(usage.text),
+    textArbitrary: toList(arbitrary.text),
+    spacing: toList(usage.spacing),
+    spacingArbitrary: toList(arbitrary.spacing),
+    radius: toList(usage.radius),
+    radiusArbitrary: toList(arbitrary.radius),
+    shadow: toList(usage.shadow),
+    shadowArbitrary: toList(arbitrary.shadow),
+    leading: toList(usage.leading),
+    tracking: toList(usage.tracking),
+  };
+}
+
 // ── 3. 语义注记（人手写）与 demo 覆盖 ───────────────────────────────────────
 function collectNotes() {
   const src = read(NOTES);
@@ -279,6 +361,7 @@ function build() {
   const { tokens, themeMap, themeUtilities, typography } = collectTokens();
   const tokenNames = new Set(tokens.map((t) => t.name));
   const allSrcFiles = walk(SRC, ['.tsx', '.ts']);
+  const scales = collectScales();
   const notes = collectNotes();
   const components = collectComponents(allSrcFiles, tokenNames).map((c) => ({
     ...c,
@@ -311,6 +394,7 @@ function build() {
     unknownNotes,
     themeUtilities,
     typography,
+    scales,
     themeUtilityCount: Object.keys(themeMap).length,
   };
   return { catalog, missingNotes, missingDemos, unknownNotes };
@@ -320,7 +404,7 @@ function build() {
 const TYPE_HEADER = `// ┌─────────────────────────────────────────────────────────────────────────┐
 // │ ${TAG.padEnd(69)} │
 // └─────────────────────────────────────────────────────────────────────────┘
-export type UiVariant = { name: string; values: string[]; defaultValue?: string };
+export type UiVariant = { name: string; values: string[]; defaultValue?: string; classes?: Record<string, string> };
 export type UiNotes = { when: string; avoid: string; antiPatterns: string[]; related: string[] };
 export type UiComponent = {
   name: string; file: string; lines: number; exports: string[]; primitives: string[];
@@ -331,11 +415,18 @@ export type UiComponent = {
 export type UiToken = { name: string; light: string; dark: string | null; group: string; utilities: string[] };
 export type UiThemeUtility = { name: string; value: string; group: string };
 export type UiTypography = { plugin: string | null; prose: { name: string; value: string }[] };
+export type UiScaleStep = { value: string; count: number };
+export type UiScales = {
+  scannedFiles: number; text: UiScaleStep[]; textArbitrary: UiScaleStep[];
+  spacing: UiScaleStep[]; spacingArbitrary: UiScaleStep[];
+  radius: UiScaleStep[]; radiusArbitrary: UiScaleStep[]; shadow: UiScaleStep[]; shadowArbitrary: UiScaleStep[];
+  leading: UiScaleStep[]; tracking: UiScaleStep[];
+};
 export type UiCatalog = {
   stats: { components: number; lines: number; dead: number; tokens: number; withNotes: number; withDemo: number };
   categories: string[]; components: UiComponent[]; tokens: UiToken[];
   missingNotes: string[]; missingDemos: string[]; unknownNotes: string[];
-  themeUtilities: UiThemeUtility[]; typography: UiTypography; themeUtilityCount: number;
+  themeUtilities: UiThemeUtility[]; typography: UiTypography; themeUtilityCount: number; scales: UiScales;
 };
 `;
 
@@ -350,6 +441,7 @@ function renderAgentMd(c) {
     `- 组件 **${c.stats.components}** 个 / ${c.stats.lines} 行；死组件（零引用）**${c.stats.dead}** 个`,
     `- 语义 token **${c.stats.tokens}** 个；Tailwind 工具类映射 ${c.themeUtilityCount} 条；排版：字体 ${c.typography ? 3 : 0} 族 + prose 映射 ${c.typography?.prose.length ?? 0} 条`,
     `- 注记覆盖 **${c.stats.withNotes}/${c.stats.components}**；展示页 demo 覆盖 **${c.stats.withDemo}/${c.stats.components}**`,
+    `- 尺度实际用法：字号常用 ${(c.scales.text[0] && `${c.scales.text[0].value}(${c.scales.text[0].count})`) || '—'}；离散步长 ${[...c.scales.textArbitrary, ...c.scales.spacingArbitrary].reduce((n, x) => n + x.count, 0)} 处（优先用尺度 token）`,
     '', '## 按分类速查', '', '| 分类 | 组件 |', '|---|---|');
   for (const cat of CATEGORIES) {
     const list = c.components.filter((x) => x.category === cat).map((x) => x.name);
@@ -427,6 +519,17 @@ function renderHumanMd(c) {
     '- 标题字号**必须用尺度 token**（禁 `text-[Npx]`，V-003）；长文正文用 `prose`（其 token 映射如下）', '',
     '| prose token | 值 |', '|---|---|');
   for (const p of c.typography.prose) L.push(`| \`${p.name}\` | \`${p.value}\` |`);
+  const fmt = (list, n = 6) => list.slice(0, n).map((x) => `\`${x.value}\`(${x.count})`).join(' · ') || '—';
+  L.push('### 3.2 尺度实际用法（从源码统计 ' + c.scales.scannedFiles + ' 个文件）', '',
+    '> 回答的是「**实际在用哪几档**」，不是「有哪些档位」；统计按源码文本匹配，可能含少量非样式字符串。', '',
+    '| 类别 | 常用档位（次数） | 离散步长（建议收敛） |', '|---|---|---|',
+    `| 字号 | ${fmt(c.scales.text)} | ${fmt(c.scales.textArbitrary)} |`,
+    `| 间距 | ${fmt(c.scales.spacing)} | ${fmt(c.scales.spacingArbitrary)} |`,
+    `| 圆角 | ${fmt(c.scales.radius)} | ${fmt(c.scales.radiusArbitrary)} |`,
+    `| 阴影 | ${fmt(c.scales.shadow)} | ${fmt(c.scales.shadowArbitrary)} |`,
+    `| 行高 / 字距 | ${fmt(c.scales.leading, 4)} · ${fmt(c.scales.tracking, 4)} | — |`, '',
+    `> ⚠️ 离散步长合计 **${[...c.scales.textArbitrary, ...c.scales.spacingArbitrary, ...c.scales.radiusArbitrary, ...c.scales.shadowArbitrary].reduce((n, x) => n + x.count, 0)}** 处：`,
+    '> 小字号尤其集中（如 `text-[10px]`），说明"尺度 token 之外还有一套事实上的离散值"。新增 UI 请优先用尺度 token；标题禁 `text-[Npx]`（V-003）。', '')
   L.push('', '## 4. 组件规格', '', '| 组件 | 分类 | 行数 | variant | size | 引用 | 死组件 | 文件 |', '|---|---|---|---|---|---|---|---|');
   for (const x of c.components) {
     const v = x.variants.find((z) => z.name === 'variant');
