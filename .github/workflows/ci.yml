@@ -158,11 +158,13 @@ jobs:
       # asset 的 Put/Commit/GetContent 集成测试需要真实对象存储
       # （store_minio_integration_test.go / handler_integration_test.go）。
       # 口令是 CI 一次性凭据，不是任何真实密钥。
-      # ★ 不用 service 容器跑 MinIO：minio/minio 是 Docker Hub 第三方镜像，
-      #   Actions runner 匿名拉取受 rate limit（实测 7 个 backend job 连续多轮
-      #   Docker pull failed，postgres:16 官方镜像同期可拉）；quay.io 无 minio
-      #   官方仓库。改为仅 asset job 下载 minio 二进制并本机启动（见下方
-      #   "Start MinIO" 步骤），绕过镜像源，行为与容器版等价。
+      # ★ MinIO 开源版 2025-10 归档后全部分发通道关闭（逐一实测）：
+      #   dl.min.io 410 Gone；GitHub Releases 二进制 assets 清空；Docker Hub
+      #   minio/minio 仓库移除（pull access denied）。故在公网服务器
+      #   (120.25.150.72:9000) 部署真实 MinIO 容器供 CI 直连：
+      #   - 保持被测对象是真实 MinIO，不改中间件；
+      #   - 凭据通过 repo secrets 注入（仓库 public，禁止明文写密码）；
+      #   - 测试数据无敏感，端点走 HTTP（Secure=false）。
     env:
       # 各服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
       # 它们都自建【随机 schema】并在结束时清理 ⇒ 共用同一个库是安全的。
@@ -172,10 +174,10 @@ jobs:
       ASSET_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
       # outbox-relay 的 claim/ack/fail/runOnce 集成测试（表在 production 迁移里）
       OUTBOX_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
-      # asset MinIO 集成测试凭据（对应上方 minio service）
-      ASSET_TEST_S3_ENDPOINT: 127.0.0.1:9000
-      ASSET_TEST_S3_ACCESS_KEY: minioadmin
-      ASSET_TEST_S3_SECRET_KEY: minioadmin
+      # asset MinIO 集成测试：直连公网真实 MinIO（120.25.150.72:9000，安全组已放行）
+      ASSET_TEST_S3_ENDPOINT: 120.25.150.72:9000
+      ASSET_TEST_S3_ACCESS_KEY: ${{ secrets.ASSET_TEST_S3_ACCESS_KEY }}
+      ASSET_TEST_S3_SECRET_KEY: ${{ secrets.ASSET_TEST_S3_SECRET_KEY }}
     strategy:
       # fail-fast: false —— 一个服务失败不应取消其余服务的检查，
       # 否则日志只显示 cancelled，会掩盖其它服务的真实结果。
@@ -251,46 +253,8 @@ jobs:
           only-new-issues: true
           args: --timeout=5m
 
-      # 二进制方式启动 S3 兼容网关（仅 asset job）。
-      # ⚠ MinIO 开源版已归档，全部历史通道失效（逐一实测）：
-      #   dl.min.io = 410 Gone；GitHub Releases = 0 assets；Docker Hub minio/minio = 仓库不存在。
-      #   改用 SeaweedFS（GitHub Releases 有 linux_amd64 二进制，同域下载稳定，S3 API 兼容）。
-      #   固定版本 + gzip 校验保证可复现；S3 端口 9000 与 ASSET_TEST_S3_ENDPOINT 对应。
-      - name: Start S3 (SeaweedFS, asset 集成测试需要)
-        if: steps.rel.outputs.run == 'true' && matrix.service == 'asset'
-        run: |
-          curl -sL --retry 3 --retry-all-errors --max-time 300 \
-            -o /tmp/seaweed.tar.gz https://github.com/seaweedfs/seaweedfs/releases/download/4.48/linux_amd64.tar.gz
-          # 校验下载产物是 gzip（防止拿到限流错误页）
-          if [ "$(head -c 2 /tmp/seaweed.tar.gz | od -An -tx1 | tr -d ' \n')" != "1f8b" ]; then
-            echo "::error::SeaweedFS 下载产物非 gzip"
-            head -c 300 /tmp/seaweed.tar.gz
-            exit 1
-          fi
-          tar xzf /tmp/seaweed.tar.gz -C /tmp
-          WEED_BIN="$(find /tmp -maxdepth 2 -name weed -type f | head -1)"
-          if [ -z "$WEED_BIN" ]; then
-            echo "::error::未找到 weed 二进制"
-            tar tzf /tmp/seaweed.tar.gz | head
-            exit 1
-          fi
-          echo "weed bin: $WEED_BIN"
-          cat > /tmp/s3-config.json <<'JSON'
-{"identities":[{"name":"ci","credentials":[{"accessKey":"minioadmin","secretKey":"minioadmin"}]}]}
-JSON
-          "$WEED_BIN" server -s3 -s3.port=9000 -s3.config=/tmp/s3-config.json -dir=/tmp/weed-data > /tmp/s3.log 2>&1 &
-          for i in $(seq 1 90); do
-            if curl -s -o /dev/null http://127.0.0.1:9000/ 2>/dev/null; then
-              echo "S3 ready (attempt $i)"
-              break
-            fi
-            sleep 1
-          done
-          if ! curl -s -o /dev/null http://127.0.0.1:9000/ 2>/dev/null; then
-            echo "::error::S3 未就绪，日志如下"
-            cat /tmp/s3.log
-            exit 1
-          fi
+      # asset 的 S3 集成测试直连公网真实 MinIO（120.25.150.72:9000），
+      # 凭据走 repo secrets（见上方 env 注释）。无需在本机再启动 S3 服务。
 
       - name: Test
         if: steps.rel.outputs.run == 'true'
