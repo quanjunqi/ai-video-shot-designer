@@ -1,11 +1,11 @@
 // EXPORTS: default CharacterStage
 // 角色资产（网格+抽屉布局）：角色资产网格为主，点击卡片滑出详情抽屉
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Users, Loader2, Check, X, Globe, Sparkles, CheckCircle2, ChevronRight, ChevronDown,
-  Film, Search, Image as ImageIcon, User, Palette,
-  RotateCcw, Download, Trash2, Plus, RefreshCw, BookOpen, Link2, ExternalLink, Zap,
+  Users, Loader2, Check, X, Globe, Sparkles, CheckCircle2, ChevronRight,
+  Film, Search, User,
+  Download, Trash2, Plus, RefreshCw, BookOpen, Link2, ExternalLink, Zap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -33,7 +33,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import StageModelPicker from '@/features/comic/StageModelPicker';
 import type { ArtifactStatus, Episode, ShotCard } from '@/types';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api/client';
+import { api, type ServerTask } from '@/lib/api/client';
 import { resolveTaskResult } from '@/features/genworkbench/result-utils';
 
 const STATUS_META: Record<ArtifactStatus, { label: string; className: string; dot: string }> = {
@@ -84,33 +84,6 @@ const EMPTY_PROFILE: CharacterProfile = {
   personality: '', typicalExpression: '', behavior: '',
   specialMarks: '', background: '',
 };
-
-// 从分镜统计推断角色档案
-function inferProfileFromShots(name: string, shotStat: any): CharacterProfile {
-  const profile = { ...EMPTY_PROFILE, name };
-  
-  // 从情绪变化推断性格
-  if (shotStat.emotions.length > 0) {
-    profile.personality = `情绪变化丰富，常见情绪：${shotStat.emotions.join('、')}`;
-    profile.typicalExpression = shotStat.emotions[0];
-  }
-  
-  // 从服装状态推断服装类型
-  if (shotStat.costumeStates.length > 0) {
-    profile.clothingStyle = `服装状态变化：${shotStat.costumeStates.join('、')}`;
-  }
-  
-  // 从身体状态推断角色经历
-  if (shotStat.bodyStates.length > 0) {
-    profile.background = `剧中经历：${shotStat.bodyStates.join('、')}`;
-  }
-  
-  // 出场统计
-  profile.identity = `出场 ${shotStat.shotCount} 镜，覆盖 ${shotStat.sceneCount} 个场景`;
-  
-  return profile;
-}
-
 // 从角色描述字符串解析档案
 function parseProfileFromDescription(description: string): CharacterProfile {
   const profile = { ...EMPTY_PROFILE };
@@ -366,25 +339,56 @@ function CharacterGridCard({
   );
 }
 
+// 分镜需求统计（纯函数：按生效规则过滤群体角色）
+function buildShotStats(directing: unknown, isGroupCharacter: (name: string) => boolean): Array<{
+  name: string;
+  shotCount: number;
+  sceneCount: number;
+  emotions: string[];
+  shotIds: string[];
+  bodyStates: string[];
+  costumeStates: string[];
+}> {
+  const shots = (directing ?? []) as ShotCard[];
+  const charMap = new Map<string, { count: number; scenes: Set<string>; emotions: Set<string>; shotIds: string[]; bodyStates: Set<string>; costumeStates: Set<string> }>();
+  shots.forEach((shot) => {
+    shot.world.characters.forEach((ch) => {
+      if (isGroupCharacter(ch.name)) return;
+      const key = ch.name;
+      if (!charMap.has(key)) charMap.set(key, { count: 0, scenes: new Set(), emotions: new Set(), shotIds: [], bodyStates: new Set(), costumeStates: new Set() });
+      const entry = charMap.get(key)!;
+      entry.count += 1;
+      entry.scenes.add(shot.sceneLabel);
+      entry.shotIds.push(shot.id);
+      if (ch.emotion && ch.emotion !== '正常') entry.emotions.add(ch.emotion);
+      if (ch.bodyState && ch.bodyState !== '正常') entry.bodyStates.add(ch.bodyState);
+      if (ch.costumeState && ch.costumeState !== '正常') entry.costumeStates.add(ch.costumeState);
+    });
+  });
+  return Array.from(charMap.entries()).map(([name, data]) => ({
+    name,
+    shotCount: data.count,
+    sceneCount: data.scenes.size,
+    emotions: Array.from(data.emotions),
+    shotIds: data.shotIds,
+    bodyStates: Array.from(data.bodyStates),
+    costumeStates: Array.from(data.costumeStates),
+  }));
+}
+
 // 详情抽屉
 function CharacterDetailDrawer({
   char,
   shotCount,
-  charShots,
-  shotStat,
   generatingTask,
   imageModelId,
-  imageModelName,
   statement,
   setStatement,
   projectCharacter,
   onClose,
-  onGenerate,
   onApprove,
   onReject,
   onToggleGlobal,
-  onUpdateDescription,
-  onUpdatePrompt,
 }: {
   char: any;
   shotCount?: number;
@@ -405,7 +409,7 @@ function CharacterDetailDrawer({
   onUpdatePrompt: (v: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<'info' | 'versions'>('info');
-  const [profile, setProfile] = useState<CharacterProfile>(EMPTY_PROFILE);
+  const [, setProfile] = useState<CharacterProfile>(EMPTY_PROFILE);
   const [showProjectDetail, setShowProjectDetail] = useState(false);
   const [episodeVariant, setEpisodeVariant] = useState({
     emotionState: '',
@@ -448,88 +452,7 @@ function CharacterDetailDrawer({
     if (!variantInitialized) return;
     const { updateAsset } = useAssetStore.getState();
     updateAsset(char.id, { episodeVariant: { ...episodeVariant } });
-  }, [episodeVariant, char.id]);
-
-  // 更新档案字段
-  const updateProfileField = (field: keyof CharacterProfile, value: string) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // 从分镜提取档案
-  const extractFromShots = () => {
-    if (!shotStat) {
-      toast.error('未找到该角色的分镜数据');
-      return;
-    }
-    const inferred = inferProfileFromShots(char.name, shotStat);
-    // 合并已有档案，保留用户已填写的字段
-    setProfile((prev) => ({
-      ...inferred,
-      // 保留用户已填写的非空字段
-      gender: prev.gender || inferred.gender,
-      age: prev.age || inferred.age,
-      hairstyle: prev.hairstyle || inferred.hairstyle,
-      hairColor: prev.hairColor || inferred.hairColor,
-      eyeColor: prev.eyeColor || inferred.eyeColor,
-      facialFeatures: prev.facialFeatures || inferred.facialFeatures,
-      bodyType: prev.bodyType || inferred.bodyType,
-      height: prev.height || inferred.height,
-      top: prev.top || inferred.top,
-      bottom: prev.bottom || inferred.bottom,
-      shoes: prev.shoes || inferred.shoes,
-      accessories: prev.accessories || inferred.accessories,
-      clothingStyle: prev.clothingStyle || inferred.clothingStyle,
-      personality: prev.personality || inferred.personality,
-      typicalExpression: prev.typicalExpression || inferred.typicalExpression,
-      behavior: prev.behavior || inferred.behavior,
-      specialMarks: prev.specialMarks || inferred.specialMarks,
-      background: prev.background || inferred.background,
-      identity: inferred.identity, // 身份总是从分镜更新
-    }));
-    toast.success('已从分镜提取角色信息');
-  };
-
-  // 基于档案生成提示词（合并项目级设定 + 单集状态覆盖）
-  const generatePromptFromProfileHandler = () => {
-    // 如果引用了项目级设定，优先使用项目级设定，单集状态覆盖特定字段
-    let finalProfile = { ...profile };
-    if (projectCharacter) {
-      finalProfile = {
-        ...projectCharacter,
-        name: profile.name || projectCharacter.name,
-        // 单集状态覆盖：只覆盖本集特有的变化
-        personality: profile.personality || projectCharacter.personality,
-        typicalExpression: profile.typicalExpression || projectCharacter.typicalExpression,
-        specialMarks: profile.specialMarks || projectCharacter.specialMarks,
-        // 单集临时换装覆盖
-        top: profile.top || projectCharacter.top,
-        bottom: profile.bottom || projectCharacter.bottom,
-        shoes: profile.shoes || projectCharacter.shoes,
-        accessories: profile.accessories || projectCharacter.accessories,
-        clothingStyle: profile.clothingStyle || projectCharacter.clothingStyle,
-      };
-    }
-    const prompt = generatePromptFromProfile(finalProfile);
-    const negativePrompt = generateNegativePrompt();
-    onUpdatePrompt(prompt);
-    // 同时更新描述为结构化档案
-    const descParts = [
-      profile.gender && profile.age ? `${profile.gender}，${profile.age}` : profile.gender || profile.age,
-      profile.hairstyle && profile.hairColor ? `${profile.hairColor}${profile.hairstyle}` : profile.hairstyle || profile.hairColor,
-      profile.eyeColor && `${profile.eyeColor}眼睛`,
-      profile.facialFeatures,
-      profile.bodyType,
-      [profile.top, profile.bottom, profile.shoes].filter(Boolean).join('，'),
-      profile.accessories,
-      profile.clothingStyle,
-      profile.personality,
-      profile.specialMarks,
-    ].filter(Boolean).join('，');
-    if (descParts.length > 0) {
-      onUpdateDescription(descParts);
-    }
-    toast.success('已基于角色档案生成提示词');
-  };
+  }, [episodeVariant, char.id, variantInitialized]);
 
   // 生成本集变体立绘（图生图模式：以标准立绘为参考，只描述状态变体）
   const [generatingVariant, setGeneratingVariant] = useState(false);
@@ -609,17 +532,19 @@ function CharacterDetailDrawer({
       });
 
       if (!genRes.task_id) {
-        const err = genRes.error || (genRes as any)?.message || '未知错误';
+        // 同步分支（GenerateResponse）：失败时 ok=false 且带 error
+        const err = 'error' in genRes && genRes.error ? genRes.error : '未知错误';
         toast.error(`变体立绘生成失败：${err}`);
         return;
       }
+      const taskId: string = genRes.task_id as string;
 
       // 5. 轮询任务状态（最多6分钟）
       const maxPolls = 120;
-      let finalTask: any = null;
+      let finalTask: ServerTask | null = null;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 3000));
-        finalTask = await api.getTask(genRes.task_id);
+        finalTask = await api.getTask(taskId);
         if (finalTask.status === 'succeeded' || finalTask.status === 'failed' || finalTask.status === 'cancelled') {
           break;
         }
@@ -636,7 +561,7 @@ function CharacterDetailDrawer({
       for (let retry = 0; retry < 10; retry++) {
         if (retry > 0) {
           await new Promise((r) => setTimeout(r, 2000));
-          finalTask = await api.getTask(genRes.task_id);
+          finalTask = await api.getTask(taskId);
         }
         const result = resolveTaskResult(finalTask);
         url = (result['output.image_urls.0'] || result['output.data.0.url'] || result['data.0.url'] || result['url']) as string | undefined;
@@ -1041,7 +966,7 @@ function CharacterDetailDrawer({
 
           {activeTab === 'versions' && (
             <div className="space-y-3">
-              {(char.versions || []).slice().reverse().map((ver: any, idx: number) => (
+              {(char.versions || []).slice().reverse().map((ver: any) => (
                 <div
                   key={ver.version}
                   className={cn(
@@ -1274,7 +1199,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [statement, setStatement] = useState('确认此版本用于本集');
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCharName, setNewCharName] = useState('');
@@ -1284,7 +1209,6 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
   const [showCharacterLibrary, setShowCharacterLibrary] = useState(false);
   const [showExtractConfirm, setShowExtractConfirm] = useState(false);
   const [selectedExtractNames, setSelectedExtractNames] = useState<Set<string>>(new Set());
-  const [expandedExtractName, setExpandedExtractName] = useState<string | null>(null);
   const [selectedLibraryIdMap, setSelectedLibraryIdMap] = useState<Record<string, string>>({}); // 角色名 -> 档案ID 或 'new'
   const [libraryPickerName, setLibraryPickerName] = useState<string | null>(null); // 当前选择档案的角色名
   const [showAllLibraryInPicker, setShowAllLibraryInPicker] = useState(false); // 档案选择弹窗中是否显示全部
@@ -1327,7 +1251,6 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
       libMap[s.name] = matches.length > 0 ? matches[0].id : 'new';
     });
     setSelectedLibraryIdMap(libMap);
-    setExpandedExtractName(null);
     setShowExtractConfirm(true);
   };
 
@@ -1541,44 +1464,9 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
     toast.success(`已手动添加角色「${newAsset.name}」`);
   };
 
-  // 角色提取规则
-  const { isGroupCharacter, activeRuleId, rules, setActiveRule } = useCharacterExtractionRuleStore();
-  const activeRule = rules.find((r) => r.id === activeRuleId);
-
-  // 分镜需求统计
-  const shotStats = useMemo(() => {
-    const shots = (episode.directing ?? []) as ShotCard[];
-    const charMap = new Map<string, { count: number; scenes: Set<string>; emotions: Set<string>; shotIds: string[]; bodyStates: Set<string>; costumeStates: Set<string> }>();
-    shots.forEach((shot) => {
-      shot.world.characters.forEach((ch) => {
-        if (isGroupCharacter(ch.name)) return;
-        const key = ch.name;
-        if (!charMap.has(key)) charMap.set(key, { count: 0, scenes: new Set(), emotions: new Set(), shotIds: [], bodyStates: new Set(), costumeStates: new Set() });
-        const entry = charMap.get(key)!;
-        entry.count += 1;
-        entry.scenes.add(shot.sceneLabel);
-        entry.shotIds.push(shot.id);
-        if (ch.emotion && ch.emotion !== '正常') entry.emotions.add(ch.emotion);
-        if (ch.bodyState && ch.bodyState !== '正常') entry.bodyStates.add(ch.bodyState);
-        if (ch.costumeState && ch.costumeState !== '正常') entry.costumeStates.add(ch.costumeState);
-      });
-    });
-    return Array.from(charMap.entries()).map(([name, data]) => ({
-      name,
-      shotCount: data.count,
-      sceneCount: data.scenes.size,
-      emotions: Array.from(data.emotions),
-      shotIds: data.shotIds,
-      bodyStates: Array.from(data.bodyStates),
-      costumeStates: Array.from(data.costumeStates),
-    }));
-  }, [episode.directing]);
-
-  // 分镜变化检测
-  const missingFromShots = useMemo(() => {
-    const existingNames = new Set(chars.map((c) => c.name));
-    return shotStats.filter((s) => !existingNames.has(s.name));
-  }, [shotStats, chars]);
+  // 分镜需求统计（纯函数 + React Compiler 自动 memo）
+  const { isGroupCharacter } = useCharacterExtractionRuleStore();
+  const shotStats = buildShotStats(episode.directing, isGroupCharacter);
 
   // 页面加载时从后端拉取资产数据和项目级角色库
   useEffect(() => {
@@ -1922,7 +1810,6 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                 const libraryMatches = projectCharacters.filter((pc) => pc.name === s.name);
                 const inEpisode = chars.some((c) => c.name === s.name);
                 const selected = selectedExtractNames.has(s.name);
-                const expanded = expandedExtractName === s.name;
                 const selectedLibId = selectedLibraryIdMap[s.name];
                 const selectedLibChar = selectedLibId && selectedLibId !== 'new'
                   ? projectCharacters.find((pc) => pc.id === selectedLibId)

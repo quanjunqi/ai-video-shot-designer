@@ -1,4 +1,4 @@
-package main
+package httpserver
 
 import (
 	"context"
@@ -257,7 +257,7 @@ func TestEnvFallsBackOnUnsetAndEmpty(t *testing.T) {
 			if c.set != nil {
 				t.Setenv("BFF_TEST_ENV", *c.set)
 			}
-			if got := env("BFF_TEST_ENV", "fb"); got != c.want {
+			if got := Env("BFF_TEST_ENV", "fb"); got != c.want {
 				t.Fatalf("期望 %q，得到 %q", c.want, got)
 			}
 		})

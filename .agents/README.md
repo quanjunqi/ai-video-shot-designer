@@ -11,6 +11,7 @@
 ├── README.md                  # 本文件：体系说明 + skill 编写规范
 └── skills/
     ├── frontend-quality/      # 前端交付质量门禁（SKILL + rules + lessons）
+    ├── acceptance-checklist/  # 需求验收清单（SKILL + 模板：需求点→判据→自检→PR勾对）
     ├── pr-workflow/           # 分支命名 / commit / PR 流程
     ├── parallel-worktree/     # 多开发线并行（worktree + 号段认领）
     ├── ci-triage/             # CI 排障
@@ -22,6 +23,7 @@
 
 | 场景 | 加载 |
 |---|---|
+| 承接任何开发任务（开工前/提交前必读） | `.agents/skills/acceptance-checklist/SKILL.md` |
 | 改 `apps/web/` 下任何前端代码 | `.agents/skills/frontend-quality/SKILL.md` |
 | 准备提交 / 推送 / 开 PR | `.agents/skills/pr-workflow/SKILL.md` |
 | 并行开新开发线 / 建 worktree | `.agents/skills/parallel-worktree/SKILL.md` |

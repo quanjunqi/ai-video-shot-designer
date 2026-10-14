@@ -3,13 +3,10 @@ package audit
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strconv"
+
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"shotdesigner/services/execution/internal/reconcile"
 )
 
 // Log 网关调用审计日志记录
@@ -240,43 +237,6 @@ func (f Filter) whereClause() string {
 //
 // total 用 COUNT(*) OVER() 在【同一条查询】里取，避免第二次往返；
 // 注意：offset 之后 total 仍是筛选后的全集条数（窗口函数在 LIMIT 之前计算）。
-func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, f Filter, limit, offset int) ([]Log, int, error) {
-	rows, err := s.Pool.Query(ctx, `
-		SELECT id, request_id, workspace_id, project_id, episode_id, asset_id, user_id,
-			product, model_id, channel_id, provider_model, mode,
-			request_payload, response_payload, error_message, status,
-			latency_ms, token_input, token_output, token_cached,
-			cost_amount, cost_currency, job_id, provider_task_id, created_at,
-			COUNT(*) OVER() AS total_count
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1`+f.whereClause()+`
-		ORDER BY created_at DESC
-		LIMIT $9 OFFSET $10
-	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, limit, offset)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer rows.Close()
-
-	var logs []Log
-	total := 0
-	for rows.Next() {
-		var l Log
-		err := rows.Scan(
-			&l.ID, &l.RequestID, &l.WorkspaceID, &l.ProjectID, &l.EpisodeID, &l.AssetID, &l.UserID,
-			&l.Product, &l.ModelID, &l.ChannelID, &l.ProviderModel, &l.Mode,
-			&l.RequestPayload, &l.ResponsePayload, &l.ErrorMessage, &l.Status,
-			&l.LatencyMs, &l.TokenInput, &l.TokenOutput, &l.TokenCached,
-			&l.CostAmount, &l.CostCurrency, &l.JobID, &l.ProviderTaskID, &l.CreatedAt,
-			&total,
-		)
-		if err != nil {
-			return nil, 0, err
-		}
-		logs = append(logs, l)
-	}
-	return logs, total, rows.Err()
-}
 
 // ExportAll 返回筛选后的审计行（导出用），最多 maxRows 行。
 //
@@ -285,39 +245,6 @@ func (s Store) ListByWorkspace(ctx context.Context, workspaceID string, f Filter
 //	导出的语义是"给我筛选后的这一批"，不是"第 N 页"；用同一个方法会让
 //	limit/offset 的分页语义混进导出，容易误用（例如 offset 被当成"跳过多少行再导出"）。
 //	maxRows 是防爆护栏：导出必须有上界，否则一次请求就能把整表拉进内存。
-func (s Store) ExportAll(ctx context.Context, workspaceID string, f Filter, maxRows int) ([]Log, error) {
-	rows, err := s.Pool.Query(ctx, `
-		SELECT id, request_id, workspace_id, project_id, episode_id, asset_id, user_id,
-			product, model_id, channel_id, provider_model, mode,
-			request_payload, response_payload, error_message, status,
-			latency_ms, token_input, token_output, token_cached,
-			cost_amount, cost_currency, job_id, provider_task_id, created_at
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1`+f.whereClause()+`
-		ORDER BY created_at DESC
-		LIMIT $9
-	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, maxRows)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var logs []Log
-	for rows.Next() {
-		var l Log
-		if err := rows.Scan(
-			&l.ID, &l.RequestID, &l.WorkspaceID, &l.ProjectID, &l.EpisodeID, &l.AssetID, &l.UserID,
-			&l.Product, &l.ModelID, &l.ChannelID, &l.ProviderModel, &l.Mode,
-			&l.RequestPayload, &l.ResponsePayload, &l.ErrorMessage, &l.Status,
-			&l.LatencyMs, &l.TokenInput, &l.TokenOutput, &l.TokenCached,
-			&l.CostAmount, &l.CostCurrency, &l.JobID, &l.ProviderTaskID, &l.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		logs = append(logs, l)
-	}
-	return logs, rows.Err()
-}
 
 // AggregateResult 是【筛选后全集】的聚合结果（D7a + ④ §2.3 的耗时百分位）。
 //
@@ -360,41 +287,6 @@ var tokenDimensionWhitelist = map[string]string{
 
 // TokenUsageBy 按白名单维度聚合 token 用量（同一筛选口径与租户）。
 // 只统计**有 token 的行**：全 0 的行（校验失败等）没有用量可言，混进来只会稀释平均数。
-func (s Store) TokenUsageBy(ctx context.Context, workspaceID string, f Filter, dimension string, limit int) ([]TokenUsage, error) {
-	col, ok := tokenDimensionWhitelist[dimension]
-	if !ok {
-		return nil, fmt.Errorf("unsupported token dimension %q (allowed: model|channel)", dimension)
-	}
-	if limit <= 0 || limit > 50 {
-		limit = 5
-	}
-	rows, err := s.Pool.Query(ctx, `
-		SELECT COALESCE(NULLIF(`+col+`, ''), '(未标注)') AS key,
-		       COALESCE(sum(token_input), 0)::bigint,
-		       COALESCE(sum(token_output), 0)::bigint,
-		       COALESCE(sum(token_cached), 0)::bigint,
-		       count(*)::bigint
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1 AND (token_input > 0 OR token_output > 0 OR token_cached > 0)`+f.whereClause()+`
-		GROUP BY key
-		ORDER BY (COALESCE(sum(token_input), 0) + COALESCE(sum(token_output), 0)) DESC,
-		         COALESCE(NULLIF(`+col+`, ''), '(未标注)') COLLATE "C" ASC
-		LIMIT $9`,
-		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := make([]TokenUsage, 0, limit)
-	for rows.Next() {
-		var u TokenUsage
-		if err := rows.Scan(&u.Key, &u.Input, &u.Output, &u.Cached, &u.Calls); err != nil {
-			return nil, err
-		}
-		out = append(out, u)
-	}
-	return out, rows.Err()
-}
 
 // ErrorCluster 是一簇错误文本。
 //
@@ -432,131 +324,28 @@ const topErrorsLimit = 5
 //	`latency_ms` 是 NOT NULL DEFAULT 0，0 表示"没有测量到"而不是"瞬时完成"。
 //	下面算平均值时本来就跳过了 avg=0 的状态组；百分位因此同样用 `latency_ms > 0` 排除零 ——
 //	否则 2 行未测量的数据会把 P50 直接拉到 0，把"耗时分布"变成假象。
-func (s Store) Aggregate(ctx context.Context, workspaceID string, f Filter) (AggregateResult, error) {
-	rows, err := s.Pool.Query(ctx, `
-		SELECT status, count(*)::int, COALESCE(AVG(latency_ms), 0)::int
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1`+f.whereClause()+`
-		GROUP BY status
-	`, workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID)
-	if err != nil {
-		return AggregateResult{}, err
-	}
-	defer rows.Close()
 
-	var out AggregateResult
-	out.ByStatus = map[string]int{}
-	total, latSum, latN := 0, 0, 0
-	for rows.Next() {
-		var st string
-		var n, avg int
-		if err := rows.Scan(&st, &n, &avg); err != nil {
-			return AggregateResult{}, err
-		}
-		out.ByStatus[st] = n
-		total += n
-		if avg > 0 {
-			latSum += avg * n
-			latN += n
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return AggregateResult{}, err
-	}
-	if latN > 0 {
-		out.AvgLatencyMs = latSum / latN
-	}
+// 耗时百分位：在同一次筛选条件、同一个 workspace 上算（语义与 byStatus 一致：filtered_total）。
+// percentile_cont 是连续插值；空集返回 NULL ⇒ COALESCE 归 0。
 
-	// 耗时百分位：在同一次筛选条件、同一个 workspace 上算（语义与 byStatus 一致：filtered_total）。
-	// percentile_cont 是连续插值；空集返回 NULL ⇒ COALESCE 归 0。
-	if err := s.Pool.QueryRow(ctx, `
-		SELECT
-			COALESCE(percentile_cont(0.50) WITHIN GROUP (ORDER BY latency_ms), 0)::int,
-			COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms), 0)::int
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1 AND latency_ms > 0`+f.whereClause(),
-		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID).
-		Scan(&out.P50LatencyMs, &out.P95LatencyMs); err != nil {
-		return AggregateResult{}, err
-	}
+// ④ §2.3「按错误文本聚类」。与上面**同一套筛选条件与同一租户**（口径一致）。
+//   key    = 第一个冒号之前、trim、转小写（分组用）
+//   sample = 同簇里"最小"的原始前缀（展示用）
+//
+// ★ 两处显式 COLLATE "C"：text 的 min()/ORDER BY 结果依赖**数据库排序规则** ——
+//   字节序（C）下 'M'(0x4D) < 'm'(0x6D)，而 UTF-8/ICU 排序会得出相反结果。
+//   实测：本机（C）取到 "Model Not Found…"，CI 取到 "model not found…"。
+//   显式指定 C 后，同一份数据的返回**在任何环境都相同**（可复现），
+//   而不是"取决于这台机器怎么排序"。
 
-	// ④ §2.3「按错误文本聚类」。与上面**同一套筛选条件与同一租户**（口径一致）。
-	//   key    = 第一个冒号之前、trim、转小写（分组用）
-	//   sample = 同簇里"最小"的原始前缀（展示用）
-	//
-	// ★ 两处显式 COLLATE "C"：text 的 min()/ORDER BY 结果依赖**数据库排序规则** ——
-	//   字节序（C）下 'M'(0x4D) < 'm'(0x6D)，而 UTF-8/ICU 排序会得出相反结果。
-	//   实测：本机（C）取到 "Model Not Found…"，CI 取到 "model not found…"。
-	//   显式指定 C 后，同一份数据的返回**在任何环境都相同**（可复现），
-	//   而不是"取决于这台机器怎么排序"。
-	errRows, err := s.Pool.Query(ctx, `
-		SELECT lower(btrim(split_part(error_message, ':', 1))) AS key,
-		       min(btrim(split_part(error_message, ':', 1)) COLLATE "C") AS sample,
-		       count(*)::int                                  AS n
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1 AND error_message <> ''`+f.whereClause()+`
-		GROUP BY key
-		ORDER BY n DESC, lower(btrim(split_part(error_message, ':', 1))) COLLATE "C" ASC
-		LIMIT `+strconv.Itoa(topErrorsLimit),
-		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID)
-	if err != nil {
-		return AggregateResult{}, err
-	}
-	defer errRows.Close()
-	out.TopErrors = make([]ErrorCluster, 0, topErrorsLimit)
-	for errRows.Next() {
-		var c ErrorCluster
-		if err := errRows.Scan(&c.Key, &c.Sample, &c.Count); err != nil {
-			return AggregateResult{}, err
-		}
-		out.TopErrors = append(out.TopErrors, c)
-	}
-	if err := errRows.Err(); err != nil {
-		return AggregateResult{}, err
-	}
-
-	// §2.2 成本归因的 SUM 维度（按模型 / 按渠道）。两个维度各一次聚合；
-	// 若将来维度变多，可换成单条 `GROUP BY GROUPING SETS` 查询（这里先保持可读）。
-	if out.TokensByModel, err = s.TokenUsageBy(ctx, workspaceID, f, "model", 5); err != nil {
-		return AggregateResult{}, err
-	}
-	if out.TokensByChannel, err = s.TokenUsageBy(ctx, workspaceID, f, "channel", 5); err != nil {
-		return AggregateResult{}, err
-	}
-	return out, nil
-}
+// §2.2 成本归因的 SUM 维度（按模型 / 按渠道）。两个维度各一次聚合；
+// 若将来维度变多，可换成单条 `GROUP BY GROUPING SETS` 查询（这里先保持可读）。
 
 // AggregateRecentCosts 聚合最近 7 天成功调用的实际成本（按 model_id 分组，T0 对账用）。
 //
 // 语义：actual = 审计回写的权威成本（sync/async 路径均已接权威价）；
 // 返回 reconcile.ActualCost 供对账纯函数直接消费（同 unit 内聚合，避免跨单位相加）。
 // limit 限制返回的模型行数（按总成本降序），防止目录膨胀时对账集失控。
-func (s Store) AggregateRecentCosts(ctx context.Context, limit int) ([]reconcile.ActualCost, error) {
-	rows, err := s.Pool.Query(ctx, `
-		SELECT model_id, COALESCE(channel_id, ''), COALESCE(provider_model, ''), COALESCE(cost_unit, ''), SUM(cost_amount)
-		FROM gateway_audit_logs
-		WHERE status = 'success'
-		  AND created_at >= now() - interval '7 days'
-		GROUP BY model_id, channel_id, provider_model, cost_unit
-		ORDER BY SUM(cost_amount) DESC
-		LIMIT $1`, limit)
-	if err != nil {
-		return nil, fmt.Errorf("audit aggregate recent costs: %w", err)
-	}
-	defer rows.Close()
-	var out []reconcile.ActualCost
-	for rows.Next() {
-		var a reconcile.ActualCost
-		if err := rows.Scan(&a.ModelID, &a.ChannelID, &a.ProviderModel, &a.CostUnit, &a.Amount); err != nil {
-			return nil, fmt.Errorf("audit aggregate recent costs: %w", err)
-		}
-		out = append(out, a)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("audit aggregate recent costs: %w", err)
-	}
-	return out, nil
-}
 
 // ===== T2 运营报表聚合（维度排行 + 时间序列） =====
 
@@ -607,113 +396,10 @@ type TrendPoint struct {
 // feature 是归因过滤（T1 迁移 013 列）：空 = 不过滤。不并入 Filter 结构体，
 // 是为了不动 whereClause 的 $ 序号（列表/导出/Aggregate 共用同一 whereClause）。
 // 排序：成本降序 → 调用量降序 → key 字节序 —— 确定性次序，前端可直接渲染。
-func (s Store) DimensionStatsBy(ctx context.Context, workspaceID string, f Filter, feature, dimension string, limit int) ([]DimensionStat, error) {
-	col, ok := StatsDimensions[dimension]
-	if !ok {
-		return nil, fmt.Errorf("unsupported stats dimension %q (allowed: channel|model|project|member)", dimension)
-	}
-	if limit <= 0 || limit > 50 {
-		limit = 20
-	}
-	rows, err := s.Pool.Query(ctx, `
-		SELECT COALESCE(NULLIF(`+col+`, ''), '(未标注)') AS key,
-		       count(*)::bigint AS calls,
-		       count(*) FILTER (WHERE status = 'success' OR status = 'succeeded')::bigint AS success_calls,
-		       count(*) FILTER (WHERE status <> 'success' AND status <> 'succeeded')::bigint AS failed_calls,
-		       percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)
-		         FILTER (WHERE status = 'success' OR status = 'succeeded') AS p95,
-		       COALESCE(sum(cost_amount) FILTER (WHERE cost_amount > 0 AND COALESCE(cost_unit, '') <> ''), 0) AS cost_calibrated,
-		       count(*) FILTER (WHERE cost_amount <= 0 OR COALESCE(cost_unit, '') = '')::bigint AS cost_estimated_calls
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1`+f.whereClause()+`
-		  AND ($9 = '' OR feature = $9)
-		-- GROUP BY / ORDER BY 用【完整表达式】而非位置序号：PG 在单组查询里会把
-		-- ORDER BY 的裸数字当成整数常量（报 collations not supported by type integer），
-		-- 位置引用不可靠；别名又会被解析为列名（key/calls 不是表列）⇒ 重复表达式最稳。
-		GROUP BY COALESCE(NULLIF(`+col+`, ''), '(未标注)')
-		ORDER BY COALESCE(sum(cost_amount) FILTER (WHERE cost_amount > 0 AND COALESCE(cost_unit, '') <> ''), 0) DESC,
-		         count(*) DESC,
-		         COALESCE(NULLIF(`+col+`, ''), '(未标注)') COLLATE "C" ASC
-		LIMIT $10`,
-		workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, feature, limit)
-	if err != nil {
-		return nil, fmt.Errorf("audit stats by %s: %w", dimension, err)
-	}
-	defer rows.Close()
-	var out []DimensionStat
-	for rows.Next() {
-		var d DimensionStat
-		var p95 *float64 // 该维度下无成功行时 p95 为 NULL
-		if err := rows.Scan(&d.Key, &d.Calls, &d.SuccessCalls, &d.FailedCalls, &p95, &d.CostCalibrated, &d.CostEstimatedCalls); err != nil {
-			return nil, fmt.Errorf("audit stats by %s: %w", dimension, err)
-		}
-		if p95 != nil {
-			d.P95LatencyMs = int64(*p95)
-		}
-		out = append(out, d)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("audit stats by %s: %w", dimension, err)
-	}
-	return out, nil
-}
+
+// 该维度下无成功行时 p95 为 NULL
 
 // Trend 按日/周/月粒度聚合时间序列（可选按单一维度值下钻）。
 // dimension/dimensionValue 均为可选：dimension 空 = 全量趋势。
-func (s Store) Trend(ctx context.Context, workspaceID string, f Filter, feature, granularity, dimension, dimensionValue string) ([]TrendPoint, error) {
-	unit, ok := Granularities[granularity]
-	if !ok {
-		return nil, fmt.Errorf("unsupported trend granularity %q (allowed: day|week|month)", granularity)
-	}
-	dimCol := ""
-	drilldown := ""
-	if dimension != "" {
-		c, ok := StatsDimensions[dimension]
-		if !ok {
-			return nil, fmt.Errorf("unsupported stats dimension %q (allowed: channel|model|project|member)", dimension)
-		}
-		dimCol = c
-		// 下钻条件只在 dimension 非空时拼接 —— 空列名会生成 `OR  = $11` 语法错误。
-		drilldown = " AND ($11 = '' OR " + dimCol + " = $11)"
-	}
-	rows, err := s.Pool.Query(ctx, `
-		SELECT date_trunc($10::text, created_at) AS bucket,
-		       count(*)::bigint,
-		       count(*) FILTER (WHERE status = 'success' OR status = 'succeeded')::bigint,
-		       percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)
-		         FILTER (WHERE status = 'success' OR status = 'succeeded') AS p95,
-		       COALESCE(sum(cost_amount) FILTER (WHERE cost_amount > 0 AND COALESCE(cost_unit, '') <> ''), 0) AS cost_calibrated,
-		       count(*) FILTER (WHERE cost_amount <= 0 OR COALESCE(cost_unit, '') = '')::bigint
-		FROM gateway_audit_logs
-		WHERE workspace_id = $1`+f.whereClause()+`
-		  AND ($9 = '' OR feature = $9)`+drilldown+`
-		GROUP BY date_trunc($10::text, created_at)
-		ORDER BY date_trunc($10::text, created_at)`,
-		func() []any {
-			args := []any{workspaceID, f.Status, f.ModelID, f.ChannelID, f.Since, f.Until, f.UserID, f.ProjectID, feature, unit}
-			if drilldown != "" {
-				args = append(args, dimensionValue)
-			}
-			return args
-		}()...)
-	if err != nil {
-		return nil, fmt.Errorf("audit trend: %w", err)
-	}
-	defer rows.Close()
-	var out []TrendPoint
-	for rows.Next() {
-		var t TrendPoint
-		var p95 *float64
-		if err := rows.Scan(&t.Bucket, &t.Calls, &t.SuccessCalls, &p95, &t.CostCalibrated, &t.CostEstimatedCalls); err != nil {
-			return nil, fmt.Errorf("audit trend: %w", err)
-		}
-		if p95 != nil {
-			t.P95LatencyMs = int64(*p95)
-		}
-		out = append(out, t)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("audit trend: %w", err)
-	}
-	return out, nil
-}
+
+// 下钻条件只在 dimension 非空时拼接 —— 空列名会生成 `OR  = $11` 语法错误。

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -18,23 +18,28 @@ import (
 	"shotdesigner/services/production/internal/projectcharacter"
 	"shotdesigner/services/production/internal/ruletemplate"
 	"shotdesigner/shared/netguard"
+	"shotdesigner/shared/observability"
 )
 
 func main() {
+	logger := observability.NewJSONLogger("production")
 	databaseURL := os.Getenv("PRODUCTION_DATABASE_URL")
 	token := os.Getenv("PRODUCTION_INTERNAL_TOKEN")
 	if databaseURL == "" || token == "" {
-		log.Fatal("PRODUCTION_DATABASE_URL and PRODUCTION_INTERNAL_TOKEN must be set")
+		logger.Error("PRODUCTION_DATABASE_URL and PRODUCTION_INTERNAL_TOKEN must be set")
+		os.Exit(1)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("pgxpool init failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatal(err)
+		logger.Error("db ping failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 	// ── 上游同步器（① 的第①步）───────────────────────────────────────────────
 	// 没有 PRODUCTION_WORKSPACE_URL / PRODUCTION_WORKSPACE_TOKEN 时**不装配**：
@@ -53,7 +58,7 @@ func main() {
 			Lister:   catalog.NewHTTPLister(syncPolicy, 30*time.Second),
 		}
 	} else {
-		log.Printf("production: 上游同步器【未启用】（需 PRODUCTION_WORKSPACE_URL / PRODUCTION_WORKSPACE_TOKEN）")
+		logger.Info("上游同步器未启用（需 PRODUCTION_WORKSPACE_URL / PRODUCTION_WORKSPACE_TOKEN）")
 	}
 
 	handler := httpapi.Handler{
@@ -74,11 +79,16 @@ func main() {
 	if addr == "" {
 		addr = "127.0.0.1:8081"
 	}
+	metrics := observability.NewMetrics()
+	observed := observability.WithObservability(logger, metrics)(handler.Routes())
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           handler.Routes(),
+		Handler:           observed,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	log.Printf("production internal API listening on %s", addr)
-	log.Fatal(server.ListenAndServe())
+	logger.Info("production internal API listening", "addr", addr)
+	if err := server.ListenAndServe(); err != nil {
+		logger.Error("production server stopped", slog.Any("err", err))
+		os.Exit(1)
+	}
 }

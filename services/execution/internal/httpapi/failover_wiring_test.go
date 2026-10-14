@@ -13,7 +13,7 @@ import (
 // `/v1/generate` 接线漏改（#146）、渠道卡片合并丢字段（#147）、以及 P3-2 施工中
 // 我又把失败切换先加到了 `runModel` 而漏掉 `generate`。所以把"还允许几处"钉成不变量。
 func TestAtMostOnePrimaryCandidateUse(t *testing.T) {
-	b, err := os.ReadFile("handler.go")
+	b, err := os.ReadFile("handlers_generate.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestAtMostOnePrimaryCandidateUse(t *testing.T) {
 }
 
 func TestFailoverHelperIsUsed(t *testing.T) {
-	b, err := os.ReadFile("handler.go")
+	b, err := os.ReadFile("handlers_generate.go")
 	if err != nil {
 		t.Fatal(err)
 	}

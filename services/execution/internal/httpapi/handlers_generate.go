@@ -1,327 +1,58 @@
 package httpapi
 
 import (
-	"context"
-	"crypto/rand"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
+	"shotdesigner/services/execution/internal/mapping"
+
 	"fmt"
 	"io"
-	"log/slog"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 
-	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/catalog"
-	"shotdesigner/services/execution/internal/creds"
+
+	"crypto/rand"
 	"shotdesigner/services/execution/internal/engine"
+
+	"net/http"
+
+	"shotdesigner/services/execution/internal/artifact"
+
+	"log/slog"
 	"shotdesigner/services/execution/internal/job"
-	"shotdesigner/services/execution/internal/mapping"
-	"shotdesigner/services/execution/internal/probe"
-	"shotdesigner/services/execution/internal/quota"
-	"shotdesigner/services/execution/internal/reconcile"
+
+	"os"
+
+	"strings"
+	"time"
 )
 
-type Handler struct {
-	Store        Store
-	Token        string
-	Ready        func(context.Context) error
-	Catalog      *catalog.Client
-	Creds        *creds.Client
-	EngineClient *http.Client
-	AuditStore   *audit.Store
-	// Quota 为 nil 时不做限流与成本判定（便于渐进启用与测试）
-	Quota *quota.Limiter
-	// Probe 是渠道连通性探测（全仓唯一实现，TASK-INFRA-004）。为 nil 时该路由 503。
-	Probe *probe.Prober
-	// Artifacts 是产物落盘客户端（TASK-ASSET-001）。为 nil 时不落盘（best-effort 关闭）。
-	Artifacts *artifact.Client
-	// ReconcileStore 是 T0 价格校准台账（price_calibration_logs）。为 nil 时对账端点 503。
-	ReconcileStore *reconcile.Store
-}
+// Quota 为 nil 时不做限流与成本判定（便于渐进启用与测试）
 
-type Store interface {
-	Create(context.Context, string, string, job.Input) (job.Job, bool, error)
-	List(context.Context, string, string, string, int) ([]job.Job, error)
-	Get(context.Context, string, string) (job.Job, error)
-	Cancel(context.Context, string, string) (job.Job, error)
-	Retry(context.Context, string, string) (job.Job, error)
-}
+// Probe 是渠道连通性探测（全仓唯一实现，TASK-INFRA-004）。为 nil 时该路由 503。
 
-func (h Handler) Routes() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /live", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
-	mux.HandleFunc("GET /ready", func(w http.ResponseWriter, r *http.Request) {
-		if h.Ready == nil || h.Ready(r.Context()) != nil {
-			writeError(w, 503, "NOT_READY", "database unavailable")
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-	})
-	mux.HandleFunc("POST /internal/v1/tasks", h.create)
-	mux.HandleFunc("POST /internal/v1/execution-intents", h.createFromIntent)
-	mux.HandleFunc("GET /internal/v1/tasks", h.list)
-	mux.HandleFunc("GET /internal/v1/tasks/{id}", h.get)
-	mux.HandleFunc("POST /internal/v1/tasks/{id}/cancel", h.cancel)
-	mux.HandleFunc("POST /internal/v1/tasks/{id}/retry", h.retry)
-	mux.HandleFunc("POST /internal/v1/tasks/run", h.runModel)
-	mux.HandleFunc("POST /v1/generate", h.generate)
-	mux.HandleFunc("GET /internal/v1/audit/logs", h.listAuditLogs)
-	mux.HandleFunc("GET /internal/v1/audit/export", h.exportAuditLogs)
-	// T2 运营报表聚合：四维排行 + 日/周/月趋势（成本看板数据源）。
-	mux.HandleFunc("GET /internal/v1/audit/stats", h.listStats)
-	mux.HandleFunc("GET /internal/v1/audit/stats/trend", h.statsTrend)
-	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
-	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
-	// T0 价格对账：触发一次「审计实际成本 vs 目录权威价」的差异检查，写入校准台账。
-	mux.HandleFunc("POST /internal/v1/reconcile", h.reconcile)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 同步测试端点 /tasks/run 会真实等待上游生成（文本 ~5s、图片 30-120s、视频异步不在此同步执行），
-		// 超时按上游长任务放宽，避免图片/视频生成被掐断。
-		ctx, cancel := context.WithTimeout(r.Context(), 300*time.Second)
-		defer cancel()
-		mux.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
+// Artifacts 是产物落盘客户端（TASK-ASSET-001）。为 nil 时不落盘（best-effort 关闭）。
 
-func (h Handler) createFromIntent(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, actor, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, 512*1024+4096)
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	var in struct {
-		IntentID   string          `json:"intent_id"`
-		ProjectID  string          `json:"project_id"`
-		EpisodeID  string          `json:"episode_id"`
-		AssetID    string          `json:"asset_id"`
-		ShotID     string          `json:"shot_id"`
-		Feature    string          `json:"feature"`
-		Kind       string          `json:"kind"`
-		Label      string          `json:"label"`
-		Payload    json.RawMessage `json:"payload"`
-		ScopeEpoch int             `json:"scope_epoch"`
-	}
-	if err := dec.Decode(&in); err != nil {
-		writeError(w, 400, "INVALID_BODY", "invalid execution intent JSON or body too large")
-		return
-	}
-	if dec.Decode(new(any)) != io.EOF {
-		writeError(w, 400, "INVALID_BODY", "request must contain exactly one JSON object")
-		return
-	}
-	if in.IntentID == "" || in.ProjectID == "" || in.Kind == "" || in.Label == "" || in.ScopeEpoch < 0 || len(in.Payload) == 0 || !json.Valid(in.Payload) {
-		writeError(w, 422, "INVALID_INTENT", "intent_id, project_id, kind, label and payload are required")
-		return
-	}
-	key := "intent:" + in.IntentID
-	out, replayed, err := h.Store.Create(r.Context(), ws, actor, job.Input{IntentID: in.IntentID, IdempotencyKey: key, Kind: in.Kind, Label: in.Label, ProjectID: in.ProjectID, EpisodeID: in.EpisodeID, AssetID: in.AssetID, ShotID: in.ShotID, Feature: in.Feature, ScopeEpoch: in.ScopeEpoch, IntentPayload: in.Payload})
-	if errors.Is(err, job.ErrIdempotencyConflict) {
-		writeError(w, 409, "INTENT_CONFLICT", err.Error())
-		return
-	}
-	if err != nil {
-		writeError(w, 503, "EXECUTION_UNAVAILABLE", "execution intent could not be persisted")
-		return
-	}
-	w.Header().Set("X-Idempotent-Replay", boolString(replayed))
-	if !replayed {
-		// T1（§3.7）：异步提交路径创建 submit-time 审计行（status=queued，含业务归因 + job_id）。
-		// 终结「异步任务零审计」——worker 终态更新（UpdateResultByJobID）命中本行。
-		// 审计失败不得阻断主流程（D1），但必须可见。
-		h.writeSubmitAudit(r.Context(), ws, actor, genRequestID(), out, in.Kind, in.Payload)
-	}
-	if replayed {
-		writeJSON(w, 200, out)
-	} else {
-		writeJSON(w, 201, out)
-	}
-}
+// ReconcileStore 是 T0 价格校准台账（price_calibration_logs）。为 nil 时对账端点 503。
+
+// T2 运营报表聚合：四维排行 + 日/周/月趋势（成本看板数据源）。
+
+// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
+
+// T0 价格对账：触发一次「审计实际成本 vs 目录权威价」的差异检查，写入校准台账。
+
+// 同步测试端点 /tasks/run 会真实等待上游生成（文本 ~5s、图片 30-120s、视频异步不在此同步执行），
+// 超时按上游长任务放宽，避免图片/视频生成被掐断。
+
+// T1（§3.7）：异步提交路径创建 submit-time 审计行（status=queued，含业务归因 + job_id）。
+// 终结「异步任务零审计」——worker 终态更新（UpdateResultByJobID）命中本行。
+// 审计失败不得阻断主流程（D1），但必须可见。
 
 // writeSubmitAudit 为异步任务写入提交时审计行（T1）。
 // 归因从意图上下文取；model_id 从 payload 尽力解析（best-effort，缺失置空容忍）；
 // channel_id/provider_model 提交时未知，由 worker 终态更新补齐（UpdateResultByJobID）。
-func (h Handler) writeSubmitAudit(ctx context.Context, ws, actor, requestID string, j job.Job, kind string, payload json.RawMessage) {
-	if h.AuditStore == nil {
-		return
-	}
-	modelID := ""
-	if len(payload) > 0 {
-		var m struct {
-			ModelID string `json:"modelId"`
-		}
-		if json.Unmarshal(payload, &m) == nil {
-			modelID = m.ModelID
-		}
-	}
-	auditLog := audit.Log{
-		RequestID: requestID, WorkspaceID: ws,
-		ProjectID: j.ProjectID, EpisodeID: j.EpisodeID, AssetID: j.AssetID, ShotID: j.ShotID, Feature: j.Feature,
-		UserID: actor, Product: kind, ModelID: modelID, Mode: "",
-		RequestPayload: payload, Status: "queued",
-		JobID: j.ID, CostCurrency: "CNY",
-	}
-	if err := h.AuditStore.Insert(ctx, auditLog); err != nil {
-		slog.Error("audit submit insert failed", "jobId", j.ID, "error", err)
-	}
-}
-func (h Handler) auth(w http.ResponseWriter, r *http.Request) bool {
-	p := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if h.Token == "" || len(p) != len(h.Token) || subtle.ConstantTimeCompare([]byte(p), []byte(h.Token)) != 1 {
-		writeError(w, 401, "UNAUTHENTICATED", "internal authentication required")
-		return false
-	}
-	return true
-}
-func ctxOf(r *http.Request) (string, string, bool) {
-	return strings.TrimSpace(r.Header.Get("X-Workspace-Id")), strings.TrimSpace(r.Header.Get("X-Actor-Id")), r.Header.Get("X-Workspace-Id") != "" && r.Header.Get("X-Actor-Id") != ""
-}
-func (h Handler) create(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, actor, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, 512*1024+4096)
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	var in struct {
-		Kind           string          `json:"kind"`
-		Label          string          `json:"label"`
-		ProjectID      string          `json:"project_id"`
-		EpisodeID      string          `json:"episode_id"`
-		AssetID        string          `json:"asset_id"`
-		ShotID         string          `json:"shot_id"`
-		Feature        string          `json:"feature"`
-		Steps          json.RawMessage `json:"steps"`
-		Payload        json.RawMessage `json:"payload"`
-		CostEstimate   string          `json:"cost_estimate"`
-		ContextPath    string          `json:"context_path"`
-		IdempotencyKey string          `json:"idempotency_key"`
-	}
-	if err := dec.Decode(&in); err != nil {
-		writeError(w, 400, "INVALID_JSON", "invalid task request")
-		return
-	}
-	if dec.Decode(new(any)) != io.EOF {
-		writeError(w, 400, "INVALID_JSON", "request must contain exactly one JSON object")
-		return
-	}
-	key := r.Header.Get("Idempotency-Key")
-	if key == "" {
-		key = in.IdempotencyKey
-	}
-	out, replayed, err := h.Store.Create(r.Context(), ws, actor, job.Input{IdempotencyKey: key, Kind: in.Kind, Label: in.Label, ProjectID: in.ProjectID, EpisodeID: in.EpisodeID, AssetID: in.AssetID, ShotID: in.ShotID, Feature: in.Feature, Steps: in.Steps, IntentPayload: in.Payload, CostEstimate: in.CostEstimate, ContextPath: in.ContextPath})
-	if errors.Is(err, job.ErrIdempotencyConflict) {
-		writeError(w, 409, "IDEMPOTENCY_CONFLICT", err.Error())
-		return
-	}
-	if err != nil {
-		writeError(w, 422, "INVALID_TASK", err.Error())
-		return
-	}
-	w.Header().Set("X-Idempotent-Replay", boolString(replayed))
-	if !replayed {
-		// T1（§3.7）：同 intent 提交路径，任务提交创建 submit-time 审计行（queued + 归因 + job_id）。
-		h.writeSubmitAudit(r.Context(), ws, actor, genRequestID(), out, in.Kind, in.Payload)
-	}
-	if replayed {
-		writeJSON(w, 200, out)
-		return
-	}
-	writeJSON(w, 201, out)
-}
-func (h Handler) list(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	out, err := h.Store.List(r.Context(), ws, r.URL.Query().Get("status"), r.URL.Query().Get("kind"), 50)
-	if err != nil {
-		writeError(w, 503, "TASK_UNAVAILABLE", err.Error())
-		return
-	}
-	writeJSON(w, 200, map[string]any{"items": out})
-}
-func (h Handler) get(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	out, err := h.Store.Get(r.Context(), ws, r.PathValue("id"))
-	if errors.Is(err, job.ErrNotFound) {
-		writeError(w, 404, "NOT_FOUND", "task not found")
-		return
-	}
-	if err != nil {
-		writeError(w, 503, "TASK_UNAVAILABLE", err.Error())
-		return
-	}
-	writeJSON(w, 200, out)
-}
-func (h Handler) cancel(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	out, err := h.Store.Cancel(r.Context(), ws, r.PathValue("id"))
-	if errors.Is(err, job.ErrNotFound) {
-		writeError(w, 404, "NOT_FOUND", "task not found")
-		return
-	}
-	if err != nil {
-		writeError(w, 409, "INVALID_STATE", err.Error())
-		return
-	}
-	writeJSON(w, 200, out)
-}
-func (h Handler) retry(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	out, err := h.Store.Retry(r.Context(), ws, r.PathValue("id"))
-	if errors.Is(err, job.ErrNotFound) {
-		writeError(w, 404, "NOT_FOUND", "task not found")
-		return
-	}
-	if err != nil {
-		writeError(w, 409, "INVALID_STATE", err.Error())
-		return
-	}
-	writeJSON(w, 200, out)
-}
+
+// T1（§3.7）：同 intent 提交路径，任务提交创建 submit-time 审计行（queued + 归因 + job_id）。
 
 // runModel is the sync model-test entry: given a catalog modelId and a runtime
 // payload (business fields for role=runtime params), it resolves the channel
@@ -852,81 +583,24 @@ func genRequestID() string {
 }
 
 // listAuditLogs returns gateway audit logs with filtering
-func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
-		return
-	}
-	if h.AuditStore == nil {
-		writeError(w, 503, "AUDIT_UNAVAILABLE", "audit store not configured")
-		return
-	}
-	// Parse query parameters
-	limit := 50
-	offset := 0
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
-			limit = n
-		}
-	}
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			offset = n
-		}
-	}
-	// D7a：筛选条件（status / model_id / channel_id / since / until）
-	// 筛选解析抽成 auditFilterFrom，列表与导出【共用同一口径】——避免两处漂移
-	f, ferr := auditFilterFrom(r)
-	if ferr != "" {
-		writeError(w, 400, ferr, "since/until must be RFC3339")
-		return
-	}
-	logs, total, err := h.AuditStore.ListByWorkspace(r.Context(), ws, f, limit, offset)
-	if err != nil {
-		writeError(w, 500, "AUDIT_QUERY_FAILED", err.Error())
-		return
-	}
-	// D7a：统计由【服务端】在【筛选后全集】上算 —— 前端此前在"当前页"上算，是假统计。
-	agg, aggErr := h.AuditStore.Aggregate(r.Context(), ws, f)
-	if aggErr != nil {
-		// 统计失败不该让列表也不可用：如实标注，便于排查。
-		slog.Error("audit aggregate failed", "error", aggErr)
-		agg = audit.AggregateResult{ByStatus: nil}
-	}
-	byStatus := agg.ByStatus
-	// ★ 成功数必须把历史行的 "succeeded" 也算上（写侧已归一为 "success"）：
-	//   否则老数据的成功会在界面上凭空消失。失败态两条路径同名，无需兼容。
-	success := byStatus["success"] + byStatus["succeeded"]
-	successRate := 0.0
-	if total > 0 {
-		successRate = float64(success) / float64(total)
-	}
-	writeJSON(w, 200, map[string]any{
-		"items":  logs,
-		"total":  total,
-		"limit":  limit,
-		"offset": offset,
-		"stats": map[string]any{
-			"byStatus":     byStatus,
-			"success":      success,
-			"successRate":  successRate,
-			"avgLatencyMs": agg.AvgLatencyMs,
-			// ④ §2.3「故障定位」要求的耗时百分位（此前只有平均值）
-			"p50LatencyMs": agg.P50LatencyMs,
-			"p95LatencyMs": agg.P95LatencyMs,
-			// ④ §2.3「按错误文本聚类」：按"第一个冒号前的规范化前缀"分组
-			"topErrors": agg.TopErrors,
-			// ④ §2.2「成本归因」的 SUM 维度（token；金额 SUM 等计费单位确定后再加）
-			"tokensByModel":   agg.TokensByModel,
-			"tokensByChannel": agg.TokensByChannel,
-			"aggregateOn":     "filtered_total",
-		},
-	})
-}
+
+// Parse query parameters
+
+// D7a：筛选条件（status / model_id / channel_id / since / until）
+// 筛选解析抽成 auditFilterFrom，列表与导出【共用同一口径】——避免两处漂移
+
+// D7a：统计由【服务端】在【筛选后全集】上算 —— 前端此前在"当前页"上算，是假统计。
+
+// 统计失败不该让列表也不可用：如实标注，便于排查。
+
+// ★ 成功数必须把历史行的 "succeeded" 也算上（写侧已归一为 "success"）：
+//   否则老数据的成功会在界面上凭空消失。失败态两条路径同名，无需兼容。
+
+// ④ §2.3「故障定位」要求的耗时百分位（此前只有平均值）
+
+// ④ §2.3「按错误文本聚类」：按"第一个冒号前的规范化前缀"分组
+
+// ④ §2.2「成本归因」的 SUM 维度（token；金额 SUM 等计费单位确定后再加）
 
 // listStats 返回按维度聚合的排行（GET /internal/v1/audit/stats）。
 //
@@ -934,98 +608,11 @@ func (h Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
 // （status/model_id/channel_id/user_id/project_id/since/until）+ feature（T1 归因过滤）。
 // 指标：调用量（成功/失败）、成功率、P95（仅成功行）、成本（已校准/预估双口径）。
 // SLO：报表查询 P95 < 2s（数据量增大时以索引/聚合下推演进，见任务卡 §6）。
-func (h Handler) listStats(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
-		return
-	}
-	if h.AuditStore == nil {
-		writeError(w, 503, "AUDIT_UNAVAILABLE", "audit store not configured")
-		return
-	}
-	dimension := r.URL.Query().Get("dimension")
-	if _, ok := audit.StatsDimensions[dimension]; !ok {
-		writeError(w, 400, "INVALID_DIMENSION", "dimension must be channel|model|project|member")
-		return
-	}
-	f, ferr := auditFilterFrom(r)
-	if ferr != "" {
-		writeError(w, 400, ferr, "since/until must be RFC3339")
-		return
-	}
-	feature := r.URL.Query().Get("feature")
-	limit := 20
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 50 {
-			limit = n
-		}
-	}
-	stats, err := h.AuditStore.DimensionStatsBy(r.Context(), ws, f, feature, dimension, limit)
-	if err != nil {
-		writeError(w, 500, "AUDIT_STATS_FAILED", err.Error())
-		return
-	}
-	for i := range stats {
-		if stats[i].Calls > 0 {
-			stats[i].SuccessRate = float64(stats[i].SuccessCalls) / float64(stats[i].Calls) * 100
-		}
-	}
-	writeJSON(w, 200, map[string]any{
-		"dimension": dimension,
-		"items":     stats,
-	})
-}
 
 // statsTrend 返回时间序列（GET /internal/v1/audit/stats/trend）。
 //
 // 参数：granularity=day|week|month（必填）；dimension+dimension_value 可选（按单一维度值下钻）；
 // 筛选与 listStats 同一口径。返回按桶升序的序列，前端直接渲染折线。
-func (h Handler) statsTrend(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, _, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace is required")
-		return
-	}
-	if h.AuditStore == nil {
-		writeError(w, 503, "AUDIT_UNAVAILABLE", "audit store not configured")
-		return
-	}
-	granularity := r.URL.Query().Get("granularity")
-	if _, ok := audit.Granularities[granularity]; !ok {
-		writeError(w, 400, "INVALID_GRANULARITY", "granularity must be day|week|month")
-		return
-	}
-	dimension := r.URL.Query().Get("dimension")
-	dimensionValue := r.URL.Query().Get("dimension_value")
-	if dimension != "" {
-		if _, ok := audit.StatsDimensions[dimension]; !ok {
-			writeError(w, 400, "INVALID_DIMENSION", "dimension must be channel|model|project|member")
-			return
-		}
-	}
-	f, ferr := auditFilterFrom(r)
-	if ferr != "" {
-		writeError(w, 400, ferr, "since/until must be RFC3339")
-		return
-	}
-	feature := r.URL.Query().Get("feature")
-	trend, err := h.AuditStore.Trend(r.Context(), ws, f, feature, granularity, dimension, dimensionValue)
-	if err != nil {
-		writeError(w, 500, "AUDIT_TREND_FAILED", err.Error())
-		return
-	}
-	writeJSON(w, 200, map[string]any{
-		"granularity": granularity,
-		"items":       trend,
-	})
-}
 
 // probeChannel 是渠道连通性探测的内部端点（POST /internal/v1/channels/{id}/probe）。
 //
@@ -1038,105 +625,11 @@ func (h Handler) statsTrend(w http.ResponseWriter, r *http.Request) {
 //	差异 > 20% 记为 alert 并写入 price_calibration_logs；端点返回本次告警列表。
 //
 // 一次性触发（运营/调试）；后续周期调度复用同一 reconcile 包（纯函数，无 IO 依赖本端点）。
-func (h Handler) reconcile(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	if h.Catalog == nil || h.AuditStore == nil || h.ReconcileStore == nil {
-		writeError(w, 503, "RECONCILE_UNAVAILABLE", "price reconcile is not configured")
-		return
-	}
-	ws, actor, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	// 目录权威价（含工作区视角）：无校准价的模型不出现在 ledger —— 未校准不告警（对账非缺失）
-	dir, err := h.Catalog.Get(r.Context(), ws, actor)
-	if err != nil {
-		slog.Error("reconcile catalog", "workspace_id", ws, "error", err)
-		writeError(w, 503, "CATALOG_UNAVAILABLE", "catalog could not be loaded")
-		return
-	}
-	ledger := make(map[string]float64, len(dir.Models))
-	for _, m := range dir.Models {
-		if m.CostAmount != nil {
-			ledger[m.ID] = *m.CostAmount
-		}
-	}
-	actuals, err := h.AuditStore.AggregateRecentCosts(r.Context(), 200)
-	if err != nil {
-		slog.Error("reconcile aggregate", "error", err)
-		writeError(w, 503, "AUDIT_AGGREGATE_FAILED", "audit cost aggregation failed")
-		return
-	}
-	alerts := reconcile.Reconcile(actuals, ledger, reconcile.DefaultThresholdPct)
-	if err := h.ReconcileStore.WriteAlerts(r.Context(), alerts); err != nil {
-		// 台账写入失败不吞掉结果：告警列表仍返回（可见），但必须打日志（审计的审计）
-		slog.Error("reconcile write alerts", "count", len(alerts), "error", err)
-	}
-	writeJSON(w, 200, map[string]any{
-		"ok":           true,
-		"thresholdPct": reconcile.DefaultThresholdPct,
-		"checked":      len(actuals),
-		"alertCount":   len(alerts),
-		"alerts":       alerts,
-	})
-}
 
-func (h Handler) probeChannel(w http.ResponseWriter, r *http.Request) {
-	if !h.auth(w, r) {
-		return
-	}
-	ws, actor, ok := ctxOf(r)
-	if !ok {
-		writeError(w, 400, "INVALID_CONTEXT", "workspace and actor are required")
-		return
-	}
-	if h.Probe == nil {
-		writeError(w, 503, "PROBE_UNAVAILABLE", "channel probe is unavailable")
-		return
-	}
-	id := r.PathValue("id")
-	if id == "" {
-		writeError(w, 400, "INVALID_PATH", "channel id is required")
-		return
-	}
-	out, err := h.Probe.Probe(r.Context(), ws, actor, id)
-	if errors.Is(err, probe.ErrChannelNotFound) {
-		writeError(w, 404, "NOT_FOUND", "channel not found")
-		return
-	}
-	if err != nil {
-		slog.Error("probe channel", "channel_id", id, "workspace_id", ws, "error", err)
-		writeError(w, 503, "PROBE_UNAVAILABLE", "channel probe could not be executed")
-		return
-	}
-	writeJSON(w, 200, out)
-}
+// 目录权威价（含工作区视角）：无校准价的模型不出现在 ledger —— 未校准不告警（对账非缺失）
 
-func writeError(w http.ResponseWriter, status int, code, msg string) {
-	writeJSON(w, status, map[string]string{"code": code, "message": msg})
-}
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-func boolString(v bool) string {
-	if v {
-		return "true"
-	}
-	return "false"
-}
+// 台账写入失败不吞掉结果：告警列表仍返回（可见），但必须打日志（审计的审计）
 
 // cfgErr：配置类失败（无协议模板 / 模板缺失 / 取不到凭据）。
 // 为什么要区分：失败切换后若**所有**候选都是配置问题，必须保留**第一个**候选的原始
 // 状态码与文案（单候选场景与改动前逐字一致）；而引擎失败仍走 200 + {ok:false}（同改动前）。
-type cfgErr struct {
-	status int
-	code   string
-	msg    string
-}
-
-func (e *cfgErr) Error() string { return e.msg }

@@ -2,7 +2,7 @@
 // 单集导演工坊（5）：固定布局，顶部上下文 / 左侧阶段导航 / 中央决策 / 右侧来源版本依赖
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
-import { ArrowLeft, Lock, ChevronRight, FileText, Database, GitBranch, Hourglass, ScrollText, PartyPopper, Clapperboard } from 'lucide-react';
+import { ArrowLeft, Lock, ChevronRight, FileText, Database, PartyPopper, Clapperboard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -49,7 +49,6 @@ export default function EpisodeWorkbenchPage() {
   const episode = useEpisodeStore((s) => s.episodes.find((e) => e.id === episodeId));
   const project = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
   const assets = useAssetStore(useShallow((s) => s.getAssetsByEpisode(episodeId)));
-  const auditLog = useAssetStore((s) => s.auditLog);
   const jobs = useTaskStore((s) => s.jobs);
   if (!episode || !project || !belongsToProject(episode, projectId)) {
     return (
@@ -109,20 +108,6 @@ export default function EpisodeWorkbenchPage() {
   const currentIdx = gates.findIndex((g) => g.key === validStage);
   const prevGate = firstIncompleteGate(gates, currentIdx);
   const blocked = Boolean(prevGate);
-
-  const epAudits = auditLog.filter((l) => assets.some((a) => a.id === l.artifactId));
-  const approvedCount = assets.filter((a) => a.status === 'USER_APPROVED').length;
-  const pendingCount = assets.filter((a) => a.status === 'AWAITING_USER').length;
-  const staleCount = assets.filter((a) => a.stale).length;
-  // 导演阶段待确认项（表演基调/状态变体/调度镜头/单元资产与 Prompt）
-  const directingPending =
-    (episode.performance?.filter((p) => p.status !== 'USER_APPROVED').length ?? 0) +
-    (episode.sceneVariants?.filter((v) => v.status !== 'USER_APPROVED').length ?? 0) +
-    (episode.directing?.filter((d) => d.status !== 'USER_APPROVED').length ?? 0) +
-    (episode.executableUnits?.reduce(
-      (n, u) => n + u.assets.filter((a) => a.status !== 'USER_APPROVED').length + (u.prompt.status !== 'USER_APPROVED' ? 1 : 0),
-      0,
-    ) ?? 0);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -236,15 +221,6 @@ function ButtonLink({ to }: { to: string }) {
         <ArrowLeft className="h-3.5 w-3.5" />
       </Link>
     </Button>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg bg-muted/60 py-1.5">
-      <div className="font-mono text-sm font-semibold">{value}</div>
-      <div className="text-[9px] text-muted-foreground">{label}</div>
-    </div>
   );
 }
 

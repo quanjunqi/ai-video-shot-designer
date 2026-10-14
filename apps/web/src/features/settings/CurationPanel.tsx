@@ -219,7 +219,7 @@ export default function CurationPanel({
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
+                  <div className="min-w-0 space-y-1.5">
                     <Label className="text-xs">展示名 *</Label>
                     <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
                   </div>

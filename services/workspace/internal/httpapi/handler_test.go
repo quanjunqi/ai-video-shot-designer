@@ -25,11 +25,19 @@ type fakeStore struct {
 	revealErr        error
 	revealAuthHeader *string
 	revealAuthPrefix *string
+
+	statusItems []store.CredentialStatus
+	statusErr   error
+
+	channels    []store.UserChannel
+	channelsErr error
+	deleteChErr error
+	lastChannel string
 }
 
 func (s *fakeStore) ListUserChannels(_ context.Context, workspaceID string) ([]store.UserChannel, error) {
 	s.lastWorkspace = workspaceID
-	return nil, nil
+	return s.channels, s.channelsErr
 }
 
 func (s *fakeStore) UpsertUserChannel(_ context.Context, workspaceID string, c store.UserChannel) (store.UserChannel, error) {
@@ -37,9 +45,9 @@ func (s *fakeStore) UpsertUserChannel(_ context.Context, workspaceID string, c s
 	return c, nil
 }
 
-func (s *fakeStore) DeleteUserChannel(_ context.Context, workspaceID, _ string) error {
-	s.lastWorkspace = workspaceID
-	return nil
+func (s *fakeStore) DeleteUserChannel(_ context.Context, workspaceID, channelID string) error {
+	s.lastWorkspace, s.lastChannel = workspaceID, channelID
+	return s.deleteChErr
 }
 
 func (s *fakeStore) Members(_ context.Context, workspaceID string) ([]store.Member, error) {
@@ -57,7 +65,7 @@ func (s *fakeStore) PutCredential(_ context.Context, in store.Credential) error 
 	return s.putErr
 }
 func (s *fakeStore) Status(_ context.Context, _ string) ([]store.CredentialStatus, error) {
-	return nil, nil
+	return s.statusItems, s.statusErr
 }
 func (s *fakeStore) DeleteCredential(_ context.Context, _, _ string) error { return nil }
 func (s *fakeStore) RevealKey(_ context.Context, _, _ string) (store.RevealedCredential, error) {
@@ -242,5 +250,100 @@ func TestRevealFlattensNullAuthKnobsToEmptyString(t *testing.T) {
 	}
 	if got["authHeader"] != "" || got["authPrefix"] != "" {
 		t.Fatalf("NULL knobs must flatten to empty strings, got %v", got)
+	}
+}
+
+func TestCredentialStatusReturnsItemsAndMapsFailure(t *testing.T) {
+	fake := &fakeStore{statusItems: []store.CredentialStatus{{ChannelID: "autodl", HasKey: true, Enabled: true}}}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/credentials"))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status: expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+		t.Fatalf("status response is not JSON: %v", err)
+	}
+	if got["items"] == nil {
+		t.Fatalf("status must return items, got %v", got)
+	}
+
+	fake.statusErr = errors.New("database offline")
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/credentials"))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status store failure: expected 503, got %d", response.Code)
+	}
+}
+
+func TestDeleteCredential(t *testing.T) {
+	h := Handler{Store: &fakeStore{}, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodDelete, "/internal/v1/workspaces/ws_dev/credentials/autodl"))
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("delete credential: expected 204, got %d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestListUserChannelsReturnsItemsAndMapsFailure(t *testing.T) {
+	fake := &fakeStore{channels: []store.UserChannel{{ID: "ch1", Name: "渠道一"}}}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/channels"))
+	if response.Code != http.StatusOK || fake.lastWorkspace != "ws_dev" {
+		t.Fatalf("list channels: code=%d workspace=%q body=%s", response.Code, fake.lastWorkspace, response.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &got); err != nil {
+		t.Fatalf("channels response is not JSON: %v", err)
+	}
+	if got["items"] == nil {
+		t.Fatalf("channels must return items, got %v", got)
+	}
+
+	fake.channelsErr = errors.New("database offline")
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/channels"))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("channels store failure: expected 503, got %d", response.Code)
+	}
+}
+
+func TestPutUserChannel(t *testing.T) {
+	fake := &fakeStore{}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	body := `{"name":"渠道一","kind":"official","protocol":"api","baseUrl":"https://x","authType":"bearer"}`
+	r := httptest.NewRequest(http.MethodPut, "/internal/v1/workspaces/ws_dev/channels/ch1", strings.NewReader(body))
+	r.Header.Set("Authorization", "Bearer test-token")
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, r)
+	if response.Code != http.StatusOK {
+		t.Fatalf("put user channel: expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+	if fake.lastWorkspace != "ws_dev" {
+		t.Fatalf("put user channel must pass workspace, got %q", fake.lastWorkspace)
+	}
+}
+
+func TestDeleteUserChannel(t *testing.T) {
+	fake := &fakeStore{}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodDelete, "/internal/v1/workspaces/ws_dev/channels/ch1"))
+	if response.Code != http.StatusNoContent || fake.lastChannel != "ch1" {
+		t.Fatalf("delete user channel: code=%d channel=%q body=%s", response.Code, fake.lastChannel, response.Body.String())
+	}
+
+	fake.deleteChErr = errors.New("database offline")
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodDelete, "/internal/v1/workspaces/ws_dev/channels/ch1"))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("delete user channel failure: expected 503, got %d", response.Code)
 	}
 }

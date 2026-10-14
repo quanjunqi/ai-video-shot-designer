@@ -20,6 +20,7 @@
 #   frontend=true|false
 #   backend=true|false
 #   security=true|false
+#   openapi=true|false        # openapi/ 契约文件有改动（需要契约同步检查）
 #   services=["asset",...]      # 需要跑后端门禁的服务
 #   reason=...                  # 人类可读的判定依据
 # =============================================================================
@@ -32,6 +33,7 @@ emit_all() { # $1=原因
     echo "frontend=true"
     echo "backend=true"
     echo "security=true"
+    echo "openapi=true"
     echo "services=$ALL_SERVICES"
     echo "reason=$1"
 }
@@ -73,6 +75,7 @@ fi
 # --- 逐路径归类 --------------------------------------------------------------
 frontend=false
 security=false
+openapi=false
 declare -a svcs=()
 
 global_hit=""
@@ -90,6 +93,9 @@ while IFS= read -r p; do
         #   否则只跑 shared 自己会漏掉消费方的回归。必须放在通用 services/* 之前。
         services/shared/*)
             global_hit="$p" ;;
+        openapi/*)
+            # 契约变更：必须重生成前端类型 → 走前端门禁（含 api:check 契约同步检查）
+            frontend=true; security=true; openapi=true ;;
         apps/web/*)
             frontend=true; security=true ;;
         services/*)
@@ -122,6 +128,7 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
         echo "frontend=$frontend"
         echo "backend=$backend"
         echo "security=$security"
+        echo "openapi=$openapi"
         echo "services=$services"
         echo "reason=按改动路径判定（未触发全量回退）"
     } >> "$GITHUB_OUTPUT"
@@ -129,6 +136,7 @@ else
     echo "frontend=$frontend"
     echo "backend=$backend"
     echo "security=$security"
+    echo "openapi=$openapi"
     echo "services=$services"
     echo "reason=按改动路径判定（未触发全量回退）"
 fi

@@ -115,7 +115,7 @@ func (store PostgresStore) Create(ctx context.Context, workspace, projectID, epi
 		 source_scene, holder, current_version, versions, prompt, negative_prompt,
 		 image_url, status, model, stale,
 		 project_character_id, project_prop_id, project_scene_id, episode_variant)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
 		workspace, projectID, episodeID, input.ID, input.Kind, input.Name,
 		input.Description, scope, input.SourceScene, input.Holder, currentVersion,
 		versions, input.Prompt, input.NegativePrompt, input.ImageURL, status,

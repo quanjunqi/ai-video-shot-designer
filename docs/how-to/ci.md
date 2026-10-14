@@ -19,6 +19,23 @@
 - `.github/**`（CI 配置本身）
 - `deploy/**`（部署配置）
 
+## Security Scan 包含什么（W6）
+
+`services/**` 或 `apps/web/**` 有改动时，Security Scan job 依次执行：
+
+| 步骤 | 工具 | 阻断条件 |
+|---|---|---|
+| Secrets 扫描 | Gitleaks v8.18.4（官方二进制，零权限依赖） | 检出硬编码密钥/凭据/Token |
+| Go SAST | Gosec | 检出安全反模式 |
+| Go 依赖漏洞 | govulncheck（全部 7 个 module，`-mode=source`） | 代码受影响的漏洞（exit 1）；模块含漏洞但未调用（exit 3）放行并提示 |
+| NPM 生产依赖 | npm audit（官方 registry） | high/critical 阻断 |
+| NPM 全量依赖 | npm audit（含 dev） | 仅提示（存量 dev 工具漏洞，见 CHANGELOG Known Issues） |
+
+要点：
+- Gitleaks 豁免清单在 `.gitleaks.toml`（`[extend] useDefault = true` 保留官方规则 + `[allowlist]` 豁免开发/测试占位值）；新增豁免必须说明理由，禁止豁免生产密钥。
+- govulncheck 的标准库漏洞由 setup-go 的 `go-version: '1.25.x'`（最新 patch）消除，不要用固定旧版本。
+- Go 依赖升级后本地复扫：`cd services/<svc> && go run golang.org/x/vuln/cmd/govulncheck@latest -mode=source ./...`（本地工具链若有标准库漏洞输出，以 CI 的 1.25.x 为准）。
+
 ## CI 红了怎么排查
 
 | 症状 | 先看哪里 |
