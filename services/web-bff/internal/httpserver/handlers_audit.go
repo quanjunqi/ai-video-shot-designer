@@ -36,7 +36,7 @@ func (s *server) auditExport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -88,7 +88,7 @@ func (s *server) auditGetProxy(upstreamPath string, w http.ResponseWriter, r *ht
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 	w.Header().Set("Pragma", "no-cache")

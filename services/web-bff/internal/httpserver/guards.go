@@ -19,7 +19,7 @@ func (s *server) authorize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusForbidden {
 		return errAuthorizationDenied
 	}
@@ -37,7 +37,7 @@ func (s *server) check(ctx context.Context, url, token string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 300 {
 		return io.EOF
 	}

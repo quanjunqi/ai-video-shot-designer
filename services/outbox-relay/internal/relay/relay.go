@@ -117,7 +117,7 @@ func (r *relay) claim(ctx context.Context) ([]event, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	rows, err := tx.Query(ctx, `WITH picked AS (
 SELECT id FROM outbox_events
 WHERE published_at IS NULL AND dead_lettered_at IS NULL AND available_at <= now()
@@ -163,7 +163,7 @@ func (r *relay) deliver(ctx context.Context, e event) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
@@ -175,7 +175,7 @@ func (r *relay) ack(ctx context.Context, id int64, workspace, aggregate string) 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	if _, err = tx.Exec(ctx, `UPDATE outbox_events SET published_at=now(),locked_at=NULL,locked_by='',last_error='' WHERE id=$1 AND locked_by=$2`, id, r.workerID); err != nil {
 		return err
 	}

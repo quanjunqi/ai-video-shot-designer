@@ -57,7 +57,7 @@ func (s *server) generationIntents(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "production service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -105,7 +105,7 @@ func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -145,7 +145,7 @@ func (s *server) channelSync(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -197,7 +197,7 @@ func (s *server) workspaceChannels(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -246,7 +246,7 @@ func (s *server) workspaceCredentials(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -300,7 +300,7 @@ func (s *server) catalogProxy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -350,7 +350,7 @@ func (s *server) ruleTemplates(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -404,7 +404,7 @@ func (s *server) logicalModels(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "production service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -412,19 +412,19 @@ func (s *server) logicalModels(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) ready(w http.ResponseWriter, r *http.Request) {
 	if err := s.check(r.Context(), s.workspaceURL+"/ready", s.workspaceToken); err != nil {
-		http.Error(w, "workspace unavailable", 503)
+		http.Error(w, "workspace unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	if err := s.check(r.Context(), s.productionURL+"/ready", s.productionToken); err != nil {
-		http.Error(w, "production unavailable", 503)
+		http.Error(w, "production unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	if err := s.check(r.Context(), s.assetURL+"/ready", s.assetToken); err != nil {
-		http.Error(w, "asset unavailable", 503)
+		http.Error(w, "asset unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	if err := s.check(r.Context(), s.executionURL+"/ready", s.executionToken); err != nil {
-		http.Error(w, "execution unavailable", 503)
+		http.Error(w, "execution unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -482,7 +482,7 @@ func (s *server) tasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	// 任务状态查询禁止缓存，确保前端轮询时始终拿到最新数据
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
@@ -533,7 +533,7 @@ func (s *server) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "execution service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
@@ -582,7 +582,7 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "asset service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
@@ -636,7 +636,7 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "UPSTREAM_UNAVAILABLE", "project service unavailable")
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
