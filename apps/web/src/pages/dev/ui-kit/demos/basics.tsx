@@ -1,15 +1,9 @@
 import type { ReactNode } from 'react';
 import { ArrowRightIcon, PlusIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  ButtonGroup,
-  ButtonGroupSeparator,
-  ButtonGroupText,
-} from '@/components/ui/button-group';
 import {
   Card,
   CardContent,
@@ -19,7 +13,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Image } from '@/components/ui/image';
-import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -79,32 +72,6 @@ export const BASICS_DEMOS: Record<string, ReactNode> = {
           v1.2.0
         </Badge>
       </div>
-    </div>
-  ),
-  "button-group": (
-    <div className="flex flex-col gap-4">
-      <ButtonGroup>
-        <Button variant="outline">左</Button>
-        <Button variant="outline">中</Button>
-        <Button variant="outline">右</Button>
-      </ButtonGroup>
-      <ButtonGroup>
-        <Button variant="outline">复制</Button>
-        <ButtonGroupSeparator />
-        <Button variant="outline">粘贴</Button>
-      </ButtonGroup>
-      <ButtonGroup>
-        <ButtonGroupText>https://</ButtonGroupText>
-        <Button variant="outline">访问</Button>
-      </ButtonGroup>
-      <ButtonGroup orientation="vertical">
-        <Button variant="outline" size="sm">
-          上移
-        </Button>
-        <Button variant="outline" size="sm">
-          下移
-        </Button>
-      </ButtonGroup>
     </div>
   ),
   "card": (
@@ -209,24 +176,6 @@ export const BASICS_DEMOS: Record<string, ReactNode> = {
       </span>
     </div>
   ),
-  "kbd": (
-    <div className="flex flex-wrap items-center gap-4">
-      <Kbd>Esc</Kbd>
-      <Kbd>⌘</Kbd>
-      <KbdGroup>
-        <Kbd>⌘</Kbd>
-        <Kbd>K</Kbd>
-      </KbdGroup>
-      <KbdGroup>
-        <Kbd>Ctrl</Kbd>
-        <span className="text-muted-foreground text-xs">+</span>
-        <Kbd>Enter</Kbd>
-      </KbdGroup>
-      <span className="text-muted-foreground text-sm">
-        快速搜索 <KbdGroup><Kbd>⌘</Kbd><Kbd>K</Kbd></KbdGroup>
-      </span>
-    </div>
-  ),
   "image": (
     <div className="flex flex-col gap-4">
       <Image
@@ -239,23 +188,6 @@ export const BASICS_DEMOS: Record<string, ReactNode> = {
       <p className="text-muted-foreground text-sm">
         非白名单域名按原生 img 渲染，白名单（storage / attachments）会自动补 srcSet 与格式协商。
       </p>
-    </div>
-  ),
-  "aspect-ratio": (
-    <div className="flex flex-wrap gap-4">
-      <AspectRatio ratio={16 / 9} className="bg-muted w-64 overflow-hidden rounded-md">
-        <Image
-          src="/placeholders/p01.jpg"
-          alt="16:9 占位"
-          className="size-full object-cover"
-        />
-      </AspectRatio>
-      <AspectRatio ratio={1} className="bg-muted w-40 overflow-hidden rounded-md">
-        <Image src="/placeholders/p02.jpg" alt="1:1 占位" className="size-full object-cover" />
-      </AspectRatio>
-      <AspectRatio ratio={4 / 3} className="bg-muted w-52 overflow-hidden rounded-md">
-        <Image src="/placeholders/p03.jpg" alt="4:3 占位" className="size-full object-cover" />
-      </AspectRatio>
     </div>
   ),
 };

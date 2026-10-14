@@ -36,11 +36,6 @@ import {
   ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item';
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Sidebar,
@@ -177,38 +172,6 @@ export const LAYOUT_DEMOS: Record<string, ReactNode> = {
           </a>
         </Item>
       </ItemGroup>
-    </div>
-  ),
-  "resizable": (
-    <div className="flex w-full min-w-0 flex-col gap-4">
-      <ResizablePanelGroup
-        direction="horizontal"
-        className="h-40 w-full min-w-0 max-w-3xl overflow-hidden rounded-md border"
-      >
-        <ResizablePanel defaultSize={40} minSize={20}>
-          <div className="flex h-full min-w-0 items-center justify-center p-4 text-sm">
-            左侧面板
-          </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={60} minSize={20}>
-          <div className="flex h-full min-w-0 items-center justify-center p-4 text-sm">
-            右侧面板（拖拽中间手柄）
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-      <ResizablePanelGroup
-        direction="vertical"
-        className="h-40 w-full min-w-0 max-w-3xl overflow-hidden rounded-md border"
-      >
-        <ResizablePanel defaultSize={50}>
-          <div className="flex h-full min-w-0 items-center justify-center p-4 text-sm">上</div>
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize={50}>
-          <div className="flex h-full min-w-0 items-center justify-center p-4 text-sm">下</div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
     </div>
   ),
   "scroll-area": (

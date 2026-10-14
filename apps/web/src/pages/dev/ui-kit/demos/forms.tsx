@@ -1,13 +1,7 @@
 import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import {
-  AlignCenterIcon,
-  AlignLeftIcon,
-  AlignRightIcon,
-  BoldIcon,
-  ItalicIcon,
   SearchIcon,
-  UnderlineIcon,
   XIcon,
 } from 'lucide-react';
 
@@ -44,12 +38,6 @@ import {
   InputGroupText,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from '@/components/ui/input-otp';
 import { Label } from '@/components/ui/label';
 import {
   NativeSelect,
@@ -70,8 +58,6 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Toggle } from '@/components/ui/toggle';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // 数据录入组件展示。key = 组件文件名（src/components/ui/<key>.tsx）。
 const CALENDAR_MONTH = new Date(2026, 0, 15);
@@ -232,31 +218,6 @@ export const FORMS_DEMOS: Record<string, ReactNode> = {
       </InputGroup>
     </div>
   ),
-  "input-otp": (
-    <div className="flex flex-col gap-4">
-      <InputOTP maxLength={6} aria-label="六位验证码">
-        <InputOTPGroup>
-          <InputOTPSlot index={0} />
-          <InputOTPSlot index={1} />
-          <InputOTPSlot index={2} />
-        </InputOTPGroup>
-        <InputOTPSeparator />
-        <InputOTPGroup>
-          <InputOTPSlot index={3} />
-          <InputOTPSlot index={4} />
-          <InputOTPSlot index={5} />
-        </InputOTPGroup>
-      </InputOTP>
-      <InputOTP maxLength={4} disabled aria-label="四位验证码（禁用）">
-        <InputOTPGroup>
-          <InputOTPSlot index={0} />
-          <InputOTPSlot index={1} />
-          <InputOTPSlot index={2} />
-          <InputOTPSlot index={3} />
-        </InputOTPGroup>
-      </InputOTP>
-    </div>
-  ),
   "label": (
     <div className="flex w-full min-w-0 max-w-3xl flex-col gap-3">
       <div className="flex min-w-0 flex-col gap-2">
@@ -356,45 +317,6 @@ export const FORMS_DEMOS: Record<string, ReactNode> = {
         aria-label="已填写示例"
       />
       <Textarea disabled placeholder="禁用状态" aria-label="禁用状态" />
-    </div>
-  ),
-  "toggle": (
-    <div className="flex flex-wrap items-center gap-3">
-      <Toggle aria-label="加粗" defaultPressed>
-        <BoldIcon />
-      </Toggle>
-      <Toggle variant="outline" aria-label="斜体">
-        <ItalicIcon />
-      </Toggle>
-      <Toggle variant="outline" aria-label="下划线" disabled>
-        <UnderlineIcon />
-      </Toggle>
-      <Toggle size="sm">sm</Toggle>
-      <Toggle size="lg" variant="outline">
-        lg
-      </Toggle>
-    </div>
-  ),
-  "toggle-group": (
-    <div className="flex flex-col gap-3">
-      <ToggleGroup type="single" defaultValue="center" variant="outline" className="w-fit">
-        <ToggleGroupItem value="left" aria-label="左对齐">
-          <AlignLeftIcon />
-        </ToggleGroupItem>
-        <ToggleGroupItem value="center" aria-label="居中">
-          <AlignCenterIcon />
-        </ToggleGroupItem>
-        <ToggleGroupItem value="right" aria-label="右对齐">
-          <AlignRightIcon />
-        </ToggleGroupItem>
-      </ToggleGroup>
-      <ToggleGroup type="multiple" defaultValue={['bold']} size="sm" className="w-fit">
-        <ToggleGroupItem value="bold">加粗</ToggleGroupItem>
-        <ToggleGroupItem value="italic">斜体</ToggleGroupItem>
-        <ToggleGroupItem value="underline" disabled>
-          下划线（禁用）
-        </ToggleGroupItem>
-      </ToggleGroup>
     </div>
   ),
 };

@@ -9,19 +9,11 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { Image } from '@/components/ui/image';
 import {
   Table,
   TableBody,
@@ -55,12 +47,6 @@ const SHOT_TABLE = [
   { id: 'S-04', framing: '特写', duration: '1.2s', status: '待审核' },
 ];
 
-const SLIDES = [
-  { id: 'slide-1', src: '/placeholders/p00.jpg', title: '场景 01 · 教室黄昏' },
-  { id: 'slide-2', src: '/placeholders/p01.jpg', title: '场景 02 · 天台逆光' },
-  { id: 'slide-3', src: '/placeholders/p02.jpg', title: '场景 03 · 雨中街道' },
-  { id: 'slide-4', src: '/placeholders/p03.jpg', title: '场景 04 · 夜晚车站' },
-];
 
 export const DATADISPLAY_DEMOS: Record<string, ReactNode> = {
   "accordion": (
@@ -100,29 +86,6 @@ export const DATADISPLAY_DEMOS: Record<string, ReactNode> = {
         </AccordionItem>
       </Accordion>
     </div>
-  ),
-  "carousel": (
-    <Carousel
-      className="w-full min-w-0 max-w-3xl px-10"
-      opts={{ align: 'start', loop: false }}
-    >
-      <CarouselContent>
-        {SLIDES.map((slide) => (
-          <CarouselItem key={slide.id} className="md:basis-1/2 lg:basis-1/3">
-            <div className="bg-card min-w-0 overflow-hidden rounded-lg border">
-              <Image
-                src={slide.src}
-                alt={slide.title}
-                className="h-32 w-full object-cover"
-              />
-              <div className="min-w-0 p-3 text-sm">{slide.title}</div>
-            </div>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <CarouselPrevious className="left-0" />
-      <CarouselNext className="right-0" />
-    </Carousel>
   ),
   "chart": (
     <div className="w-full min-w-0 max-w-3xl">

@@ -28,12 +28,12 @@ export type UiCatalog = {
 
 export const UI_CATALOG: UiCatalog = {
   "stats": {
-    "components": 55,
-    "lines": 6739,
-    "dead": 35,
+    "components": 42,
+    "lines": 5081,
+    "dead": 20,
     "tokens": 69,
-    "withNotes": 55,
-    "withDemo": 55
+    "withNotes": 42,
+    "withDemo": 42
   },
   "categories": [
     "基础",
@@ -227,45 +227,6 @@ export const UI_CATALOG: UiCatalog = {
           "dialog",
           "sonner",
           "button"
-        ]
-      }
-    },
-    {
-      "name": "aspect-ratio",
-      "file": "apps/web/src/components/ui/aspect-ratio.tsx",
-      "lines": 12,
-      "exports": [
-        "AspectRatio"
-      ],
-      "primitives": [
-        "@radix-ui/react-aspect-ratio"
-      ],
-      "slots": [
-        "aspect-ratio"
-      ],
-      "props": [
-        "React.ComponentProps<typeof AspectRatioPrimitive.Root>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "基础",
-      "notes": {
-        "when": "锁定媒体容器比例（16:9 预览、3:4 立绘）防加载跳动",
-        "avoid": "高度自适应的文本块别锁比例；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用固定 height 代替比例致窄屏变形（3.1 图片比例）",
-          "外层不设 overflow-hidden 致图片溢出（R-UI-006）"
-        ],
-        "related": [
-          "image",
-          "card",
-          "skeleton"
         ]
       }
     },
@@ -522,12 +483,17 @@ export const UI_CATALOG: UiCatalog = {
         }
       ],
       "usage": {
-        "count": 45,
+        "count": 50,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolParamOverrides.tsx",
           "apps/web/src/components/common/EmptyState.tsx",
           "apps/web/src/components/common/ResourceList.tsx",
+          "apps/web/src/components/ui/alert-dialog.tsx",
+          "apps/web/src/components/ui/calendar.tsx",
+          "apps/web/src/components/ui/input-group.tsx",
+          "apps/web/src/components/ui/pagination.tsx",
+          "apps/web/src/components/ui/sidebar.tsx",
           "apps/web/src/features/comic/AddEpisodeDialog.tsx",
           "apps/web/src/features/comic/BlockingStage.tsx",
           "apps/web/src/features/comic/CharacterStage.tsx",
@@ -588,64 +554,6 @@ export const UI_CATALOG: UiCatalog = {
           "button-group",
           "toggle",
           "spinner"
-        ]
-      }
-    },
-    {
-      "name": "button-group",
-      "file": "apps/web/src/components/ui/button-group.tsx",
-      "lines": 84,
-      "exports": [
-        "ButtonGroup",
-        "ButtonGroupSeparator",
-        "ButtonGroupText",
-        "buttonGroupVariants"
-      ],
-      "primitives": [
-        "@radix-ui/react-slot"
-      ],
-      "slots": [
-        "button-group",
-        "button-group-separator"
-      ],
-      "props": [
-        "React.ComponentProps<\"div\">",
-        "VariantProps<typeof buttonGroupVariants>",
-        "React.ComponentProps<typeof Separator>"
-      ],
-      "asChild": true,
-      "variants": [
-        {
-          "name": "orientation",
-          "values": [
-            "horizontal",
-            "vertical"
-          ],
-          "defaultValue": "horizontal",
-          "classes": {
-            "horizontal": "[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none",
-            "vertical": "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none"
-          }
-        }
-      ],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "基础",
-      "notes": {
-        "when": "把 2–3 个同类操作按钮贴合成组（批量删除、视图切换）",
-        "avoid": "需要持久选中态用 toggle-group；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用 button-group 承载互斥选中态（应换 toggle-group）（UC-002）",
-          "组内链接按钮不走 asChild（UC-006）"
-        ],
-        "related": [
-          "button",
-          "toggle-group",
-          "select"
         ]
       }
     },
@@ -730,55 +638,6 @@ export const UI_CATALOG: UiCatalog = {
           "item",
           "separator",
           "empty"
-        ]
-      }
-    },
-    {
-      "name": "carousel",
-      "file": "apps/web/src/components/ui/carousel.tsx",
-      "lines": 242,
-      "exports": [
-        "type CarouselApi",
-        "Carousel",
-        "CarouselContent",
-        "CarouselItem",
-        "CarouselPrevious",
-        "CarouselNext"
-      ],
-      "primitives": [
-        "embla-carousel-react"
-      ],
-      "slots": [
-        "carousel",
-        "carousel-content",
-        "carousel-item",
-        "carousel-previous",
-        "carousel-next"
-      ],
-      "props": [
-        "React.ComponentProps<\"div\">",
-        "React.ComponentProps<typeof Button>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "数据展示",
-      "notes": {
-        "when": "横向浏览一组同质媒体或卡片（参考图、模板预览）",
-        "avoid": "条目少于一屏时直接铺开；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用 carousel 藏关键内容只看得到一部分（R7）",
-          "轮播无键盘方向键控制（UC-005）"
-        ],
-        "related": [
-          "card",
-          "image",
-          "scroll-area"
         ]
       }
     },
@@ -987,87 +846,6 @@ export const UI_CATALOG: UiCatalog = {
       }
     },
     {
-      "name": "context-menu",
-      "file": "apps/web/src/components/ui/context-menu.tsx",
-      "lines": 325,
-      "exports": [
-        "ContextMenu",
-        "ContextMenuTrigger",
-        "ContextMenuContent",
-        "ContextMenuItem",
-        "ContextMenuCheckboxItem",
-        "ContextMenuRadioItem",
-        "ContextMenuLabel",
-        "ContextMenuSeparator",
-        "ContextMenuShortcut",
-        "ContextMenuGroup",
-        "ContextMenuPortal",
-        "ContextMenuSub",
-        "ContextMenuSubContent",
-        "ContextMenuSubTrigger",
-        "ContextMenuRadioGroup"
-      ],
-      "primitives": [
-        "@radix-ui/react-context-menu"
-      ],
-      "slots": [
-        "context-menu",
-        "context-menu-trigger",
-        "context-menu-group",
-        "context-menu-portal",
-        "context-menu-sub",
-        "context-menu-radio-group",
-        "context-menu-sub-trigger",
-        "context-menu-sub-content",
-        "context-menu-content",
-        "context-menu-item",
-        "context-menu-checkbox-item",
-        "context-menu-radio-item",
-        "context-menu-label",
-        "context-menu-separator",
-        "context-menu-shortcut"
-      ],
-      "props": [
-        "React.ComponentProps<typeof ContextMenuPrimitive.Root>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Trigger>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Group>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Portal>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Sub>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.RadioGroup>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.SubTrigger>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.SubContent>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Content>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Item>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.CheckboxItem>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.RadioItem>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Label>",
-        "React.ComponentProps<typeof ContextMenuPrimitive.Separator>",
-        "React.ComponentProps<\"span\">"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "导航",
-      "notes": {
-        "when": "右键或长按目标弹出的上下文操作菜单",
-        "avoid": "没有右键入口的场景用 dropdown-menu；业务零引用（UC-006）",
-        "antiPatterns": [
-          "只做右键菜单不给可见操作入口（触屏不可达）（UC-005）",
-          "菜单内删除项无二次确认（清单 1）"
-        ],
-        "related": [
-          "dropdown-menu",
-          "alert-dialog",
-          "item"
-        ]
-      }
-    },
-    {
       "name": "dialog",
       "file": "apps/web/src/components/ui/dialog.tsx",
       "lines": 144,
@@ -1112,8 +890,9 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 25,
+        "count": 26,
         "files": [
+          "apps/web/src/components/ui/command.tsx",
           "apps/web/src/features/comic/AddEpisodeDialog.tsx",
           "apps/web/src/features/comic/CharacterStage.tsx",
           "apps/web/src/features/comic/EpisodeScriptDialog.tsx",
@@ -1156,71 +935,6 @@ export const UI_CATALOG: UiCatalog = {
           "alert-dialog",
           "sheet",
           "drawer"
-        ]
-      }
-    },
-    {
-      "name": "drawer",
-      "file": "apps/web/src/components/ui/drawer.tsx",
-      "lines": 136,
-      "exports": [
-        "Drawer",
-        "DrawerPortal",
-        "DrawerOverlay",
-        "DrawerTrigger",
-        "DrawerClose",
-        "DrawerContent",
-        "DrawerHeader",
-        "DrawerFooter",
-        "DrawerTitle",
-        "DrawerDescription"
-      ],
-      "primitives": [
-        "vaul"
-      ],
-      "slots": [
-        "drawer",
-        "drawer-trigger",
-        "drawer-portal",
-        "drawer-close",
-        "drawer-overlay",
-        "drawer-content",
-        "drawer-header",
-        "drawer-footer",
-        "drawer-title",
-        "drawer-description"
-      ],
-      "props": [
-        "React.ComponentProps<typeof DrawerPrimitive.Root>",
-        "React.ComponentProps<typeof DrawerPrimitive.Trigger>",
-        "React.ComponentProps<typeof DrawerPrimitive.Portal>",
-        "React.ComponentProps<typeof DrawerPrimitive.Close>",
-        "React.ComponentProps<typeof DrawerPrimitive.Overlay>",
-        "React.ComponentProps<typeof DrawerPrimitive.Content>",
-        "React.ComponentProps<\"div\">",
-        "React.ComponentProps<typeof DrawerPrimitive.Title>",
-        "React.ComponentProps<typeof DrawerPrimitive.Description>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "反馈",
-      "notes": {
-        "when": "移动端底部手势抽屉，可下拉关闭（底部操作面板）",
-        "avoid": "桌面端侧栏面板用 sheet；业务零引用（UC-006）",
-        "antiPatterns": [
-          "桌面主流程用 drawer 手势（鼠标不友好）（UC-005）",
-          "drawer 内长内容无独立滚动区（清单 2）"
-        ],
-        "related": [
-          "sheet",
-          "dialog",
-          "sidebar"
         ]
       }
     },
@@ -1493,52 +1207,6 @@ export const UI_CATALOG: UiCatalog = {
       }
     },
     {
-      "name": "hover-card",
-      "file": "apps/web/src/components/ui/hover-card.tsx",
-      "lines": 45,
-      "exports": [
-        "HoverCard",
-        "HoverCardTrigger",
-        "HoverCardContent"
-      ],
-      "primitives": [
-        "@radix-ui/react-hover-card"
-      ],
-      "slots": [
-        "hover-card",
-        "hover-card-trigger",
-        "hover-card-portal",
-        "hover-card-content"
-      ],
-      "props": [
-        "React.ComponentProps<typeof HoverCardPrimitive.Root>",
-        "React.ComponentProps<typeof HoverCardPrimitive.Trigger>",
-        "React.ComponentProps<typeof HoverCardPrimitive.Content>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "反馈",
-      "notes": {
-        "when": "鼠标悬停即预览补充信息（用户卡、模型说明），无需点击",
-        "avoid": "触屏无悬停的场景用 popover；业务零引用（UC-006）",
-        "antiPatterns": [
-          "把必读信息放进 hover-card（触屏键盘不可达）（UC-005）",
-          "用 hover-card 装可交互表单（UC-006）"
-        ],
-        "related": [
-          "popover",
-          "tooltip",
-          "avatar"
-        ]
-      }
-    },
-    {
       "name": "image",
       "file": "apps/web/src/components/ui/image.tsx",
       "lines": 184,
@@ -1590,10 +1258,12 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 26,
+        "count": 28,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolParamOverrides.tsx",
+          "apps/web/src/components/ui/input-group.tsx",
+          "apps/web/src/components/ui/sidebar.tsx",
           "apps/web/src/features/comic/AddEpisodeDialog.tsx",
           "apps/web/src/features/comic/CharacterStage.tsx",
           "apps/web/src/features/comic/EpisodeAnalysisRun.tsx",
@@ -1708,52 +1378,6 @@ export const UI_CATALOG: UiCatalog = {
       }
     },
     {
-      "name": "input-otp",
-      "file": "apps/web/src/components/ui/input-otp.tsx",
-      "lines": 78,
-      "exports": [
-        "InputOTP",
-        "InputOTPGroup",
-        "InputOTPSlot",
-        "InputOTPSeparator"
-      ],
-      "primitives": [
-        "input-otp"
-      ],
-      "slots": [
-        "input-otp",
-        "input-otp-group",
-        "input-otp-slot",
-        "input-otp-separator"
-      ],
-      "props": [
-        "React.ComponentProps<typeof OTPInput>",
-        "React.ComponentProps<\"div\">"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "数据录入",
-      "notes": {
-        "when": "固定位数验证码输入，逐格填写并自动前进",
-        "avoid": "任意长度文本用 input；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用多个独立 input 手写验证码（粘贴退格失效）（UC-006）",
-          "OTP 无 label 说明来源（FE-A11Y-002）"
-        ],
-        "related": [
-          "input",
-          "field",
-          "form"
-        ]
-      }
-    },
-    {
       "name": "item",
       "file": "apps/web/src/components/ui/item.tsx",
       "lines": 194,
@@ -1856,46 +1480,6 @@ export const UI_CATALOG: UiCatalog = {
       }
     },
     {
-      "name": "kbd",
-      "file": "apps/web/src/components/ui/kbd.tsx",
-      "lines": 29,
-      "exports": [
-        "Kbd",
-        "KbdGroup"
-      ],
-      "primitives": [],
-      "slots": [
-        "kbd",
-        "kbd-group"
-      ],
-      "props": [
-        "React.ComponentProps<\"kbd\">",
-        "React.ComponentProps<\"div\">"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "基础",
-      "notes": {
-        "when": "标注快捷键（⌘K、Esc），多见于菜单项与 tooltip 内",
-        "avoid": "普通按键文字或代码别用 kbd；业务零引用（UC-006）",
-        "antiPatterns": [
-          "快捷键写在普通 span 里样式不一（UC-006）",
-          "把 kbd 做成可点击元素（应换 button）（UC-006）"
-        ],
-        "related": [
-          "tooltip",
-          "command",
-          "menubar"
-        ]
-      }
-    },
-    {
       "name": "label",
       "file": "apps/web/src/components/ui/label.tsx",
       "lines": 25,
@@ -1914,8 +1498,10 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 19,
+        "count": 21,
         "files": [
+          "apps/web/src/components/ui/field.tsx",
+          "apps/web/src/components/ui/form.tsx",
           "apps/web/src/features/comic/NewProjectDialog.tsx",
           "apps/web/src/features/comic/ProjectParams.tsx",
           "apps/web/src/features/comic/SourceVersionDialog.tsx",
@@ -1951,90 +1537,6 @@ export const UI_CATALOG: UiCatalog = {
           "input",
           "field",
           "form"
-        ]
-      }
-    },
-    {
-      "name": "menubar",
-      "file": "apps/web/src/components/ui/menubar.tsx",
-      "lines": 349,
-      "exports": [
-        "Menubar",
-        "MenubarPortal",
-        "MenubarMenu",
-        "MenubarTrigger",
-        "MenubarContent",
-        "MenubarGroup",
-        "MenubarSeparator",
-        "MenubarLabel",
-        "MenubarItem",
-        "MenubarShortcut",
-        "MenubarCheckboxItem",
-        "MenubarRadioGroup",
-        "MenubarRadioItem",
-        "MenubarSub",
-        "MenubarSubTrigger",
-        "MenubarSubContent"
-      ],
-      "primitives": [
-        "@radix-ui/react-menubar"
-      ],
-      "slots": [
-        "menubar",
-        "menubar-menu",
-        "menubar-group",
-        "menubar-portal",
-        "menubar-radio-group",
-        "menubar-trigger",
-        "menubar-content",
-        "menubar-item",
-        "menubar-checkbox-item",
-        "menubar-radio-item",
-        "menubar-label",
-        "menubar-separator",
-        "menubar-shortcut",
-        "menubar-sub",
-        "menubar-sub-trigger",
-        "menubar-sub-content"
-      ],
-      "props": [
-        "React.ComponentProps<typeof MenubarPrimitive.Root>",
-        "React.ComponentProps<typeof MenubarPrimitive.Menu>",
-        "React.ComponentProps<typeof MenubarPrimitive.Group>",
-        "React.ComponentProps<typeof MenubarPrimitive.Portal>",
-        "React.ComponentProps<typeof MenubarPrimitive.RadioGroup>",
-        "React.ComponentProps<typeof MenubarPrimitive.Trigger>",
-        "React.ComponentProps<typeof MenubarPrimitive.Content>",
-        "React.ComponentProps<typeof MenubarPrimitive.Item>",
-        "React.ComponentProps<typeof MenubarPrimitive.CheckboxItem>",
-        "React.ComponentProps<typeof MenubarPrimitive.RadioItem>",
-        "React.ComponentProps<typeof MenubarPrimitive.Label>",
-        "React.ComponentProps<typeof MenubarPrimitive.Separator>",
-        "React.ComponentProps<\"span\">",
-        "React.ComponentProps<typeof MenubarPrimitive.Sub>",
-        "React.ComponentProps<typeof MenubarPrimitive.SubTrigger>",
-        "React.ComponentProps<typeof MenubarPrimitive.SubContent>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "导航",
-      "notes": {
-        "when": "桌面应用式菜单栏（文件、编辑、视图），常配快捷键",
-        "avoid": "Web 常规操作用 dropdown-menu；业务零引用（UC-006）",
-        "antiPatterns": [
-          "为两三个按钮套 menubar（应换 dropdown-menu）（UC-006）",
-          "快捷键用纯文本未用 MenubarShortcut（UC-005）"
-        ],
-        "related": [
-          "dropdown-menu",
-          "command",
-          "kbd"
         ]
       }
     },
@@ -2080,67 +1582,6 @@ export const UI_CATALOG: UiCatalog = {
           "select",
           "input",
           "field"
-        ]
-      }
-    },
-    {
-      "name": "navigation-menu",
-      "file": "apps/web/src/components/ui/navigation-menu.tsx",
-      "lines": 169,
-      "exports": [
-        "NavigationMenu",
-        "NavigationMenuList",
-        "NavigationMenuItem",
-        "NavigationMenuContent",
-        "NavigationMenuTrigger",
-        "NavigationMenuLink",
-        "NavigationMenuIndicator",
-        "NavigationMenuViewport",
-        "navigationMenuTriggerStyle"
-      ],
-      "primitives": [
-        "@radix-ui/react-navigation-menu"
-      ],
-      "slots": [
-        "navigation-menu",
-        "navigation-menu-list",
-        "navigation-menu-item",
-        "navigation-menu-trigger",
-        "navigation-menu-content",
-        "navigation-menu-viewport",
-        "navigation-menu-link",
-        "navigation-menu-indicator"
-      ],
-      "props": [
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Root>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.List>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Item>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Trigger>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Content>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Viewport>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Link>",
-        "React.ComponentProps<typeof NavigationMenuPrimitive.Indicator>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "导航",
-      "notes": {
-        "when": "顶部横向主导航，含子菜单浮层（站点级菜单）",
-        "avoid": "侧边多级导航用 sidebar；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用 navigation-menu 做页内 tab 切换（应换 tabs）（UC-006）",
-          "子菜单不可键盘操作（UC-005）"
-        ],
-        "related": [
-          "sidebar",
-          "breadcrumb",
-          "menubar"
         ]
       }
     },
@@ -2334,51 +1775,6 @@ export const UI_CATALOG: UiCatalog = {
       }
     },
     {
-      "name": "resizable",
-      "file": "apps/web/src/components/ui/resizable.tsx",
-      "lines": 57,
-      "exports": [
-        "ResizablePanelGroup",
-        "ResizablePanel",
-        "ResizableHandle"
-      ],
-      "primitives": [
-        "react-resizable-panels"
-      ],
-      "slots": [
-        "resizable-panel-group",
-        "resizable-panel",
-        "resizable-handle"
-      ],
-      "props": [
-        "React.ComponentProps<typeof ResizablePrimitive.PanelGroup>",
-        "React.ComponentProps<typeof ResizablePrimitive.Panel>",
-        "React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "布局",
-      "notes": {
-        "when": "用户需要拖拽调整分栏宽度或高度的编辑器、对比视图",
-        "avoid": "固定比例布局用 grid 与 flex；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用 resizable 做响应式降列（应换 grid 断点）（FE-STYLE-005）",
-          "面板内不设独立滚动致底部截断（清单 2）"
-        ],
-        "related": [
-          "scroll-area",
-          "sidebar",
-          "card"
-        ]
-      }
-    },
-    {
       "name": "scroll-area",
       "file": "apps/web/src/components/ui/scroll-area.tsx",
       "lines": 59,
@@ -2531,10 +1927,14 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 0,
-        "files": []
+        "count": 3,
+        "files": [
+          "apps/web/src/components/ui/field.tsx",
+          "apps/web/src/components/ui/item.tsx",
+          "apps/web/src/components/ui/sidebar.tsx"
+        ]
       },
-      "dead": true,
+      "dead": false,
       "tokens": [],
       "category": "基础",
       "notes": {
@@ -2594,8 +1994,9 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 1,
+        "count": 2,
         "files": [
+          "apps/web/src/components/ui/sidebar.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx"
         ]
       },
@@ -2761,10 +2162,12 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 0,
-        "files": []
+        "count": 1,
+        "files": [
+          "apps/web/src/components/ui/sidebar.tsx"
+        ]
       },
-      "dead": true,
+      "dead": false,
       "tokens": [],
       "category": "基础",
       "notes": {
@@ -3073,8 +2476,9 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 13,
+        "count": 14,
         "files": [
+          "apps/web/src/components/ui/input-group.tsx",
           "apps/web/src/features/comic/CharacterStage.tsx",
           "apps/web/src/features/comic/NewProjectDialog.tsx",
           "apps/web/src/features/comic/ProjectCharacterLibrary.tsx",
@@ -3108,117 +2512,6 @@ export const UI_CATALOG: UiCatalog = {
       }
     },
     {
-      "name": "toggle",
-      "file": "apps/web/src/components/ui/toggle.tsx",
-      "lines": 48,
-      "exports": [
-        "Toggle",
-        "toggleVariants"
-      ],
-      "primitives": [
-        "@radix-ui/react-toggle"
-      ],
-      "slots": [
-        "toggle"
-      ],
-      "props": [
-        "React.ComponentProps<typeof TogglePrimitive.Root>",
-        "VariantProps<typeof toggleVariants>"
-      ],
-      "asChild": false,
-      "variants": [
-        {
-          "name": "variant",
-          "values": [
-            "default",
-            "outline"
-          ],
-          "defaultValue": "default",
-          "classes": {
-            "default": "bg-transparent",
-            "outline": "border border-input bg-transparent enabled:hover:bg-accent enabled:hover:text-accent-foreground"
-          }
-        },
-        {
-          "name": "size",
-          "values": [
-            "default",
-            "sm",
-            "lg"
-          ],
-          "defaultValue": "default",
-          "classes": {
-            "default": "h-9 px-2 min-w-9",
-            "sm": "h-8 px-1.5 min-w-8",
-            "lg": "h-10 px-2.5 min-w-10"
-          }
-        }
-      ],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "数据录入",
-      "notes": {
-        "when": "单一开关态的工具按钮（加粗、收藏、仅看未读），点击即切换",
-        "avoid": "开关用switch；多选用toggle-group；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用 toggle 当无状态普通按钮（UC-002）",
-          "纯图标 toggle 缺 title 或 aria-label（FE-A11Y-001）"
-        ],
-        "related": [
-          "toggle-group",
-          "switch",
-          "button"
-        ]
-      }
-    },
-    {
-      "name": "toggle-group",
-      "file": "apps/web/src/components/ui/toggle-group.tsx",
-      "lines": 84,
-      "exports": [
-        "ToggleGroup",
-        "ToggleGroupItem"
-      ],
-      "primitives": [
-        "@radix-ui/react-toggle-group"
-      ],
-      "slots": [
-        "toggle-group",
-        "toggle-group-item"
-      ],
-      "props": [
-        "VariantProps<typeof toggleVariants>",
-        "React.ComponentProps<typeof ToggleGroupPrimitive.Root>",
-        "React.ComponentProps<typeof ToggleGroupPrimitive.Item>"
-      ],
-      "asChild": false,
-      "variants": [],
-      "usage": {
-        "count": 0,
-        "files": []
-      },
-      "dead": true,
-      "tokens": [],
-      "category": "数据录入",
-      "notes": {
-        "when": "一组小图标按钮表示当前生效的视图或格式（互斥或多选）",
-        "avoid": "一次性动作用 button-group；业务零引用（UC-006）",
-        "antiPatterns": [
-          "用 toggle-group 承载提交动作（应换 button）（UC-006）",
-          "纯图标项缺 title 或 aria-label（FE-A11Y-001）"
-        ],
-        "related": [
-          "toggle",
-          "button-group",
-          "tabs"
-        ]
-      }
-    },
-    {
       "name": "tooltip",
       "file": "apps/web/src/components/ui/tooltip.tsx",
       "lines": 62,
@@ -3246,8 +2539,9 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 1,
+        "count": 2,
         "files": [
+          "apps/web/src/components/ui/sidebar.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx"
         ]
       },
@@ -4304,15 +3598,15 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 197,
+    "scannedFiles": 184,
     "text": [
       {
         "value": "xs",
-        "count": 403
+        "count": 400
       },
       {
         "value": "sm",
-        "count": 207
+        "count": 190
       },
       {
         "value": "lg",
@@ -4344,31 +3638,31 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 716
+        "count": 690
       },
       {
         "value": "1",
-        "count": 521
+        "count": 504
       },
       {
         "value": "3",
-        "count": 437
+        "count": 436
       },
       {
         "value": "1.5",
-        "count": 398
+        "count": 384
       },
       {
         "value": "4",
-        "count": 249
+        "count": 239
       },
       {
         "value": "0.5",
-        "count": 131
+        "count": 130
       },
       {
         "value": "2.5",
-        "count": 113
+        "count": 111
       },
       {
         "value": "6",
@@ -4376,15 +3670,15 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "0",
-        "count": 34
-      },
-      {
-        "value": "8",
-        "count": 31
+        "count": 33
       },
       {
         "value": "5",
         "count": 29
+      },
+      {
+        "value": "8",
+        "count": 21
       },
       {
         "value": "12",
@@ -4407,10 +3701,6 @@ export const UI_CATALOG: UiCatalog = {
         "count": 3
       },
       {
-        "value": "24",
-        "count": 3
-      },
-      {
         "value": "3.5",
         "count": 2
       },
@@ -4425,6 +3715,10 @@ export const UI_CATALOG: UiCatalog = {
       {
         "value": "20",
         "count": 1
+      },
+      {
+        "value": "24",
+        "count": 1
       }
     ],
     "spacingArbitrary": [
@@ -4435,10 +3729,6 @@ export const UI_CATALOG: UiCatalog = {
       {
         "value": "-0.35rem",
         "count": 2
-      },
-      {
-        "value": "--spacing(var(--gap))",
-        "count": 1
       }
     ],
     "radius": [
@@ -4452,15 +3742,15 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "DEFAULT",
-        "count": 128
+        "count": 113
       },
       {
         "value": "md",
-        "count": 108
+        "count": 96
       },
       {
         "value": "full",
-        "count": 66
+        "count": 63
       },
       {
         "value": "2xl",
@@ -4468,11 +3758,11 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "sm",
-        "count": 18
+        "count": 9
       },
       {
         "value": "none",
-        "count": 6
+        "count": 5
       },
       {
         "value": "3xl",
@@ -4500,15 +3790,15 @@ export const UI_CATALOG: UiCatalog = {
     "shadow": [
       {
         "value": "DEFAULT",
-        "count": 65
+        "count": 61
       },
       {
         "value": "md",
-        "count": 34
+        "count": 30
       },
       {
         "value": "lg",
-        "count": 29
+        "count": 27
       },
       {
         "value": "sm",
@@ -4516,7 +3806,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "xs",
-        "count": 7
+        "count": 5
       },
       {
         "value": "2xl",
@@ -4524,7 +3814,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "none",
-        "count": 4
+        "count": 3
       },
       {
         "value": "xl",
@@ -4581,11 +3871,11 @@ export const UI_CATALOG: UiCatalog = {
         "count": 7
       },
       {
-        "value": "widest",
-        "count": 6
+        "value": "tight",
+        "count": 4
       },
       {
-        "value": "tight",
+        "value": "widest",
         "count": 4
       }
     ]
