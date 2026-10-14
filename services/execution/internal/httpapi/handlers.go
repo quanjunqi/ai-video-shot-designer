@@ -22,6 +22,7 @@ import (
 
 	"errors"
 	"shotdesigner/services/execution/internal/audit"
+	"shotdesigner/services/execution/internal/breaker"
 	"shotdesigner/services/execution/internal/catalog"
 
 	"shotdesigner/services/execution/internal/creds"
@@ -45,6 +46,8 @@ type Handler struct {
 	Artifacts *artifact.Client
 	// ReconcileStore 是 T0 价格校准台账（price_calibration_logs）。为 nil 时对账端点 503。
 	ReconcileStore *reconcile.Store
+	// Breaker 是单元熔断 Store（T4，TASK-ROUTE-003）。为 nil 时熔断语义不生效（fail-open）。
+	Breaker *breaker.Store
 }
 
 type Store interface {

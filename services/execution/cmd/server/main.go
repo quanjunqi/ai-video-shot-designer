@@ -10,6 +10,7 @@ import (
 
 	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
+	"shotdesigner/services/execution/internal/breaker"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/httpapi"
@@ -90,7 +91,13 @@ func main() {
 	maxConcurrent := envInt("EXECUTION_MAX_CONCURRENT_JOBS", 8)
 	gate := job.NewSemaphore(maxConcurrent)
 	worker.Logger.Info("worker 并发上限", "cap", gate.Cap())
-	go worker.Run(store, catalogClient, credsClient, engineClient, gate, auditStore)
+	// T4 单元熔断（TASK-ROUTE-003）：channel_health 表 + 原子计数 + 半开单飞。
+	// 配置收敛在 cmd（BE-CFG）；默认启用（LiteLLM 档位：3 → 60s → 30s），
+	// 误伤可 EXECUTION_CIRCUIT_BREAKER=off 一键关闭（fail-open）。
+	breakerCfg := breaker.FromEnv(os.Getenv)
+	breakerStore := breaker.New(pool, breakerCfg, worker.Logger)
+	worker.Logger.Info("单元熔断配置", "enabled", breakerCfg.Enabled(), "allowed_fails", breakerCfg.AllowedFails, "cooldown", breakerCfg.Cooldown.String(), "health_check", breakerCfg.HealthCheck.String())
+	go worker.Run(store, catalogClient, credsClient, engineClient, gate, auditStore, breakerStore)
 
 	// D6：审计保留期清理。**默认关闭**（天数未设置 = 0）—— 清理是破坏性操作，
 	// 在没有人类显式配置之前不启动，避免"部署一次就默默删掉历史审计"。
@@ -126,7 +133,7 @@ func main() {
 	// T0 价格校准台账：对账端点（POST /internal/v1/reconcile）写入 price_calibration_logs
 	reconcileStore := &reconcile.Store{Pool: pool}
 	metrics := observability.NewMetrics()
-	observed := observability.WithObservability(worker.Logger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore}.Routes())
+	observed := observability.WithObservability(worker.Logger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore, Breaker: breakerStore}.Routes())
 	server := &http.Server{Addr: addr, Handler: observed, ReadHeaderTimeout: 5 * time.Second}
 	worker.Logger.Info("execution service listening", "addr", addr)
 	if err := server.ListenAndServe(); err != nil {

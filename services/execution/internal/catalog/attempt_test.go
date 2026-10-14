@@ -73,6 +73,45 @@ func TestAttemptEachEmptyCandidatesErrors(t *testing.T) {
 	}
 }
 
+// ⑥ 表 3-1 硬失败（硬 4xx / 内容安全拒绝）：立即直返，不切换、不消耗剩余候选
+func TestAttemptEachHardFailureStopsImmediately(t *testing.T) {
+	tried := []string{}
+	got, attempts, err := AttemptEach(cands3(), func(m Model) error {
+		tried = append(tried, m.ID)
+		if m.ID == "a" {
+			return &HardFailure{Status: 401, Msg: "auth rejected"}
+		}
+		return nil
+	})
+	if err == nil {
+		t.Fatal("硬失败应报错")
+	}
+	if !IsHardFailure(err) {
+		t.Fatalf("应识别为硬失败，实际 %v", err)
+	}
+	if got.ID != "a" {
+		t.Fatalf("硬失败应停在触发候选 a，实际 %s", got.ID)
+	}
+	if len(tried) != 1 || len(attempts) != 1 {
+		t.Fatalf("硬失败不应继续切换：tried=%v", tried)
+	}
+}
+
+// ⑦ 硬失败返回的候选 = 触发候选（供调用方按该候选的状态码直返）
+func TestHardFailureErrorFormat(t *testing.T) {
+	hf := &HardFailure{Status: 422, Msg: "bad params"}
+	if !IsHardFailure(hf) {
+		t.Fatal("HardFailure 应被 IsHardFailure 识别")
+	}
+	if got := hf.Error(); got == "" {
+		t.Fatal("硬失败错误文案不应为空")
+	}
+	// 普通错误不是硬失败
+	if IsHardFailure(errors.New("upstream 503")) {
+		t.Fatal("普通 5xx 错误不应被识别为硬失败")
+	}
+}
+
 // ⑤ 重试驱动的选择：attempt=1 用首选，之后推进到备用，越界停在最后一个
 func TestPickForAttemptProgression(t *testing.T) {
 	c := cands3()

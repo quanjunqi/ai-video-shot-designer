@@ -8,6 +8,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"shotdesigner/services/execution/internal/audit"
+	"shotdesigner/services/execution/internal/breaker"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/engine"
@@ -45,7 +47,8 @@ func wsOf(j job.Job) string {
 
 // Run 是 worker 主循环：轮询队列 → 翻转 queued→running → 执行 → 审计终态。
 // 由 cmd 以 goroutine 启动（并发闸门与容量由调用方装配）。
-func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store) {
+// brk 是单元熔断 Store（T4）；为 nil 时熔断语义不生效（fail-open）。
+func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store, brk *breaker.Store) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	// Track jobs currently being executed to avoid duplicate dispatch
@@ -87,14 +90,15 @@ func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Clie
 				defer gate.Release()
 				defer executing.Delete(job.ID)
 				Logger.Info("goroutine finished", "job_id", job.ID)
-				executeJob(ctx, s, cat, cred, client, job, as)
+				executeJob(ctx, s, cat, cred, client, job, as, brk)
 			}(j, jobCtx, jobCancel)
 		}
 	}
 }
 
 // executeJob runs a single job through the engine and updates its status.
-func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store) {
+// brk 为 nil 时熔断语义不生效（fail-open）。
+func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store, brk *breaker.Store) {
 	defer func() {
 		if r := recover(); r != nil {
 			Logger.Info("execution worker: panic in job %s: %v", j.ID, r)
@@ -148,6 +152,37 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		auditTerminal(ctx, as, j, false, msg, nil)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 		return
+	}
+	// T4 单元熔断：冷却中的候选从序列剔除（不消耗尝试次数）。全部冷却 ⇒ 显式失败
+	// （fail-open：brk 为 nil 或 DB 故障时原样放行，见 breaker.Store.FilterHealthy）。
+	if brk != nil {
+		var units []breaker.Unit
+		for _, c := range candidates {
+			units = append(units, breaker.Unit{ChannelID: c.ChannelID, ProviderModel: c.ProviderModel})
+		}
+		healthy, filterErr := brk.FilterHealthy(ctx, units)
+		if errors.Is(filterErr, breaker.ErrUnitCooling) {
+			auditTerminal(ctx, as, j, false, "all candidate units are cooling", nil)
+			_ = s.Complete(ctx, j.ID, false, nil, "all candidate units are cooling")
+			return
+		}
+		if filterErr != nil {
+			// fail-open：DB 故障时放行全部候选（FilterHealthy 已返回原序列），仅告警
+			Logger.Warn("breaker filter degraded, fail-open", "job_id", j.ID, "err", filterErr)
+		}
+		// 按健康单元重建候选（保持原 routePriority 顺序）
+		healthySet := make(map[string]bool, len(healthy))
+		for _, h := range healthy {
+			healthySet[h.String()] = true
+		}
+		filtered := candidates[:0]
+		for _, c := range candidates {
+			key := breaker.Unit{ChannelID: c.ChannelID, ProviderModel: c.ProviderModel}.String()
+			if healthySet[key] {
+				filtered = append(filtered, c)
+			}
+		}
+		candidates = filtered
 	}
 	// P3-2 失败切换：异步 worker 的重试由 job 的 attempt 机制驱动（failOrRetry + j.Attempt，
 	// 已存在且持久化），因此这里按尝试次数**推进候选**即可 —— 第一次用首选，重试即换备用。
@@ -241,9 +276,34 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 
 	if err != nil {
-		// T1：引擎失败但模型已命中 —— 终态审计行补齐 channel/provider（供给单元）
-		failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel)
-		return
+		// T4 表 3-1：按错误码分类决定重试/切换/直返。
+		// 硬 4xx（400/401/403/404/422）不重试不切换 ⇒ 直接终态（不白白消耗 attempt）；
+		// 软 4xx / 5xx / 超时 / 网络层 ⇒ 计入失败计数并走既有 failOrRetry（切换=换候选重试）。
+		cls := breaker.Classify(result.Status, false)
+		if brk != nil {
+			switch cls {
+			case breaker.ClassHard4xx, breaker.ClassContentSafety:
+				// 不计数（不是渠道故障；重试/换渠道无意义）
+			default:
+				brk.RecordFailure(ctx, breaker.Unit{ChannelID: hitChannelID, ProviderModel: hitProviderModel})
+			}
+		}
+		switch cls {
+		case breaker.ClassHard4xx, breaker.ClassContentSafety:
+			// 硬失败：直返，不重试（表 3-1）。终态审计行补齐供给单元（T1）。
+			msg := "model call failed: " + err.Error()
+			auditTerminal(ctx, as, j, false, msg, nil)
+			_ = s.Complete(ctx, j.ID, false, nil, msg)
+			return
+		default:
+			// T1：引擎失败但模型已命中 —— 终态审计行补齐 channel/provider（供给单元）
+			failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel)
+			return
+		}
+	}
+	// T4：调用成功 ⇒ 重置该单元计数并清冷却（恢复）
+	if brk != nil {
+		brk.RecordSuccess(ctx, breaker.Unit{ChannelID: hitChannelID, ProviderModel: hitProviderModel})
 	}
 
 	// Store result
