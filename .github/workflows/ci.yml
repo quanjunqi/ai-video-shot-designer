@@ -111,6 +111,14 @@ jobs:
         # 说明：openapi/bff.yaml 或前端类型有改动时，生成类型必须与契约同步（openapi/* 已并入 frontend=true）。
         # openapi-typescript --check 在生成物过期时退出非 0，阻断契约漂移（类型不一致）合入。
 
+      # UI 清单漂移检查（与 api:check 同一范式）：组件/设计 token 清单由
+      # scripts/ui-inventory.mjs 从代码生成，新增或改动组件后必须重新生成并提交；
+      # 同时强制「新增组件必须补语义注记与展示页 demo」——清单靠人维护必然腐烂。
+      - name: UI inventory sync check (组件清单同步)
+        if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
+        run: npm run ui:check
+
       - name: Unit tests
         if: needs.changes.outputs.frontend == 'true'
         working-directory: apps/web

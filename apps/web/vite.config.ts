@@ -89,8 +89,11 @@ function collectRoutePaths(srcDir: string): string[] {
         walk(p);
       } else if (/\.(tsx|jsx|ts|js)$/.test(entry.name)) {
         const code = fs.readFileSync(p, 'utf-8');
-        for (const m of code.matchAll(/<Route[^>]*\bpath=["']([^"']+)["']/g)) {
+        for (const m of code.matchAll(/<Route[^>]*\bpath=["']([^"']+)["'][^\n]*/g)) {
           const route = m[1];
+          // 显式标记的开发工具页不进送审枚举：路由写在 `import.meta.env.DEV` 死分支里时，
+          // 这里的正则扫描看不出来，所以由声明方用注释 `ui-route:dev-only` 显式退出。
+          if (m[0].includes('ui-route:dev-only')) continue;
           if (route.includes('*')) continue;
           paths.add(route.startsWith('/') ? route : `/${route}`);
         }

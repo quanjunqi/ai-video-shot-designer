@@ -249,7 +249,7 @@
 ### UC-006 复用优先（MUST）
 - **触发**：页面需要某 UI 时
 - **必须**：先查 ui/ 是否已有；三处以上相同 UI 抽成公共组件；**禁止**页面内各自实现基础 UI（如手写弹窗、手写 switch）
-- **检测**：代码审查
+- **检测**：代码审查 + 先查 `.agents/skills/frontend-coding/ui-components.md`（组件清单：55 组件 / variants / 何时用 / 反例）；新增组件由 `npm run ui:check` 强制补注记与展示页 demo
 
 ### UC-007 组件即契约（SHOULD）
 - **触发**：组件 props 超 6 个

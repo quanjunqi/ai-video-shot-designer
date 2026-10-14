@@ -45,6 +45,7 @@
 | 文件 | 内容 |
 |---|---|
 | [reference/environment.md](reference/environment.md) | 环境变量 + 端口（应用服务 + 基础设施） |
+| [reference/ui-components.md](reference/ui-components.md) | UI 组件与设计 token 清单（生成物：组件规格 / 变体 / 引用数 / 死组件） |
 
 ---
 

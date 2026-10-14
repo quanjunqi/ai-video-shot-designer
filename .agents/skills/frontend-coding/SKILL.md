@@ -48,4 +48,5 @@ npm run gate    # typecheck(tsconfig.app.json) + eslint + quality-gate
 ## 完整规则
 
 → `rules.md`（FE-* 全量 + UC-* + FE-TEST-* + 反模式速查 + 质量门禁）
+→ `ui-components.md`（组件与设计 token 清单：写 UI 前**先查**，复用优先；由 `npm run ui:generate` 生成）
 → `.agents/skills/frontend-quality`（交付门禁 R-*，反模式黑名单）
