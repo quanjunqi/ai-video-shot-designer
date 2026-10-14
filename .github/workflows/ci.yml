@@ -564,11 +564,85 @@ jobs:
       - name: Validate workflow structure invariants
         run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
 
+  # 契约破坏性变更检测（PR 专用）
+  # bff.yaml 是前后端字段级契约的唯一事实源。frontend job 的 `npm run api:check` 只保证
+  # 「生成类型与契约同步」（契约内部自洽），回答不了「已有客户端会不会被改挂」——
+  # 缺的这一半由本 job 的 oasdiff 补上。两者合起来才是完整的契约防线。
+  contract:
+    name: Contract Breaking Change
+    needs: changes
+    runs-on: ubuntu-latest
+
+    steps:
+      # 与 frontend job 同构：job 级不加 if，无改动/非 PR 时也如实上报成功。
+      # 否则被 job 级 if 跳过的 job 不上报检查记录 → 必需检查永远停在 Expected → 卡死所有 PR
+      # （见 .github/scripts/check-workflow-structure.sh 不变量 1）。
+      - name: Skipped (非 PR 或无 openapi 改动)
+        if: needs.changes.outputs.openapi != 'true' || github.event_name != 'pull_request'
+        run: echo "openapi/ 无改动或非 PR 事件，跳过契约破坏性检测（本检查已如实上报成功）"
+
+      - name: Checkout
+        if: needs.changes.outputs.openapi == 'true' && github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0     # 需要 origin/${{ github.base_ref }} 作为基线（fetch-depth: 0 取全部历史与分支）
+
+      # 刻意不用 docker run（官方镜像是 Docker Hub 的 tufin/oasdiff）：本仓库已因匿名拉取
+      # 限流连续红过多次（见 backend job 的 minio 注释）。改为下载官方 release 二进制并用
+      # 同一 release 的 checksums.txt 校验 sha256：无镜像源依赖，版本与内容都可锁定。
+      # 也不用官方 GitHub Action —— 它本身是 docker action，且默认把 spec 上传到 oasdiff.com。
+      - name: Install oasdiff (pinned + checksum verified)
+        if: needs.changes.outputs.openapi == 'true' && github.event_name == 'pull_request'
+        run: |
+          VERSION=1.33.0
+          ASSET="oasdiff_${VERSION}_linux_amd64.tar.gz"
+          BASE_URL="https://github.com/oasdiff/oasdiff/releases/download/v${VERSION}"
+          curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused -o "/tmp/${ASSET}" "${BASE_URL}/${ASSET}"
+          curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused -o /tmp/oasdiff-checksums.txt "${BASE_URL}/checksums.txt"
+          # 只取本资产那一行比对 sha256（与官方 install.sh 同一做法），不匹配即失败，
+          # 不会静默用上损坏/被替换的二进制
+          EXPECTED=$(grep -E " ${ASSET}" /tmp/oasdiff-checksums.txt | awk '{print $1}')
+          if [ -z "$EXPECTED" ]; then
+            echo "::error::checksums.txt 中找不到 ${ASSET}"
+            exit 1
+          fi
+          ACTUAL=$(sha256sum "/tmp/${ASSET}" | awk '{print $1}')
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::${ASSET} sha256 不匹配（expected=${EXPECTED} actual=${ACTUAL}）"
+            exit 1
+          fi
+          echo "✓ sha256 校验通过：${ACTUAL}"
+          mkdir -p /tmp/oasdiff-bin && tar -xzf "/tmp/${ASSET}" -C /tmp/oasdiff-bin
+          echo "/tmp/oasdiff-bin" >> "$GITHUB_PATH"
+
+      - name: Verify oasdiff
+        if: needs.changes.outputs.openapi == 'true' && github.event_name == 'pull_request'
+        run: command -v oasdiff && oasdiff --help > /dev/null && echo "✓ oasdiff 可用"
+
+      - name: Detect breaking changes
+        if: needs.changes.outputs.openapi == 'true' && github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          if git diff --quiet "$BASE" -- openapi/bff.yaml; then
+            echo "✓ bff.yaml 相对 $BASE 无改动，跳过 oasdiff"
+            exit 0
+          fi
+          git show "$BASE:openapi/bff.yaml" > /tmp/contract-base.yaml
+          cp openapi/bff.yaml /tmp/contract-head.yaml
+          # --fail-on ERR 不可省：oasdiff breaking 默认【只打印、恒定退出码 0】
+          # （上游 internal/run_test.go 的 Test_BasicBreakingChanges 断言的就是这一点：
+          #  同一对 spec 不加 --fail-on 返回 0、加了 --fail-on ERR 才返回 1）。
+          # 漏掉它就是一条永远绿的「假防线」——本 job 首版即踩此坑，故钉成注释。
+          # 口径：ERR＝确定破坏（旧客户端按旧契约发的请求会失效）→ 阻断；
+          #      WARN＝潜在破坏（契约信息不足以判定）→ 只打印不阻断，需要时提到 --fail-on WARN。
+          # 处置：PR 描述标 BREAKING，同 PR 改前端并重新生成类型（见 openapi/README.md §3）。
+          oasdiff breaking --fail-on ERR /tmp/contract-base.yaml /tmp/contract-head.yaml
+
   # 合并检查（所有检查通过后）
   merge-check:
     name: Merge Check
     runs-on: ubuntu-latest
-    needs: [changes, frontend, backend, security, docs]
+    needs: [changes, frontend, backend, security, docs, contract]
     if: github.event_name == 'pull_request'
 
     steps:
