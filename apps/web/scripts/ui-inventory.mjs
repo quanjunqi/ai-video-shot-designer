@@ -1,0 +1,454 @@
+#!/usr/bin/env node
+// =============================================================================
+// UI 组件清单生成器 —— 「代码是唯一事实源」的组件/设计 token 清单
+// =============================================================================
+// 用法：
+//   node scripts/ui-inventory.mjs               # 生成（写 3 个产物）
+//   node scripts/ui-inventory.mjs --check       # 漂移检查（CI 用；不一致则 exit 1）
+//   node scripts/ui-inventory.mjs --update-debt # 更新死组件棘轮基线
+//
+// 为什么这么做（与 `npm run api:check` 同一范式）：
+//   清单如果靠人手维护，一定会腐烂——本项目已经吃过「文档与实现漂移」的亏。
+//   因此：结构事实（有哪些组件、什么 variants、被谁引用、用了哪些 token）**全部从代码抽取**；
+//   只有语义（何时用/别用/反例/分类）需要人写，放在 notes 里，并由本脚本**强制覆盖全部组件**
+//   （新增组件忘了写注记 → `--check` 红）。这样清单可以随代码成长，而不是随记忆腐烂。
+//
+// 产物：
+//   src/generated/ui-catalog.ts                          机器可读（展示页/未来工具消费）
+//   ../../.agents/skills/frontend-coding/ui-components.md  agent 看的清单（规则域）
+//   ../../docs/reference/ui-components.md                 人看的清单（技术参考域）
+// 人手维护的输入：
+//   ../../.agents/skills/frontend-coding/ui-components.notes.md  语义注记（逐组件）
+//   src/pages/dev/ui-kit/demos/*.tsx                             可视化展示页的 demo 注册
+//   ui-debt-baseline.json                                        死组件棘轮基线
+// =============================================================================
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WEB = path.resolve(__dirname, '..');            // apps/web
+const REPO = path.resolve(WEB, '..', '..');            // 仓库根
+const SRC = path.join(WEB, 'src');
+const UI_DIR = path.join(SRC, 'components', 'ui');
+const NOTES = path.join(REPO, '.agents/skills/frontend-coding/ui-components.notes.md');
+const DEMO_DIR = path.join(SRC, 'pages/dev/ui-kit/demos');
+const DEBT = path.join(WEB, 'ui-debt-baseline.json');
+const OUT_CATALOG = path.join(SRC, 'generated/ui-catalog.ts');
+const OUT_AGENT = path.join(REPO, '.agents/skills/frontend-coding/ui-components.md');
+const OUT_HUMAN = path.join(REPO, 'docs/reference/ui-components.md');
+
+const CATEGORIES = ['基础', '布局', '导航', '数据录入', '数据展示', '反馈', '其他'];
+const TAG = '由 scripts/ui-inventory.mjs 生成 —— 禁止手改；改代码或注记后跑 `npm run ui:generate`。';
+
+const args = new Set(process.argv.slice(2));
+const CHECK = args.has('--check');
+const UPDATE_DEBT = args.has('--update-debt');
+
+const read = (p) => (fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '');
+const rel = (p) => path.relative(REPO, p).split(path.sep).join('/');
+const walk = (dir, exts, out = []) => {
+  if (!fs.existsSync(dir)) return out;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walk(p, exts, out);
+    else if (exts.some((x) => e.name.endsWith(x))) out.push(p);
+  }
+  return out;
+};
+
+// ── 1. 设计 token ────────────────────────────────────────────────────────────
+// 解析 :root（浅色）/.dark（深色）/ @theme inline（Tailwind 工具类映射）
+function cssBlocks(css) {
+  const blocks = {};
+  const re = /(^|\n)(\s*(?::root|\.dark|@theme[^{]*))\s*\{/g;
+  let m;
+  while ((m = re.exec(css))) {
+    const start = css.indexOf('{', m.index) + 1;
+    let depth = 1;
+    let i = start;
+    while (i < css.length && depth > 0) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}') depth--;
+      i++;
+    }
+    blocks[m[2].trim()] = css.slice(start, i - 1);
+  }
+  return blocks;
+}
+const varsOf = (block) => {
+  const out = {};
+  const clean = (block || '').replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const line of clean.split('\n')) {
+    const m = line.match(/^\s*(--[a-zA-Z0-9-]+)\s*:\s*([^;]+);/);
+    if (m) out[m[1]] = m[2].trim();
+  }
+  return out;
+};
+const groupOf = (name) => {
+  const n = name.replace(/^--/, '');
+  if (/^(background|foreground|card|popover|primary|secondary|muted|accent|info|success|warning|destructive|border|input|ring|chart|sidebar|button|badge|opaque|elevate)/.test(n)) return '色彩 / 表面';
+  if (/^(radius|shadow)/.test(n)) return '圆角 / 阴影';
+  if (/^(font|text|leading|tracking)/.test(n)) return '字体 / 排版';
+  if (/^(spacing|size)/.test(n)) return '间距 / 尺寸';
+  if (/^(animate|duration|ease)/.test(n)) return '动效';
+  return '其他';
+};
+function collectTokens() {
+  const theme = read(path.join(SRC, 'tailwind-theme.css'));
+  const blocks = cssBlocks(theme);
+  const light = varsOf(blocks[':root']);
+  const dark = varsOf(blocks['.dark']);
+  const themeMap = varsOf(blocks['@theme inline']);
+  const tokens = Object.keys(light).map((name) => ({
+    name,
+    light: light[name],
+    dark: dark[name] ?? null,
+    group: groupOf(name),
+    utilities: Object.entries(themeMap)
+      .filter(([, v]) => v.includes(`var(${name})`))
+      .map(([k]) => k),
+  }));
+  return { tokens, themeMap, typography: read(path.join(SRC, 'typography.css')) };
+}
+
+// ── 2. 组件抽取 ─────────────────────────────────────────────────────────────
+function parseCva(src) {
+  // 抓最外层 cva( ... )，再解析 variants / defaultVariants
+  const out = [];
+  let idx = src.indexOf('cva(');
+  while (idx !== -1) {
+    let depth = 0;
+    let i = src.indexOf('(', idx);
+    const start = i;
+    for (; i < src.length; i++) {
+      if (src[i] === '(') depth++;
+      else if (src[i] === ')') {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    const body = src.slice(start + 1, i);
+    const vm = body.match(/variants\s*:/);
+    const dm = body.match(/defaultVariants\s*:\s*\{([\s\S]*?)\}/);
+    const defaults = {};
+    if (dm) for (const d of dm[1].matchAll(/([a-zA-Z0-9_]+)\s*:\s*['"]([^'"]+)['"]/g)) defaults[d[1]] = d[2];
+    if (vm) {
+      // variants 块的直接子键（brace 计数保证只取第一层）
+      const vbody = body.slice(vm.index);
+      const open = vbody.indexOf('{');
+      let d2 = 0;
+      let j = open;
+      for (; j < vbody.length; j++) {
+        if (vbody[j] === '{') d2++;
+        else if (vbody[j] === '}') {
+          d2--;
+          if (d2 === 0) break;
+        }
+      }
+      const block = vbody.slice(open + 1, j);
+      let d3 = 0;
+      let key = null;
+      let buf = '';
+      for (const line of block.split('\n')) {
+        const km = line.match(/^\s{6,8}([a-zA-Z0-9_]+)\s*:\s*\{/);
+        if (km && d3 === 0) {
+          if (key) out.push({ name: key, values: valuesOf(buf), defaultValue: defaults[key] });
+          key = km[1];
+          buf = '';
+          d3 += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+          continue;
+        }
+        if (key) {
+          buf += line + '\n';
+          d3 += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+        }
+      }
+      if (key) out.push({ name: key, values: valuesOf(buf), defaultValue: defaults[key] });
+    }
+    idx = src.indexOf('cva(', i);
+  }
+  return out;
+}
+// 只认「值以字符串开头（或另起一行给字符串）」的键 —— 否则多行 className 里的
+// Tailwind 类名（例如 `not-disabled:opacity-100`）会被误当成 variant 值。
+const valuesOf = (block) =>
+  [...block.matchAll(/^\s*['"]?([a-zA-Z0-9_-]+)['"]?\s*:\s*(?:['"`].*)?$/gm)].map((m) => m[1]);
+
+function collectComponents(allSrcFiles, tokenNames) {
+  const files = walk(UI_DIR, ['.tsx', '.ts']).filter((f) => !/index\.(ts|tsx)$/.test(f));
+  return files
+    .map((file) => {
+      const src = read(file);
+      const name = path.basename(file).replace(/\.(tsx|ts)$/, '');
+      const exports = [
+        ...[...src.matchAll(/export\s+(?:function|const|class)\s+([A-Za-z0-9_]+)/g)].map((m) => m[1]),
+        ...[...src.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) =>
+          m[1].split(',').map((s) => s.trim().split(/\s+as\s+/).pop().trim()).filter(Boolean),
+        ),
+      ];
+      const primitives = [...new Set([...src.matchAll(/from\s+['"](@radix-ui\/[a-z-]+|@base-ui-components\/[a-z-]+|cmdk|vaul|sonner|embla-carousel-react|react-day-picker|recharts|input-otp|react-resizable-panels|class-variance-authority|@dnd-kit\/[a-z-]+)['"]/g)].map((m) => m[1]))]
+        .filter((p) => p !== 'class-variance-authority');
+      const slots = [...new Set([...src.matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1]))];
+      const props = [...new Set([...src.matchAll(/React\.ComponentProps(?:WithoutRef)?<[^>]+>|VariantProps<typeof\s+[A-Za-z0-9_]+>/g)].map((m) => m[0]))];
+      const used = allSrcFiles
+        .filter((f) => !f.startsWith(UI_DIR))
+        // 展示页（src/pages/dev/**）会 import **全部**组件用于渲染，不能算「被业务使用」——
+        // 否则展示页一上线，35 个零引用组件就全"复活"，死代码信号与棘轮同时失效。
+        .filter((f) => !f.startsWith(path.join(SRC, 'pages', 'dev')))
+        .filter((f) => new RegExp(`components/ui/${name}['"]`).test(read(f)))
+        .map((f) => rel(f))
+        .sort();
+      const tokens = [...new Set([...src.matchAll(/var\((--[a-zA-Z0-9-]+)\)/g)].map((m) => m[1]))].filter((t) => tokenNames.has(t));
+      return {
+        name,
+        file: rel(file),
+        lines: src.split('\n').length,
+        exports: [...new Set(exports)],
+        primitives,
+        slots,
+        props,
+        asChild: /asChild/.test(src),
+        variants: parseCva(src),
+        usage: { count: used.length, files: used },
+        dead: used.length === 0,
+        tokens: tokens.sort(),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// ── 3. 语义注记（人手写）与 demo 覆盖 ───────────────────────────────────────
+function collectNotes() {
+  const src = read(NOTES);
+  const notes = {};
+  let cur = null;
+  for (const line of src.split('\n')) {
+    const h = line.match(/^##\s+([a-z0-9-]+)\s*$/);
+    if (h) {
+      cur = h[1];
+      notes[cur] = { 分类: '', 何时用: '', 别用: '', 反例: '', 相关: '' };
+      continue;
+    }
+    const kv = line.match(/^-\s*(分类|何时用|别用|反例|相关)：\s*(.*)$/);
+    if (cur && kv) notes[cur][kv[1]] = kv[2].trim();
+  }
+  return notes;
+}
+function collectDemos() {
+  const keys = new Set();
+  const placeholders = new Set();
+  for (const f of walk(DEMO_DIR, ['.tsx', '.ts'])) {
+    const src = read(f);
+    for (const line of src.split('\n')) {
+      const m = line.match(/^\s*['"]?([a-z0-9-]+)['"]?\s*:\s*[(<]/);
+      if (!m) continue;
+      keys.add(m[1]);
+      // 占位 demo 不算覆盖：否则「demo 待补」能机械地骗过覆盖率门禁（假防线）
+      if (/待补|占位|TODO|placeholder/i.test(line)) placeholders.add(m[1]);
+    }
+  }
+  return { keys, placeholders };
+}
+
+// ── 4. 组装 catalog ─────────────────────────────────────────────────────────
+function build() {
+  const { tokens, themeMap, typography } = collectTokens();
+  const tokenNames = new Set(tokens.map((t) => t.name));
+  const allSrcFiles = walk(SRC, ['.tsx', '.ts']);
+  const notes = collectNotes();
+  const components = collectComponents(allSrcFiles, tokenNames).map((c) => ({
+    ...c,
+    category: notes[c.name]?.['分类'] || '其他',
+    notes: {
+      when: notes[c.name]?.['何时用'] || '',
+      avoid: notes[c.name]?.['别用'] || '',
+      antiPatterns: (notes[c.name]?.['反例'] || '').split('；').filter(Boolean),
+      related: (notes[c.name]?.['相关'] || '').split(/[、,]/).filter(Boolean),
+    },
+  }));
+  const { keys: demoKeys, placeholders } = collectDemos();
+  const missingNotes = components.filter((c) => !notes[c.name] || !notes[c.name]['何时用']).map((c) => c.name);
+  const missingDemos = components.filter((c) => !demoKeys.has(c.name) || placeholders.has(c.name)).map((c) => c.name);
+  const unknownNotes = Object.keys(notes).filter((n) => !components.some((c) => c.name === n));
+  const catalog = {
+    stats: {
+      components: components.length,
+      lines: components.reduce((n, c) => n + c.lines, 0),
+      dead: components.filter((c) => c.dead).length,
+      tokens: tokens.length,
+      withNotes: components.length - missingNotes.length,
+      withDemo: components.length - missingDemos.length,
+    },
+    categories: CATEGORIES,
+    components,
+    tokens,
+    missingNotes,
+    missingDemos,
+    unknownNotes,
+    themeUtilities: Object.keys(themeMap).length,
+    typographyUtilities: (typography.match(/@utility/g) || []).length,
+  };
+  return { catalog, missingNotes, missingDemos, unknownNotes };
+}
+
+// ── 5. 渲染产物 ─────────────────────────────────────────────────────────────
+const TYPE_HEADER = `// ┌─────────────────────────────────────────────────────────────────────────┐
+// │ ${TAG.padEnd(69)} │
+// └─────────────────────────────────────────────────────────────────────────┘
+export type UiVariant = { name: string; values: string[]; defaultValue?: string };
+export type UiNotes = { when: string; avoid: string; antiPatterns: string[]; related: string[] };
+export type UiComponent = {
+  name: string; file: string; lines: number; exports: string[]; primitives: string[];
+  slots: string[]; props: string[]; asChild: boolean; variants: UiVariant[];
+  usage: { count: number; files: string[] }; dead: boolean; tokens: string[];
+  category: string; notes: UiNotes;
+};
+export type UiToken = { name: string; light: string; dark: string | null; group: string; utilities: string[] };
+export type UiCatalog = {
+  stats: { components: number; lines: number; dead: number; tokens: number; withNotes: number; withDemo: number };
+  categories: string[]; components: UiComponent[]; tokens: UiToken[];
+  missingNotes: string[]; missingDemos: string[]; unknownNotes: string[];
+  themeUtilities: number; typographyUtilities: number;
+};
+`;
+
+const renderCatalogTs = (c) => `${TYPE_HEADER}\nexport const UI_CATALOG: UiCatalog = ${JSON.stringify(c, null, 2)};\n`;
+
+function renderAgentMd(c) {
+  const L = [];
+  L.push('# UI 组件清单（agent 用）', '', `> ${TAG}`, '>',
+    '> 写前端 UI 前先查这里：**能复用就别手写**（UC-* 规则）；新增组件只改代码 + 在',
+    '> `ui-components.notes.md` 补一段注记，然后 `npm run ui:generate`。', '',
+    `## 概览（自动统计）`, '',
+    `- 组件 **${c.stats.components}** 个 / ${c.stats.lines} 行；死组件（零引用）**${c.stats.dead}** 个`,
+    `- 设计 token **${c.stats.tokens}** 个；Tailwind 映射 ${c.themeUtilities} 条`,
+    `- 注记覆盖 **${c.stats.withNotes}/${c.stats.components}**；展示页 demo 覆盖 **${c.stats.withDemo}/${c.stats.components}**`,
+    '', '## 按分类速查', '', '| 分类 | 组件 |', '|---|---|');
+  for (const cat of CATEGORIES) {
+    const list = c.components.filter((x) => x.category === cat).map((x) => x.name);
+    if (list.length) L.push(`| ${cat} | ${list.map((n) => `\`${n}\``).join(' ')} |`);
+  }
+  L.push('', '## 组件明细', '');
+  for (const cat of CATEGORIES) {
+    const items = c.components.filter((x) => x.category === cat);
+    if (!items.length) continue;
+    L.push(`### ${cat}`, '');
+    for (const x of items) {
+      const v = x.variants.filter((z) => z.name === 'variant').flatMap((z) => z.values);
+      const s = x.variants.filter((z) => z.name === 'size').flatMap((z) => z.values);
+      L.push(`#### \`${x.name}\`${x.dead ? ' ⚠️ 零引用' : ''}`, '',
+        `- 文件：\`${x.file}\`（${x.lines} 行）· 导出：${x.exports.map((e) => `\`${e}\``).join('、') || '—'}`,
+        v.length ? `- variant：${v.map((q) => `\`${q}\``).join(' ')}${x.variants.find((z) => z.name === 'variant')?.defaultValue ? `（默认 \`${x.variants.find((z) => z.name === 'variant').defaultValue}\`）` : ''}` : null,
+        s.length ? `- size：${s.map((q) => `\`${q}\``).join(' ')}` : null,
+        x.primitives.length ? `- 底座：${x.primitives.map((p) => `\`${p}\``).join('、')}${x.asChild ? ' · 支持 `asChild`' : ''}` : null,
+        `- 引用：${x.usage.count} 处${x.usage.count ? `（${x.usage.files.slice(0, 3).map((f) => `\`${f.split('/').pop()}\``).join('、')}${x.usage.count > 3 ? ' 等' : ''}）` : ''}`,
+        x.notes.when ? `- **何时用**：${x.notes.when}` : '- **何时用**：（缺注记 ⚠️）',
+        x.notes.avoid ? `- **别用**：${x.notes.avoid}` : null,
+        x.notes.antiPatterns.length ? `- 反例：${x.notes.antiPatterns.map((q) => `❌ ${q}`).join('；')}` : null,
+        x.notes.related.length ? `- 相关：${x.notes.related.map((q) => `\`${q}\``).join('、')}` : null,
+        '');
+    }
+  }
+  if (c.missingNotes.length) L.push('## ⚠️ 缺注记（`npm run ui:check` 会红）', '', c.missingNotes.map((n) => `- \`${n}\``).join('\n'), '');
+  if (c.missingDemos.length) L.push('## ⚠️ 缺展示页 demo（`npm run ui:check` 会红）', '', c.missingDemos.map((n) => `- \`${n}\``).join('\n'), '');
+  L.push('→ 完整口径见 `docs/reference/ui-components.md`（生成物 + 设计 token 明细）');
+  return L.filter((x) => x !== null).join('\n') + '\n';
+}
+
+function renderHumanMd(c) {
+  const L = [];
+  L.push('# UI 组件与设计 token 参考', '', `> ${TAG}`, '',
+    '本文件是**生成物**，供人类查阅；agent 的精简版在 `.agents/skills/frontend-coding/ui-components.md`。',
+    '改组件 → `cd apps/web && npm run ui:generate`；CI 用 `npm run ui:check` 防漂移。', '',
+    '## 1. 现状统计', '',
+    '| 项 | 数值 |', '|---|---|',
+    `| 组件文件 | ${c.stats.components} 个 / ${c.stats.lines} 行 |`,
+    `| 死组件（零引用） | ${c.stats.dead} 个 |`,
+    `| 设计 token | ${c.stats.tokens} 个（Tailwind 映射 ${c.themeUtilities} 条） |`,
+    `| 语义注记覆盖 | ${c.stats.withNotes}/${c.stats.components} |`,
+    `| 展示页 demo 覆盖 | ${c.stats.withDemo}/${c.stats.components} |`, '',
+    '## 2. 设计 token（自动从 `src/tailwind-theme.css` 抽取）', '',
+    '> 规则：**禁止硬编码色值**（V-002）；用下列语义 token 或其 Tailwind 工具类。', '');
+  for (const g of [...new Set(c.tokens.map((t) => t.group))]) {
+    const items = c.tokens.filter((t) => t.group === g);
+    L.push(`### ${g}（${items.length}）`, '', '| token | 浅色 | 深色 | Tailwind 工具类 |', '|---|---|---|---|');
+    for (const t of items) {
+      L.push(`| \`${t.name}\` | \`${t.light}\` | ${t.dark ? `\`${t.dark}\`` : '—'} | ${t.utilities.length ? t.utilities.map((u) => `\`${u}\``).join(' ') : '—'} |`);
+    }
+    L.push('');
+  }
+  L.push('## 3. 组件规格', '', '| 组件 | 分类 | 行数 | variant | size | 引用 | 死组件 | 文件 |', '|---|---|---|---|---|---|---|---|');
+  for (const x of c.components) {
+    const v = x.variants.find((z) => z.name === 'variant');
+    const s = x.variants.find((z) => z.name === 'size');
+    L.push(`| \`${x.name}\` | ${x.category} | ${x.lines} | ${v ? v.values.join('/') : '—'} | ${s ? s.values.join('/') : '—'} | ${x.usage.count} | ${x.dead ? '⚠️' : ''} | \`${x.file.replace(/^apps\/web\//, '')}\` |`);
+  }
+  L.push('', '## 4. 死组件清单（决定删 / 留 / 合并）', '',);
+  const dead = c.components.filter((x) => x.dead);
+  L.push(dead.length ? dead.map((x) => `- \`${x.name}\`（${x.lines} 行，\`${x.file}\`）`).join('\n') : '（无）', '',
+    '## 5. 怎么成长（新增/修改组件时）', '',
+    '1. 改/加组件代码（`src/components/ui/*.tsx`，沿用 `cva` + `data-slot` 约定）。',
+    '2. 在 `.agents/skills/frontend-coding/ui-components.notes.md` 补一段 `## <组件名>`（分类/何时用/别用/反例/相关）。',
+    '3. 在 `src/pages/dev/ui-kit/demos/<分类>.tsx` 加一条 demo（展示页与截图基线要用）。',
+    '4. `npm run ui:generate`，把生成物一起提交；漏做任何一步 `npm run ui:check` 会红（CI 同款）。', '',
+    '## 6. 可视化展示页', '',
+    '`npm run dev` 后打开 **`/dev/ui-kit`**（仅开发环境注册，prod 构建不含）——按分类渲染全部组件与变体、',
+    'token 色板，并标注缺 demo 的组件。');
+  return L.join('\n') + '\n';
+}
+
+// ── 6. 主流程 ───────────────────────────────────────────────────────────────
+const { catalog, missingNotes, missingDemos, unknownNotes } = build();
+const outputs = [
+  [OUT_CATALOG, renderCatalogTs(catalog)],
+  [OUT_AGENT, renderAgentMd(catalog)],
+  [OUT_HUMAN, renderHumanMd(catalog)],
+];
+const problems = [];
+if (missingNotes.length) problems.push(`缺语义注记（${missingNotes.length}）：${missingNotes.join(', ')}`);
+if (missingDemos.length) problems.push(`缺展示页 demo（${missingDemos.length}）：${missingDemos.join(', ')}`);
+if (unknownNotes.length) problems.push(`注记里有已不存在的组件（${unknownNotes.length}）：${unknownNotes.join(', ')}`);
+
+// 死组件棘轮：新增死组件必须显式处理，不允许无声变多
+const deadNow = catalog.components.filter((c) => c.dead).map((c) => c.name).sort();
+let baseline = null;
+try {
+  baseline = JSON.parse(read(DEBT) || 'null');
+} catch {
+  problems.push('ui-debt-baseline.json 不是合法 JSON');
+}
+if (UPDATE_DEBT) {
+  fs.writeFileSync(DEBT, JSON.stringify({ deadComponents: deadNow }, null, 2) + '\n');
+  console.log(`✓ 已更新死组件基线：${deadNow.length} 个`);
+} else if (baseline) {
+  const known = new Set(baseline.deadComponents || []);
+  const grew = deadNow.filter((n) => !known.has(n));
+  const shrank = (baseline.deadComponents || []).filter((n) => !deadNow.includes(n));
+  if (grew.length) problems.push(`死组件变多（不允许无声增加，删掉或确认后跑 --update-debt）：${grew.join(', ')}`);
+  if (shrank.length) console.log(`  ℹ️ 死组件减少（可跑 --update-debt 收紧基线）：${shrank.join(', ')}`);
+}
+
+if (CHECK) {
+  const drift = outputs.filter(([p, want]) => read(p) !== want).map(([p]) => rel(p));
+  if (drift.length) {
+    console.error('❌ UI 清单与代码不同步：');
+    for (const d of drift) console.error(`   - ${d}`);
+    console.error('   修复：cd apps/web && npm run ui:generate && git add 生成物');
+  }
+  if (problems.length) {
+    console.error('❌ UI 清单成长机制未满足：');
+    for (const p of problems) console.error(`   - ${p}`);
+  }
+  if (drift.length || problems.length) process.exit(1);
+  console.log(`✓ UI 清单与代码同步（${catalog.stats.components} 组件 / ${catalog.stats.tokens} token / 死组件 ${catalog.stats.dead} / 注记 ${catalog.stats.withNotes} / demo ${catalog.stats.withDemo}）`);
+  process.exit(0);
+}
+
+for (const [p, content] of outputs) {
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, content);
+  console.log(`  ✍️  ${rel(p)}`);
+}
+console.log(`✓ 生成完成：组件 ${catalog.stats.components} / token ${catalog.stats.tokens} / 死组件 ${catalog.stats.dead} / 注记 ${catalog.stats.withNotes} / demo ${catalog.stats.withDemo}`);
+for (const p of problems) console.log(`  ⚠️  ${p}`);

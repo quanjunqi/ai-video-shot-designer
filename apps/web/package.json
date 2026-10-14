@@ -15,6 +15,9 @@
     "gate": "npm run typecheck && npm run lint:eslint && node scripts/quality-gate.mjs",
     "api:generate": "openapi-typescript ../../openapi/bff.yaml --output src/types/api-generated.ts",
     "api:check": "npm run api:generate -- --check",
+    "ui:generate": "node scripts/ui-inventory.mjs",
+    "ui:check": "node scripts/ui-inventory.mjs --check",
+    "ui:debt": "node scripts/ui-inventory.mjs --update-debt",
     "visual:baseline": "node scripts/visual-regression.mjs --update",
     "visual:check": "node scripts/visual-regression.mjs"
   },
