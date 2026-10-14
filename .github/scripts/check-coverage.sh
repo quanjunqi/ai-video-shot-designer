@@ -36,10 +36,13 @@ measure() {  # $1=service, $2=profile(可选) -> 打印如 35.0
   # ★ main 装配层（cmd/）不纳入覆盖率统计：cmd/server 只做依赖注入与启动，
   #   无业务可测，计入会令"新增启动装配代码"的 PR 无谓拉低覆盖率（实测
   #   cmd/server 恒为 0%，曾把 asset 整服务 82% 拉到 69%）。行业标准做法排除。
+  #   ⚠ 例外：无 internal/ 的薄服务（web-bff / outbox-relay）业务代码全在
+  #   cmd/server/，排除后无可测代码 ⇒ 只有存在 internal/ 的服务才排除 cmd/。
   #   直接解析 coverprofile 重算 total，不依赖 go tool cover -func。
   python3 -c '
-import sys
-prof = sys.argv[1]
+import os, sys
+prof, svc = sys.argv[1], sys.argv[2]
+exclude_cmd = os.path.isdir(os.path.join("services", svc, "internal"))
 total = covered = 0
 for line in open(prof):
     if line.startswith("mode:"):
@@ -48,13 +51,13 @@ for line in open(prof):
     if len(parts) < 3:
         continue
     f = parts[0]
-    if "/cmd/" in f:
+    if exclude_cmd and "/cmd/" in f:
         continue
     total += int(parts[1])
     if int(parts[2]) > 0:
         covered += int(parts[1])
 print(f"{covered / total * 100:.1f}" if total else "")
-' "$prof"
+' "$prof" "$svc"
 }
 
 check_one() {  # $1=service, $2=profile(可选)
