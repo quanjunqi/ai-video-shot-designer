@@ -1,7 +1,7 @@
 # 各服务覆盖率下限（%），用于「棘轮」：覆盖率不得低于此值。
 # 格式：<service> <floor>    以 # 开头为注释。
 # 下限当前都设在实测值略低处（留取整余量），目的是**先禁止回退**；
-# 随测试补齐逐步上调（见 docs/development/testing.md §3.3）。
+# 随测试补齐逐步上调（见 `.agents/skills/backend-standards/SKILL.md`「覆盖率棘轮口径」）。
 # 实测日期：2026-10-14（W4 后覆盖率补强：asset/web-bff/outbox-relay 集成测试落位；
 #   实测 workspace 54.5 / asset 82.0 / web-bff 73.3 / outbox-relay 62.7，下限各留 ~2pt 余量）
 workspace      52

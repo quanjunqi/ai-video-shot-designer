@@ -8,7 +8,7 @@ import (
 // L0 脱敏：**密钥一类的值绝不落库**（D5a）。
 //
 // 依据：
-//   - AGENTS.md §7 禁区：「禁止在代码、prompt、**日志**中写入真实密钥」
+//   - .agents/skills/audit-ledger/SKILL.md（密钥打码）：「禁止在代码、prompt、**日志**中写入真实密钥」
 //     —— 审计表就是日志，故同样适用；
 //   - 本项目已有先例：docs/how-to/observability.md 要求密钥打码为 <REDACTED>。
 //

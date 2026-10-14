@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   # 所有 PR 都跑门禁，不限基线分支：
-  # AGENTS.md §6.3 要求「PR 合并前必须通过 typecheck + lint + 单元测试」，
+  # `.agents/skills/pr-workflow/SKILL.md`（提交前检查）要求「PR 合并前必须通过 typecheck + lint + 单元测试」，
   # 而 stacked PR（基线为另一个 feature 分支）此前被 branches 过滤掉、完全不跑 CI。
   pull_request:
 
@@ -139,7 +139,7 @@ jobs:
     # 测试库：随 job 起的一个【一次性】Postgres。口令是本地容器口令，不是任何真实凭据。
     # 为什么必须有它：各服务的集成测试在无 DSN 时 t.Skip ⇒
     #   与"跑过且通过"在 CI 输出里**无法区分**。本项目因此让 2 条与迁移脱节的断言
-    #   红着很久无人知晓（它们只在有测试库时才执行）。见 docs/how-to/ci.md §7。
+    #   红着很久无人知晓（它们只在有测试库时才执行）。见 `.agents/skills/ci-triage/SKILL.md`（CI 作业结构）。
     services:
       postgres:
         image: postgres:16
@@ -308,7 +308,7 @@ jobs:
       #   引擎地址"，且引擎未构建时把搭建日志的相关行一并打到 CI 输出
       #   ⇒ 下次接入时 CI 会【说出真相】，而不是只给一句结论。
       #   启动条件：这条根因排清后再接（见 ../../ROADMAP.md）。
-      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 docs/how-to/run-tests.md §3.3）
+      # 覆盖率棘轮：不得低于 .github/coverage-baseline.txt 的下限（见 `.agents/skills/backend-standards/SKILL.md` 覆盖率棘轮口径）
       - name: Coverage floor (ratchet)
         if: steps.rel.outputs.run == 'true'
         run: bash .github/scripts/check-coverage.sh "${{ matrix.service }}" "services/${{ matrix.service }}/coverage.out"
@@ -560,7 +560,7 @@ jobs:
 
       # 结构不变量校验（在 OpenAPI 步骤之后，PyYAML 已安装）
       # 把两条踩坑得来的规则固化：必需检查不可加 job 级 if；不可用 job 级
-      # defaults.run.working-directory。详见脚本头部与 docs/how-to/ci.md §3。
+      # defaults.run.working-directory。详见 `.github/scripts/check-workflow-structure.sh` 头部不变量与 `.agents/skills/ci-triage/SKILL.md`（禁止事项）。
       - name: Validate workflow structure invariants
         run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
 

@@ -69,12 +69,12 @@ sequenceDiagram
 |---|---|
 | 审计**同步**写入 | 与业务同请求内完成，不依赖异步管道（`services/execution/internal/httpapi/handler.go`） |
 | 上游失败返回 **200 + ok:false** | 不是 5xx：这是「调用已完成但业务失败」，避免调用方误判为网关不可用 |
-| 参数映射**模板驱动** | `mapping.NewEngine(tmpl.Capabilities)`；无硬编码映射，符合 AGENTS.md §3.2 |
+| 参数映射**模板驱动** | `mapping.NewEngine(tmpl.Capabilities)`；无硬编码映射，符合 `.agents/skills/backend-coding/rules.md`（禁止硬编码地址/密钥/端口） |
 | 路径优先级 | model 覆盖 > capability 配置 > 模板默认（`handler.go:555`） |
 | ⚠️ 路径约定不一致 | 网关路由是 `POST /v1/generate`（`services/execution/internal/httpapi/handler.go:61`），**不在** execution 其余路由所用的 `/internal/v1/*` 约定内。契约已按代码如实记录，但建议统一（改名属破坏性变更，见 [`openapi/README.md`](../../openapi/README.md)） |
 
 > ⚠️ **已知缺陷（待修）**：审计写入的返回值被丢弃 —— `_ = h.AuditStore.Insert(...)`，注释为「audit failure should not block main flow」。
-> 这使「审计日志同步写入、不异步丢失」（AGENTS.md §3.4）在**写入失败时退化为静默丢失**。
+> 这使「审计日志同步写入、不异步丢失」（`.agents/skills/audit-ledger/SKILL.md`）在**写入失败时退化为静默丢失**。
 > 审计是治理事实源，静默丢失会破坏可追溯性。建议：至少记录错误日志/指标；对合规敏感场景改为失败即拒绝或进入重试队列。
 
 ---
@@ -172,7 +172,7 @@ sequenceDiagram
     end
 ```
 
-**要点**：`workspace` 是**授权事实源**，其他服务只做数据隔离（按 `workspace_id` 过滤），不各自实现权限模型 —— 对应 AGENTS.md §3.1 服务边界。
+**要点**：`workspace` 是**授权事实源**，其他服务只做数据隔离（按 `workspace_id` 过滤），不各自实现权限模型 —— 对应 `.agents/skills/backend-coding/rules.md`（服务边界）。
 
 ---
 

@@ -14,7 +14,7 @@
 
 ### 1.1 已覆盖：`/api/v1/*` 是前端唯一入口契约
 
-`/api/v1/*` 是**浏览器/前端唯一允许调用的契约**（AGENTS.md §11：前端只能调用 BFF）。
+`/api/v1/*` 是**浏览器/前端唯一允许调用的契约**（`AGENTS.md`「关键 gotchas」：BFF 是前端唯一入口）。
 所有前端 API 方法都在 `apps/web/src/lib/api/client.ts`（53 个方法），每个方法都必须能在
 `bff.yaml` 中找到对应 operation。
 

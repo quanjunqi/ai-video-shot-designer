@@ -1,6 +1,6 @@
 # TASK-SEC-003：auth_type 增加 `token`（无前缀 Authorization）
 
-> 按 `AGENTS.md` §5.3 填写。为 A 线（AutoDL ComfyUI 接入）解锁前置条件。
+> 按 `.github/TASK_TEMPLATE.md` 填写。为 A 线（AutoDL ComfyUI 接入）解锁前置条件。
 
 ## 目标
 

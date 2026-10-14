@@ -5,7 +5,7 @@
 
 ## 分库原则（先看这条，再看图）
 
-> **一个服务拥有一类事实，其他服务通过契约访问，不直接跨库读写。** —— AGENTS.md §3.1
+> **一个服务拥有一类事实，其他服务通过契约访问，不直接跨库读写。** —— `.agents/skills/backend-coding/rules.md`（服务边界：一个服务一类事实）
 
 四个库可共用同一个 PostgreSQL 实例，但**逻辑上互不越界**：服务 A 不得查询服务 B 的库。
 因此下图按库分成四张 ER 图 —— **跨库没有物理外键，只有逻辑引用**（见文末对照表）。
@@ -60,7 +60,7 @@ erDiagram
 ```
 
 **要点**：`key_ciphertext` 是**密文**（`bytea`），明文永不出库；execution 运行时通过内部接口 reveal。
-密钥集中在 workspace 存储，符合 AGENTS.md §3.4。
+密钥集中在 workspace 存储，符合 `AGENTS.md`（关键 gotchas·密钥）。
 
 ---
 
@@ -267,7 +267,7 @@ erDiagram
 因此全新数据库上 020 必然失败、`app` profile 无法启动、021 永不执行。
 （CI 不跑 compose 迁移，故长期未暴露。）
 
-**修复方式**（遵守 `AGENTS.md` §7「已执行迁移只增不改」，未修改任何既有文件）：
+**修复方式**（遵守 `.agents/skills/database-migrations/SKILL.md`「已执行迁移只增不改」，未修改任何既有文件）：
 
 | 文件 | 作用 |
 |---|---|
@@ -402,7 +402,7 @@ erDiagram
 ```
 
 **要点**：上传与会话分离 —— `asset_uploads` 记录「预签名上传会话」，`assets` 在提交后落库元数据。
-二进制本体在 MinIO，库里只存 `object_key`，符合 AGENTS.md §3.1「asset 不存业务逻辑」。
+二进制本体在 MinIO，库里只存 `object_key`，符合 `.agents/skills/backend-coding/rules.md`「asset 不存业务逻辑」。
 
 ---
 
@@ -429,7 +429,7 @@ erDiagram
 | `workspace_id` 必带 | 所有业务表第一列，用于租户隔离；查询必须带该条件 |
 | 幂等表 | 需要防重复提交的写操作配 `*_requests(workspace_id, idempotency_key)` 唯一表 |
 | JSONB 承载「结构由模板/规则决定」的载荷 | 如 `capability`、`params`、`interpretation`、`directing`；**不要**为它们建列 |
-| 迁移只增不改 | `migrations/NNN_description.sql`，已执行文件禁止修改（AGENTS.md §4.3） |
+| 迁移只增不改 | `migrations/NNN_description.sql`，已执行文件禁止修改（`.agents/skills/database-migrations/SKILL.md`） |
 | 时间列 | 统一 `timestamptz`；`created_at` / `updated_at` 成对出现 |
 | 状态列 | 用 `text` + `CHECK` 约束表达状态机，见 [state-machines.md](state-machines.md) |
 

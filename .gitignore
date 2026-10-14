@@ -23,7 +23,7 @@ out/
 **/dist/
 **/build/
 
-# Go 编译产物（AGENTS.md §8.3 约定输出到 /tmp/mdp-bin/，此处兜底本地误建）
+# Go 编译产物（AGENTS.md「编译后端」约定输出到 /tmp/mdp-bin/，此处兜底本地误建）
 services/*/server
 services/*/outbox-relay
 services/*/*.test

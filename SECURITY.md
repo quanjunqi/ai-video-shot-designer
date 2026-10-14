@@ -1,7 +1,7 @@
 # 安全策略
 
 > 本文件说明如何报告漏洞、我们的响应时限，以及**当前真实的安全基线**（含已知缺口）。
-> 密钥管理原则见 `AGENTS.md` §3.4 与 §7；信任模型现状见
+> 密钥管理原则见 `AGENTS.md`（关键 gotchas·密钥）与本文 §4；信任模型现状见
 > [`docs/architecture/c4-context-container.md`](docs/architecture/c4-context-container.md#信任模型当前状态务必知悉)。
 
 ## 1. 支持范围
@@ -78,7 +78,7 @@
 
 - **禁止**在代码、prompt、日志、Issue、PR 中写入真实密钥或凭据；示例一律用占位符。
 - **禁止**读取、导出、修改生产环境用户数据。
-- **禁止**自主修改认证、授权、加密逻辑（`AGENTS.md` §7 禁区）—— 此类变更必须经人类 Owner 批准。
+- **禁止**自主修改认证、授权、加密逻辑（认证/授权/加密变更必须经人类 Owner 批准，见 `CONTRIBUTING.md` §4 禁区）。
 - 新增依赖须评估维护活跃度与已知漏洞；前端高危依赖不得进入 `master`。
 - 涉及凭据的功能，提交前自查：日志与错误信息中是否可能泄露密钥或 DSN 密码。
 
@@ -96,4 +96,4 @@
 - 架构与信任边界：[`docs/architecture/c4-context-container.md`](docs/architecture/c4-context-container.md)
 - 可观测性与告警：[`docs/how-to/observability.md`](docs/how-to/observability.md)
 - 分支与门禁：[`docs/how-to/branch-protection.md`](docs/how-to/branch-protection.md)
-- AI 协作禁区：[`AGENTS.md`](AGENTS.md) §7
+- AI 协作禁区：[AGENTS.md](AGENTS.md)（关键 gotchas）与 [CONTRIBUTING.md](CONTRIBUTING.md) §4

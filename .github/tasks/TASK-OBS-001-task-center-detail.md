@@ -61,7 +61,7 @@ UPDATE jobs SET status=$1,progress=$2,error=$3,intent_payload=$4::jsonb,
 任务详情页无法显示"我提交了什么"（虽然审计表有 `request_payload`，但需要 join 且语义分散）。
 
 **修法**：新增独立列 `result_payload`，`Complete` 写结果到该列，`intent_payload` 只读不移。
-迁移编号需按 `AGENTS.md` §12.3 认领（execution 号段 010–019）。
+迁移编号需按 `.agents/skills/database-migrations/SKILL.md` 号段表认领（execution 号段 010–019）。
 
 ## ❌ 缺口 2：无产物列 / 产物未落盘
 

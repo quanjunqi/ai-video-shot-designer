@@ -1,7 +1,7 @@
 // Package probe 是渠道连通性探测的**唯一实现**（TASK-INFRA-004）。
 //
 // 取代了此前并存的两套等价实现：production 的 internal/probe（跨库直读 workspace
-// 的 channel_credentials，违反 AGENTS.md §3.1）与 web-bff 在边缘自己发起的探测
+// 的 channel_credentials，违反 .agents/skills/backend-coding/rules.md（服务边界））与 web-bff 在边缘自己发起的探测
 // （base URL 直接来自请求体，是 SSRF 面）。BFF 现在只做转发。
 //
 // 不变式：

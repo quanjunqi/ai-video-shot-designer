@@ -7,7 +7,7 @@
 
 | | 模式 A · 直接跑二进制 | 模式 B · Docker Compose |
 |---|---|---|
-| 入口 | `AGENTS.md` §8.1 | `deploy/local/README.md` |
+| 入口 | `AGENTS.md`「常用命令」 | `deploy/local/README.md` |
 | 中间件 | 需本机或另起容器提供 | compose 全包 |
 | 服务端口 | **宿主端口**（18081/18082/18084/8085/8080） | **容器内端口**（8081/8082/8084/8085/8080） |
 | 环境变量 | 根 `.env.example` | `deploy/local/.env.example` |
@@ -167,4 +167,4 @@ Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间�
 
 - 容器边界与信任模型见 [c4-context-container.md](c4-context-container.md)
 - 迁移与建表证据问题见 [data-model.md](data-model.md)
-- 本地启动步骤见 [`../../deploy/local/README.md`](../../deploy/local/README.md) 与 [`../../AGENTS.md`](../../AGENTS.md) §8
+- 本地启动步骤见 [`../../deploy/local/README.md`](../../deploy/local/README.md) 与 [`../../AGENTS.md`](../../AGENTS.md)「常用命令」

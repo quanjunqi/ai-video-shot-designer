@@ -112,7 +112,7 @@ declare -a TARGETS=()
 if [ "${1:-}" = "--changed" ]; then
   # ★ 必须把【工作区】也算进来：此前只比较 `git diff "$BASE"...HEAD`（**已提交历史**），
   #   于是"改动还没提交"时会报「没有改动 ⇒ 无需预检 ✅ 通过」—— **那次裁决等于没说**。
-  #   （本项目真实踩到：改动全在工作区，预检报空过，见 docs/development/iteration-qa.md）
+  #   （本项目真实踩到：改动全在工作区，预检报空过）
   #   四类都要算：已提交 / 已暂存 / 未暂存 / 未跟踪，去重后 union。
   mapfile -t CHANGED < <(
     {

@@ -22,7 +22,7 @@
 | **两者返回结构几乎相同** ⇒ 可合流 | `probe.Result{channelId, reachable, authConfigured, authOk?, statusCode?, detail, probedAt}`（`probe.go:27-35`）↔ BFF 的 `map[string]any` 同名键（`main.go:233-255`） |
 | **两者都发占位串**（从不解密真钥） | `probe.go:90-94`、`main.go:224-228`：`Bearer <REDACTED>` / `X-API-Key: <REDACTED>` / `Sign <REDACTED>` |
 | **两者都没有 SSRF 防护** | production：裸 `&http.Client{Timeout: 5s}`（`probe.go:39`），`grep netguard services/production` = **0**；BFF：`s.httpClient`（300s）且**自定义渠道 baseUrl 完全由请求体控制**（`main.go:28-29`）。**实测已拨到 `127.0.0.1:8188`** |
-| **production 跨服务直读 workspace 的表** | `probe.go:49-60` 直接 `SELECT ... FROM channel_credentials`（属 workspace 域）⇒ 违反 `AGENTS.md §3.1` |
+| **production 跨服务直读 workspace 的表** | `probe.go:49-60` 直接 `SELECT ... FROM channel_credentials`（属 workspace 域）⇒ 违反 `.agents/skills/backend-coding/rules.md`（服务边界） |
 | **production 的探测路由在 BFF 视角是死代码** | 路由存在（`production/.../handler.go:150`），但 BFF **不转发**，自己在边缘重实现 |
 | **execution 已具备探测所需三件** | `internal/netguard/`（2 文件）· `creds.NewClient` + `Reveal(ctx, ws, channelID)`（`creds/client.go:24,29`）· `catalog.NewClient` + `Get(ctx, ws, actor)`（`catalog/client.go:23,67`） |
 | **用户渠道当前探测不到** | 实测 `POST /api/v1/channels/chan-muo4b9zo/probe`（无 body）→ **400 INVALID_CHANNEL**，因为 BFF 那套对用户渠道要求在请求体里带 `baseUrl` |

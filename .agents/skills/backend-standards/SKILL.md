@@ -49,4 +49,4 @@ go build ./... && go vet ./... && go test ./... -race
 ## 完整规则
 
 → `rules.md`（BE-* 全量规则 + 正反例）
-→ `docs/how-to/ci.md`（覆盖率棘轮 + 必需检查不变量）
+→ 覆盖率棘轮口径见本文「覆盖率棘轮口径」；必需检查不变量见 `.github/scripts/check-workflow-structure.sh` 头部

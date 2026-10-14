@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # worktree 生命周期唯一入口。
-# 规范：AGENTS.md §12.7 · docs/development/parallel-development.md §1/§8
+# 规范：.agents/skills/parallel-worktree/SKILL.md（完整文档 docs/how-to/parallel-work.md）
 #
 # 为什么需要它：本项目在「建/进/出/删 worktree」上出过 5 次事故 ——
 #   · 忘建 worktree（2 次，任务书里却写着"确认它存在"）

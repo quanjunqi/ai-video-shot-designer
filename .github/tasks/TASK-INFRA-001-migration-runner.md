@@ -1,11 +1,11 @@
 # TASK-INFRA-001：迁移执行器引入版本跟踪与校验和
 
-> 按 `AGENTS.md` §5.3 填写。承接 `TASK-FIX-001` 附表中记录的遗留问题。
+> 按 `.github/TASK_TEMPLATE.md` 填写。承接 `TASK-FIX-001` 附表中记录的遗留问题。
 
 ## 目标
 
 把「每个迁移必须自己幂等」这一隐含要求从根上消除，并让
-`AGENTS.md` §7「已执行迁移只增不改」从**约定**变成**机制**。
+`.agents/skills/database-migrations/SKILL.md`「已执行迁移只增不改」从**约定**变成**机制**。
 
 ## 背景
 
@@ -43,7 +43,7 @@ for migration in /migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f "$migration"; 
 3. 既有表但无跟踪记录：**拒绝**并给出可操作指引（不静默 baseline）
 4. `MIGRATE_ADOPT=1`：登记为已应用但**不执行** SQL
 5. `MIGRATE_ADOPT=1 MIGRATE_ADOPT_UNTIL=<version>`：部分采纳后继续应用其后的文件
-6. **已应用文件被修改 → 校验和不匹配 → 拒绝**，错误信息引用 AGENTS.md §7
+6. **已应用文件被修改 → 校验和不匹配 → 拒绝**，错误信息引用 `.agents/skills/database-migrations/SKILL.md`（铁律）
 7. 单文件失败时该文件整体回滚、先前文件保持已应用
 8. 多库（production / execution / workspace / asset）均可工作
 
@@ -74,5 +74,5 @@ docker rm -f mdpmig
 
 | # | 问题 | 说明 |
 |---|---|---|
-| 1 | 迁移无「向下」脚本 | 回滚仍依赖备份；见 `docs/how-to/release.md` §4 |
+| 1 | 迁移无「向下」脚本 | 回滚仍依赖备份；见 `docs/how-to/release.md`（「回滚」） |
 | 2 | 部分迁移注释与实际不符 | 例如某些 NOTICE 显示 `DROP TRIGGER IF EXISTS` 针对不存在的触发器，属历史遗留 |

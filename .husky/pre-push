@@ -9,7 +9,7 @@
 #
 # 本钩子拦三类（每一类都是本项目真实发生过或极易发生的）：
 #   A 回退推送：远端当前 SHA 不是本地 SHA 的祖先 ⇒ 会丢提交，默认拒绝
-#   B 直推受保护分支 develop / master ⇒ 违反 AGENTS §5.1 / §12.2，默认拒绝
+#   B 直推受保护分支 develop / master ⇒ 违反 `.agents/skills/pr-workflow/SKILL.md`（禁止直推 master）与 `AGENTS.md`「分支与提交」，默认拒绝
 #   C 空分支：与基线相比没有任何新提交 ⇒ 多半是推错了目录/分支，拒绝
 #
 # 明确覆盖（表示"我知道我在做什么"）：
@@ -34,7 +34,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   case "$branch" in
     develop|master)
       if [ "${ALLOW_PUSH_PROTECTED:-0}" != "1" ]; then
-        refuse "直接推送受保护分支 ${branch}（AGENTS §5.1：改动须经 PR 合入）"
+        refuse "直接推送受保护分支 ${branch}（`AGENTS.md`「分支与提交」：改动须经 PR 合入）"
         hint "若确属人工发布流程，请显式：ALLOW_PUSH_PROTECTED=1 git push …"
       fi
       ;;

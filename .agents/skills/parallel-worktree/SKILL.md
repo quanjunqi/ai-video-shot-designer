@@ -66,6 +66,14 @@ feature/* 开发：统一从 develop 拉
 
 `CHANGELOG.md`、`.env.example`、`AGENTS.md`、`apps/web/src/lib/api/client.ts`、`.github/workflows/*`
 
+## 禁止事项
+
+- ❌ 在同一个 checkout 里切来切去（一条线 = 一个 worktree；已导致 ADR 撞号、未提交改动被带走、`git add -A` 混入他人工作）
+- ❌ `git add -A`（会把别人工作提交进你的 PR；按路径 add）
+- ❌ 用 squash 合并（本仓库统一 merge commit）
+- ❌ 删除别人还没合并的基线分支
+- ❌ cwd 还在 worktree 里就 `git worktree remove`（之后所有命令报 `Unable to read current working directory`，而 `worktree list | wc -l` 返回 0 会被误读成"已清空"）
+
 ## 完整规则
 
-→ `docs/how-to/parallel-work.md`（§5 血泪条款 + §10 事故台账）
+→ `docs/how-to/parallel-work.md`（怎么用 worktree / 注意事项）

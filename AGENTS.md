@@ -60,14 +60,14 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 
 ## 分支与提交
 
-- 从 `origin/develop` 拉 `feature/<简述>-<日期>` 分支
+- 从 `origin/develop` 拉分支：`feature/`｜`fix/`｜`docs/`｜`chore/` + `<简述>-<日期>`；一条线一个 worktree（见 `.agents/skills/parallel-worktree/SKILL.md`）
 - Commit message：Conventional Commits（feat/fix/docs/refactor/test/chore）
 - 禁止直推 master；PR 等 CI 全绿后由 Owner 合并
 - 禁止 `git add -A`；按路径 add，提交前 `git diff --cached --name-only` 核对
 
 ## 关键 gotchas
 
-- TypeScript 严格口径是 `tsconfig.app.json`，不是默认 tsconfig
+- TypeScript 口径以 `apps/web/tsconfig.app.json` 为准（不是默认 tsconfig）。注意该文件目前 `strict: false`：类型安全靠 eslint（`no-explicit-any` 为 error）与审查兜底，别指望类型系统拦截
 - 测试不得依赖本地时区/系统时间（CI 跑 UTC）
 - 迁移文件只增不改，号段按服务认领
 - 所有 AI 模型调用必须经 execution 网关，写 `gateway_audit_logs`
@@ -78,13 +78,18 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 
 | 场景 | 加载 |
 |---|---|
-| 改前端 UI | `.agents/skills/frontend-quality/SKILL.md` |
+| 承接任何开发任务（开工前必读） | `.agents/skills/acceptance-checklist/SKILL.md` |
+| 改前端代码 | **怎么写**：`.agents/skills/frontend-coding/SKILL.md`　**交付门禁**：`.agents/skills/frontend-quality/SKILL.md` |
+| 改后端 Go 代码 | **怎么写**：`.agents/skills/backend-coding/SKILL.md`　**分层/覆盖率棘轮**：`.agents/skills/backend-standards/SKILL.md` |
 | 并行开新 worktree | `.agents/skills/parallel-worktree/SKILL.md` |
 | CI 红了排查 | `.agents/skills/ci-triage/SKILL.md` |
 | 开 PR 前自检 | `.agents/skills/pr-workflow/SKILL.md` |
 | 改审计日志/网关 | `.agents/skills/audit-ledger/SKILL.md` |
 | 新增/修改数据库迁移 | `.agents/skills/database-migrations/SKILL.md` |
-| 改后端 Go 代码/分层/覆盖率 | `.agents/skills/backend-standards/SKILL.md` |
+
+> 引用规则时请指向 **`.agents/skills/**` 的规则文件**（或本文件的章节名），**不要引用 `AGENTS.md §编号`**：
+> 本文件已不再编号，历史章号引用会变成悬空指针（本次集中清理约 60 处）。
+> 边界：**规则只写在 `.agents/` 与 `AGENTS.md`**；`docs/` 是人类技术文档，不承载规则（可被规则以「完整文档」深链指向）。
 
 ## 人类技术文档（参考，不要用来约束自己）
 

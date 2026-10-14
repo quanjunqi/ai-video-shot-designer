@@ -1,6 +1,6 @@
 # TASK-FIX-001：修复 project_characters 缺失建表迁移与 020 重复主键缺陷
 
-> 按 `AGENTS.md` §5.3 填写。本任务修的是**缺陷**（P0 阻塞级），不是新功能。
+> 按 `.github/TASK_TEMPLATE.md` 填写。本任务修的是**缺陷**（P0 阻塞级），不是新功能。
 
 ## 目标
 
@@ -39,7 +39,7 @@
 
 ## 非范围
 
-- ❌ **不修改任何已执行的迁移文件**（`AGENTS.md` §7 禁区）
+- ❌ **不修改任何已执行的迁移文件**（`.agents/skills/database-migrations/SKILL.md` 铁律）
 - ❌ 不新增 `project_props` / `project_scenes` 表（无任何代码引用，不做无据推测）
 - ❌ 不改造迁移执行器（重复执行不幂等是**独立缺陷**，另立任务）
 - ❌ 不改 Go 代码
