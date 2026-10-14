@@ -81,6 +81,38 @@ test('生成物带「禁止手改」声明，且 agent 版与人类版都存在'
   assert.match(readFileSync(AGENT_MD, 'utf8'), /UI 组件清单/);
 });
 
+test('生成物完整：组件/token/映射都真的落在两份清单里（防渲染器静默漏行）', () => {
+  // 为什么单独钉：`ui:check` 是**字节比对**——渲染器如果漏掉一行（比如某个分类没有小节、
+  // 某张表少 append 一行），产物与生成器仍然自洽，漂移门不会红，但清单已经不完整了。
+  const catalog = loadCatalog();
+  const agent = readFileSync(AGENT_MD, 'utf8');
+  const human = readFileSync(HUMAN_MD, 'utf8');
+  const missing = (names: string[], doc: string, fmt: (n: string) => string) => names.filter((n) => !doc.includes(fmt(n)));
+  assert.deepEqual(
+    missing(catalog.components.map((c) => c.name), agent, (n) => `#### \`${n}\``),
+    [],
+    'agent 清单漏组件明细小节',
+  );
+  assert.deepEqual(
+    missing(catalog.components.map((c) => c.name), human, (n) => `| \`${n}\` |`),
+    [],
+    '人类版组件规格表漏组件',
+  );
+  assert.deepEqual(missing(catalog.tokens.map((t) => t.name), human, (n) => `| \`${n}\` |`), [], '人类版 token 表漏 token');
+  assert.deepEqual(
+    missing(catalog.themeUtilities.map((u) => u.name), human, (n) => `| \`${n}\` |`),
+    [],
+    '人类版工具类映射表漏映射',
+  );
+  assert.deepEqual(
+    missing(catalog.typography.prose.map((x) => x.name), human, (n) => `| \`${n}\` |`),
+    [],
+    '人类版排版表漏 prose 映射',
+  );
+  assert.equal(catalog.stats.components, catalog.components.length);
+  assert.equal(catalog.stats.tokens, catalog.tokens.length);
+});
+
 test('展示页只在 DEV 注册（prod 不打包 ui-kit）', () => {
   const src = readFileSync(APP, 'utf8');
   assert.match(src, /import\.meta\.env\.DEV/, 'app.tsx 必须用 import.meta.env.DEV 守卫展示页路由');

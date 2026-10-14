@@ -37,6 +37,10 @@
 
 > 两处都是"清单少报了事实"，属静默失真；已由 `ui:check` 与不变量测试覆盖，不会再退化。
 
+| # | 缺口 | 判据 | 修复 | 结果 |
+|---|---|---|---|---|
+| C | `ui:check` 是**字节比对**：渲染器若漏 append 一行（如某分类无小节、某张表少一行），产物与生成器仍自洽 ⇒ 漂移门不红，但**清单已不完整** | 需有"生成物内容完整性"守卫 | 新增第 8 条不变量测试：逐项断言 55 个组件明细小节、55 行规格、69 个 token、54 条工具类映射、36 条 prose 映射都真的落在两份清单里 | ✅ 反例验证：改坏 `badge` 明细小节标题 → 测试 #7 红并报「agent 清单漏组件明细小节」；还原后 8/8 通过 |
+
 ---
 
 ## 二、设计稿逐点映射
@@ -84,7 +88,7 @@
 | 1 | 生成器 | `npm run ui:generate` | ✅ 55 组件 / **69 token** / 35 死组件 / 注记 55 / demo 55 |
 | 2 | 漂移 + 成长门 | `npm run ui:check` | ✅ 全绿；**反例验证**：改 `button.tsx` 行数 → exit 1 并列出 3 个漂移产物；删注记段 → exit 1 并指名组件 |
 | 3 | 前端 GATE=0 | `npm run gate`（typecheck + eslint `--max-warnings 0` + quality-gate） | ✅ 0 error / 0 warning |
-| 4 | 前端测试 | `npm test` | ✅ node 断言式 138 例 + vitest 63 例（7 条清单不变量 + 56 条 demo 渲染） |
+| 4 | 前端测试 | `npm test` | ✅ node 断言式 **146** 例 + vitest 63 例（8 条清单不变量 + 56 条 demo 渲染） |
 | 5 | 生产构建（DEV 页不进包） | `npm run build` | ✅ `dist` 内 ui-kit 资源 **0** 个；`routes.json` 27 条业务路由且不含 `dev/ui-kit` |
 | 6 | 视觉基线 | `npm run visual:check` | ✅ 7 页全部 **0.00%** 差异（含新增 `visual-baseline/ui-kit.png`，1440×3400） |
 | 7 | L3 浏览器验证 | `npm run dev` 打开 `/dev/ui-kit` + 截图 | ✅ 截图即基线：token 色板（含字体族字样/阴影盒预览）+ 工具类映射表 + 6 分类 55 卡片 |
