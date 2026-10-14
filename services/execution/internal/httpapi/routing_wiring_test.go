@@ -14,7 +14,7 @@ import (
 // 用逻辑模型 id 调用时 404 "model not found"。
 // 单元测试测的是解析器、不是接线，所以只有真机请求能发现 —— 这条不变量把接线也钉住。
 func TestNoRawModelIDLookupLoops(t *testing.T) {
-	for _, f := range []string{"handler.go", "run_handler.go"} {
+	for _, f := range []string{"handlers_generate.go"} {
 		b, err := os.ReadFile(f)
 		if err != nil {
 			continue // 文件不存在不算失败（未来可能改名）
@@ -28,7 +28,7 @@ func TestNoRawModelIDLookupLoops(t *testing.T) {
 
 // 反向保证：解析器必须真的被调用，否则上面那条会被"删掉调用"绕过。
 func TestHandlersUseCatalogResolve(t *testing.T) {
-	b, err := os.ReadFile("handler.go")
+	b, err := os.ReadFile("handlers_generate.go")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,7 +29,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useShallow } from 'zustand/react/shallow';
 import { api } from '@/lib/api/client';
-import type { ProjectPropForm } from '@/types';
+import type { ProjectProp, ProjectPropForm } from '@/types';
 import { toast } from 'sonner';
 
 const EMPTY_FORM: ProjectPropForm = {
@@ -72,7 +72,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectPropForm>(EMPTY_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [viewing, setViewing] = useState<any>(null);
+  const [viewing, setViewing] = useState<ProjectProp | null>(null);
 
   // 从剧本提取
   const [extracting, setExtracting] = useState(false);
@@ -96,9 +96,9 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
     setEditOpen(true);
   };
 
-  const openEdit = (prop: any) => {
+  const openEdit = (prop: ProjectProp) => {
     setEditingId(prop.id);
-    const { id: _id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = prop;
+    const { projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = prop;
     setForm(rest);
     setEditOpen(true);
   };
@@ -188,12 +188,12 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
           ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
           : raw;
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed: unknown = JSON.parse(jsonStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const valid = parsed.filter((p: any) => p.name && p.name.trim());
+            const valid = (parsed as ProjectPropForm[]).filter((p) => p.name && p.name.trim());
             if (valid.length > 0) {
               setExtractedProps(valid);
-              setSelectedExtractIds(new Set(valid.map((_: any, i: number) => i)));
+              setSelectedExtractIds(new Set(valid.map((_, i: number) => i)));
               setExtractOpen(true);
               toast.success(`已从剧本提取 ${valid.length} 个道具设定，请确认后入库`);
             } else {

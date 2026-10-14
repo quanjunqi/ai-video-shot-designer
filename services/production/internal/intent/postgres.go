@@ -15,6 +15,9 @@ import (
 type PostgresStore struct{ Pool *pgxpool.Pool }
 
 func (s PostgresStore) Create(ctx context.Context, workspace, actor, key string, in CreateInput) (Intent, bool, error) {
+	if err := in.Validate(); err != nil {
+		return Intent{}, false, err
+	}
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return Intent{}, false, err

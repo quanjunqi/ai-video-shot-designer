@@ -1,0 +1,15 @@
+# Gitleaks 配置：保留官方默认规则集，仅豁免明确无害的开发/测试占位凭据。
+# 这些值不是生产密钥：
+#   - redact_test.go：redact 逻辑的测试夹具假密钥（功能依赖，不能删）
+#   - dev-local.sh：本地开发环境的占位 token / 加密 key（local-* 前缀，与 .env.local 同性质）
+title = "gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "开发/测试占位凭据（非生产密钥）"
+paths = [
+    "services/execution/internal/audit/redact_test.go",
+    "deploy/local/dev-local.sh",
+]

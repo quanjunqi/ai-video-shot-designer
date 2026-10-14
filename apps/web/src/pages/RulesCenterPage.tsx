@@ -63,7 +63,12 @@ function patternValid(p: string): boolean {
 }
 
 export default function RulesCenterPage() {
-  const { templates, upsertTemplate, removeTemplate, toggleEnabled, restoreVersion, loadFromServer } = useRuleTemplateStore();
+  const templates = useRuleTemplateStore((s) => s.templates);
+  const upsertTemplate = useRuleTemplateStore((s) => s.upsertTemplate);
+  const removeTemplate = useRuleTemplateStore((s) => s.removeTemplate);
+  const toggleEnabled = useRuleTemplateStore((s) => s.toggleEnabled);
+  const restoreVersion = useRuleTemplateStore((s) => s.restoreVersion);
+  const loadFromServer = useRuleTemplateStore((s) => s.loadFromServer);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);

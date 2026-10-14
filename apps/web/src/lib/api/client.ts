@@ -1,4 +1,5 @@
-import type { components } from '@/types/generated/api';
+import type { components } from '@/types/api-generated';
+type ApiSchemas = components['schemas'];
 
 export interface ApiErrorShape {
   code: string;
@@ -44,155 +45,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, body as ApiErrorShape | undefined);
   }
   return body as T;
-}
-
-export type ServerProject = components['schemas']['Project'];
-
-
-export interface CreateProjectRequest {
-  title: string;
-  style_id: string;
-  style_version: string;
-  aspect_ratio: '16:9' | '9:16' | '1:1';
-  default_text_model: string;
-  default_image_model: string;
-  default_video_model: string;
-  source_text: string;
-}
-
-export type ServerEpisode = components['schemas']['Episode'];
-
-
-export interface CreateEpisodeRequest {
-  id: string;
-  index: number;
-  title: string;
-  summary?: string;
-  source_span_start?: number;
-  source_span_end?: number;
-}
-
-export type ServerEpisodeAsset = components['schemas']['EpisodeAsset'];
-
-
-export interface CreateEpisodeAssetRequest {
-  id: string;
-  kind: 'character' | 'prop' | 'scene' | 'other';
-  name: string;
-  description?: string;
-  scope?: 'episode' | 'global';
-  source_scene?: string;
-  holder?: string;
-  current_version?: number;
-  versions?: ServerEpisodeAsset['versions'];
-  prompt?: string;
-  negative_prompt?: string;
-  image_url?: string;
-  status?: string;
-  model?: string;
-  stale?: boolean;
-}
-
-export type ServerProjectCharacter = components['schemas']['ProjectCharacter'];
-
-
-export interface CreateProjectCharacterRequest {
-  id: string;
-  name: string;
-  gender?: string;
-  age?: string;
-  identity?: string;
-  hairstyle?: string;
-  eye_color?: string;
-  facial_features?: string;
-  special_marks?: string;
-  body_type?: string;
-  skin_texture?: string;
-  top?: string;
-  bottom?: string;
-  shoes?: string;
-  clothing_style?: string;
-  performance?: string;
-  image_url?: string;
-  image_status?: string;
-  image_model?: string;
-  image_prompt?: string;
-  image_negative_prompt?: string;
-  image_aspect_ratio?: string;
-}
-
-export type ServerRuleTemplate = components['schemas']['RuleTemplate'];
-
-
-export interface CreateRuleTemplateRequest {
-  id: string;
-  kind: 'split' | 'prompt';
-  name: string;
-  description?: string;
-  stage?: string;
-  content?: string;
-  config?: Record<string, unknown>;
-  builtin?: boolean;
-  enabled?: boolean;
-}
-
-export type ServerAsset = components['schemas']['Asset'];
-
-
-export interface CreateAssetUploadRequest {
-  project_id: string;
-  episode_id?: string;
-  kind: ServerAsset['kind'];
-  scope: ServerAsset['scope'];
-  name: string;
-  prompt?: string;
-  sha256?: string;
-}
-
-export interface AssetUploadSession {
-  id: string;
-  project_id: string;
-  object_key: string;
-  status: string;
-  created_at: string;
-}
-
-export type ServerTask = components['schemas']['Task'];
-
-
-export interface CreateTaskRequest {
-  kind: ServerTask['kind'];
-  label: string;
-  project_id?: string;
-  episode_id?: string;
-  asset_id?: string;
-  shot_id?: string;
-  steps?: { label: string; done: boolean }[];
-  cost_estimate?: string;
-  context_path?: string;
-  payload?: Record<string, unknown>;
-}
-
-export type ServerGenerationIntent = components['schemas']['GenerationIntent'];
-
-
-export interface CreateGenerationIntentRequest {
-  project_id: string;
-  episode_id?: string;
-  asset_id?: string;
-  kind: ServerTask['kind'];
-  label: string;
-  payload: Record<string, unknown>;
-  scope_epoch: number;
-}
-
-
-// ---- Model catalog (production service: platform-shared default directory) ----
-export type ServerCatalogChannel = components['schemas']['CatalogChannel'];
-
-
-export type ServerCatalogModel = components['schemas']['CatalogModel'];
-
+}export type ServerProject = ApiSchemas['Project'];export type CreateProjectRequest = ApiSchemas['CreateProjectRequest'];export type ServerEpisode = ApiSchemas['Episode'];export type CreateEpisodeRequest = ApiSchemas['CreateEpisodeRequest'];export type ServerEpisodeAsset = ApiSchemas['EpisodeAsset'];export type CreateEpisodeAssetRequest = ApiSchemas['CreateEpisodeAssetRequest'];export type ServerProjectCharacter = ApiSchemas['ProjectCharacter'];export type CreateProjectCharacterRequest = ApiSchemas['CreateProjectCharacterRequest'];export type ServerRuleTemplate = ApiSchemas['RuleTemplate'];export type CreateRuleTemplateRequest = ApiSchemas['CreateRuleTemplateRequest'];export type ServerAsset = ApiSchemas['Asset'];export type CreateAssetUploadRequest = ApiSchemas['CreateAssetUploadRequest'];export type AssetUploadSession = ApiSchemas['AssetUploadSession'];export type ServerTask = ApiSchemas['Task'];export type CreateTaskRequest = ApiSchemas['CreateTaskRequest'];export type ServerGenerationIntent = ApiSchemas['GenerationIntent'];export type CreateGenerationIntentRequest = ApiSchemas['CreateGenerationIntentRequest'];export type ServerCatalogChannel = ApiSchemas['CatalogChannel'];export type ServerCatalogModel = ApiSchemas['CatalogModel'];
 
 export interface UserChannelItem {
   id: string;
@@ -211,16 +64,7 @@ export interface UserChannelItem {
   syncModelsPath?: string;
   syncPricingPath?: string;
   trustNote?: string;
-}
-
-export type ServerCatalogDirectory = components['schemas']['CatalogDirectory'];
-
-
-export type ServerProtocolTemplate = components['schemas']['ProtocolTemplate'];
-
-
-export type ServerCatalogModelPatch = components['schemas']['CatalogModelPatch'];
-
+}export type ServerCatalogDirectory = ApiSchemas['CatalogDirectory'];export type ServerProtocolTemplate = ApiSchemas['ProtocolTemplate'];export type ServerCatalogModelPatch = ApiSchemas['CatalogModelPatch'];
 
 /** 一次上游同步的结果计数（与 production 的 SyncResult 一一对应）。 */
 export interface ChannelSyncResult {
@@ -230,63 +74,7 @@ export interface ChannelSyncResult {
   updated: number;
   missing: number;
   price_changed: number;
-}
-
-export type ServerCatalogChannelPatch = components['schemas']['CatalogChannelPatch'];
-
-
-// ---- Execution sync model test (real dispatch via engine) ----
-export interface RunModelTestResponse {
-  ok: boolean;
-  run: {
-    status: number;
-    extracted?: Record<string, unknown> | null;
-    rawBody?: string;
-    duration: string;
-    error?: string;
-  };
-}
-
-// Unified model gateway types
-export interface GenerateRequest {
-  modelId: string;
-  modality?: 'text' | 'image' | 'video' | 'audio';
-  mode?: string;
-  input?: Record<string, unknown>;
-  parameters?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-}
-
-export interface AuditLog {
-  id: number;
-  request_id: string;
-  workspace_id: string;
-  project_id?: string;
-  episode_id?: string;
-  asset_id?: string;
-  // T1 业务归因（迁移 013）：钱花在哪个分镜 / 功能；缺失为空串
-  shot_id?: string;
-  feature?: string;
-  user_id?: string;
-  product: string;
-  model_id: string;
-  channel_id?: string;
-  provider_model?: string;
-  mode: string;
-  request_payload: Record<string, unknown>;
-  response_payload?: Record<string, unknown>;
-  error_message?: string;
-  status: string;
-  latency_ms: number;
-  token_input: number;
-  token_output: number;
-  token_cached: number;
-  cost_amount: number;
-  cost_currency: string;
-  job_id?: string;
-  provider_task_id?: string;
-  created_at: string;
-}
+}export type ServerCatalogChannelPatch = ApiSchemas['CatalogChannelPatch'];export type RunModelTestResponse = ApiSchemas['RunModelTestResponse'];export type GenerateRequest = ApiSchemas['GenerateRequest'];export type AuditLog = ApiSchemas['AuditLog'];
 
 /** T2-1 四维排行单项（口径与 /internal/v1/audit/stats 一致） */
 export interface AuditStat {
@@ -311,43 +99,7 @@ export interface AuditTrendPoint {
   p95_latency_ms: number;
   cost_calibrated: number;
   cost_estimated_calls: number;
-}
-
-export interface GenerateResponse {
-  ok?: boolean;
-  task_id?: string;
-  status?: string;
-  output?: Record<string, unknown>;
-  poll_url?: string;
-  error?: string;
-  run?: {
-    status: number;
-    extracted?: Record<string, unknown> | null;
-    duration: string;
-    error?: string;
-  };
-}
-
-
-// ---- Channel probe & workspace credentials (formal connectivity) ----
-export interface ProbeResult {
-  channelId: string;
-  reachable: boolean;
-  authConfigured: boolean;
-  authOk?: boolean;
-  statusCode?: number;
-  detail: string;
-  probedAt: string;
-}
-
-export interface CredentialStatus {
-  channelId: string;
-  baseUrl: string;
-  authType: string;
-  hasKey: boolean;
-  enabled: boolean;
-  updatedAt: string;
-}
+}export type GenerateResponse = ApiSchemas['GenerateResponse'];export type GenerateAsyncAccepted = ApiSchemas['GenerateAsyncAccepted'];export type ProbeResult = ApiSchemas['ProbeResult'];export type CredentialStatus = ApiSchemas['CredentialStatus'];
 
 // ---- Logical models & candidate bindings (production, ADR-003 §3.1) ----
 // 逻辑模型是对外统一标识（能力型 kebab-case，id 一经使用即不可改名）；
@@ -410,47 +162,7 @@ export interface CuratedModelResponse {
   priceUnit?: string;
   priceSource?: string;
   version: number;
-}
-
-export type ServerLogicalModel = components['schemas']['LogicalModel'];
-
-
-/**
- * `POST /api/v1/logical-models` 请求体。
- * 上游以 `DisallowUnknownFields` 解码，字段必须与契约完全一致。
- */
-export interface CreateLogicalModelRequest {
-  id: string;
-  label: string;
-  type: LogicalModelType;
-  capability?: string;
-  status?: LogicalModelStatus;
-  sort?: number;
-  note?: string;
-}
-
-/**
- * `PATCH /api/v1/logical-models/{id}` 请求体。
- * `id` 只用于表达「改名意图」：与路径 id 不一致时服务端返回 `400 ID_IMMUTABLE`；
- * 省略字段表示保持原值（`sort` 可显式传 0）。**不接受** `createdBy`/`createdAt` 等只读字段。
- */
-export interface UpdateLogicalModelRequest {
-  id?: string;
-  label?: string;
-  type?: LogicalModelType;
-  capability?: string;
-  status?: LogicalModelStatus;
-  sort?: number;
-  note?: string;
-}
-
-export type ServerLogicalModelCandidate = components['schemas']['LogicalModelCandidate'];
-
-
-export interface BindLogicalModelCandidatesRequest {
-  modelIds: string[];
-  routePriority?: number;
-}
+}export type ServerLogicalModel = ApiSchemas['LogicalModel'];export type CreateLogicalModelRequest = ApiSchemas['CreateLogicalModelRequest'];export type UpdateLogicalModelRequest = ApiSchemas['UpdateLogicalModelRequest'];export type ServerLogicalModelCandidate = ApiSchemas['LogicalModelCandidate'];export type BindLogicalModelCandidatesRequest = ApiSchemas['BindLogicalModelCandidatesRequest'];
 
 export const api = {
   listProjects: () => request<{ items: ServerProject[] }>('/api/v1/comic-projects'),
@@ -614,7 +326,7 @@ export const api = {
     }),
   // Unified model gateway: modality-agnostic generation entry
   generate: (params: GenerateRequest) =>
-    request<GenerateResponse>('/api/v1/generate', {
+    request<GenerateResponse | GenerateAsyncAccepted>('/api/v1/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),

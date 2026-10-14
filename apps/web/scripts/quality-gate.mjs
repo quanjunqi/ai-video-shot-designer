@@ -42,23 +42,16 @@ function checkFile(file, src) {
   });
 
   // R2b: grid 容器内的列没有 min-w-0（长文本会把 grid 列撑爆）
-  // 检测对象：grid-cols-* 容器的列 div（同行内联 或 下一行），列 div 的 className 缺 min-w-0 即建议。
-  // 注意：min-w-0 判定限定在 className 引号内（?![^"]*min-w-0），避免跨引号误报。
+  // 粗检测：grid-cols-* 行的下一行若是列容器（grid/space-y/flex flex-col）且缺 min-w-0 则提示。
+  // 实现用确定性提取（className 值字符串判断），不用零宽断言：断言里的 .* 会跨过
+  // 引号/标签扫到行尾，导致已含 min-w-0 的行误报（W2 基线回归实测）。
   for (let i = 0; i < lines.length; i++) {
     if (!/grid-cols-/.test(lines[i])) continue;
-    // 同行内联列：grid 容器 div 之后紧跟的列 div，其 className 不含 min-w-0
-    const inline = lines[i].match(/className="grid grid-cols-[\d-]+[^"]*">\s*<(div)(?:\s+className="(?![^"]*min-w-0)[^"]*")?\s*>/);
-    if (inline) {
-      warnings.push(`${rel(file)}:${i + 1} grid 列容器建议加 min-w-0（防长文本撑爆列）：${lines[i].trim().slice(0, 90)}`);
-      continue;
-    }
-    // 下一行模式：grid 容器 div 在行尾、列 div 在下一行行首（列 className 不含 min-w-0）
-    const next = lines[i + 1] ?? '';
-    if (/^\s*<(div) className="(?![^"]*min-w-0)[^"]*"/.test(next)) {
-      const n = next.trim();
-      if (n.includes('grid') || n.includes('space-y') || n.includes('flex flex-col')) {
-        warnings.push(`${rel(file)}:${i + 2} grid 列容器建议加 min-w-0（防长文本撑爆列）：${n.slice(0, 90)}`);
-      }
+    const next = (lines[i + 1] ?? '').trim();
+    if (!(next.includes('grid') || next.includes('space-y') || next.includes('flex flex-col'))) continue;
+    const m = next.match(/<div[^>]*className="([^"]*)"/);
+    if (m && !m[1].includes('min-w-0')) {
+      warnings.push(`${rel(file)}:${i + 2} grid 列容器建议加 min-w-0（防长文本撑爆列）：${next.slice(0, 90)}`);
     }
   }
 
@@ -82,6 +75,39 @@ function checkFile(file, src) {
       }
     });
   }
+
+  // V-001: 间距节奏——任意值间距非 4px 基数（间距 token 体系以 4 为基数）
+  // 合法任意值：4/8/12/16/20/24/28/32/36/40/44/48/56/64/80/96 等 4 的倍数；
+  // 非法：gap-[3px] / p-[7px] / space-x-[5px] 等破坏节奏的奇数或非倍数。
+  const spacingClass = /\b(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|space-x|space-y)-\[(\d+(?:\.\d+)?)px\]/;
+  lines.forEach((line, i) => {
+    const m = line.match(spacingClass);
+    if (m) {
+      const v = parseFloat(m[1]);
+      if (v % 4 !== 0 && v !== 2) { // 2px 允许（细分割线场景），其余非 4 倍数警告
+        warnings.push(`${rel(file)}:${i + 1} 间距 ${m[0].match(/\[[^\]]+\]/)[0]} 非 4px 节奏（V-001，用 4 基数间距 token）：${line.trim().slice(0, 80)}`);
+      }
+    }
+  });
+
+  // V-002: 色彩 token 一致性——任意值硬编码色值（#hex / rgb / hsl 字面量）
+  // 合法：语义 token（text-muted-foreground / bg-card 等）；禁止：# 任意值色。
+  const hardColor = /\b(?:text|bg|border|ring|from|to|via|divide|outline|accent|fill|stroke)-\[(?:#[0-9a-fA-F]{3,8}|rgba?|hsla?)[^\]]*\]/;
+  lines.forEach((line, i) => {
+    if (hardColor.test(line) && !/from-\[|to-\[|via-\[/.test(line)) {
+      warnings.push(`${rel(file)}:${i + 1} 硬编码色值（V-002，改用语义色 token：bg-card/text-muted-foreground 等）：${line.trim().slice(0, 80)}`);
+    }
+  });
+
+  // V-003: 层级对比——标题元素（h1-h3）硬编码字号破坏标题层级
+  // 合法：text-lg/xl/2xl/3xl/4xl/5xl 等尺度 token；禁止：标题用 text-[Npx] 硬编码。
+  // 仅查标题元素：列表/徽章/表单/描述小字（10-11px）是合法密集排版，不查。
+  lines.forEach((line, i) => {
+    const m = line.match(/<(h[1-3])\b[^>]*className="[^"]*text-\[(\d+(?:\.\d+)?)px\]/);
+    if (m) {
+      warnings.push(`${rel(file)}:${i + 1} 标题 <${m[1]}> 硬编码字号 text-[${m[2]}px]（V-003，标题用尺度 token text-lg/xl/2xl...）：${line.trim().slice(0, 80)}`);
+    }
+  });
 }
 
 function rel(p) {

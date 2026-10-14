@@ -400,13 +400,13 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
           ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
           : raw;
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed: unknown = JSON.parse(jsonStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
             // 过滤掉没有名字的角色
-            const valid = parsed.filter((c: any) => c.name && c.name.trim());
+            const valid = (parsed as ProjectCharacterForm[]).filter((c) => c.name && c.name.trim());
             if (valid.length > 0) {
               setExtractedCharacters(valid);
-              setSelectedExtractIds(new Set(valid.map((_: any, i: number) => i)));
+              setSelectedExtractIds(new Set(valid.map((_, i: number) => i)));
               setExtractOpen(true);
               toast.success(`已从剧本提取 ${valid.length} 个角色设定，请确认后入库`);
             } else {
@@ -470,7 +470,7 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
 
   const openEdit = (char: ProjectCharacter) => {
     setEditingId(char.id);
-    const { id: _id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = char;
+    const { projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = char;
     setForm(rest);
     setEditOpen(true);
   };
@@ -730,7 +730,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="truncate text-[15px] font-bold text-foreground">{char.name}</h3>
+                      <h3 className="truncate text-base font-bold text-foreground">{char.name}</h3>
                       {char.gender && (
                         <Badge variant="outline" className="shrink-0 border-amber-500/20 bg-amber-500/5 text-[9px] font-medium text-amber-600">
                           {char.gender}

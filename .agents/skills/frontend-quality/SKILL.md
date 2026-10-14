@@ -23,6 +23,19 @@ npm run gate    # typecheck + eslint + quality-gate.mjs
 
 **GATE=0（0 error、0 warning）才能交付。**
 
+## 布局回归（W2 新增）
+
+改**关键页面**（模型中心/成本/审计/设置渠道/设置模型等 6 页）布局后，跑截图基线 diff：
+
+```bash
+cd apps/web
+npm run visual:check      # 与 visual-baseline/ 基线比对，差异率 >2% 判回归
+npm run visual:baseline   # 有意变更布局时刷新基线（随 PR 提交）
+```
+
+- 基线同环境可比：CI 与本地均为无 BFF 的 error 态布局
+- 视觉静态规则（V-001~V-003）已并入 quality-gate：间距 4px 节奏 / 禁止硬编码色值 / 标题字号用尺度 token
+
 ## 品质标准
 
 Awwwards / Webby Awards / FWA 获奖级网站。交付前从 8 维度自检：
@@ -39,6 +52,9 @@ Awwwards / Webby Awards / FWA 获奖级网站。交付前从 8 维度自检：
 | R-CRUD-002 | 删除操作必须有确认弹窗 | 人工 |
 | R-HOOK-001 | useEffect 依赖数组必须完整 | eslint |
 | R-HOOK-002 | 禁止在 render 中创建函数式组件 | 人工 |
+| V-001 | 间距用 4px 节奏 token（非 4 倍数任意值间距） | quality-gate |
+| V-002 | 禁止硬编码色值（#hex/rgb/hsl，用语义色 token） | quality-gate |
+| V-003 | 标题（h1-h3）字号用尺度 token，禁 text-[Npx] | quality-gate |
 
 ## 反例库（常见错误）
 

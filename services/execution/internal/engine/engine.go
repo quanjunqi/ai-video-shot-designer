@@ -1,3 +1,5 @@
+package
+
 // Package engine assembles and executes real HTTP calls from the model
 // directory contract (channel + model + protocol template).
 //
@@ -11,22 +13,21 @@
 // produces a clear error. Async-task protocols (video) are rejected here with
 // an explicit reason until the polling state machine lands; sync text calls
 // are fully supported.
-package engine
+engine
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
+	"time"
+
 	"fmt"
 	"io"
 	"log"
-	"log/slog"
+
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Param is one entry of a protocol parameter spec table.
@@ -217,65 +218,14 @@ func Run(ctx context.Context, creds Credentials, req RunRequest, client *http.Cl
 
 // replaceLastPathSeg swaps the trailing path segment (e.g. content -> reasoning_content)
 // while keeping array indexes intact (choices.0.message.content -> choices.0.message.reasoning_content).
-func replaceLastPathSeg(path, seg string) string {
-	parts := strings.Split(path, ".")
-	if len(parts) == 0 {
-		return seg
-	}
-	parts[len(parts)-1] = seg
-	return strings.Join(parts, ".")
-}
 
 // parseJSONValue coerces a template default string into a JSON value:
 // numbers / booleans / arrays / objects stay typed, everything else is a string.
-func parseJSONValue(v string) any {
-	var probe any
-	if json.Unmarshal([]byte(v), &probe) == nil {
-		switch probe.(type) {
-		case string:
-			// a quoted string stays a string; bare words are treated as strings below
-			return probe
-		case float64, bool, []any, map[string]any:
-			return probe
-		}
-	}
-	return v
-}
+
+// a quoted string stays a string; bare words are treated as strings below
 
 // extractPath walks a dotted path with array indexes: choices.0.message.content,
 // data.0.url, usage.total_tokens.
-func extractPath(doc any, path string) (any, bool) {
-	cur := doc
-	for _, seg := range strings.Split(path, ".") {
-		if cur == nil {
-			return nil, false
-		}
-		switch node := cur.(type) {
-		case map[string]any:
-			v, ok := node[seg]
-			if !ok {
-				return nil, false
-			}
-			cur = v
-		case []any:
-			idx, err := strconv.Atoi(seg)
-			if err != nil || idx < 0 || idx >= len(node) {
-				return nil, false
-			}
-			cur = node[idx]
-		default:
-			return nil, false
-		}
-	}
-	return cur, true
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "…"
-}
 
 // RunAsync executes an async-task protocol: submit -> poll -> result.
 // It blocks until the task completes, fails, or the context times out.
@@ -445,34 +395,10 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 }
 
 // buildRequest assembles the URL and request body for a model call (async submit path).
-func buildRequest(creds Credentials, req RunRequest) (string, []byte, error) {
-	url := buildURL(creds, req)
-	raw, err := assembleBody(req, "")
-	if err != nil {
-		return "", nil, err
-	}
-	return url, raw, nil
-}
 
 // buildURL 组装 endpoint（渠道 base_url + 模型级/模板级路径），同步与异步路径共用。
 // 逐字等价于重构前两处各自内联的实现（base 去尾斜杠；path 为空则用模板 request_path；
 // 以 "/" 开头直接拼接，否则补一个 "/"）。
-func buildURL(creds Credentials, req RunRequest) string {
-	base := strings.TrimRight(creds.BaseURL, "/")
-	path := strings.TrimSpace(req.ModelRequestPath)
-	if path == "" {
-		path = strings.TrimSpace(req.ProtocolTemplate.RequestPath)
-	}
-	url := base
-	if path != "" {
-		if strings.HasPrefix(path, "/") {
-			url += path
-		} else {
-			url += "/" + path
-		}
-	}
-	return url
-}
 
 // assembleBody 是**唯一的请求体装配点**，同步（Run）与异步（RunAsync → buildRequest）
 // 两条路径都调用它，避免同一段装配逻辑在两处各自演化（ADR-007 D3 的硬要求）。
@@ -493,39 +419,6 @@ func buildURL(creds Credentials, req RunRequest) string {
 //
 // 返回值已序列化（json.Marshal 或模板原文），因为异步路径需要在字节层面再注入
 // task_type=async（既有行为，未改动）。
-func assembleBody(req RunRequest, taskType string) ([]byte, error) {
-	if strings.TrimSpace(req.ProtocolTemplate.RequestTemplate) == "" {
-		body := assembleParamsBody(req)
-		injectDynamic(body, taskType, req)
-		raw, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("engine: body marshal: %w", err)
-		}
-		logOutboundBody(req, raw)
-		return raw, nil
-	}
-
-	rendered, err := RenderRequestTemplate(req.ProtocolTemplate.RequestTemplate, resolveTemplateValues(req))
-	if err != nil {
-		return nil, fmt.Errorf("engine: request template %q: %w", req.ProtocolTemplate.ID, err)
-	}
-	if taskType == "" && !hasPassthrough(req) {
-		raw := []byte(rendered)
-		logOutboundBody(req, raw)
-		return raw, nil
-	}
-	var body map[string]any
-	if err := json.Unmarshal([]byte(rendered), &body); err != nil {
-		return nil, fmt.Errorf("engine: request template %q must render a JSON object to apply task_type/__passthrough: %w", req.ProtocolTemplate.ID, err)
-	}
-	injectDynamic(body, taskType, req)
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("engine: body marshal: %w", err)
-	}
-	logOutboundBody(req, raw)
-	return raw, nil
-}
 
 // logOutboundBody 按需记录**实际发往上游的请求体**。
 //
@@ -533,17 +426,6 @@ func assembleBody(req RunRequest, taskType string) ([]byte, error) {
 // 审计里的 request_payload 记的是业务入参，两者不是一回事（T7 就因此绕过一次弯路）。
 //
 // 为什么默认关闭：请求体可能含提示词与业务文本 ⇒ 只在显式开启时记录。
-func logOutboundBody(req RunRequest, raw []byte) {
-	if os.Getenv("EXECUTION_LOG_REQUEST_BODY") != "1" {
-		return
-	}
-	slog.Info("engine outbound body",
-		"template", req.ProtocolTemplate.ID,
-		"model", req.ProviderModel,
-		"path", req.ProtocolTemplate.RequestPath,
-		"bytes", len(raw),
-		"body", string(raw))
-}
 
 // resolvedParam 是一条已声明参数按 role 解析后的取值。
 type resolvedParam struct {
@@ -562,42 +444,11 @@ type resolvedParam struct {
 //	runtime → 业务输入 runtime[key]；缺省 = 不发送（执行器没产出该字段）
 //
 // 模型级 params 只覆盖模板里已声明的 key（不新增字段），与改动前一致；顺序沿用模板声明顺序。
-func resolveParams(req RunRequest) []resolvedParam {
-	byKey := map[string]Param{}
-	for _, p := range req.ProtocolTemplate.Params {
-		byKey[p.Key] = p
-	}
-	for _, p := range req.ModelParams {
-		if p.Key != "" {
-			byKey[p.Key] = p // model wins (value + role stay as given)
-		}
-	}
-	out := make([]resolvedParam, 0, len(req.ProtocolTemplate.Params))
-	for _, p := range req.ProtocolTemplate.Params {
-		spec, ok := byKey[p.Key]
-		if !ok || p.Key == "" {
-			continue
-		}
-		switch spec.Role {
-		case "model":
-			out = append(out, resolvedParam{Key: p.Key, Value: req.ProviderModel, Present: true})
-		case "runtime":
-			if v, has := req.Runtime[p.Key]; has {
-				out = append(out, resolvedParam{Key: p.Key, Value: coerceByType(v, spec.Type), Present: true})
-			}
-			// absent runtime field -> omit (executor did not produce it)
-		default: // static
-			if v, has := req.Runtime["__"+p.Key]; has {
-				out = append(out, resolvedParam{Key: p.Key, Value: coerceByType(v, spec.Type), Present: true})
-				continue
-			}
-			if val := strings.TrimSpace(spec.Value); val != "" {
-				out = append(out, resolvedParam{Key: p.Key, Value: parseJSONValue(val), Present: true})
-			}
-		}
-	}
-	return out
-}
+
+// model wins (value + role stay as given)
+
+// absent runtime field -> omit (executor did not produce it)
+// static
 
 // coerceByType 按协议模板声明的 type，把业务值规范成**正确的 JSON 类型**。
 //
@@ -611,42 +462,8 @@ func resolveParams(req RunRequest) []resolvedParam {
 //   - 未声明 type，或声明为 string ⇒ 原样返回（**不**做"看起来像数字就转"的推断：
 //     那会把 "007"、"+86" 这类字符串静默改写）；
 //   - 声明了 type 但解析失败 ⇒ 原样返回，让上游如实报错，而不是悄悄换成一个"能过"的值。
-func coerceByType(v any, typ string) any {
-	s, ok := v.(string)
-	if !ok {
-		return v
-	}
-	switch strings.ToLower(strings.TrimSpace(typ)) {
-	case "number":
-		if f, err := strconv.ParseFloat(strings.TrimSpace(s), 64); err == nil {
-			return f
-		}
-	case "bool", "boolean":
-		if b, err := strconv.ParseBool(strings.TrimSpace(s)); err == nil {
-			return b
-		}
-	case "array", "object":
-		var probe any
-		if json.Unmarshal([]byte(s), &probe) == nil {
-			switch probe.(type) {
-			case []any, map[string]any:
-				return probe
-			}
-		}
-	}
-	return v
-}
 
 // assembleParamsBody 是 params[] 形态的请求体（改动前 Run / buildRequest 里逐字相同的两段）。
-func assembleParamsBody(req RunRequest) map[string]any {
-	body := map[string]any{}
-	for _, p := range resolveParams(req) {
-		if p.Present {
-			body[p.Key] = p.Value
-		}
-	}
-	return body
-}
 
 // resolveTemplateValues 构造模板形态的 {{占位符}} 取值表。
 //
@@ -659,87 +476,23 @@ func assembleParamsBody(req RunRequest) map[string]any {
 //  4. runtime["__passthrough"] 的动态参数（参数映射引擎的产物）。
 //
 // 「不进取值表」是刻意的：占位符取值缺失时 RenderRequestTemplate 报错，而不是插入空串。
-func resolveTemplateValues(req RunRequest) map[string]any {
-	values := map[string]any{}
-	for _, p := range resolveParams(req) {
-		if p.Present {
-			values[p.Key] = p.Value
-		}
-	}
 
-	// 业务输入里的其它字段：模板可以引用未在 params 里声明的 key（模板形态的自有取值面）。
-	for k, v := range req.Runtime {
-		if k == "" || strings.HasPrefix(k, "__") {
-			continue
-		}
-		if _, declared := values[k]; declared {
-			continue
-		}
-		values[k] = v
-	}
-	// 动态参数映射的产物同样可作为占位符取值。
-	if pt, ok := req.Runtime["__passthrough"].(map[string]any); ok {
-		for k, v := range pt {
-			if k != "" && v != nil {
-				values[k] = v
-			}
-		}
-	}
-	return values
-}
+// 业务输入里的其它字段：模板可以引用未在 params 里声明的 key（模板形态的自有取值面）。
+
+// 动态参数映射的产物同样可作为占位符取值。
 
 // injectDynamic 把执行器层面的动态字段写入 body：
 // task_type（同步/异步协议标记）与 runtime["__passthrough"]。
 // 两者对 params[] 形态与模板形态完全一致，规则与改动前相同：跳过空 key 与 nil 值。
-func injectDynamic(body map[string]any, taskType string, req RunRequest) {
-	if taskType != "" {
-		body["task_type"] = taskType
-	}
-	pt, ok := req.Runtime["__passthrough"].(map[string]any)
-	if !ok {
-		return
-	}
-	// ★ 动态参数同样要按模板声明的 type 规范化：参数映射引擎的产物来自用户输入，
-	//   天然是字符串（`Record<string, string>`），而严格上游按 JSON 类型校验。
-	//   T7 真机事故：`max_tokens` 走的就是这条路 —— 它**在组装之后覆盖** body，
-	//   因此绕过了 resolveParams 里的转换（我第一版修复只改了 resolveParams，真机仍然 503）。
-	types := declaredTypes(req.ProtocolTemplate.Params, req.ModelParams)
-	for k, v := range pt {
-		if k != "" && v != nil {
-			body[k] = coerceByType(v, types[k])
-		}
-	}
-}
+
+// ★ 动态参数同样要按模板声明的 type 规范化：参数映射引擎的产物来自用户输入，
+//   天然是字符串（`Record<string, string>`），而严格上游按 JSON 类型校验。
+//   T7 真机事故：`max_tokens` 走的就是这条路 —— 它**在组装之后覆盖** body，
+//   因此绕过了 resolveParams 里的转换（我第一版修复只改了 resolveParams，真机仍然 503）。
 
 // declaredTypes 汇总「参数名 → 声明类型」（模型级声明优先），只保留非空 type。
-func declaredTypes(tpl []Param, model []Param) map[string]string {
-	out := make(map[string]string, len(tpl)+len(model))
-	for _, p := range tpl {
-		if p.Key != "" && p.Type != "" {
-			out[p.Key] = p.Type
-		}
-	}
-	for _, p := range model {
-		if p.Key != "" && p.Type != "" {
-			out[p.Key] = p.Type
-		}
-	}
-	return out
-}
 
 // hasPassthrough 报告本次调用是否存在会被注入的动态参数（与 injectDynamic 的过滤规则一致）。
-func hasPassthrough(req RunRequest) bool {
-	pt, ok := req.Runtime["__passthrough"].(map[string]any)
-	if !ok {
-		return false
-	}
-	for k, v := range pt {
-		if k != "" && v != nil {
-			return true
-		}
-	}
-	return false
-}
 
 // applyAuth writes the channel's auth header onto req.
 //
@@ -757,17 +510,3 @@ func hasPassthrough(req RunRequest) bool {
 //
 // 既有渠道的行为不得改变：新增 AuthHeader/AuthPrefix 之前，所有调用点都只会
 // 走 fallback 分支，而这些分支的输出与改动前逐字一致。
-func applyAuth(req *http.Request, creds Credentials) {
-	if creds.AuthHeader != "" {
-		req.Header.Set(creds.AuthHeader, creds.AuthPrefix+creds.APIKey)
-		return
-	}
-	switch creds.AuthType {
-	case "none", "":
-		return
-	case "token":
-		req.Header.Set("Authorization", creds.APIKey)
-	default:
-		req.Header.Set("Authorization", "Bearer "+creds.APIKey)
-	}
-}

@@ -29,7 +29,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useShallow } from 'zustand/react/shallow';
 import { api } from '@/lib/api/client';
-import type { ProjectSceneForm } from '@/types';
+import type { ProjectScene, ProjectSceneForm } from '@/types';
 import { toast } from 'sonner';
 
 const EMPTY_FORM: ProjectSceneForm = {
@@ -71,7 +71,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectSceneForm>(EMPTY_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [viewing, setViewing] = useState<any>(null);
+  const [viewing, setViewing] = useState<ProjectScene | null>(null);
 
   const [extracting, setExtracting] = useState(false);
   const [extractOpen, setExtractOpen] = useState(false);
@@ -95,9 +95,9 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
     setEditOpen(true);
   };
 
-  const openEdit = (scene: any) => {
+  const openEdit = (scene: ProjectScene) => {
     setEditingId(scene.id);
-    const { id: _id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = scene;
+    const { projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = scene;
     setForm(rest);
     // 初始化已选道具
     if (scene.includedProps) {
@@ -185,12 +185,12 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
         const raw = note.trim();
         const jsonStr = raw.startsWith('```') ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '') : raw;
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed: unknown = JSON.parse(jsonStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const valid = parsed.filter((s: any) => s.name && s.name.trim());
+            const valid = (parsed as ProjectSceneForm[]).filter((s) => s.name && s.name.trim());
             if (valid.length > 0) {
               setExtractedScenes(valid);
-              setSelectedExtractIds(new Set(valid.map((_: any, i: number) => i)));
+              setSelectedExtractIds(new Set(valid.map((_, i: number) => i)));
               setExtractOpen(true);
               toast.success(`已从剧本提取 ${valid.length} 个场景设定`);
             } else {
@@ -379,10 +379,10 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
           <div className="flex-1 overflow-y-auto py-4">
             {viewing && (
               <div className="space-y-5 px-6">
-                <div><h4 className="mb-3 text-xs font-semibold text-sky-500">基本信息</h4><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-4 text-xs"><div className="min-w-0"><span className="text-muted-foreground">类型：</span>{viewing.sceneType || '未设置'}</div><div><span className="text-muted-foreground">时间：</span>{viewing.timePeriod || '未设置'}</div><div className="col-span-2"><span className="text-muted-foreground">地点：</span>{viewing.location || '未设置'}</div></div></div>
-                <div className="min-w-0"><h4 className="mb-3 text-xs font-semibold text-sky-500">空间描述</h4><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-4 text-xs"><div className="min-w-0"><span className="text-muted-foreground">布局：</span>{viewing.layout || '未设置'}</div><div><span className="text-muted-foreground">尺寸：</span>{viewing.size || '未设置'}</div><div className="col-span-2"><span className="text-muted-foreground">结构：</span>{viewing.structure || '未设置'}</div></div></div>
-                <div className="min-w-0"><h4 className="mb-3 text-xs font-semibold text-sky-500">环境描述</h4><div className="grid grid-cols-3 gap-3 rounded-xl bg-muted/30 p-4 text-xs"><div className="min-w-0"><span className="text-muted-foreground">天气：</span>{viewing.weather || '未设置'}</div><div><span className="text-muted-foreground">光线：</span>{viewing.lighting || '未设置'}</div><div><span className="text-muted-foreground">氛围：</span>{viewing.atmosphere || '未设置'}</div></div></div>
-                <div className="min-w-0"><h4 className="mb-3 text-xs font-semibold text-sky-500">物品描述</h4><div className="space-y-2 rounded-xl bg-muted/30 p-4 text-xs">
+                <div><h4 className="mb-3 text-xs font-semibold text-sky-500">基本信息</h4><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-4 text-xs"><div><span className="text-muted-foreground">类型：</span>{viewing.sceneType || '未设置'}</div><div><span className="text-muted-foreground">时间：</span>{viewing.timePeriod || '未设置'}</div><div className="col-span-2"><span className="text-muted-foreground">地点：</span>{viewing.location || '未设置'}</div></div></div>
+                <div><h4 className="mb-3 text-xs font-semibold text-sky-500">空间描述</h4><div className="grid min-w-0 grid-cols-2 gap-3 rounded-xl bg-muted/30 p-4 text-xs"><div><span className="text-muted-foreground">布局：</span>{viewing.layout || '未设置'}</div><div><span className="text-muted-foreground">尺寸：</span>{viewing.size || '未设置'}</div><div className="col-span-2"><span className="text-muted-foreground">结构：</span>{viewing.structure || '未设置'}</div></div></div>
+                <div><h4 className="mb-3 text-xs font-semibold text-sky-500">环境描述</h4><div className="grid min-w-0 grid-cols-3 gap-3 rounded-xl bg-muted/30 p-4 text-xs"><div><span className="text-muted-foreground">天气：</span>{viewing.weather || '未设置'}</div><div><span className="text-muted-foreground">光线：</span>{viewing.lighting || '未设置'}</div><div><span className="text-muted-foreground">氛围：</span>{viewing.atmosphere || '未设置'}</div></div></div>
+                <div><h4 className="mb-3 text-xs font-semibold text-sky-500">物品描述</h4><div className="min-w-0 space-y-2 rounded-xl bg-muted/30 p-4 text-xs">
                   <div><span className="text-muted-foreground">家具：</span>{viewing.furniture || '未设置'}</div>
                   <div>
                     <span className="text-muted-foreground">包含道具：</span>

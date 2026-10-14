@@ -31,9 +31,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { useFakeGeneration } from '@/hooks/useFakeGeneration';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import StageModelPicker from '@/features/comic/StageModelPicker';
-import type { ArtifactStatus, Episode, ShotCard } from '@/types';
+import type { ArtifactStatus, Asset, AssetVersion, Episode, Project, ProjectCharacter, ShotCard, StyleEntry } from '@/types';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api/client';
+import { api, type ServerTask } from '@/lib/api/client';
 import { resolveTaskResult } from '@/features/genworkbench/result-utils';
 
 const STATUS_META: Record<ArtifactStatus, { label: string; className: string; dot: string }> = {
@@ -76,8 +76,52 @@ interface CharacterProfile {
   background: string;
 }
 
-// 从分镜统计推断角色档案
+// 空角色档案模板
+const EMPTY_PROFILE: CharacterProfile = {
+  name: '', gender: '', age: '', identity: '',
+  hairstyle: '', hairColor: '', eyeColor: '', facialFeatures: '', bodyType: '', height: '',
+  top: '', bottom: '', shoes: '', accessories: '', clothingStyle: '',
+  personality: '', typicalExpression: '', behavior: '',
+  specialMarks: '', background: '',
+};
+
+// 分镜统计（与 buildShotStats 产物结构一致）
+interface ShotStat {
+  name: string;
+  shotCount: number;
+  sceneCount: number;
+  emotions: string[];
+  shotIds: string[];
+  bodyStates: string[];
+  costumeStates: string[];
+}
+
 // 从角色描述字符串解析档案
+function parseProfileFromDescription(description: string): CharacterProfile {
+  const profile = { ...EMPTY_PROFILE };
+  if (!description) return profile;
+  
+  // 简单的关键词匹配解析
+  const patterns: [keyof CharacterProfile, RegExp][] = [
+    ['gender', /(男|女|男性|女性|男孩|女孩|少年|少女)/],
+    ['age', /(\d+)\s*岁/],
+    ['hairstyle', /(长发|短发|卷发|直发|马尾|辫子|光头|齐刘海)/],
+    ['hairColor', /(黑色|棕色|金色|银色|白色|红色|蓝色|粉色)头发/],
+    ['eyeColor', /(黑色|棕色|蓝色|绿色|金色|红色)眼睛/],
+    ['bodyType', /(瘦弱|健壮|苗条|丰满|高大|矮小|匀称)/],
+    ['clothingStyle', /(古装|现代|军装|西装|休闲|运动|礼服|校服)/],
+  ];
+  
+  patterns.forEach(([key, regex]) => {
+    const match = description.match(regex);
+    if (match) {
+      profile[key] = match[0];
+    }
+  });
+  
+  return profile;
+}
+
 // 基于角色档案生成提示词
 function generatePromptFromProfile(profile: CharacterProfile): string {
   const parts: string[] = [];
@@ -152,9 +196,42 @@ function generateNegativePrompt(): string {
   ].join(', ');
 }
 
+// 项目级角色设定的展示视图：允许读取合并描述（performance）之外的细分展示字段
+interface ProjectCharacterView extends ProjectCharacter {
+  typicalExpression?: string;
+  behavior?: string;
+  background?: string;
+}
+
+// 从项目级角色设定映射为档案（补齐空值，保证 generatePromptFromProfile 的字段完整）
+function toCharacterProfile(pc: ProjectCharacter): CharacterProfile {
+  return {
+    name: pc.name,
+    gender: pc.gender,
+    age: pc.age,
+    identity: pc.identity,
+    hairstyle: pc.hairstyle,
+    hairColor: pc.hairColor ?? '',
+    eyeColor: pc.eyeColor,
+    facialFeatures: pc.facialFeatures,
+    bodyType: pc.bodyType,
+    height: pc.height ?? '',
+    top: pc.top,
+    bottom: pc.bottom,
+    shoes: pc.shoes,
+    accessories: pc.accessories ?? '',
+    clothingStyle: pc.clothingStyle,
+    personality: pc.personality ?? '',
+    typicalExpression: '',
+    behavior: '',
+    specialMarks: pc.specialMarks,
+    background: '',
+  };
+}
+
 // 从项目级角色设定生成提示词（复用 generatePromptFromProfile）
-function generatePromptFromProjectCharacter(pc: any): string {
-  return generatePromptFromProfile(pc as CharacterProfile);
+function generatePromptFromProjectCharacter(pc: ProjectCharacter): string {
+  return generatePromptFromProfile(toCharacterProfile(pc));
 }
 
 function ProgressRing({ progress, size = 80 }: { progress: number; size?: number }) {
@@ -195,8 +272,8 @@ function CharacterGridCard({
   onToggleCheck,
   onDelete,
 }: {
-  char: any;
-  projectCharacter?: any;
+  char: Asset;
+  projectCharacter?: ProjectCharacterView;
   shotCount?: number;
   selected: boolean;
   generatingTask?: { progress: number };
@@ -307,6 +384,43 @@ function CharacterGridCard({
   );
 }
 
+// 分镜需求统计（纯函数：按生效规则过滤群体角色）
+function buildShotStats(directing: unknown, isGroupCharacter: (name: string) => boolean): Array<{
+  name: string;
+  shotCount: number;
+  sceneCount: number;
+  emotions: string[];
+  shotIds: string[];
+  bodyStates: string[];
+  costumeStates: string[];
+}> {
+  const shots = (directing ?? []) as ShotCard[];
+  const charMap = new Map<string, { count: number; scenes: Set<string>; emotions: Set<string>; shotIds: string[]; bodyStates: Set<string>; costumeStates: Set<string> }>();
+  shots.forEach((shot) => {
+    shot.world.characters.forEach((ch) => {
+      if (isGroupCharacter(ch.name)) return;
+      const key = ch.name;
+      if (!charMap.has(key)) charMap.set(key, { count: 0, scenes: new Set(), emotions: new Set(), shotIds: [], bodyStates: new Set(), costumeStates: new Set() });
+      const entry = charMap.get(key)!;
+      entry.count += 1;
+      entry.scenes.add(shot.sceneLabel);
+      entry.shotIds.push(shot.id);
+      if (ch.emotion && ch.emotion !== '正常') entry.emotions.add(ch.emotion);
+      if (ch.bodyState && ch.bodyState !== '正常') entry.bodyStates.add(ch.bodyState);
+      if (ch.costumeState && ch.costumeState !== '正常') entry.costumeStates.add(ch.costumeState);
+    });
+  });
+  return Array.from(charMap.entries()).map(([name, data]) => ({
+    name,
+    shotCount: data.count,
+    sceneCount: data.scenes.size,
+    emotions: Array.from(data.emotions),
+    shotIds: data.shotIds,
+    bodyStates: Array.from(data.bodyStates),
+    costumeStates: Array.from(data.costumeStates),
+  }));
+}
+
 // 详情抽屉
 function CharacterDetailDrawer({
   char,
@@ -321,19 +435,26 @@ function CharacterDetailDrawer({
   onReject,
   onToggleGlobal,
 }: {
-  char: any;
+  char: Asset;
   shotCount?: number;
+  charShots: ShotCard[];
+  shotStat?: ShotStat;
   generatingTask?: { progress: number };
   imageModelId: string;
+  imageModelName: string;
   statement: string;
   setStatement: (v: string) => void;
-  projectCharacter?: any;
+  projectCharacter?: ProjectCharacterView;
   onClose: () => void;
+  onGenerate: () => void;
   onApprove: () => void;
   onReject: () => void;
   onToggleGlobal: () => void;
+  onUpdateDescription: (v: string) => void;
+  onUpdatePrompt: (v: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<'info' | 'versions'>('info');
+  const [, setProfile] = useState<CharacterProfile>(EMPTY_PROFILE);
   const [showProjectDetail, setShowProjectDetail] = useState(false);
   const [episodeVariant, setEpisodeVariant] = useState({
     emotionState: '',
@@ -349,6 +470,9 @@ function CharacterDetailDrawer({
   const [syncedCharId, setSyncedCharId] = useState<string | null>(null);
   if (syncedCharId !== char.id) {
     setSyncedCharId(char.id);
+    const parsed = parseProfileFromDescription(char.description || '');
+    parsed.name = char.name;
+    setProfile(parsed);
     setVariantInitialized(false);
     if (char.episodeVariant) {
       setEpisodeVariant({
@@ -409,11 +533,11 @@ function CharacterDetailDrawer({
 
       // 2. 注入项目全局风格（保证色调一致）
       const projectState = useProjectStore.getState?.();
-      const project = projectState?.projects?.find((p: any) => p.id === char.projectId);
+      const project = projectState?.projects?.find((p: Project) => p.id === char.projectId);
       let stylePrompt = '';
       if (project) {
         const styleState = useStyleStore.getState?.();
-        const style = styleState?.styles?.find((s: any) => s.id === project.styleId) ?? DEFAULT_STYLE_OPTIONS.find((s: any) => s.id === project.styleId);
+        const style = styleState?.styles?.find((s: StyleEntry) => s.id === project.styleId) ?? DEFAULT_STYLE_OPTIONS.find((s: StyleEntry) => s.id === project.styleId);
         stylePrompt = style?.prompt?.trim() || style?.description?.trim() || '';
       }
 
@@ -453,17 +577,19 @@ function CharacterDetailDrawer({
       });
 
       if (!genRes.task_id) {
-        const err = genRes.error || (genRes as any)?.message || '未知错误';
+        // 同步分支（GenerateResponse）：失败时 ok=false 且带 error
+        const err = 'error' in genRes && genRes.error ? genRes.error : '未知错误';
         toast.error(`变体立绘生成失败：${err}`);
         return;
       }
+      const taskId: string = genRes.task_id as string;
 
       // 5. 轮询任务状态（最多6分钟）
       const maxPolls = 120;
-      let finalTask: any = null;
+      let finalTask: ServerTask | null = null;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 3000));
-        finalTask = await api.getTask(genRes.task_id);
+        finalTask = await api.getTask(taskId);
         if (finalTask.status === 'succeeded' || finalTask.status === 'failed' || finalTask.status === 'cancelled') {
           break;
         }
@@ -480,7 +606,7 @@ function CharacterDetailDrawer({
       for (let retry = 0; retry < 10; retry++) {
         if (retry > 0) {
           await new Promise((r) => setTimeout(r, 2000));
-          finalTask = await api.getTask(genRes.task_id);
+          finalTask = await api.getTask(taskId);
         }
         const result = resolveTaskResult(finalTask);
         url = (result['output.image_urls.0'] || result['output.data.0.url'] || result['data.0.url'] || result['url']) as string | undefined;
@@ -885,7 +1011,7 @@ function CharacterDetailDrawer({
 
           {activeTab === 'versions' && (
             <div className="space-y-3">
-              {(char.versions || []).slice().reverse().map((ver: any) => (
+              {(char.versions || []).slice().reverse().map((ver: AssetVersion) => (
                 <div
                   key={ver.version}
                   className={cn(
@@ -1130,7 +1256,6 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
   const [selectedExtractNames, setSelectedExtractNames] = useState<Set<string>>(new Set());
   const [selectedLibraryIdMap, setSelectedLibraryIdMap] = useState<Record<string, string>>({}); // 角色名 -> 档案ID 或 'new'
   const [libraryPickerName, setLibraryPickerName] = useState<string | null>(null); // 当前选择档案的角色名
-  const [, setExpandedExtractName] = useState<string | null>(null); // 提取弹窗展开（仅 setter 使用）
   const [showAllLibraryInPicker, setShowAllLibraryInPicker] = useState(false); // 档案选择弹窗中是否显示全部
 
   // 项目级角色库
@@ -1171,7 +1296,6 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
       libMap[s.name] = matches.length > 0 ? matches[0].id : 'new';
     });
     setSelectedLibraryIdMap(libMap);
-    setExpandedExtractName(null);
     setShowExtractConfirm(true);
   };
 
@@ -1385,37 +1509,9 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
     toast.success(`已手动添加角色「${newAsset.name}」`);
   };
 
-  // 角色提取规则
+  // 分镜需求统计（纯函数 + React Compiler 自动 memo）
   const isGroupCharacter = useCharacterExtractionRuleStore((s) => s.isGroupCharacter);
-
-  // 分镜需求统计（由 React Compiler 自动记忆化）
-  const shotStats = (() => {
-    const shots = (episode.directing ?? []) as ShotCard[];
-    const charMap = new Map<string, { count: number; scenes: Set<string>; emotions: Set<string>; shotIds: string[]; bodyStates: Set<string>; costumeStates: Set<string> }>();
-    shots.forEach((shot) => {
-      shot.world.characters.forEach((ch) => {
-        if (isGroupCharacter(ch.name)) return;
-        const key = ch.name;
-        if (!charMap.has(key)) charMap.set(key, { count: 0, scenes: new Set(), emotions: new Set(), shotIds: [], bodyStates: new Set(), costumeStates: new Set() });
-        const entry = charMap.get(key)!;
-        entry.count += 1;
-        entry.scenes.add(shot.sceneLabel);
-        entry.shotIds.push(shot.id);
-        if (ch.emotion && ch.emotion !== '正常') entry.emotions.add(ch.emotion);
-        if (ch.bodyState && ch.bodyState !== '正常') entry.bodyStates.add(ch.bodyState);
-        if (ch.costumeState && ch.costumeState !== '正常') entry.costumeStates.add(ch.costumeState);
-      });
-    });
-    return Array.from(charMap.entries()).map(([name, data]) => ({
-      name,
-      shotCount: data.count,
-      sceneCount: data.scenes.size,
-      emotions: Array.from(data.emotions),
-      shotIds: data.shotIds,
-      bodyStates: Array.from(data.bodyStates),
-      costumeStates: Array.from(data.costumeStates),
-    }));
-  })();
+  const shotStats = buildShotStats(episode.directing, isGroupCharacter);
 
   // 页面加载时从后端拉取资产数据和项目级角色库
   useEffect(() => {
@@ -1469,10 +1565,26 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
   };
 
   const getShotCount = (name: string) => shotStats.find((s) => s.name === name)?.shotCount;
+  const getCharShots = (name: string) => {
+    const stat = shotStats.find((s) => s.name === name);
+    if (!stat) return [];
+    return (episode.directing ?? []).filter((s: ShotCard) => stat.shotIds.includes(s.id));
+  };
+  const getShotStat = (name: string) => shotStats.find((s) => s.name === name);
 
   const handleCardClick = (id: string) => {
     setCurrentId(id);
     setShowDrawer(true);
+  };
+
+  const handleUpdateDescription = (value: string) => {
+    if (!current) return;
+    upsertAssets([{ ...current, description: value }]);
+  };
+
+  const handleUpdatePrompt = (value: string) => {
+    if (!current) return;
+    upsertAssets([{ ...current, prompt: value }]);
   };
 
   return (
@@ -1702,15 +1814,21 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
         <CharacterDetailDrawer
           char={current}
           shotCount={getShotCount(current.name)}
+          charShots={getCharShots(current.name)}
+          shotStat={getShotStat(current.name)}
           generatingTask={generatingTask}
           imageModelId={imageModelId}
+          imageModelName={imageModelName}
           statement={statement}
           setStatement={setStatement}
           projectCharacter={projectCharacters.find((pc) => pc.name === current.name)}
           onClose={() => setShowDrawer(false)}
+          onGenerate={() => runGenerate(current.id)}
           onApprove={() => approveAsset(current.id, statement.trim())}
           onReject={() => rejectAsset(current.id, statement || '不符合预期')}
           onToggleGlobal={() => toggleGlobal(current.id)}
+          onUpdateDescription={handleUpdateDescription}
+          onUpdatePrompt={handleUpdatePrompt}
         />
       )}
 
