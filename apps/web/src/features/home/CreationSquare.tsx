@@ -76,20 +76,20 @@ export default function CreationSquare() {
           <div key={it.id} className="group overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md">
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">
               <img src={it.cover} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              <span className="!absolute left-2 top-2 z-20 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-medium backdrop-blur">
+              <span className="!absolute left-2 top-2 z-20 rounded bg-background/80 px-1.5 py-0.5 text-3xs font-medium backdrop-blur">
                 {it.kind}
               </span>
             </div>
             <div className="p-3">
               <div className="truncate text-sm font-medium">{it.title}</div>
-              <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+              <div className="mt-1 flex items-center gap-1 text-2xs text-muted-foreground">
                 <UserRound className="h-3 w-3" />
                 {it.author}
               </div>
               <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">{it.model}</span>
+                <span className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-4xs text-muted-foreground">{it.model}</span>
                 {it.reusable && (
-                  <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[9px] text-success">可复用</span>
+                  <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-4xs text-success">可复用</span>
                 )}
               </div>
             </div>

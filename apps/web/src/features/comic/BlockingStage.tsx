@@ -63,12 +63,12 @@ function statusLabel(s: ArtifactStatus) {
 function Editable({ label, value, onChange, rows = 1 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }) {
   return (
     <label className="block">
-      <span className="mb-0.5 block text-[10px] text-muted-foreground">{label}</span>
+      <span className="mb-0.5 block text-3xs text-muted-foreground">{label}</span>
       <textarea
         value={value}
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-y rounded border border-border bg-muted/30 px-2 py-1 font-sans text-[11px] leading-relaxed text-foreground outline-none transition-colors focus:border-primary/50 focus:bg-accent/20"
+        className="w-full resize-y rounded border border-border bg-muted/30 px-2 py-1 font-sans text-2xs leading-relaxed text-foreground outline-none transition-colors focus:border-primary/50 focus:bg-accent/20"
       />
     </label>
   );
@@ -77,11 +77,11 @@ function Editable({ label, value, onChange, rows = 1 }: { label: string; value: 
 function FieldSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
   return (
     <label className="block">
-      <span className="mb-0.5 block text-[10px] text-muted-foreground">{label}</span>
+      <span className="mb-0.5 block text-3xs text-muted-foreground">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded border border-border bg-muted/30 px-2 py-1 text-[11px] text-foreground outline-none transition-colors focus:border-primary/50"
+        className="w-full rounded border border-border bg-muted/30 px-2 py-1 text-2xs text-foreground outline-none transition-colors focus:border-primary/50"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -91,7 +91,7 @@ function FieldSelect({ label, value, options, onChange }: { label: string; value
 
 function SectionHead({ icon: Icon, title, hint }: { icon: typeof Info; title: string; hint?: string }) {
   return (
-    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+    <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-medium text-foreground">
       <Icon className="h-3 w-3 text-primary" />
       {title}
       {hint && <span className="font-normal text-muted-foreground">{hint}</span>}
@@ -111,23 +111,23 @@ function ShotGridCard({ card, active, onClick }: { card: ShotCard; active: boole
       )}
     >
       <div className="mb-1 flex items-center gap-1">
-        <span className="font-mono text-[11px] font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
-        <span className="ml-auto font-mono text-[9px] text-muted-foreground">{card.base.estSeconds}s</span>
+        <span className="font-mono text-2xs font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
+        <span className="ml-auto font-mono text-4xs text-muted-foreground">{card.base.estSeconds}s</span>
       </div>
       <div className="mb-1 flex flex-wrap items-center gap-0.5">
         <span className={cn(
-          'rounded px-1 py-0.5 text-[8px] font-medium',
+          'rounded px-1 py-0.5 text-4xs font-medium',
           card.camera.shotSize === '特写' ? 'bg-rose-500/10 text-rose-400' :
           card.camera.shotSize === '近景' ? 'bg-amber-500/10 text-amber-400' :
           card.camera.shotSize === '中景' ? 'bg-blue-500/10 text-blue-400' :
           'bg-emerald-500/10 text-emerald-400'
         )}>{card.camera.shotSize}</span>
-        {card.acting.dialog.length > 0 && <span className="rounded bg-violet-500/10 px-1 py-0.5 text-[8px] text-violet-400">对白</span>}
-        {hasNewAssets && <span className="rounded bg-rose-500/10 px-1 py-0.5 text-[8px] text-rose-400" title="需新建资产">🔴资产</span>}
+        {card.acting.dialog.length > 0 && <span className="rounded bg-violet-500/10 px-1 py-0.5 text-4xs text-violet-400">对白</span>}
+        {hasNewAssets && <span className="rounded bg-rose-500/10 px-1 py-0.5 text-4xs text-rose-400" title="需新建资产">🔴资产</span>}
       </div>
-      <p className="line-clamp-2 text-[9px] leading-relaxed text-foreground/60">{card.event.main}</p>
+      <p className="line-clamp-2 text-4xs leading-relaxed text-foreground/60">{card.event.main}</p>
       <div className="mt-1 flex items-center justify-between">
-        <span className="text-[8px] text-muted-foreground">{card.sceneLabel}</span>
+        <span className="text-4xs text-muted-foreground">{card.sceneLabel}</span>
         {card.status === 'USER_APPROVED' && <Check className="h-3 w-3 text-success" />}
         {card.status === 'USER_REJECTED' && <X className="h-3 w-3 text-destructive" />}
       </div>
@@ -152,8 +152,8 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
       {/* 编辑器头部 */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
         <span className="font-mono text-sm font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
-        <span className="text-[10px] text-muted-foreground">{card.sceneLabel}</span>
-        <Badge className={cn('ml-auto text-[9px]', statusBadge(card.status))}>{statusLabel(card.status)}</Badge>
+        <span className="text-3xs text-muted-foreground">{card.sceneLabel}</span>
+        <Badge className={cn('ml-auto text-4xs', statusBadge(card.status))}>{statusLabel(card.status)}</Badge>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
@@ -163,14 +163,14 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
           <Editable label="主事件（一句话概括镜头核心）" value={card.event.main} rows={2} onChange={(v) => onPatch({ event: { ...card.event, main: v } })} />
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="mb-0.5 block text-[10px] text-muted-foreground">预计时长（秒）</span>
+              <span className="mb-0.5 block text-3xs text-muted-foreground">预计时长（秒）</span>
               <input
                 type="number"
                 min={1}
                 max={60}
                 value={card.base.estSeconds}
                 onChange={(e) => onPatch({ base: { ...card.base, estSeconds: Number(e.target.value) || 1 } })}
-                className="w-full rounded border border-border bg-muted/30 px-2 py-1 text-[11px] text-foreground outline-none focus:border-primary/50"
+                className="w-full rounded border border-border bg-muted/30 px-2 py-1 text-2xs text-foreground outline-none focus:border-primary/50"
               />
             </label>
             <FieldSelect label="故事地点" value={card.base.location} options={[card.base.location, '室内', '室外', '游戏内']} onChange={(v) => onPatch({ base: { ...card.base, location: v } })} />
@@ -181,8 +181,8 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
         <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
           <SectionHead icon={Camera} title="摄影语言" hint="景别/运镜/构图" />
           <label className="mb-2 block">
-            <span className="mb-0.5 block text-[10px] text-muted-foreground">引用镜头语言（选择即填充）</span>
-            <select value={cannedId} onChange={(e) => applyCanned(e.target.value)} className="w-full rounded border border-border bg-muted/30 px-2 py-1 text-[11px] text-foreground outline-none focus:border-primary/50">
+            <span className="mb-0.5 block text-3xs text-muted-foreground">引用镜头语言（选择即填充）</span>
+            <select value={cannedId} onChange={(e) => applyCanned(e.target.value)} className="w-full rounded border border-border bg-muted/30 px-2 py-1 text-2xs text-foreground outline-none focus:border-primary/50">
               <option value="">— 手动设置 —</option>
               {CANNED_CAMERA_LANGUAGE.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.desc}</option>)}
             </select>
@@ -207,9 +207,9 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
           </div>
           {card.acting.dialog.length > 0 && (
             <div className="mt-2 space-y-1">
-              <span className="text-[10px] text-muted-foreground">对白（原文不可改）</span>
+              <span className="text-3xs text-muted-foreground">对白（原文不可改）</span>
               {card.acting.dialog.map((d, i) => (
-                <div key={i} className="rounded bg-violet-500/5 px-2 py-1 text-[10px]">
+                <div key={i} className="rounded bg-violet-500/5 px-2 py-1 text-3xs">
                   <span className="font-medium text-violet-400">{d.speaker}：</span>
                   <span className="text-foreground/80">{d.line}</span>
                 </div>
@@ -226,7 +226,7 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
             className="flex w-full items-center gap-1.5 px-3 py-2 text-left"
           >
             <Sparkles className="h-3 w-3 text-primary" />
-            <span className="text-[11px] font-medium">高级设置（世界状态/光影/因果链/自检）</span>
+            <span className="text-2xs font-medium">高级设置（世界状态/光影/因果链/自检）</span>
             <ChevronDown className={cn('ml-auto h-3 w-3 text-muted-foreground transition-transform', advancedOpen && 'rotate-180')} />
           </button>
           {advancedOpen && (
@@ -237,7 +237,7 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
                 <Editable label="前置因果（进入本镜前发生了什么）" value={card.world.priorCause} rows={2} onChange={(v) => onPatch({ world: { ...card.world, priorCause: v } })} />
                 <div className="mt-2 space-y-1">
                   {card.world.characters.map((c, i) => (
-                    <div key={i} className="rounded bg-muted/30 px-2 py-1 text-[10px]">
+                    <div key={i} className="rounded bg-muted/30 px-2 py-1 text-3xs">
                       <span className="font-medium">{c.name}</span>
                       <span className="text-muted-foreground"> · {c.position} · 朝向{c.facing} · {c.emotion}</span>
                     </div>
@@ -272,7 +272,7 @@ function CoreEditor({ card, onPatch, onConfirm }: { card: ShotCard; onPatch: (p:
                 <SectionHead icon={ClipboardCheck} title="镜头自检清单" />
                 <div className="grid grid-cols-2 gap-1">
                   {card.checklist.map((c, i) => (
-                    <label key={c.label} className="flex cursor-pointer items-center gap-1 text-[10px]">
+                    <label key={c.label} className="flex cursor-pointer items-center gap-1 text-3xs">
                       <input
                         type="checkbox"
                         checked={c.ok}
@@ -336,7 +336,7 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={cn('flex flex-1 items-center justify-center gap-1 px-1 py-2 text-[10px] font-medium', tab === key ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground')}
+            className={cn('flex flex-1 items-center justify-center gap-1 px-1 py-2 text-3xs font-medium', tab === key ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground')}
           >
             <Icon className="h-3 w-3" />
             {label}
@@ -350,17 +350,17 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
           <div className="space-y-3">
             <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-medium text-foreground/80">角色资产（{characterAssets.length}）</span>
-                <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[9px] text-rose-400">需新建</span>
+                <span className="text-3xs font-medium text-foreground/80">角色资产（{characterAssets.length}）</span>
+                <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-4xs text-rose-400">需新建</span>
               </div>
               <div className="space-y-1">
                 {characterAssets.map((c, i) => (
                   <div key={i} className="flex items-center gap-1.5 rounded bg-card px-2 py-1.5">
                     <div className="h-5 w-5 shrink-0 rounded bg-muted flex items-center justify-center">
-                      <span className="text-[8px] text-muted-foreground">{c.name[0]}</span>
+                      <span className="text-4xs text-muted-foreground">{c.name[0]}</span>
                     </div>
-                    <span className="flex-1 truncate text-[10px]">{c.name}</span>
-                    <span className="text-[8px] text-rose-400">待制作</span>
+                    <span className="flex-1 truncate text-3xs">{c.name}</span>
+                    <span className="text-4xs text-rose-400">待制作</span>
                   </div>
                 ))}
               </div>
@@ -368,24 +368,24 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
 
             <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-medium text-foreground/80">场景资产</span>
-                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-400">需新建</span>
+                <span className="text-3xs font-medium text-foreground/80">场景资产</span>
+                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-4xs text-amber-400">需新建</span>
               </div>
               <div className="flex items-center gap-1.5 rounded bg-card px-2 py-1.5">
                 <div className="h-5 w-5 shrink-0 rounded bg-muted flex items-center justify-center">
                   <Image className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <span className="flex-1 truncate text-[10px]">{sceneAsset.name}</span>
-                <span className="text-[8px] text-amber-400">待制作</span>
+                <span className="flex-1 truncate text-3xs">{sceneAsset.name}</span>
+                <span className="text-4xs text-amber-400">待制作</span>
               </div>
             </div>
 
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
               <div className="mb-1 flex items-center gap-1">
                 <Info className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-medium text-primary">下游影响</span>
+                <span className="text-3xs font-medium text-primary">下游影响</span>
               </div>
-              <p className="text-[9px] leading-relaxed text-muted-foreground">
+              <p className="text-4xs leading-relaxed text-muted-foreground">
                 本镜需 {characterAssets.length} 个角色 + 1 个场景资产。确认分镜后，资产阶段将自动生成制作清单。
               </p>
             </div>
@@ -400,29 +400,29 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
               <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
                 <div className="mb-1.5 flex items-center gap-1">
                   <ChevronLeft className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] font-medium text-foreground/70">上镜收尾（S{String(prevCard.index).padStart(2, '0')}）</span>
+                  <span className="text-3xs font-medium text-foreground/70">上镜收尾（S{String(prevCard.index).padStart(2, '0')}）</span>
                 </div>
-                <p className="text-[9px] leading-relaxed text-muted-foreground">{prevCard.causal.endState || '未定义'}</p>
+                <p className="text-4xs leading-relaxed text-muted-foreground">{prevCard.causal.endState || '未定义'}</p>
               </div>
             )}
 
             {/* 本镜前置 */}
             <div className={cn('rounded-lg border p-2.5', continuityMatch ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5')}>
               <div className="mb-1.5 flex items-center gap-1">
-                <span className="font-mono text-[10px] font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
-                <span className="text-[10px] font-medium">本镜前置因果</span>
-                {!continuityMatch && <span className="ml-auto text-[8px] text-destructive">⚠ 与上镜收尾不匹配</span>}
+                <span className="font-mono text-3xs font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
+                <span className="text-3xs font-medium">本镜前置因果</span>
+                {!continuityMatch && <span className="ml-auto text-4xs text-destructive">⚠ 与上镜收尾不匹配</span>}
               </div>
-              <p className="text-[9px] leading-relaxed text-foreground/80">{card.world.priorCause || '未定义'}</p>
+              <p className="text-4xs leading-relaxed text-foreground/80">{card.world.priorCause || '未定义'}</p>
             </div>
 
             {/* 本镜收尾 */}
             <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
               <div className="mb-1.5 flex items-center gap-1">
-                <span className="font-mono text-[10px] font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
-                <span className="text-[10px] font-medium text-foreground/70">本镜收尾（下镜继承源）</span>
+                <span className="font-mono text-3xs font-bold text-primary">S{String(card.index).padStart(2, '0')}</span>
+                <span className="text-3xs font-medium text-foreground/70">本镜收尾（下镜继承源）</span>
               </div>
-              <p className="text-[9px] leading-relaxed text-muted-foreground">{card.causal.endState || '未定义'}</p>
+              <p className="text-4xs leading-relaxed text-muted-foreground">{card.causal.endState || '未定义'}</p>
             </div>
 
             {/* 下一镜前置 */}
@@ -430,9 +430,9 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
               <div className="rounded-lg border border-border/70 bg-muted/20 p-2.5">
                 <div className="mb-1.5 flex items-center gap-1">
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] font-medium text-foreground/70">下一镜前置（S{String(nextCard.index).padStart(2, '0')}）</span>
+                  <span className="text-3xs font-medium text-foreground/70">下一镜前置（S{String(nextCard.index).padStart(2, '0')}）</span>
                 </div>
-                <p className="text-[9px] leading-relaxed text-muted-foreground">{nextCard.world.priorCause || '未定义'}</p>
+                <p className="text-4xs leading-relaxed text-muted-foreground">{nextCard.world.priorCause || '未定义'}</p>
               </div>
             )}
 
@@ -440,9 +440,9 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-2.5">
               <div className="mb-1 flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3 text-destructive" />
-                <span className="text-[10px] font-medium text-destructive">不可逆状态</span>
+                <span className="text-3xs font-medium text-destructive">不可逆状态</span>
               </div>
-              <p className="text-[9px] leading-relaxed text-muted-foreground">
+              <p className="text-4xs leading-relaxed text-muted-foreground">
                 {card.causal.outcome || '本镜无不可逆状态变化'}
               </p>
             </div>
@@ -455,9 +455,9 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
               <div className="mb-1.5 flex items-center gap-1">
                 <Sparkles className="h-3 w-3 text-primary" />
-                <span className="text-[10px] font-medium text-primary">镜头卡摘要（生产事实源）</span>
+                <span className="text-3xs font-medium text-primary">镜头卡摘要（生产事实源）</span>
               </div>
-              <p className="text-[10px] leading-relaxed text-foreground/80">
+              <p className="text-3xs leading-relaxed text-foreground/80">
                 本镜是完整的生产事实源，独立渲染不依赖AI记忆。视频生成阶段将根据选择的模型契约（MiniMax H3 / Seedance 2.5）转译为最终提示词。
               </p>
             </div>
@@ -465,42 +465,42 @@ function RightPanel({ card, prevCard, nextCard }: { card: ShotCard; prevCard: Sh
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
                 <Camera className="h-3 w-3 text-muted-foreground" />
-                <span className="w-12 text-[9px] text-muted-foreground">摄影</span>
-                <span className="text-[9px] text-foreground/70">{card.camera.shotSize} · {card.camera.movement} · {card.camera.composition}</span>
+                <span className="w-12 text-4xs text-muted-foreground">摄影</span>
+                <span className="text-4xs text-foreground/70">{card.camera.shotSize} · {card.camera.movement} · {card.camera.composition}</span>
               </div>
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
                 <Film className="h-3 w-3 text-muted-foreground" />
-                <span className="w-12 text-[9px] text-muted-foreground">人物</span>
-                <span className="text-[9px] text-foreground/70">{card.world.characters.map((c) => c.name).join('、')}</span>
+                <span className="w-12 text-4xs text-muted-foreground">人物</span>
+                <span className="text-4xs text-foreground/70">{card.world.characters.map((c) => c.name).join('、')}</span>
               </div>
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
                 <Mic className="h-3 w-3 text-muted-foreground" />
-                <span className="w-12 text-[9px] text-muted-foreground">表演</span>
-                <span className="text-[9px] text-foreground/70">{card.acting.emotion} · {card.acting.intensity}</span>
+                <span className="w-12 text-4xs text-muted-foreground">表演</span>
+                <span className="text-4xs text-foreground/70">{card.acting.emotion} · {card.acting.intensity}</span>
               </div>
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
-                <span className="w-12 text-[9px] text-muted-foreground">光影</span>
-                <span className="text-[9px] text-foreground/70">{card.visual.keyLight} · {card.visual.colorTemp}</span>
+                <span className="w-12 text-4xs text-muted-foreground">光影</span>
+                <span className="text-4xs text-foreground/70">{card.visual.keyLight} · {card.visual.colorTemp}</span>
               </div>
               <div className="flex items-center gap-2 rounded bg-muted/30 px-2 py-1">
                 <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="w-12 text-[9px] text-muted-foreground">时长</span>
-                <span className="text-[9px] text-foreground/70">{card.base.estSeconds}s · {card.base.location}</span>
+                <span className="w-12 text-4xs text-muted-foreground">时长</span>
+                <span className="text-4xs text-foreground/70">{card.base.estSeconds}s · {card.base.location}</span>
               </div>
             </div>
 
             {card.acting.dialog.length > 0 && (
               <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-2">
-                <div className="mb-1 text-[9px] font-medium text-violet-400">对白（原文不可改）</div>
+                <div className="mb-1 text-4xs font-medium text-violet-400">对白（原文不可改）</div>
                 {card.acting.dialog.map((d, i) => (
-                  <p key={i} className="text-[9px] text-foreground/70">{d.speaker}: {d.line}</p>
+                  <p key={i} className="text-4xs text-foreground/70">{d.speaker}: {d.line}</p>
                 ))}
               </div>
             )}
 
             <div className="rounded-lg border border-border/60 bg-muted/20 p-2">
-              <div className="mb-1 text-[9px] font-medium text-muted-foreground">核心视觉事件</div>
-              <p className="text-[9px] leading-relaxed text-foreground/60">{card.event.main}</p>
+              <div className="mb-1 text-4xs font-medium text-muted-foreground">核心视觉事件</div>
+              <p className="text-4xs leading-relaxed text-foreground/60">{card.event.main}</p>
             </div>
           </div>
         )}
@@ -517,9 +517,9 @@ function Timeline({ cards, activeId, onSelect }: { cards: ShotCard[]; activeId: 
     <div className="rounded-xl border border-border bg-card p-3">
       <div className="mb-2 flex items-center gap-2">
         <Clock className="h-3.5 w-3.5 text-primary" />
-        <span className="text-[11px] font-medium">时间轴</span>
-        <span className="text-[10px] text-muted-foreground">总时长 {total}s · {cards.length} 镜</span>
-        <div className="ml-auto flex items-center gap-3 text-[9px]">
+        <span className="text-2xs font-medium">时间轴</span>
+        <span className="text-3xs text-muted-foreground">总时长 {total}s · {cards.length} 镜</span>
+        <div className="ml-auto flex items-center gap-3 text-4xs">
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-success" />已确认 {approved}</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-muted" />待确认 {cards.length - approved}</span>
         </div>
@@ -541,10 +541,10 @@ function Timeline({ cards, activeId, onSelect }: { cards: ShotCard[]; activeId: 
               )}
               title={`S${String(c.index).padStart(2, '0')} · ${c.base.estSeconds}s · ${c.event.main}`}
             >
-              <span className={cn('font-mono text-[10px] font-bold', isActive ? 'text-primary-foreground' : 'text-foreground/70')}>
+              <span className={cn('font-mono text-3xs font-bold', isActive ? 'text-primary-foreground' : 'text-foreground/70')}>
                 S{String(c.index).padStart(2, '0')}
               </span>
-              <span className={cn('text-[8px]', isActive ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+              <span className={cn('text-4xs', isActive ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
                 {c.base.estSeconds}s
               </span>
             </div>
@@ -839,8 +839,8 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
       <div className="flex flex-wrap items-center gap-2">
         <Clapperboard className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">分镜设计</span>
-        <span className="text-[11px] text-muted-foreground">镜头卡工作台</span>
-        <Badge variant="outline" className="ml-auto font-mono text-[9px]">{counts.USER_APPROVED}/{cards.length} 已确认</Badge>
+        <span className="text-2xs text-muted-foreground">镜头卡工作台</span>
+        <Badge variant="outline" className="ml-auto font-mono text-4xs">{counts.USER_APPROVED}/{cards.length} 已确认</Badge>
         <Button type="button" size="sm" variant="outline" onClick={insertShot} disabled={!activeCard} title="在当前镜头之后插入新镜头">
           <Plus className="h-3.5 w-3.5" />插入镜头
         </Button>
@@ -860,8 +860,8 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
 
       {constraintsOpen && (
         <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-3">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-destructive"><ShieldAlert className="h-3.5 w-3.5" />生成硬性约束</div>
-          <ul className="grid grid-cols-1 gap-x-6 gap-y-1 text-[10.5px] text-muted-foreground sm:grid-cols-2">
+          <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-medium text-destructive"><ShieldAlert className="h-3.5 w-3.5" />生成硬性约束</div>
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-1 text-3xs text-muted-foreground sm:grid-cols-2">
             {HARD_CONSTRAINTS.map((c) => <li key={c} className="flex gap-1.5"><span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-current" />{c}</li>)}
           </ul>
         </div>
@@ -873,7 +873,7 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
           <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
           <div className="flex-1">
             <div className="text-xs font-medium text-success">分镜设计已完成</div>
-            <div className="text-[10px] text-muted-foreground">全部 {cards.length} 个镜头已确认，可以进入角色资产阶段生成角色立绘与表演基调</div>
+            <div className="text-3xs text-muted-foreground">全部 {cards.length} 个镜头已确认，可以进入角色资产阶段生成角色立绘与表演基调</div>
           </div>
           <Link to={`/comic/projects/${episode.projectId}/episodes/${episode.id}/characters`}>
             <Button type="button" size="sm" className="bg-success hover:bg-success/90 text-success-foreground">
@@ -888,7 +888,7 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
       <div className="flex items-center gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2">
         <div className="flex shrink-0 items-center gap-1 pr-2">
           <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-          <span className="text-[10px] text-muted-foreground">镜头</span>
+          <span className="text-3xs text-muted-foreground">镜头</span>
         </div>
         <div className="flex gap-2">
           {cards.map((c) => (
@@ -905,7 +905,7 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
           {activeCard ? (
             <CoreEditor card={activeCard} onPatch={(p) => patchCard(activeCard.id, p)} onConfirm={() => handleConfirm(activeCard.id)} />
           ) : (
-            <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">从上方选择一个镜头</div>
+            <div className="flex h-full items-center justify-center text-2xs text-muted-foreground">从上方选择一个镜头</div>
           )}
         </div>
 
@@ -917,7 +917,7 @@ export default function BlockingStage({ episode }: { episode: Episode }) {
               prevCard={activeIdx > 0 ? cards[activeIdx - 1] : null}
               nextCard={activeIdx < cards.length - 1 ? cards[activeIdx + 1] : null}
             />
-          ) : <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">选择镜头后查看</div>}
+          ) : <div className="flex h-full items-center justify-center text-2xs text-muted-foreground">选择镜头后查看</div>}
         </div>
       </div>
 

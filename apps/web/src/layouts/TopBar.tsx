@@ -174,7 +174,7 @@ export default function TopBar({ collapsed }: { collapsed: boolean }) {
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="ghost" size="icon" className="relative h-8 w-8">
               <Bell className="h-4 w-4" />
-              {notifications.length > 0 && <Badge className="!absolute -right-1 -top-1 z-20 h-4 min-w-4 px-1 font-mono text-[9px]">{notifications.length}</Badge>}
+              {notifications.length > 0 && <Badge className="!absolute -right-1 -top-1 z-20 h-4 min-w-4 px-1 font-mono text-4xs">{notifications.length}</Badge>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
@@ -193,7 +193,7 @@ export default function TopBar({ collapsed }: { collapsed: boolean }) {
                 />
                 <span className="min-w-0">
                   <span className="block text-xs font-medium">{n.title}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{n.desc}</span>
+                  <span className="block truncate text-2xs text-muted-foreground">{n.desc}</span>
                 </span>
               </DropdownMenuItem>
             ))}

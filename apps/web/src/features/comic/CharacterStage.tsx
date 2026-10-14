@@ -308,7 +308,7 @@ function CharacterGridCard({
 
       {/* 状态标签 */}
       <div className="absolute right-3 top-3 z-10">
-        <Badge className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold shadow-lg backdrop-blur-sm', meta?.className)}>
+        <Badge className={cn('rounded-full px-2.5 py-1 text-3xs font-semibold shadow-lg backdrop-blur-sm', meta?.className)}>
           {meta?.label ?? char.status ?? '未知'}
         </Badge>
       </div>
@@ -320,7 +320,7 @@ function CharacterGridCard({
             <ProgressRing progress={generatingTask.progress} size={64} />
             <div className="text-center">
               <p className="text-xs font-medium text-foreground">生成中...</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">正在绘制角色立绘</p>
+              <p className="mt-0.5 text-3xs text-muted-foreground">正在绘制角色立绘</p>
             </div>
           </div>
         ) : displayImage ? (
@@ -336,7 +336,7 @@ function CharacterGridCard({
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
               <User className="h-8 w-8 text-muted-foreground/40" />
             </div>
-            <p className="text-[11px] text-muted-foreground">前往项目角色库生成立绘</p>
+            <p className="text-2xs text-muted-foreground">前往项目角色库生成立绘</p>
           </div>
         )}
 
@@ -345,7 +345,7 @@ function CharacterGridCard({
 
         {/* hover 操作按钮 */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <span className="rounded-full bg-black/50 px-2.5 py-1 text-[10px] text-white backdrop-blur-sm">
+          <span className="rounded-full bg-black/50 px-2.5 py-1 text-3xs text-white backdrop-blur-sm">
             v{char.currentVersion}
           </span>
           <div className="flex gap-1.5">
@@ -371,7 +371,7 @@ function CharacterGridCard({
             <Globe className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="全局资产" />
           )}
         </div>
-        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="mt-1.5 flex items-center gap-2 text-2xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Film className="h-3 w-3" />
             {shotCount || 0} 镜
@@ -658,8 +658,8 @@ function CharacterDetailDrawer({
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">{char.name}</h2>
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <Badge className={cn('rounded-full px-2 py-0.5 text-[10px]', meta?.className)}>{meta?.label ?? char.status ?? '未知'}</Badge>
+              <div className="flex items-center gap-2 text-2xs text-muted-foreground">
+                <Badge className={cn('rounded-full px-2 py-0.5 text-3xs', meta?.className)}>{meta?.label ?? char.status ?? '未知'}</Badge>
                 <span>出场 {shotCount || 0} 镜</span>
                 <span>·</span>
                 <span>v{char.currentVersion}</span>
@@ -687,7 +687,7 @@ function CharacterDetailDrawer({
                 type="button"
                 onClick={() => setImageTab('standard')}
                 className={cn(
-                  'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all',
+                  'flex-1 rounded-lg px-3 py-1.5 text-2xs font-medium transition-all',
                   imageTab === 'standard'
                     ? 'bg-primary/15 text-primary border border-primary/30'
                     : 'text-muted-foreground hover:bg-accent/50 border border-transparent',
@@ -699,7 +699,7 @@ function CharacterDetailDrawer({
                 type="button"
                 onClick={() => setImageTab('variant')}
                 className={cn(
-                  'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all',
+                  'flex-1 rounded-lg px-3 py-1.5 text-2xs font-medium transition-all',
                   imageTab === 'variant'
                     ? 'bg-primary/15 text-primary border border-primary/30'
                     : 'text-muted-foreground hover:bg-accent/50 border border-transparent',
@@ -733,7 +733,7 @@ function CharacterDetailDrawer({
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-foreground">暂无标准立绘</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">前往项目角色库生成</p>
+                    <p className="mt-1 text-2xs text-muted-foreground">前往项目角色库生成</p>
                   </div>
                   <Link to={`/comic/projects/${char.projectId}?tab=characters`}>
                     <Button
@@ -761,13 +761,13 @@ function CharacterDetailDrawer({
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-foreground">暂无变体立绘</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">有状态变体时可生成</p>
+                    <p className="mt-1 text-2xs text-muted-foreground">有状态变体时可生成</p>
                   </div>
                 </div>
               )
             )}
             {char.status === 'USER_APPROVED' && imageTab === 'standard' && (
-              <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-success/90 px-3 py-1.5 text-[11px] font-semibold text-success-foreground shadow-lg backdrop-blur-sm">
+              <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-success/90 px-3 py-1.5 text-2xs font-semibold text-success-foreground shadow-lg backdrop-blur-sm">
                 <Check className="h-3.5 w-3.5" />
                 Canonical
               </div>
@@ -781,30 +781,30 @@ function CharacterDetailDrawer({
                 {/* 身份标签 */}
                 <div className="flex flex-wrap gap-1.5">
                   {projectCharacter?.identity && (
-                    <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary text-[10px]">
+                    <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary text-3xs">
                       {projectCharacter.identity}
                     </Badge>
                   )}
                   {projectCharacter?.gender && (
-                    <Badge variant="outline" className="border-border/40 text-[10px]">{projectCharacter.gender}</Badge>
+                    <Badge variant="outline" className="border-border/40 text-3xs">{projectCharacter.gender}</Badge>
                   )}
                   {projectCharacter?.age && (
-                    <Badge variant="outline" className="border-border/40 text-[10px]">{projectCharacter.age}</Badge>
+                    <Badge variant="outline" className="border-border/40 text-3xs">{projectCharacter.age}</Badge>
                   )}
                 </div>
 
                 {/* 外貌摘要 */}
                 <div className="rounded-xl bg-muted/30 p-3">
-                  <p className="mb-1.5 text-[10px] font-semibold text-muted-foreground/70">外貌特征</p>
-                  <p className="text-[11px] leading-relaxed text-foreground/80">
+                  <p className="mb-1.5 text-3xs font-semibold text-muted-foreground/70">外貌特征</p>
+                  <p className="text-2xs leading-relaxed text-foreground/80">
                     {[projectCharacter?.hairColor, projectCharacter?.hairstyle, projectCharacter?.eyeColor && `${projectCharacter.eyeColor}瞳`, projectCharacter?.bodyType].filter(Boolean).join('，') || '未设置'}
                   </p>
                 </div>
 
                 {/* 服装摘要 */}
                 <div className="rounded-xl bg-muted/30 p-3">
-                  <p className="mb-1.5 text-[10px] font-semibold text-muted-foreground/70">服装造型</p>
-                  <p className="text-[11px] leading-relaxed text-foreground/80">
+                  <p className="mb-1.5 text-3xs font-semibold text-muted-foreground/70">服装造型</p>
+                  <p className="text-2xs leading-relaxed text-foreground/80">
                     {[projectCharacter?.top, projectCharacter?.bottom, projectCharacter?.shoes, projectCharacter?.clothingStyle].filter(Boolean).join('，') || '未设置'}
                   </p>
                 </div>
@@ -813,11 +813,11 @@ function CharacterDetailDrawer({
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-muted/30 p-3 text-center">
                     <p className="text-lg font-bold text-primary">{shotCount || 0}</p>
-                    <p className="text-[10px] text-muted-foreground">出场镜头</p>
+                    <p className="text-3xs text-muted-foreground">出场镜头</p>
                   </div>
                   <div className="rounded-xl bg-muted/30 p-3 text-center">
                     <p className="text-lg font-bold text-primary">v{char.currentVersion}</p>
-                    <p className="text-[10px] text-muted-foreground">当前版本</p>
+                    <p className="text-3xs text-muted-foreground">当前版本</p>
                   </div>
                 </div>
               </div>
@@ -861,16 +861,16 @@ function CharacterDetailDrawer({
                         <BookOpen className="h-3.5 w-3.5 text-amber-500" />
                       </div>
                       <span className="text-xs font-semibold text-foreground">标准设定</span>
-                      <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-[9px]">项目角色库 · 只读</Badge>
+                      <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-4xs">项目角色库 · 只读</Badge>
                     </div>
-                    <Link to={`/comic/projects/${char.projectId}?tab=characters`} className="text-[10px] text-primary hover:underline">
+                    <Link to={`/comic/projects/${char.projectId}?tab=characters`} className="text-3xs text-primary hover:underline">
                       编辑完整设定 →
                     </Link>
                   </div>
                   <div className="space-y-4 p-4">
                     <div>
-                      <p className="mb-2 text-[10px] font-semibold text-muted-foreground/70">基本信息</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                      <p className="mb-2 text-3xs font-semibold text-muted-foreground/70">基本信息</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-2xs">
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">身份</span><span className="text-foreground">{projectCharacter.identity || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">性别</span><span className="text-foreground">{projectCharacter.gender || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">年龄</span><span className="text-foreground">{projectCharacter.age || '未设置'}</span></div>
@@ -878,8 +878,8 @@ function CharacterDetailDrawer({
                       </div>
                     </div>
                     <div>
-                      <p className="mb-2 text-[10px] font-semibold text-muted-foreground/70">外貌特征</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                      <p className="mb-2 text-3xs font-semibold text-muted-foreground/70">外貌特征</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-2xs">
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">发型</span><span className="text-foreground">{projectCharacter.hairstyle || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">发色</span><span className="text-foreground">{projectCharacter.hairColor || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">瞳色</span><span className="text-foreground">{projectCharacter.eyeColor || '未设置'}</span></div>
@@ -889,8 +889,8 @@ function CharacterDetailDrawer({
                       </div>
                     </div>
                     <div>
-                      <p className="mb-2 text-[10px] font-semibold text-muted-foreground/70">服装造型</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                      <p className="mb-2 text-3xs font-semibold text-muted-foreground/70">服装造型</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-2xs">
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">上衣</span><span className="text-foreground">{projectCharacter.top || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">下装</span><span className="text-foreground">{projectCharacter.bottom || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">鞋子</span><span className="text-foreground">{projectCharacter.shoes || '未设置'}</span></div>
@@ -899,8 +899,8 @@ function CharacterDetailDrawer({
                       </div>
                     </div>
                     <div>
-                      <p className="mb-2 text-[10px] font-semibold text-muted-foreground/70">性格特征</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                      <p className="mb-2 text-3xs font-semibold text-muted-foreground/70">性格特征</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-2xs">
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">性格</span><span className="text-foreground">{projectCharacter.personality || '未设置'}</span></div>
                         <div className="flex"><span className="w-14 shrink-0 text-muted-foreground/60">典型表情</span><span className="text-foreground">{projectCharacter.typicalExpression || '未设置'}</span></div>
                       </div>
@@ -915,7 +915,7 @@ function CharacterDetailDrawer({
                     </div>
                     <span className="text-xs font-medium text-muted-foreground">未引用项目级设定</span>
                   </div>
-                  <p className="mt-2 text-[10px] text-muted-foreground">
+                  <p className="mt-2 text-3xs text-muted-foreground">
                     请先在顶部「角色库」中引用项目级角色设定，引用后标准设定自动填充，单集只需填写状态变化
                   </p>
                 </div>
@@ -928,12 +928,12 @@ function CharacterDetailDrawer({
                     <Zap className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <span className="text-xs font-semibold text-foreground">本集状态变体</span>
-                  <Badge variant="outline" className="border-primary/30 text-primary text-[9px]">覆盖标准设定</Badge>
+                  <Badge variant="outline" className="border-primary/30 text-primary text-4xs">覆盖标准设定</Badge>
                 </div>
                 <div className="space-y-3 p-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground">情绪状态</label>
+                      <label className="mb-1 block text-3xs font-medium text-muted-foreground">情绪状态</label>
                       <Input
                         value={episodeVariant.emotionState}
                         onChange={(e) => setEpisodeVariant(prev => ({ ...prev, emotionState: e.target.value }))}
@@ -942,7 +942,7 @@ function CharacterDetailDrawer({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground">外观变化</label>
+                      <label className="mb-1 block text-3xs font-medium text-muted-foreground">外观变化</label>
                       <Input
                         value={episodeVariant.appearanceChange}
                         onChange={(e) => setEpisodeVariant(prev => ({ ...prev, appearanceChange: e.target.value }))}
@@ -953,7 +953,7 @@ function CharacterDetailDrawer({
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground">临时换装</label>
+                      <label className="mb-1 block text-3xs font-medium text-muted-foreground">临时换装</label>
                       <Input
                         value={episodeVariant.temporaryOutfit}
                         onChange={(e) => setEpisodeVariant(prev => ({ ...prev, temporaryOutfit: e.target.value }))}
@@ -962,7 +962,7 @@ function CharacterDetailDrawer({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground">特殊道具</label>
+                      <label className="mb-1 block text-3xs font-medium text-muted-foreground">特殊道具</label>
                       <Input
                         value={episodeVariant.specialProp}
                         onChange={(e) => setEpisodeVariant(prev => ({ ...prev, specialProp: e.target.value }))}
@@ -971,7 +971,7 @@ function CharacterDetailDrawer({
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/70">
+                  <p className="text-3xs text-muted-foreground/70">
                     状态变体会在生成提示词时覆盖标准设定中的对应字段，仅作用于本集
                   </p>
                 </div>
@@ -979,7 +979,7 @@ function CharacterDetailDrawer({
 
               {/* 提示信息 */}
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                <p className="text-[10px] leading-relaxed text-primary/80">
+                <p className="text-3xs leading-relaxed text-primary/80">
                   💡 换装或明显受伤建议生成「单集变体立绘」，作为视频参考图保证角色一致性。情绪变化可通过提示词控制，无需重新生图。
                 </p>
               </div>
@@ -1035,20 +1035,20 @@ function CharacterDetailDrawer({
                         <p className="text-sm font-semibold text-foreground">
                           版本 {ver.version}
                           {ver.version === char.currentVersion && (
-                            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">当前</span>
+                            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-3xs font-medium text-primary">当前</span>
                           )}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-3xs text-muted-foreground">
                           {new Date(ver.createdAt).toLocaleString('zh-CN')}
                         </p>
                       </div>
                     </div>
-                    <Badge className={cn('rounded-full px-2 py-0.5 text-[10px]', STATUS_META[ver.status as ArtifactStatus]?.className)}>
+                    <Badge className={cn('rounded-full px-2 py-0.5 text-3xs', STATUS_META[ver.status as ArtifactStatus]?.className)}>
                       {STATUS_META[ver.status as ArtifactStatus]?.label || ver.status}
                     </Badge>
                   </div>
                   {ver.prompt && (
-                    <p className="mt-3 line-clamp-2 rounded-lg bg-muted/30 p-2 font-mono text-[10px] text-muted-foreground">
+                    <p className="mt-3 line-clamp-2 rounded-lg bg-muted/30 p-2 font-mono text-3xs text-muted-foreground">
                       {ver.prompt}
                     </p>
                   )}
@@ -1065,7 +1065,7 @@ function CharacterDetailDrawer({
           {/* 待审核状态 */}
           {char.status === 'AWAITING_USER' && (
             <div className="mb-3 space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
-              <div className="text-[11px] font-medium text-amber-700 dark:text-amber-400">候选 v{char.currentVersion} 待审核</div>
+              <div className="text-2xs font-medium text-amber-700 dark:text-amber-400">候选 v{char.currentVersion} 待审核</div>
               <Input
                 value={statement}
                 onChange={(e) => setStatement(e.target.value)}
@@ -1130,7 +1130,7 @@ function CharacterDetailDrawer({
             </div>
             <div>
               <DialogTitle>{projectCharacter?.name || '角色设定'}</DialogTitle>
-              <p className="text-[11px] text-muted-foreground">项目级角色设定 · 全剧通用 · 只读</p>
+              <p className="text-2xs text-muted-foreground">项目级角色设定 · 全剧通用 · 只读</p>
             </div>
           </div>
         </DialogHeader>
@@ -1198,7 +1198,7 @@ function CharacterDetailDrawer({
         </div>
 
         <DialogFooter className="border-t border-border/60 pt-4">
-          <p className="mr-auto text-[10px] text-muted-foreground">
+          <p className="mr-auto text-3xs text-muted-foreground">
             项目级设定为全剧通用，修改后所有引用剧集自动同步
           </p>
           <Link to={`/comic/projects/${char.projectId}?tab=characters`} className="mr-2">
@@ -1597,7 +1597,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground">角色资产</h1>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               共 {stats.total} 个 · 草稿 {stats.draft} · 待审核 {stats.pending} · 已批准 {stats.approved}
             </p>
           </div>
@@ -1613,7 +1613,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
           >
             <BookOpen className="mr-1.5 h-3.5 w-3.5" />
             角色库
-            <Badge variant="outline" className="ml-1.5 font-mono text-[9px]">{projectCharacters.length}</Badge>
+            <Badge variant="outline" className="ml-1.5 font-mono text-4xs">{projectCharacters.length}</Badge>
           </Button>
           <div className="h-8 w-px bg-border" />
           <StageModelPicker
@@ -1657,7 +1657,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
           </div>
           <div className="flex-1">
             <div className="text-sm font-semibold text-success">角色资产已完成</div>
-            <div className="text-[11px] text-muted-foreground">全部 {stats.total} 个角色立绘已批准，可以进入道具资产阶段</div>
+            <div className="text-2xs text-muted-foreground">全部 {stats.total} 个角色立绘已批准，可以进入道具资产阶段</div>
           </div>
           <Link to={`/comic/projects/${episode.projectId}/episodes/${episode.id}/props`}>
             <Button type="button" size="sm" className="h-9 rounded-xl bg-success hover:bg-success/90 text-success-foreground">
@@ -1758,7 +1758,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold text-foreground">添加角色</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">手动创建角色资产</p>
+                <p className="mt-0.5 text-2xs text-muted-foreground">手动创建角色资产</p>
               </div>
             </motion.div>
           </div>
@@ -1781,7 +1781,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
             />
             <div>
               <span className="text-sm font-semibold text-foreground">已选 {selected.length} 个角色</span>
-              <span className="ml-2 text-[11px] text-muted-foreground">预估费用 ¥{(selected.length * 0.06).toFixed(2)}</span>
+              <span className="ml-2 text-2xs text-muted-foreground">预估费用 ¥{(selected.length * 0.06).toFixed(2)}</span>
             </div>
             <div className="ml-auto flex gap-3">
               <Button
@@ -1842,7 +1842,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
               </div>
               <div>
                 <DialogTitle>从分镜提取角色</DialogTitle>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-2xs text-muted-foreground">
                   检测到分镜中有 {shotStats.length} 个角色，角色库中已有 {shotStats.filter((s) => projectCharacters.some((pc) => pc.name === s.name)).length} 个可引用
                 </p>
               </div>
@@ -1898,20 +1898,20 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold">{s.name}</span>
                           {libraryMatches.length > 0 ? (
-                            <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 text-[9px]">
+                            <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 text-4xs">
                               <BookOpen className="mr-1 h-2.5 w-2.5" />
                               角色库 {libraryMatches.length} 个档案
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="border-border/40 text-muted-foreground text-[9px]">
+                            <Badge variant="outline" className="border-border/40 text-muted-foreground text-4xs">
                               新建角色
                             </Badge>
                           )}
                           {inEpisode && (
-                            <Badge variant="outline" className="border-success/30 text-success text-[9px]">已在本集</Badge>
+                            <Badge variant="outline" className="border-success/30 text-success text-4xs">已在本集</Badge>
                           )}
                         </div>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        <p className="mt-0.5 text-3xs text-muted-foreground">
                           出场 {s.shotCount} 镜 · 覆盖 {s.sceneCount} 个场景
                           {selectedLibChar && ` · 已选：${selectedLibChar.identity || selectedLibChar.gender || '角色档案'}`}
                         </p>
@@ -1947,7 +1947,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
               >
                 取消全选
               </Button>
-              <span className="text-[11px] text-muted-foreground">已选 {selectedExtractNames.size} 个</span>
+              <span className="text-2xs text-muted-foreground">已选 {selectedExtractNames.size} 个</span>
             </div>
             <div className="flex gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowExtractConfirm(false)}>
@@ -1977,7 +1977,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
               </div>
               <div>
                 <DialogTitle>项目角色设定集</DialogTitle>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-2xs text-muted-foreground">
                   为「{libraryPickerName}」选择要引用的角色档案（同一角色可能有多个设定版本）
                 </p>
               </div>
@@ -1987,7 +1987,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
           <div className="flex-1 overflow-y-auto py-4">
             <div className="px-6">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-[10px] font-medium text-muted-foreground">
+                <p className="text-3xs font-medium text-muted-foreground">
                   {showAllLibraryInPicker
                     ? `全部角色库（${projectCharacters.length} 个档案，同名优先）`
                     : `同名匹配（${projectCharacters.filter((pc) => pc.name === libraryPickerName).length} 个档案）`}
@@ -1995,7 +1995,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                 {projectCharacters.length > projectCharacters.filter((pc) => pc.name === libraryPickerName).length && (
                   <button
                     type="button"
-                    className="text-[10px] text-primary hover:underline"
+                    className="text-3xs text-primary hover:underline"
                     onClick={() => setShowAllLibraryInPicker(!showAllLibraryInPicker)}
                   >
                     {showAllLibraryInPicker ? '只看同名' : '查看全部角色库'}
@@ -2053,11 +2053,11 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                                 {isSelected && <Check className="h-3 w-3 text-white" />}
                               </div>
                               <span className="text-sm font-semibold truncate">{pc.name}</span>
-                              {!isSameName && <Badge variant="outline" className="text-[9px] border-border/40 text-muted-foreground shrink-0">不同名</Badge>}
-                              {pc.imageStatus === 'generated' && <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-600 shrink-0">有立绘</Badge>}
+                              {!isSameName && <Badge variant="outline" className="text-4xs border-border/40 text-muted-foreground shrink-0">不同名</Badge>}
+                              {pc.imageStatus === 'generated' && <Badge variant="outline" className="text-4xs border-emerald-500/30 text-emerald-600 shrink-0">有立绘</Badge>}
                             </div>
-                            {pc.identity && <p className="mt-0.5 ml-7 text-[11px] text-muted-foreground truncate">{pc.identity}</p>}
-                            <div className="mt-1.5 ml-7 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+                            {pc.identity && <p className="mt-0.5 ml-7 text-2xs text-muted-foreground truncate">{pc.identity}</p>}
+                            <div className="mt-1.5 ml-7 grid grid-cols-2 gap-x-3 gap-y-0.5 text-3xs text-muted-foreground">
                               {pc.gender && <span>性别：{pc.gender}</span>}
                               {pc.age && <span>年龄：{pc.age}</span>}
                               {pc.hairstyle && <span className="truncate">发型：{pc.hairstyle}</span>}
@@ -2100,7 +2100,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                     </div>
                     <span className="text-sm font-semibold">新建空白角色</span>
                   </div>
-                  <p className="mt-1.5 ml-7 text-[10px] text-muted-foreground">不引用角色库，创建空白档案后手动填写设定</p>
+                  <p className="mt-1.5 ml-7 text-3xs text-muted-foreground">不引用角色库，创建空白档案后手动填写设定</p>
                 </div>
               </div>
             </div>
@@ -2269,7 +2269,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-foreground">项目角色设定集</h3>
-                    <p className="text-[11px] text-muted-foreground">全剧通用角色设定 · 引用后单集可覆盖状态</p>
+                    <p className="text-2xs text-muted-foreground">全剧通用角色设定 · 引用后单集可覆盖状态</p>
                   </div>
                 </div>
                 <Button
@@ -2321,11 +2321,11 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                               </div>
                               <div>
                                 <h4 className="text-sm font-semibold text-foreground">{pc.name}</h4>
-                                <p className="text-[10px] text-muted-foreground">{pc.identity || '未设置身份'}</p>
+                                <p className="text-3xs text-muted-foreground">{pc.identity || '未设置身份'}</p>
                               </div>
                             </div>
                             {isLinked ? (
-                              <Badge variant="outline" className="border-success/30 bg-success/10 text-success text-[9px]">
+                              <Badge variant="outline" className="border-success/30 bg-success/10 text-success text-4xs">
                                 已引用
                               </Badge>
                             ) : (
@@ -2333,7 +2333,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                className="h-7 rounded-lg text-[10px]"
+                                className="h-7 rounded-lg text-3xs"
                                 onClick={() => {
                                   // 引用项目级角色到单集
                                   const stableId = `${episode.id}-char-${pc.name.replace(/\s+/g, '-')}`;
@@ -2372,7 +2372,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
                               </Button>
                             )}
                           </div>
-                          <div className="mt-3 space-y-1 text-[10px] text-muted-foreground">
+                          <div className="mt-3 space-y-1 text-3xs text-muted-foreground">
                             <div className="flex gap-1">
                               <span className="shrink-0 text-muted-foreground/60">外貌：</span>
                               <span className="truncate">
@@ -2398,7 +2398,7 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
               </div>
 
               <div className="flex items-center justify-between border-t border-border/60 px-6 py-3">
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-3xs text-muted-foreground">
                   项目级设定为全剧通用，单集引用后可在详情中覆盖本集状态（情绪/受伤/换装等）
                 </p>
                 <Button
@@ -2422,8 +2422,8 @@ export default function CharacterStage({ episode }: { episode: Episode }) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start gap-3 py-1.5">
-      <span className="w-16 shrink-0 text-[11px] text-muted-foreground">{label}</span>
-      <span className="flex-1 text-[11px] text-foreground">{value || '—'}</span>
+      <span className="w-16 shrink-0 text-2xs text-muted-foreground">{label}</span>
+      <span className="flex-1 text-2xs text-foreground">{value || '—'}</span>
     </div>
   );
 }

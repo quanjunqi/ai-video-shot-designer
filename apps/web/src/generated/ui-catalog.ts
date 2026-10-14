@@ -4053,6 +4053,26 @@ export const UI_CATALOG: UiCatalog = {
       "name": "--shadow-2xl",
       "value": "var(--shadow-2xl)",
       "group": "阴影"
+    },
+    {
+      "name": "--text-4xs",
+      "value": "0.5625rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-3xs",
+      "value": "0.625rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-2xs",
+      "value": "0.6875rem",
+      "group": "字号"
+    },
+    {
+      "name": "--text-md",
+      "value": "0.8125rem",
+      "group": "字号"
     }
   ],
   "typography": {
@@ -4204,5 +4224,5 @@ export const UI_CATALOG: UiCatalog = {
       }
     ]
   },
-  "themeUtilityCount": 54
+  "themeUtilityCount": 58
 };

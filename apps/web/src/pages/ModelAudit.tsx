@@ -177,7 +177,7 @@ export default function ModelAuditPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-xs">
             <thead>
-              <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border text-2xs uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 font-medium">时间</th>
                 <th className="px-3 py-2 font-medium">状态</th>
                 <th className="px-3 py-2 font-medium">模型</th>
@@ -234,7 +234,7 @@ function AuditRow({
       >
         <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{formatTime(log.created_at)}</td>
         <td className="px-3 py-2">
-          <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium', st.className)}>{st.label}</span>
+          <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-2xs font-medium', st.className)}>{st.label}</span>
         </td>
         <td className="max-w-44 truncate px-3 py-2 font-mono text-foreground" title={log.model_id}>
           {log.model_id}

@@ -52,8 +52,8 @@ function VariantBlock({ episode }: { episode: Episode }) {
       <div className="mb-2 flex items-center gap-2 text-xs font-medium">
         <SunMoon className="h-3.5 w-3.5 text-primary" />
         场次状态变体
-        <span className="text-[10px] font-normal text-muted-foreground">时间 · 天气 · 光线 · 氛围（用户评审）</span>
-        <Badge variant="outline" className="ml-auto font-mono text-[9px]">
+        <span className="text-3xs font-normal text-muted-foreground">时间 · 天气 · 光线 · 氛围（用户评审）</span>
+        <Badge variant="outline" className="ml-auto font-mono text-4xs">
           {variants.filter((v) => v.status === 'USER_APPROVED').length}/{variants.length} 已确认
         </Badge>
       </div>
@@ -64,7 +64,7 @@ function VariantBlock({ episode }: { episode: Episode }) {
               <span className="text-xs font-medium">{v.label}</span>
               <span
                 className={cn(
-                  'ml-auto rounded px-1.5 py-px text-[9px]',
+                  'ml-auto rounded px-1.5 py-px text-4xs',
                   v.status === 'USER_APPROVED' && 'bg-success/15 text-success',
                   v.status === 'USER_REJECTED' && 'bg-destructive/10 text-destructive',
                   v.status !== 'USER_APPROVED' && v.status !== 'USER_REJECTED' && 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
@@ -73,7 +73,7 @@ function VariantBlock({ episode }: { episode: Episode }) {
                 {v.status === 'USER_APPROVED' ? '已确认' : v.status === 'USER_REJECTED' ? '已退回' : '待确认'}
               </span>
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{v.detail}</p>
+            <p className="mt-1 text-2xs leading-relaxed text-muted-foreground">{v.detail}</p>
             <div className="mt-2 flex gap-2">
               <Button
                 type="button"
@@ -182,20 +182,20 @@ export default function SceneStage({ episode }: { episode: Episode }) {
       <div className="flex items-center gap-2">
         <MapPin className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">场景资产</span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-2xs text-muted-foreground">
           母版决定外观，scene_map 决定边界/锚点/通行区；人物走位与机位方案在「分镜设计」阶段
         </span>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="ml-auto h-7 gap-1 text-[11px]"
+          className="ml-auto h-7 gap-1 text-2xs"
           onClick={() => setLibraryOpen(true)}
         >
           <BookOpen className="h-3 w-3" />
           从项目场景库引用
           {projectScenes.length > 0 && (
-            <Badge variant="outline" className="ml-1 font-mono text-[9px]">{projectScenes.length}</Badge>
+            <Badge variant="outline" className="ml-1 font-mono text-4xs">{projectScenes.length}</Badge>
           )}
         </Button>
       </div>
@@ -223,13 +223,13 @@ export default function SceneStage({ episode }: { episode: Episode }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{sc.name}</span>
-                  <Badge variant="outline" className="font-mono text-[9px]">v{sc.currentVersion}</Badge>
+                  <Badge variant="outline" className="font-mono text-4xs">v{sc.currentVersion}</Badge>
                 </div>
-                <div className="mt-1 text-[11px] text-muted-foreground">{sc.description}</div>
+                <div className="mt-1 text-2xs text-muted-foreground">{sc.description}</div>
                 {/* 六步确认流程：当前演示只自动推进到母版确认，后续步骤保持待配置 */}
                 <div className="mt-2 flex flex-wrap gap-1">
                   {SCENE_STEPS.map((s, i) => (
-                    <span key={s} className={`rounded px-1.5 py-0.5 text-[9px] ${sceneStepState(sc.status, i) === 'done' ? 'bg-accent/60 text-accent-foreground' : sceneStepState(sc.status, i) === 'active' ? 'bg-primary/15 font-medium text-primary' : 'bg-muted text-muted-foreground'}`}>
+                    <span key={s} className={`rounded px-1.5 py-0.5 text-4xs ${sceneStepState(sc.status, i) === 'done' ? 'bg-accent/60 text-accent-foreground' : sceneStepState(sc.status, i) === 'active' ? 'bg-primary/15 font-medium text-primary' : 'bg-muted text-muted-foreground'}`}>
                       {sceneStepState(sc.status, i) === 'done' ? '✓ ' : sceneStepState(sc.status, i) === 'active' ? '进行中 · ' : '待配置 · '}{s}
                     </span>
                   ))}
@@ -258,7 +258,7 @@ export default function SceneStage({ episode }: { episode: Episode }) {
         })}
       </div>
       <VariantBlock episode={episode} />
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-2xs text-muted-foreground">
         场景共享按连续空间识别，不机械按剧情场次复制；场景资产与状态变体确认后进入「单元规划」阶段。
       </p>
 
@@ -269,9 +269,9 @@ export default function SceneStage({ episode }: { episode: Episode }) {
             <DialogTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-sky-500" />
               从项目场景库引用
-              <Badge variant="outline" className="text-[10px]">{projectScenes.length} 个可用</Badge>
+              <Badge variant="outline" className="text-3xs">{projectScenes.length} 个可用</Badge>
             </DialogTitle>
-            <p className="text-[11px] text-muted-foreground">选择需要引用到本集的场景，已存在的场景不会重复添加</p>
+            <p className="text-2xs text-muted-foreground">选择需要引用到本集的场景，已存在的场景不会重复添加</p>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto py-4">
             {projectScenes.length === 0 ? (
@@ -297,16 +297,16 @@ export default function SceneStage({ episode }: { episode: Episode }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{s.name}</span>
-                          {s.sceneType && <Badge variant="outline" className="text-[9px]">{s.sceneType}</Badge>}
-                          {s.timePeriod && <Badge variant="outline" className="text-[9px]">{s.timePeriod}</Badge>}
-                          {exists && <Badge variant="outline" className="border-muted text-muted-foreground text-[9px]">已存在</Badge>}
+                          {s.sceneType && <Badge variant="outline" className="text-4xs">{s.sceneType}</Badge>}
+                          {s.timePeriod && <Badge variant="outline" className="text-4xs">{s.timePeriod}</Badge>}
+                          {exists && <Badge variant="outline" className="border-muted text-muted-foreground text-4xs">已存在</Badge>}
                         </div>
-                        <div className="mt-1 text-[10px] text-muted-foreground">
+                        <div className="mt-1 text-3xs text-muted-foreground">
                           {s.location && <span>地点：{s.location} · </span>}
                           {s.lighting && <span>光线：{s.lighting} · </span>}
                           {s.atmosphere && <span className="text-sky-500">氛围：{s.atmosphere}</span>}
                         </div>
-                        {s.layout && <div className="mt-1 line-clamp-1 text-[10px] text-muted-foreground/80">布局：{s.layout}</div>}
+                        {s.layout && <div className="mt-1 line-clamp-1 text-3xs text-muted-foreground/80">布局：{s.layout}</div>}
                       </div>
                     </div>
                   );
@@ -315,7 +315,7 @@ export default function SceneStage({ episode }: { episode: Episode }) {
             )}
           </div>
           <DialogFooter className="border-t border-border/60 pt-4">
-            <p className="mr-auto text-[10px] text-muted-foreground">已选 {selectedSceneIds.size} 个</p>
+            <p className="mr-auto text-3xs text-muted-foreground">已选 {selectedSceneIds.size} 个</p>
             <Button type="button" variant="outline" onClick={() => setLibraryOpen(false)}>取消</Button>
             <Button type="button" onClick={handleImportFromLibrary} className="bg-gradient-to-r from-sky-500 to-blue-600" disabled={selectedSceneIds.size === 0}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />

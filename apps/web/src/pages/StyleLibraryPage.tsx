@@ -72,7 +72,7 @@ export default function StyleLibraryPage() {
           <h1 className="flex items-center gap-2 text-lg font-semibold">
             <Palette className="h-4 w-4 text-primary" />
             风格库
-            <Badge variant="secondary" className="ml-1 font-mono text-[10px]">{styles.length} 种</Badge>
+            <Badge variant="secondary" className="ml-1 font-mono text-3xs">{styles.length} 种</Badge>
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             全局视觉风格库（用户数据）：可新增、编辑、停用或删除风格；停用的风格不出现在项目风格选择器中，已使用项目的版本快照保留
@@ -104,21 +104,21 @@ export default function StyleLibraryPage() {
               <div className="space-y-1 p-2.5">
                 <div className="flex items-center gap-1">
                   <span className="truncate text-sm font-medium">{s.name}</span>
-                  <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">{s.version}</span>
+                  <span className="ml-auto shrink-0 font-mono text-3xs text-muted-foreground">{s.version}</span>
                 </div>
-                <p className="line-clamp-2 text-[11px] text-muted-foreground">{s.description}</p>
+                <p className="line-clamp-2 text-2xs text-muted-foreground">{s.description}</p>
                 {s.prompt && (
-                  <p className="line-clamp-2 text-[10px] leading-relaxed text-primary/70">提示词：{s.prompt}</p>
+                  <p className="line-clamp-2 text-3xs leading-relaxed text-primary/70">提示词：{s.prompt}</p>
                 )}
                 <div className="flex gap-1.5 pt-1.5">
-                  <Button size="sm" variant="outline" className="h-7 flex-1 text-[11px]" onClick={() => startEdit(s)}>
+                  <Button size="sm" variant="outline" className="h-7 flex-1 text-2xs" onClick={() => startEdit(s)}>
                     <Pencil className="h-3 w-3" />
                     编辑
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 flex-1 text-[11px]"
+                    className="h-7 flex-1 text-2xs"
                     onClick={() => {
                       toggleEnabled(s.id);
                       toast.info(s.enabled ? `已停用「${s.name}」` : `已启用「${s.name}」`);

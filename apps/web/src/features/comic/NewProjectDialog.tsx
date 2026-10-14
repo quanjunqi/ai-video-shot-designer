@@ -228,7 +228,7 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
               )}
               <span className="truncate text-xs">{currentStyle?.name ?? '选择风格'}</span>
               {currentStyle && (
-                <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">{currentStyle.version}</span>
+                <span className="ml-auto shrink-0 font-mono text-3xs text-muted-foreground">{currentStyle.version}</span>
               )}
               <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </Button>
@@ -262,7 +262,7 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                   )}
                   <span className="text-xs">{fileLoading ? '读取并校验中…' : '点击选择 .txt / .md 文件（≤2MB）'}</span>
                   {fileName && (
-                    <span className="flex items-center gap-1 font-mono text-[11px] text-primary">
+                    <span className="flex items-center gap-1 font-mono text-2xs text-primary">
                       <FileText className="h-3.5 w-3.5" />
                       {fileName} · {scriptText.length} 字符
                     </span>
@@ -277,18 +277,18 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                   placeholder="粘贴完整剧本…"
                   onChange={(e) => setPasteText(e.target.value)}
                 />
-                <p className={`mt-1 text-[11px] ${scriptEmpty && pasteText.length === 0 ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
+                <p className={`mt-1 text-2xs ${scriptEmpty && pasteText.length === 0 ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                   当前 {pasteText.length} 字
                   {scriptEmpty && <span className="text-destructive">（请粘贴剧本内容后创建）</span>}
                 </p>
                 {pasteText.trim().length > 0 && (
                   <div className="mt-2 rounded-lg border border-border bg-muted/30 p-2">
                     <div className="mb-1.5 flex items-center gap-2">
-                      <Label className="text-[10px] text-muted-foreground">生效规则</Label>
+                      <Label className="text-3xs text-muted-foreground">生效规则</Label>
                       <select
                         value={ruleId}
                         onChange={(e) => setRuleId(e.target.value)}
-                        className="h-6 flex-1 rounded border border-border bg-background px-1.5 text-[11px] outline-none"
+                        className="h-6 flex-1 rounded border border-border bg-background px-1.5 text-2xs outline-none"
                       >
                         <option value="default">平台默认规则（结构拆集）</option>
                         {activeTemplates.map((t) => (
@@ -297,11 +297,11 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                       </select>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className="text-[10px]">章节标记 {previewEpisodeMarks} 处</Badge>
-                      <Badge variant="secondary" className="text-[10px]">场次标记 {previewSceneMarks} 处</Badge>
-                      <Badge variant="secondary" className="text-[10px]">按平台默认规则拆出 {splitPreview.length} 集</Badge>
+                      <Badge variant="secondary" className="text-3xs">章节标记 {previewEpisodeMarks} 处</Badge>
+                      <Badge variant="secondary" className="text-3xs">场次标记 {previewSceneMarks} 处</Badge>
+                      <Badge variant="secondary" className="text-3xs">按平台默认规则拆出 {splitPreview.length} 集</Badge>
                       {previewSceneMarks === 0 && (
-                        <Badge variant="outline" className="text-[10px]">无场次结构 → 段落粗分组</Badge>
+                        <Badge variant="outline" className="text-3xs">无场次结构 → 段落粗分组</Badge>
                       )}
                     </div>
                     <div className="mt-1.5 space-y-1">
@@ -312,22 +312,22 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                           ?.map((m) => m.trim().replace(/^#{0,3}\s*/, ''))
                           .slice(0, 3);
                         return (
-                          <div key={i} className="flex items-center gap-2 text-[11px]">
+                          <div key={i} className="flex items-center gap-2 text-2xs">
                             <span className="shrink-0 text-primary">第 {c.index} 集</span>
                             <span className="truncate text-muted-foreground">{c.title}</span>
                             {scenes && scenes.length > 0 && (
-                              <span className="hidden shrink-0 font-mono text-[10px] text-muted-foreground md:inline">
+                              <span className="hidden shrink-0 font-mono text-3xs text-muted-foreground md:inline">
                                 {scenes.join(' · ')}
                               </span>
                             )}
-                            <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                            <span className="ml-auto shrink-0 font-mono text-3xs text-muted-foreground">
                               [{c.span.start}–{c.span.end}]
                             </span>
                           </div>
                         );
                       })}
                     </div>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                    <p className="mt-1.5 text-3xs text-muted-foreground">
                       切点只落在章节/场次边界；所选规则创建即生效，之后可到项目参数随时更换
                     </p>
                   </div>
@@ -343,7 +343,7 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
             <div className="flex items-center gap-2 text-xs font-medium">
               <Clapperboard className="h-3.5 w-3.5 text-primary" />
               默认模型
-              <span className="ml-auto text-[10px] text-muted-foreground">预填应用默认；创建后可在项目参数中随时调整</span>
+              <span className="ml-auto text-3xs text-muted-foreground">预填应用默认；创建后可在项目参数中随时调整</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="min-w-0 space-y-1.5">
@@ -360,7 +360,7 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground">用于导演解读和单元 Prompt</p>
+                <p className="text-3xs text-muted-foreground">用于导演解读和单元 Prompt</p>
               </div>
               <div className="min-w-0 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">默认图片模型</Label>
@@ -376,7 +376,7 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground">用于角色图、场景图和镜头出图</p>
+                <p className="text-3xs text-muted-foreground">用于角色图、场景图和镜头出图</p>
               </div>
               <div className="min-w-0 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">默认视频模型</Label>
@@ -392,7 +392,7 @@ export default function NewProjectDialog({ open, onOpenChange }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground">本剧专属；单集工坊执行目标预选此值</p>
+                <p className="text-3xs text-muted-foreground">本剧专属；单集工坊执行目标预选此值</p>
               </div>
             </div>
           </div>

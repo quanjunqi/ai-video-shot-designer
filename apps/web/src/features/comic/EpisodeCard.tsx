@@ -123,14 +123,14 @@ export default function EpisodeCard({ episode, projectId, locked = true }: { epi
     >
       {/* L1 身份行 */}
       <div className="flex items-center gap-2">
-        <span className="rounded-md bg-accent px-2 py-0.5 font-mono text-[10px] font-semibold text-accent-foreground">
+        <span className="rounded-md bg-accent px-2 py-0.5 font-mono text-3xs font-semibold text-accent-foreground">
           EP{String(episode.index).padStart(2, '0')}
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
           <span className={cn('h-1.5 w-1.5 rounded-full', meta.dot)} />
           {meta.label}
         </span>
-        {activeKey && <span className="text-[10px] text-muted-foreground">· {activeKey}阶段</span>}
+        {activeKey && <span className="text-3xs text-muted-foreground">· {activeKey}阶段</span>}
         <button
           type="button"
           title="查看 / 编辑本集剧本"
@@ -174,27 +174,27 @@ export default function EpisodeCard({ episode, projectId, locked = true }: { epi
             <div key={t.key} className="min-w-0 flex-1 text-center">
               <div
                 className={cn(
-                  'truncate text-[9px] leading-none',
+                  'truncate text-4xs leading-none',
                   t.done ? 'text-success' : t.active ? 'font-medium text-primary' : 'text-muted-foreground/60',
                 )}
               >
                 {t.label}
               </div>
-              {t.count && <div className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">{t.count}</div>}
+              {t.count && <div className="mt-0.5 truncate font-mono text-4xs text-muted-foreground">{t.count}</div>}
             </div>
           ))}
         </div>
       </div>
 
       {/* L5 元数据行 */}
-      <div className="mt-3 flex items-center gap-3 border-t border-border pt-2 font-mono text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center gap-3 border-t border-border pt-2 font-mono text-3xs text-muted-foreground">
         <span>原文 {episode.sourceSpan.start}–{episode.sourceSpan.end}</span>
         <span>{episode.counts.scenes} 场</span>
         <span>{episode.counts.characters} 角色</span>
         {episode.counts.pendingReview > 0 && <span className="text-amber-600">待确认 {episode.counts.pendingReview}</span>}
       </div>
       {episode.blockedBy && (
-        <div className="mt-1.5 truncate text-[11px] text-destructive">阻塞：{episode.blockedBy}</div>
+        <div className="mt-1.5 truncate text-2xs text-destructive">阻塞：{episode.blockedBy}</div>
       )}
 
       <EpisodeScriptDialog

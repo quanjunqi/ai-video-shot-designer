@@ -169,7 +169,7 @@ export default function MentionTextarea({
         {/* @ 下拉：只列本图参考 */}
         {atOpen && atList.length > 0 && (
           <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
-            <div className="flex items-center gap-1 px-2 py-1 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1 px-2 py-1 text-3xs text-muted-foreground">
               <AtSign className="h-3 w-3" /> 参考图
             </div>
             {atList.map((r) => (
@@ -206,7 +206,7 @@ export default function MentionTextarea({
                     className="group overflow-hidden rounded-lg border border-border text-left hover:border-primary"
                   >
                     <img src={r.thumb} alt="" className="aspect-square w-full object-cover" />
-                    <div className="truncate p-1.5 text-[10px] font-medium">@{r.name}</div>
+                    <div className="truncate p-1.5 text-3xs font-medium">@{r.name}</div>
                   </button>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export default function MentionTextarea({
         type="button"
         onClick={() => { setCaret(value.length); setPickerOpen(true); }}
         title="从参考图引用"
-        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-3xs text-primary hover:bg-primary/10"
       >
         <AtSign className="h-3.5 w-3.5" />
         引用参考图

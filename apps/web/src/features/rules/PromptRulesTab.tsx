@@ -105,7 +105,7 @@ export default function PromptRulesTab() {
           >
             {s.label}
             {templates.filter((t) => t.stage === s.id && !t.builtin && t.enabled).length > 0 && (
-              <span className="ml-1 text-[9px] opacity-70">已覆盖</span>
+              <span className="ml-1 text-4xs opacity-70">已覆盖</span>
             )}
           </button>
         ))}
@@ -117,9 +117,9 @@ export default function PromptRulesTab() {
           <CardTitle className="flex items-center gap-2 text-sm">
             <Lock className="h-4 w-4 text-muted-foreground" />
             {stageLabel} · 平台内置规则
-            <Badge variant="secondary" className="text-[10px]">只读 · 输出字段与画布结构由平台固定</Badge>
+            <Badge variant="secondary" className="text-3xs">只读 · 输出字段与画布结构由平台固定</Badge>
           </CardTitle>
-          <span className="text-[10px] text-muted-foreground">{builtins.length} 个内置模板</span>
+          <span className="text-3xs text-muted-foreground">{builtins.length} 个内置模板</span>
         </CardHeader>
         <CardContent className="space-y-3">
           {builtins.length === 0 && (
@@ -129,13 +129,13 @@ export default function PromptRulesTab() {
             <div key={b.id} className="space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium">{b.name}</span>
-                <Badge variant="secondary" className="font-mono text-[10px]">v{b.version ?? 1}</Badge>
-                {!activeUser && <Badge className="bg-success/15 text-success text-[10px]">可选生效</Badge>}
+                <Badge variant="secondary" className="font-mono text-3xs">v{b.version ?? 1}</Badge>
+                {!activeUser && <Badge className="bg-success/15 text-success text-3xs">可选生效</Badge>}
                 <Switch checked={b.enabled} onCheckedChange={() => toggleEnabled(b.id)} className="ml-auto scale-75" />
-                {!b.enabled && <Badge variant="secondary" className="text-[10px]">已停用</Badge>}
+                {!b.enabled && <Badge variant="secondary" className="text-3xs">已停用</Badge>}
               </div>
-              {b.desc && <div className="text-[11px] text-muted-foreground">{b.desc}</div>}
-              <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+              {b.desc && <div className="text-2xs text-muted-foreground">{b.desc}</div>}
+              <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-2xs leading-relaxed text-muted-foreground">
                 {b.content}
               </pre>
             </div>
@@ -149,11 +149,11 @@ export default function PromptRulesTab() {
           <CardTitle className="flex items-center gap-2 text-sm">
             <Wand2 className="h-4 w-4 text-muted-foreground" />
             我的{stageLabel}规则
-            <span className="text-[10px] font-normal text-muted-foreground">
+            <span className="text-3xs font-normal text-muted-foreground">
               启用后自动成为该环节生效规则（项目未单独指定时）
             </span>
           </CardTitle>
-          <Button size="sm" className="h-7 gap-1 text-[11px]" onClick={openCreate}>
+          <Button size="sm" className="h-7 gap-1 text-2xs" onClick={openCreate}>
             <Plus className="h-3.5 w-3.5" />
             新建规则
           </Button>
@@ -169,15 +169,15 @@ export default function PromptRulesTab() {
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{t.name}</span>
-                  <Badge variant="secondary" className="font-mono text-[10px]">v{t.version ?? 1}</Badge>
+                  <Badge variant="secondary" className="font-mono text-3xs">v{t.version ?? 1}</Badge>
                   {activeUser?.id === t.id && (
-                    <Badge className="bg-success/15 text-success text-[10px]">当前生效</Badge>
+                    <Badge className="bg-success/15 text-success text-3xs">当前生效</Badge>
                   )}
                   <Switch checked={t.enabled} onCheckedChange={() => toggleEnabled(t.id)} className="scale-75" />
-                  {!t.enabled && <Badge variant="secondary" className="text-[10px]">已停用</Badge>}
+                  {!t.enabled && <Badge variant="secondary" className="text-3xs">已停用</Badge>}
                 </div>
                 {t.desc && <div className="text-xs text-muted-foreground">{t.desc}</div>}
-                <pre className="line-clamp-3 whitespace-pre-wrap rounded bg-muted/30 px-2 py-1.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
+                <pre className="line-clamp-3 whitespace-pre-wrap rounded bg-muted/30 px-2 py-1.5 font-mono text-3xs leading-relaxed text-muted-foreground">
                   {t.content}
                 </pre>
               </div>
@@ -245,7 +245,7 @@ export default function PromptRulesTab() {
                 placeholder="填写该环节生成时的提示词规则内容（平台固定输出结构，你覆盖内容）"
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
               />
-              <div className="text-right font-mono text-[10px] text-muted-foreground">{form.content.length}/12000</div>
+              <div className="text-right font-mono text-3xs text-muted-foreground">{form.content.length}/12000</div>
             </div>
           </div>
           <DialogFooter>

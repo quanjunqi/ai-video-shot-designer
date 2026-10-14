@@ -257,7 +257,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
           </div>
           <div>
             <h2 className="text-base font-semibold">项目道具设定集</h2>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               全剧通用道具设定，所有剧集共享引用 · 共 {props.length} 个道具
             </p>
           </div>
@@ -313,8 +313,8 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{prop.name}</h3>
                     <div className="flex gap-1">
-                      {prop.propType && <Badge variant="outline" className="text-[9px]">{prop.propType}</Badge>}
-                      {prop.category && <Badge variant="outline" className="text-[9px]">{prop.category}</Badge>}
+                      {prop.propType && <Badge variant="outline" className="text-4xs">{prop.propType}</Badge>}
+                      {prop.category && <Badge variant="outline" className="text-4xs">{prop.category}</Badge>}
                     </div>
                   </div>
                 </div>
@@ -340,7 +340,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                 </div>
               </div>
 
-              <div className="space-y-2 text-[11px] text-muted-foreground">
+              <div className="space-y-2 text-2xs text-muted-foreground">
                 <div className="flex gap-2">
                   <span className="shrink-0 text-muted-foreground/60">材质：</span>
                   <span className="truncate">{prop.material || '未设置'}</span>
@@ -378,11 +378,11 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                 <h4 className="mb-3 text-xs font-semibold text-emerald-500">基本信息</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
-                    <label className="mb-1 block text-[11px] text-muted-foreground">道具名称 *</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">道具名称 *</label>
                     <Input value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="如：青锋剑" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">道具类型</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">道具类型</label>
                     <select
                       className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                       value={form.propType}
@@ -393,7 +393,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">分类</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">分类</label>
                     <select
                       className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                       value={form.category}
@@ -404,7 +404,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <label className="mb-1 block text-[11px] text-muted-foreground">默认持有者（从项目角色库选择，无则留空）</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">默认持有者（从项目角色库选择，无则留空）</label>
                     <select
                       className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                       value={form.defaultHolder}
@@ -416,7 +416,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                       ))}
                     </select>
                     {projectCharacters.length === 0 && (
-                      <p className="mt-1 text-[10px] text-amber-500">项目角色库为空，请先在角色库中建立角色设定</p>
+                      <p className="mt-1 text-3xs text-amber-500">项目角色库为空，请先在角色库中建立角色设定</p>
                     )}
                   </div>
                 </div>
@@ -427,23 +427,23 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                 <h4 className="mb-3 text-xs font-semibold text-emerald-500">外观描述</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">材质</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">材质</label>
                     <Input value={form.material} onChange={(e) => updateField('material', e.target.value)} placeholder="如：精钢" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">主色调</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">主色调</label>
                     <Input value={form.color} onChange={(e) => updateField('color', e.target.value)} placeholder="如：银灰色" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">尺寸</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">尺寸</label>
                     <Input value={form.size} onChange={(e) => updateField('size', e.target.value)} placeholder="如：约一掌长" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">形状</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">形状</label>
                     <Input value={form.shape} onChange={(e) => updateField('shape', e.target.value)} placeholder="如：细长直刃" />
                   </div>
                   <div className="col-span-2">
-                    <label className="mb-1 block text-[11px] text-muted-foreground">装饰细节</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">装饰细节</label>
                     <Input value={form.decoration} onChange={(e) => updateField('decoration', e.target.value)} placeholder="如：剑柄缠绕红绳，剑格刻有云纹" />
                   </div>
                 </div>
@@ -454,11 +454,11 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                 <h4 className="mb-3 text-xs font-semibold text-emerald-500">功能描述</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">用途/功能</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">用途/功能</label>
                     <Textarea value={form.usage} onChange={(e) => updateField('usage', e.target.value)} placeholder="如：近战武器，削铁如泥" rows={2} />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">特殊能力/效果（无则留空）</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">特殊能力/效果（无则留空）</label>
                     <Textarea value={form.specialAbility} onChange={(e) => updateField('specialAbility', e.target.value)} placeholder="如：注入内力可发出剑气" rows={2} />
                   </div>
                 </div>
@@ -469,11 +469,11 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                 <h4 className="mb-3 text-xs font-semibold text-emerald-500">状态描述</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">完好程度</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">完好程度</label>
                     <Input value={form.condition} onChange={(e) => updateField('condition', e.target.value)} placeholder="如：轻微磨损" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">使用痕迹</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">使用痕迹</label>
                     <Input value={form.wearMarks} onChange={(e) => updateField('wearMarks', e.target.value)} placeholder="如：刃口有细微缺口" />
                   </div>
                 </div>
@@ -484,11 +484,11 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                 <h4 className="mb-3 text-xs font-semibold text-emerald-500">其他</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">特殊标记</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">特殊标记</label>
                     <Input value={form.specialMarks} onChange={(e) => updateField('specialMarks', e.target.value)} placeholder="如：剑身上刻有'青锋'二字" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">背景故事/来源</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">背景故事/来源</label>
                     <Textarea value={form.background} onChange={(e) => updateField('background', e.target.value)} placeholder="如：家传宝剑，历代掌门佩戴" rows={2} />
                   </div>
                 </div>
@@ -515,7 +515,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
               </div>
               <div>
                 <DialogTitle>{viewing?.name}</DialogTitle>
-                <p className="text-[11px] text-muted-foreground">项目级道具设定 · 全剧通用 · 只读</p>
+                <p className="text-2xs text-muted-foreground">项目级道具设定 · 全剧通用 · 只读</p>
               </div>
             </div>
           </DialogHeader>
@@ -535,7 +535,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                         '无固定持有者'
                       )}
                       {viewing.defaultHolder && projectCharacters.find((c) => c.name === viewing.defaultHolder) && (
-                        <div className="mt-1 rounded-lg bg-emerald-500/10 p-2 text-[10px]">
+                        <div className="mt-1 rounded-lg bg-emerald-500/10 p-2 text-3xs">
                           <div className="font-medium text-emerald-600">角色档案</div>
                           <div className="mt-1 text-muted-foreground">
                             {(() => {
@@ -590,7 +590,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
             )}
           </div>
           <DialogFooter className="border-t border-border/60 pt-4">
-            <p className="mr-auto text-[10px] text-muted-foreground">项目级设定为全剧通用，如需修改请点击编辑</p>
+            <p className="mr-auto text-3xs text-muted-foreground">项目级设定为全剧通用，如需修改请点击编辑</p>
             <Button type="button" variant="outline" onClick={() => { if (viewing) openEdit(viewing); setViewing(null); }}>
               <Edit3 className="mr-1.5 h-3.5 w-3.5" />
               编辑
@@ -621,9 +621,9 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-500" />
               从剧本提取的道具设定
-              <Badge variant="outline" className="text-[10px]">{extractedProps.length} 个</Badge>
+              <Badge variant="outline" className="text-3xs">{extractedProps.length} 个</Badge>
             </DialogTitle>
-            <p className="text-[11px] text-muted-foreground">以下是 AI 从剧本原文中提取的道具设定草稿，请勾选需要入库的道具</p>
+            <p className="text-2xs text-muted-foreground">以下是 AI 从剧本原文中提取的道具设定草稿，请勾选需要入库的道具</p>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto py-4">
             {extractedProps.length === 0 ? (
@@ -650,11 +650,11 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <h4 className="text-sm font-semibold">{prop.name}</h4>
-                            {prop.propType && <Badge variant="outline" className="text-[9px]">{prop.propType}</Badge>}
-                            {prop.category && <Badge variant="outline" className="text-[9px]">{prop.category}</Badge>}
-                            {exists && <Badge variant="outline" className="border-muted text-muted-foreground text-[9px]">已存在</Badge>}
+                            {prop.propType && <Badge variant="outline" className="text-4xs">{prop.propType}</Badge>}
+                            {prop.category && <Badge variant="outline" className="text-4xs">{prop.category}</Badge>}
+                            {exists && <Badge variant="outline" className="border-muted text-muted-foreground text-4xs">已存在</Badge>}
                           </div>
-                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-3xs text-muted-foreground">
                             <div>材质：{prop.material || '未设置'}</div>
                             <div>颜色：{prop.color || '未设置'}</div>
                             <div className="col-span-2">用途：{prop.usage || '未设置'}</div>
@@ -669,7 +669,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
             )}
           </div>
           <DialogFooter className="border-t border-border/60 pt-4">
-            <p className="mr-auto text-[10px] text-muted-foreground">已选 {selectedExtractIds.size} 个</p>
+            <p className="mr-auto text-3xs text-muted-foreground">已选 {selectedExtractIds.size} 个</p>
             <Button type="button" variant="outline" onClick={() => setExtractOpen(false)}>取消</Button>
             <Button type="button" onClick={handleConfirmExtract} className="bg-gradient-to-r from-violet-500 to-violet-600" disabled={selectedExtractIds.size === 0}>
               <Check className="mr-1.5 h-3.5 w-3.5" />

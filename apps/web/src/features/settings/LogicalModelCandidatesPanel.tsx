@@ -182,12 +182,12 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
               <Route className="h-3.5 w-3.5 shrink-0 text-primary" />
               候选路由
             </h3>
-            <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground" title={model.id}>
+            <p className="mt-1 truncate font-mono text-2xs text-muted-foreground" title={model.id}>
               {model.id}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <Badge variant="outline" className="font-mono text-[9px]">
+            <Badge variant="outline" className="font-mono text-4xs">
               {LOGICAL_MODEL_TYPE_LABEL[model.type]}
             </Badge>
             <Button type="button" variant="ghost" size="sm" className="h-6 w-6" onClick={reload} title="刷新候选列表" aria-label="刷新候选列表">
@@ -195,7 +195,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
             </Button>
           </div>
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 text-3xs leading-relaxed text-muted-foreground">
           执行器按 routePriority <span className="font-mono text-foreground">从小到大</span> 依次尝试候选；默认{' '}
           <span className="font-mono">{DEFAULT_ROUTE_PRIORITY}</span>，建议以 <span className="font-mono">{ROUTE_PRIORITY_STEP}</span>{' '}
           为间隔留出插入空位。
@@ -203,7 +203,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
       </div>
 
       {actionError && (
-        <p className="flex items-start gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-[10px] leading-relaxed text-destructive">
+        <p className="flex items-start gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-3xs leading-relaxed text-destructive">
           <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
           <span className="min-w-0 break-words">{actionError}</span>
         </p>
@@ -212,14 +212,14 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
       {/* 已绑定候选 */}
       <section className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="whitespace-nowrap text-[11px] font-semibold text-muted-foreground">
+          <h4 className="whitespace-nowrap text-2xs font-semibold text-muted-foreground">
             已绑定候选（{candidates.length}）
           </h4>
-          {candidates.length > 1 && <span className="shrink-0 text-[10px] text-muted-foreground">按优先级升序</span>}
+          {candidates.length > 1 && <span className="shrink-0 text-3xs text-muted-foreground">按优先级升序</span>}
         </div>
 
         {loading && (
-          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-3 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-3 text-2xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             正在加载候选…
           </div>
@@ -227,11 +227,11 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
 
         {!loading && loadError && (
           <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5">
-            <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-destructive">
+            <p className="flex items-start gap-1.5 text-3xs leading-relaxed text-destructive">
               <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
               <span className="min-w-0 break-words">{loadError}</span>
             </p>
-            <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]" onClick={reload}>
+            <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-3xs" onClick={reload}>
               <RefreshCw className="h-3 w-3" />重试
             </Button>
           </div>
@@ -240,8 +240,8 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
         {!loading && !loadError && sorted.length === 0 && (
           <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border px-4 py-5 text-center">
             <Link2 className="h-5 w-5 text-muted-foreground/60" />
-            <p className="text-[11px] font-medium">该逻辑模型还没有候选</p>
-            <p className="text-[10px] text-muted-foreground">从下方目录勾选模型并绑定，至少绑定 1 个才能被调用</p>
+            <p className="text-2xs font-medium">该逻辑模型还没有候选</p>
+            <p className="text-3xs text-muted-foreground">从下方目录勾选模型并绑定，至少绑定 1 个才能被调用</p>
           </div>
         )}
 
@@ -255,18 +255,18 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
               )}
             >
               <div className="flex items-start gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-[10px] font-semibold text-primary">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-3xs font-semibold text-primary">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-[11px] font-medium" title={c.name}>{c.name}</span>
-                    <Badge variant="outline" className="shrink-0 font-mono text-[9px] text-primary">
+                    <span className="truncate text-2xs font-medium" title={c.name}>{c.name}</span>
+                    <Badge variant="outline" className="shrink-0 font-mono text-4xs text-primary">
                       P{c.routePriority}
                     </Badge>
                   </div>
-                  <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground" title={c.id}>{c.id}</p>
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={`${c.family} · ${c.channelId} · ${c.providerModel}`}>
+                  <p className="mt-0.5 truncate font-mono text-3xs text-muted-foreground" title={c.id}>{c.id}</p>
+                  <p className="mt-0.5 truncate text-3xs text-muted-foreground" title={`${c.family} · ${c.channelId} · ${c.providerModel}`}>
                     {c.family} · {c.channelId} · {c.providerModel}
                   </p>
                 </div>
@@ -298,7 +298,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
 
               {editingPriorityId === c.id && (
                 <div className="mt-2 flex items-center gap-1.5 border-t border-border pt-2">
-                  <Label className="shrink-0 text-[10px] text-muted-foreground">新优先级</Label>
+                  <Label className="shrink-0 text-3xs text-muted-foreground">新优先级</Label>
                   <Input
                     className="h-7 w-20 min-w-0 font-mono text-xs"
                     value={priorityDraft}
@@ -306,11 +306,11 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
                     autoFocus
                     onChange={(e) => setPriorityDraft(e.target.value)}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">小者优先</span>
+                  <span className="min-w-0 flex-1 truncate text-3xs text-muted-foreground">小者优先</span>
                   <Button
                     type="button"
                     size="sm"
-                    className="h-7 shrink-0 gap-1 text-[10px]"
+                    className="h-7 shrink-0 gap-1 text-3xs"
                     onClick={() => void savePriority(c)}
                     disabled={savingPriorityId === c.id}
                   >
@@ -338,11 +338,11 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
       {/* 绑定新候选 */}
       <section className="space-y-2.5 rounded-xl border border-border bg-muted/20 p-3">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold">
+          <h4 className="flex items-center gap-1.5 whitespace-nowrap text-2xs font-semibold">
             <Plus className="h-3.5 w-3.5 shrink-0 text-primary" />
             绑定新候选
           </h4>
-          <span className="shrink-0 text-[10px] text-muted-foreground">
+          <span className="shrink-0 text-3xs text-muted-foreground">
             目录 {typeCatalogCount} 个 · 已绑定 {candidates.length} 个
           </span>
         </div>
@@ -359,7 +359,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
           <div className="min-w-0 space-y-1">
-            <Label className="text-[10px] text-muted-foreground">路由优先级（小者优先）</Label>
+            <Label className="text-3xs text-muted-foreground">路由优先级（小者优先）</Label>
             <Input
               className="h-8 font-mono text-xs"
               value={priorityInput}
@@ -372,7 +372,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 text-[11px]"
+              className="h-8 text-2xs"
               onClick={() => setSelectedIds([])}
               disabled={selectedIds.length === 0 || binding}
             >
@@ -381,7 +381,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
             <Button
               type="button"
               size="sm"
-              className="h-8 gap-1 text-[11px]"
+              className="h-8 gap-1 text-2xs"
               onClick={() => void bindSelected()}
               disabled={binding || selectedIds.length === 0}
             >
@@ -391,7 +391,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 text-3xs text-muted-foreground">
           <span className="min-w-0 truncate">
             已选 {selectedIds.length} / 可绑定 {available.length}
           </span>
@@ -418,7 +418,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
 
         <div className="max-h-56 space-y-0.5 overflow-y-auto rounded-lg border border-border bg-background/60 p-1">
           {available.length === 0 && (
-            <p className="px-2 py-3 text-center text-[10px] leading-relaxed text-muted-foreground">
+            <p className="px-2 py-3 text-center text-3xs leading-relaxed text-muted-foreground">
               {typeCatalogCount > 0 && available.length === 0 && !keyword
                 ? '该类型的目录模型已全部绑定为候选'
                 : '没有匹配的可用目录模型：请调整搜索词，或先到「模型配置」添加同类型模型'}
@@ -437,12 +437,12 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
                 <Checkbox checked={checked} onCheckedChange={() => toggleSelected(m.id)} className="mt-0.5 h-3.5 w-3.5" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-[11px]">{m.name}</span>
+                    <span className="truncate text-2xs">{m.name}</span>
                     {m.status === 'disabled' && (
-                      <Badge variant="destructive" className="shrink-0 font-mono text-[9px]">目录已停用</Badge>
+                      <Badge variant="destructive" className="shrink-0 font-mono text-4xs">目录已停用</Badge>
                     )}
                   </span>
-                  <span className="mt-0.5 block truncate font-mono text-[10px] text-muted-foreground" title={m.id}>
+                  <span className="mt-0.5 block truncate font-mono text-3xs text-muted-foreground" title={m.id}>
                     {m.id} · {m.channelId}
                   </span>
                 </span>
@@ -451,7 +451,7 @@ export default function LogicalModelCandidatesPanel({ model, catalogModels, onCa
           })}
         </div>
 
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-3xs leading-relaxed text-muted-foreground">
           已被其它逻辑模型占用的目录模型会返回 <span className="font-mono">409 MODEL_ALREADY_BOUND</span>
           （服务端会在错误里点名归属的逻辑模型 id），不会被静默抢占。
         </p>

@@ -125,7 +125,9 @@ function collectTokens() {
           ? '阴影'
           : name.startsWith('--font-')
             ? '字体'
-            : '其他',
+            : name.startsWith('--text-')
+              ? '字号'
+              : '其他',
   }));
   // typography.css：@tailwindcss/typography 插件 + prose（长文正文）的 token 映射
   const typographySrc = read(path.join(SRC, 'typography.css'));
@@ -418,7 +420,9 @@ function renderHumanMd(c) {
           ? `shadow-${t.name.slice(9)}`
           : t.name.startsWith('--font-')
             ? `font-${t.name.slice(7)}`
-            : '—';
+            : t.name.startsWith('--text-')
+              ? `text-${t.name.slice(7)}`
+              : '—';
     L.push(`| \`${t.name}\` | \`${t.value}\` | ${t.group} | \`${util}\` |`);
   }
   L.push('', '### 3.1 排版（typography）', '',

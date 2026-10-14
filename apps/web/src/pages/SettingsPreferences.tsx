@@ -67,7 +67,7 @@ export default function SettingsPreferencesPage() {
         <div className="flex items-center gap-2">
           <Route className="h-4 w-4 text-primary" />
           <Label className="text-sm font-medium">默认路由</Label>
-          <Badge variant="outline" className={cn('ml-auto font-mono text-[10px]')}>{settings.preferences.defaultRoute}</Badge>
+          <Badge variant="outline" className={cn('ml-auto font-mono text-3xs')}>{settings.preferences.defaultRoute}</Badge>
         </div>
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4 text-primary" />
@@ -111,7 +111,7 @@ export default function SettingsPreferencesPage() {
             </Select>
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-2xs text-muted-foreground">
           默认模型只是新任务的预设；单次可选其他已配置且能力兼容的模型，已提交任务固定版本。
         </p>
       </div>

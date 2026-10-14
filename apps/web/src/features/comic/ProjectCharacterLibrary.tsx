@@ -583,7 +583,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
           </div>
           <div>
             <h2 className="text-base font-semibold">项目角色设定集</h2>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               全剧通用角色设定，所有剧集共享引用 · 共 {characters.length} 个角色
             </p>
           </div>
@@ -656,7 +656,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                 ) : char.imageStatus === 'generated' && cardImageErrors.has(char.id) ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-stone-100 to-stone-200/50 p-4 text-center">
                     <ImageIcon className="h-8 w-8 text-stone-400" />
-                    <span className="text-[10px] text-stone-400">图片加载失败</span>
+                    <span className="text-3xs text-stone-400">图片加载失败</span>
                   </div>
                 ) : char.imageStatus === 'generating' ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-amber-50 to-orange-100/50">
@@ -678,7 +678,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                       <ImageIcon className="h-6 w-6 text-red-400" />
                     </div>
                     <span className="text-xs font-medium text-red-500">生成失败</span>
-                    <span className="line-clamp-2 max-w-[80%] text-[10px] text-red-400">{char.imageError}</span>
+                    <span className="line-clamp-2 max-w-[80%] text-3xs text-red-400">{char.imageError}</span>
                   </div>
                 ) : (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3">
@@ -687,14 +687,14 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                     </div>
                     <div className="text-center">
                       <span className="block text-xs font-medium text-stone-400">未生成标准立绘</span>
-                      <span className="mt-0.5 block text-[10px] text-stone-300">点击下方按钮生成</span>
+                      <span className="mt-0.5 block text-3xs text-stone-300">点击下方按钮生成</span>
                     </div>
                   </div>
                 )}
 
                 {/* 左上角 - 标准立绘徽章 */}
                 {char.imageStatus === 'generated' && (
-                  <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg bg-amber-500/90 px-2.5 py-1 text-[10px] font-semibold text-white shadow-lg backdrop-blur-sm">
+                  <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg bg-amber-500/90 px-2.5 py-1 text-3xs font-semibold text-white shadow-lg backdrop-blur-sm">
                     <Sparkles className="h-3 w-3" />
                     标准立绘
                   </div>
@@ -703,22 +703,22 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                 {/* 右上角 - 状态标签 */}
                 <div className="absolute right-3 top-3">
                   {char.imageStatus === 'generated' && (
-                    <span className="rounded-lg bg-green-500/90 px-2 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-sm">
+                    <span className="rounded-lg bg-green-500/90 px-2 py-1 text-3xs font-semibold text-white shadow-md backdrop-blur-sm">
                       ✓ 已生成
                     </span>
                   )}
                   {char.imageStatus === 'generating' && (
-                    <span className="rounded-lg bg-amber-500/90 px-2 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-sm">
+                    <span className="rounded-lg bg-amber-500/90 px-2 py-1 text-3xs font-semibold text-white shadow-md backdrop-blur-sm">
                       生成中
                     </span>
                   )}
                   {char.imageStatus === 'loading' && (
-                    <span className="rounded-lg bg-cyan-500/90 px-2 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-sm">
+                    <span className="rounded-lg bg-cyan-500/90 px-2 py-1 text-3xs font-semibold text-white shadow-md backdrop-blur-sm">
                       加载中
                     </span>
                   )}
                   {char.imageStatus === 'failed' && (
-                    <span className="rounded-lg bg-red-500/90 px-2 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-sm">
+                    <span className="rounded-lg bg-red-500/90 px-2 py-1 text-3xs font-semibold text-white shadow-md backdrop-blur-sm">
                       失败
                     </span>
                   )}
@@ -732,12 +732,12 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                     <div className="flex items-center gap-2">
                       <h3 className="truncate text-base font-bold text-foreground">{char.name}</h3>
                       {char.gender && (
-                        <Badge variant="outline" className="shrink-0 border-amber-500/20 bg-amber-500/5 text-[9px] font-medium text-amber-600">
+                        <Badge variant="outline" className="shrink-0 border-amber-500/20 bg-amber-500/5 text-4xs font-medium text-amber-600">
                           {char.gender}
                         </Badge>
                       )}
                     </div>
-                    <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                    <p className="mt-1 truncate text-2xs text-muted-foreground">
                       {char.identity || '未设置身份'}
                       {char.age && <span className="ml-1.5 text-muted-foreground/60">· {char.age}</span>}
                     </p>
@@ -746,13 +746,13 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
 
                 {/* 设定摘要 */}
                 <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center gap-2 text-[10px]">
+                  <div className="flex items-center gap-2 text-3xs">
                     <span className="shrink-0 rounded bg-stone-100 px-1.5 py-0.5 font-medium text-stone-500">外貌</span>
                     <span className="truncate text-muted-foreground">
                       {[char.hairColor, char.hairstyle, char.eyeColor && `${char.eyeColor}瞳`].filter(Boolean).join(' · ') || '未设置'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px]">
+                  <div className="flex items-center gap-2 text-3xs">
                     <span className="shrink-0 rounded bg-stone-100 px-1.5 py-0.5 font-medium text-stone-500">服装</span>
                     <span className="truncate text-muted-foreground">
                       {[char.top, char.bottom, char.clothingStyle].filter(Boolean).join(' · ') || '未设置'}
@@ -812,7 +812,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               <h4 className="mb-3 text-xs font-semibold text-amber-500">基本信息</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">角色名称 *</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">角色名称 *</label>
                   <Input
                     value={form.name}
                     onChange={(e) => updateField('name', e.target.value)}
@@ -821,7 +821,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">性别</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">性别</label>
                   <Input
                     value={form.gender}
                     onChange={(e) => updateField('gender', e.target.value)}
@@ -830,12 +830,12 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                   <div className="mt-1.5 flex gap-1">
                     {['男', '女'].map(tag => (
-                      <button key={tag} type="button" onClick={() => updateField('gender', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-amber-400/50 hover:text-amber-600 transition-colors">{tag}</button>
+                      <button key={tag} type="button" onClick={() => updateField('gender', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-3xs text-muted-foreground hover:border-amber-400/50 hover:text-amber-600 transition-colors">{tag}</button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">年龄</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">年龄</label>
                   <Input
                     value={form.age}
                     onChange={(e) => updateField('age', e.target.value)}
@@ -844,12 +844,12 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {['少年', '青年', '中年', '老年'].map(tag => (
-                      <button key={tag} type="button" onClick={() => updateField('age', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-amber-400/50 hover:text-amber-600 transition-colors">{tag}</button>
+                      <button key={tag} type="button" onClick={() => updateField('age', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-3xs text-muted-foreground hover:border-amber-400/50 hover:text-amber-600 transition-colors">{tag}</button>
                     ))}
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">身份/职业</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">身份/职业</label>
                   <Input
                     value={form.identity}
                     onChange={(e) => updateField('identity', e.target.value)}
@@ -865,13 +865,13 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               <h4 className="mb-3 text-xs font-semibold text-violet-500">外貌特征</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <label className="mb-1 flex items-center justify-between text-2xs font-medium text-muted-foreground">
                     <span>发型 + 发色</span>
                     <button
                       type="button"
                       onClick={() => handleAIAugment('hairstyle')}
                       disabled={completingField === 'hairstyle'}
-                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-violet-500 hover:bg-violet-500/10 disabled:opacity-50"
+                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs text-violet-500 hover:bg-violet-500/10 disabled:opacity-50"
                     >
                       {completingField === 'hairstyle' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       AI补全
@@ -885,7 +885,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">瞳色</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">瞳色</label>
                   <Input
                     value={form.eyeColor}
                     onChange={(e) => updateField('eyeColor', e.target.value)}
@@ -894,12 +894,12 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {['黑色', '棕色', '蓝色', '琥珀色'].map(tag => (
-                      <button key={tag} type="button" onClick={() => updateField('eyeColor', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-violet-400/50 hover:text-violet-600 transition-colors">{tag}</button>
+                      <button key={tag} type="button" onClick={() => updateField('eyeColor', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-3xs text-muted-foreground hover:border-violet-400/50 hover:text-violet-600 transition-colors">{tag}</button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">体型 + 身高</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">体型 + 身高</label>
                   <Input
                     value={form.bodyType}
                     onChange={(e) => updateField('bodyType', e.target.value)}
@@ -908,18 +908,18 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {['瘦弱', '标准', '健壮', '肥胖'].map(tag => (
-                      <button key={tag} type="button" onClick={() => updateField('bodyType', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-violet-400/50 hover:text-violet-600 transition-colors">{tag}</button>
+                      <button key={tag} type="button" onClick={() => updateField('bodyType', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-3xs text-muted-foreground hover:border-violet-400/50 hover:text-violet-600 transition-colors">{tag}</button>
                     ))}
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <label className="mb-1 flex items-center justify-between text-2xs font-medium text-muted-foreground">
                     <span>面部特征 / 妆造</span>
                     <button
                       type="button"
                       onClick={() => handleAIAugment('facialFeatures')}
                       disabled={completingField === 'facialFeatures'}
-                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-violet-500 hover:bg-violet-500/10 disabled:opacity-50"
+                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs text-violet-500 hover:bg-violet-500/10 disabled:opacity-50"
                     >
                       {completingField === 'facialFeatures' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       AI补全
@@ -933,13 +933,13 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                 </div>
                 <div>
-                  <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <label className="mb-1 flex items-center justify-between text-2xs font-medium text-muted-foreground">
                     <span>皮肤质感</span>
                     <button
                       type="button"
                       onClick={() => handleAIAugment('skinTexture')}
                       disabled={completingField === 'skinTexture'}
-                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-violet-500 hover:bg-violet-500/10 disabled:opacity-50"
+                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs text-violet-500 hover:bg-violet-500/10 disabled:opacity-50"
                     >
                       {completingField === 'skinTexture' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       AI补全
@@ -953,12 +953,12 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {['白皙细腻', '小麦色', '黝黑粗糙', '苍老皱纹'].map(tag => (
-                      <button key={tag} type="button" onClick={() => updateField('skinTexture', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-violet-400/50 hover:text-violet-600 transition-colors">{tag}</button>
+                      <button key={tag} type="button" onClick={() => updateField('skinTexture', tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-3xs text-muted-foreground hover:border-violet-400/50 hover:text-violet-600 transition-colors">{tag}</button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">特殊标记 <span className="text-muted-foreground/50">（可选）</span></label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">特殊标记 <span className="text-muted-foreground/50">（可选）</span></label>
                   <Input
                     value={form.specialMarks}
                     onChange={(e) => updateField('specialMarks', e.target.value)}
@@ -974,7 +974,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               <h4 className="mb-3 text-xs font-semibold text-amber-600">服装设定</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">上装</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">上装</label>
                   <Input
                     value={form.top}
                     onChange={(e) => updateField('top', e.target.value)}
@@ -983,7 +983,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">下装</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">下装</label>
                   <Input
                     value={form.bottom}
                     onChange={(e) => updateField('bottom', e.target.value)}
@@ -992,7 +992,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">鞋子</label>
+                  <label className="mb-1 block text-2xs font-medium text-muted-foreground">鞋子</label>
                   <Input
                     value={form.shoes}
                     onChange={(e) => updateField('shoes', e.target.value)}
@@ -1001,13 +1001,13 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   />
                 </div>
                 <div>
-                  <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <label className="mb-1 flex items-center justify-between text-2xs font-medium text-muted-foreground">
                     <span>风格 + 配饰</span>
                     <button
                       type="button"
                       onClick={() => handleAIAugment('clothingStyle')}
                       disabled={completingField === 'clothingStyle'}
-                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-amber-600 hover:bg-amber-500/10 disabled:opacity-50"
+                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs text-amber-600 hover:bg-amber-500/10 disabled:opacity-50"
                     >
                       {completingField === 'clothingStyle' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       AI补全
@@ -1027,13 +1027,13 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
             <div>
               <h4 className="mb-3 text-xs font-semibold text-emerald-500">表演设定</h4>
               <div>
-                <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                <label className="mb-1 flex items-center justify-between text-2xs font-medium text-muted-foreground">
                   <span>性格 + 表情 + 行为习惯</span>
                   <button
                     type="button"
                     onClick={() => handleAIAugment('performance')}
                     disabled={completingField === 'performance'}
-                    className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
                   >
                     {completingField === 'performance' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                     AI补全
@@ -1047,7 +1047,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                 />
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {['冷静果断', '温柔善良', '活泼开朗', '阴郁腹黑'].map(tag => (
-                    <button key={tag} type="button" onClick={() => updateField('performance', form.performance ? form.performance + '，' + tag : tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-400/50 hover:text-emerald-600 transition-colors">{tag}</button>
+                    <button key={tag} type="button" onClick={() => updateField('performance', form.performance ? form.performance + '，' + tag : tag)} className="rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-3xs text-muted-foreground hover:border-emerald-400/50 hover:text-emerald-600 transition-colors">{tag}</button>
                   ))}
                 </div>
               </div>
@@ -1063,14 +1063,14 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
             >
               <div className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-[12px] font-bold text-foreground">生成提示词预览</span>
-                <span className="text-[10px] text-muted-foreground">实时更新，跟随项目风格</span>
+                <span className="text-xs font-bold text-foreground">生成提示词预览</span>
+                <span className="text-3xs text-muted-foreground">实时更新，跟随项目风格</span>
               </div>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showPromptPreview ? 'rotate-180' : ''}`} />
             </button>
             {showPromptPreview && (
               <div className="border-t border-border/30 px-4 py-3">
-                <p className="whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-foreground/70">
+                <p className="whitespace-pre-wrap break-all font-mono text-2xs leading-relaxed text-foreground/70">
                   {buildCharacterReferencePrompt(form, stylePrompt, '9:16').prompt}
                 </p>
               </div>
@@ -1102,30 +1102,30 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               <User className="h-5 w-5 text-amber-500" />
               角色档案详情 · {viewing?.name}
               {viewing?.gender && (
-                <Badge variant="outline" className="text-[10px]">{viewing.gender}</Badge>
+                <Badge variant="outline" className="text-3xs">{viewing.gender}</Badge>
               )}
               {viewing?.imageStatus === 'generated' && (
-                <Badge className="border-green-500/30 bg-green-500/10 text-[10px] font-medium text-green-600">
+                <Badge className="border-green-500/30 bg-green-500/10 text-3xs font-medium text-green-600">
                   ✓ 已生成
                 </Badge>
               )}
               {viewing?.imageStatus === 'generating' && (
-                <Badge className="border-amber-500/30 bg-amber-500/10 text-[10px] font-medium text-amber-600">
+                <Badge className="border-amber-500/30 bg-amber-500/10 text-3xs font-medium text-amber-600">
                   生成中
                 </Badge>
               )}
               {viewing?.imageStatus === 'loading' && (
-                <Badge className="border-blue-500/30 bg-blue-500/10 text-[10px] font-medium text-blue-600">
+                <Badge className="border-blue-500/30 bg-blue-500/10 text-3xs font-medium text-blue-600">
                   加载中
                 </Badge>
               )}
               {viewing?.imageStatus === 'failed' && (
-                <Badge className="border-red-500/30 bg-red-500/10 text-[10px] font-medium text-red-600">
+                <Badge className="border-red-500/30 bg-red-500/10 text-3xs font-medium text-red-600">
                   生成失败
                 </Badge>
               )}
               {(!viewing?.imageStatus || viewing.imageStatus === 'not_generated') && (
-                <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                <Badge variant="outline" className="text-3xs text-muted-foreground">
                   未生成
                 </Badge>
               )}
@@ -1154,14 +1154,14 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           <ImageIcon className="h-7 w-7 text-stone-400" />
                         </div>
                         <div>
-                          <span className="block text-[12px] font-medium text-stone-500">图片加载失败</span>
-                          <span className="mt-0.5 block text-[10px] text-stone-400">URL 无效或网络异常</span>
+                          <span className="block text-xs font-medium text-stone-500">图片加载失败</span>
+                          <span className="mt-0.5 block text-3xs text-stone-400">URL 无效或网络异常</span>
                         </div>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="mt-1 h-7 rounded-lg text-[11px]"
+                          className="mt-1 h-7 rounded-lg text-2xs"
                           onClick={() => setImageLoadError(false)}
                         >
                           重试加载
@@ -1176,7 +1176,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           </div>
                         </div>
                         <span className="text-sm font-medium text-amber-600">标准立绘生成中</span>
-                        <span className="text-[10px] text-amber-400">AI 正在绘制角色形象...</span>
+                        <span className="text-3xs text-amber-400">AI 正在绘制角色形象...</span>
                       </div>
                     ) : viewing.imageStatus === 'loading' ? (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-blue-50 to-cyan-100/50">
@@ -1187,7 +1187,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           </div>
                         </div>
                         <span className="text-sm font-medium text-blue-600">加载图片中</span>
-                        <span className="text-[10px] text-blue-400">正在获取生成结果...</span>
+                        <span className="text-3xs text-blue-400">正在获取生成结果...</span>
                       </div>
                     ) : viewing.imageStatus === 'failed' ? (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-red-50 to-red-100/50 p-6 text-center">
@@ -1195,7 +1195,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           <ImageIcon className="h-6 w-6 text-red-400" />
                         </div>
                         <span className="text-sm font-medium text-red-500">生成失败</span>
-                        <span className="line-clamp-2 text-[11px] text-red-400">{viewing.imageError}</span>
+                        <span className="line-clamp-2 text-2xs text-red-400">{viewing.imageError}</span>
                       </div>
                     ) : (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-3">
@@ -1204,7 +1204,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                         </div>
                         <div className="text-center">
                           <span className="block text-sm font-medium text-stone-400">未生成标准立绘</span>
-                          <span className="mt-1 block text-[11px] text-stone-300">全剧通用身份基准图</span>
+                          <span className="mt-1 block text-2xs text-stone-300">全剧通用身份基准图</span>
                         </div>
                       </div>
                     )}
@@ -1212,7 +1212,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
 
                   {/* 尺寸选择 */}
                   <div className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-muted/20 px-3 py-2">
-                    <span className="text-[11px] font-medium text-muted-foreground">立绘比例</span>
+                    <span className="text-2xs font-medium text-muted-foreground">立绘比例</span>
                     <Select
                       value={viewing.imageAspectRatio || '9:16'}
                       onValueChange={(v) => {
@@ -1221,7 +1221,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                         if (updated) setViewing(updated);
                       }}
                     >
-                      <SelectTrigger className="h-7 w-[120px] rounded-lg border-border/50 bg-background text-[11px]">
+                      <SelectTrigger className="h-7 w-[120px] rounded-lg border-border/50 bg-background text-2xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1238,7 +1238,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   <Button
                     type="button"
                     size="sm"
-                    className="h-11 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-[13px] font-semibold text-white shadow-md shadow-amber-500/20 transition-all hover:shadow-lg hover:shadow-amber-500/30 disabled:opacity-60"
+                    className="h-11 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-md font-semibold text-white shadow-md shadow-amber-500/20 transition-all hover:shadow-lg hover:shadow-amber-500/30 disabled:opacity-60"
                     onClick={() => {
                       generateReference(viewing, editingPrompt ? promptDraft : undefined, `ref-${viewing.id}-${Date.now()}`);
                       setEditingPrompt(false);
@@ -1264,7 +1264,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
 
                   {/* 生成信息 */}
                   {viewing.imageStatus === 'generated' && (
-                    <p className="text-center text-[10px] text-muted-foreground">
+                    <p className="text-center text-3xs text-muted-foreground">
                       {viewing.imageModel || '未知模型'} · {viewing.imageGeneratedAt ? new Date(viewing.imageGeneratedAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '未知时间'}
                     </p>
                   )}
@@ -1274,76 +1274,76 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                 <div className="min-w-0 space-y-5">
                   {/* 基本设定 */}
                   <div>
-                    <h4 className="mb-3 text-[13px] font-bold text-foreground">基本设定</h4>
+                    <h4 className="mb-3 text-md font-bold text-foreground">基本设定</h4>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">性别</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.gender || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">性别</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.gender || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">年龄</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.age || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">年龄</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.age || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">身份</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.identity || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">身份</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.identity || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="col-span-2 flex items-start justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">发型+发色</span>
-                        <span className="max-w-[60%] text-right text-[12px] font-medium text-foreground">{viewing.hairstyle || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">发型+发色</span>
+                        <span className="max-w-[60%] text-right text-xs font-medium text-foreground">{viewing.hairstyle || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">瞳色</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.eyeColor || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">瞳色</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.eyeColor || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">体型+身高</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.bodyType || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">体型+身高</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.bodyType || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="col-span-2 flex items-start justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">皮肤质感</span>
-                        <span className="max-w-[60%] break-words text-right text-[12px] font-medium text-foreground">{viewing.skinTexture || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">皮肤质感</span>
+                        <span className="max-w-[60%] break-words text-right text-xs font-medium text-foreground">{viewing.skinTexture || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="col-span-2 flex items-start justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">面部特征/妆造</span>
-                        <span className="max-w-[60%] text-right text-[12px] font-medium text-foreground">{viewing.facialFeatures || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">面部特征/妆造</span>
+                        <span className="max-w-[60%] text-right text-xs font-medium text-foreground">{viewing.facialFeatures || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="col-span-2 flex items-start justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">特殊标记</span>
-                        <span className="max-w-[60%] text-right text-[12px] font-medium text-foreground">{viewing.specialMarks || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">特殊标记</span>
+                        <span className="max-w-[60%] text-right text-xs font-medium text-foreground">{viewing.specialMarks || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 服装设定 */}
                   <div>
-                    <h4 className="mb-3 text-[13px] font-bold text-foreground">服装设定</h4>
+                    <h4 className="mb-3 text-md font-bold text-foreground">服装设定</h4>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">上装</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.top || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">上装</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.top || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">下装</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.bottom || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">下装</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.bottom || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">鞋子</span>
-                        <span className="text-[12px] font-medium text-foreground">{viewing.shoes || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">鞋子</span>
+                        <span className="text-xs font-medium text-foreground">{viewing.shoes || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                       <div className="col-span-2 flex items-start justify-between border-b border-border/30 pb-2">
-                        <span className="text-[12px] text-muted-foreground">风格+配饰</span>
-                        <span className="max-w-[60%] text-right text-[12px] font-medium text-foreground">{viewing.clothingStyle || <span className="text-muted-foreground/40">未设置</span>}</span>
+                        <span className="text-xs text-muted-foreground">风格+配饰</span>
+                        <span className="max-w-[60%] text-right text-xs font-medium text-foreground">{viewing.clothingStyle || <span className="text-muted-foreground/40">未设置</span>}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 表演设定 */}
                   <div className="mt-5">
-                    <h4 className="mb-3 text-[13px] font-bold text-foreground">表演设定</h4>
+                    <h4 className="mb-3 text-md font-bold text-foreground">表演设定</h4>
                     <div className="flex items-start justify-between border-b border-border/30 pb-2">
-                      <span className="text-[12px] text-muted-foreground">表演基调</span>
-                      <span className="max-w-[65%] text-right text-[12px] font-medium text-foreground">{viewing.performance || <span className="text-muted-foreground/40">未设置</span>}</span>
+                      <span className="text-xs text-muted-foreground">表演基调</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-foreground">{viewing.performance || <span className="text-muted-foreground/40">未设置</span>}</span>
                     </div>
                   </div>
                 </div>
@@ -1353,15 +1353,15 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               <div className="mt-6 rounded-xl border border-border/40 bg-muted/10 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-bold text-foreground">生成提示词</span>
-                    <span className="text-[10px] text-muted-foreground">自动生成，可编辑，跟随项目风格</span>
+                    <span className="text-xs font-bold text-foreground">生成提示词</span>
+                    <span className="text-3xs text-muted-foreground">自动生成，可编辑，跟随项目风格</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground hover:text-foreground"
+                      className="h-7 rounded-lg px-2.5 text-2xs text-muted-foreground hover:text-foreground"
                       onClick={() => {
                         const text = editingPrompt ? promptDraft : buildCharacterReferencePrompt(viewing, stylePrompt).prompt;
                         navigator.clipboard.writeText(text);
@@ -1377,7 +1377,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground hover:text-red-500"
+                            className="h-7 rounded-lg px-2.5 text-2xs text-muted-foreground hover:text-red-500"
                             onClick={() => {
                               updateCharacter(viewing.id, { imagePrompt: '' });
                               const updated = useProjectCharacterStore.getState().getById(viewing.id);
@@ -1393,7 +1393,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 rounded-lg px-2.5 text-[11px] text-amber-600 hover:bg-amber-500/10"
+                          className="h-7 rounded-lg px-2.5 text-2xs text-amber-600 hover:bg-amber-500/10"
                           onClick={() => {
                             setPromptDraft(buildCharacterReferencePrompt(viewing, stylePrompt).prompt);
                             setEditingPrompt(true);
@@ -1409,7 +1409,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground"
+                          className="h-7 rounded-lg px-2.5 text-2xs text-muted-foreground"
                           onClick={() => setEditingPrompt(false)}
                         >
                           取消
@@ -1417,7 +1417,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                         <Button
                           type="button"
                           size="sm"
-                          className="h-7 rounded-lg bg-amber-500 px-2.5 text-[11px] font-medium text-white"
+                          className="h-7 rounded-lg bg-amber-500 px-2.5 text-2xs font-medium text-white"
                           onClick={() => {
                             updateCharacter(viewing.id, { imagePrompt: promptDraft });
                             setEditingPrompt(false);
@@ -1436,16 +1436,16 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                   <Textarea
                     value={promptDraft}
                     onChange={(e) => setPromptDraft(e.target.value)}
-                    className="min-h-[120px] resize-y rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] leading-relaxed"
+                    className="min-h-[120px] resize-y rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-2xs leading-relaxed"
                     placeholder="编辑生成提示词..."
                   />
                 ) : (
-                  <div className="max-h-[160px] overflow-y-auto rounded-xl bg-background/60 p-3 text-[11px] leading-relaxed text-muted-foreground">
+                  <div className="max-h-[160px] overflow-y-auto rounded-xl bg-background/60 p-3 text-2xs leading-relaxed text-muted-foreground">
                     {editingPrompt ? promptDraft : buildCharacterReferencePrompt(viewing, stylePrompt).prompt}
                   </div>
                 )}
                 {!viewing.imagePrompt && !editingPrompt && (
-                  <p className="mt-2 text-[10px] text-muted-foreground/70">
+                  <p className="mt-2 text-3xs text-muted-foreground/70">
                     提示词基于当前角色设定 + 项目视觉风格「{projectStyle?.name || '默认'}」自动生成，更换项目风格后自动同步
                   </p>
                 )}
@@ -1459,7 +1459,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 rounded-xl text-[12px]"
+              className="h-9 rounded-xl text-xs"
               onClick={() => {
                 if (viewing) openEdit(viewing);
                 setViewing(null);
@@ -1471,7 +1471,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
             <Button
               type="button"
               size="sm"
-              className="h-9 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-[12px] font-medium text-white shadow-md shadow-amber-500/20"
+              className="h-9 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-xs font-medium text-white shadow-md shadow-amber-500/20"
               onClick={() => setViewing(null)}
             >
               关闭
@@ -1528,10 +1528,10 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-violet-500" />
                 从剧本提取的角色设定
-                <Badge variant="outline" className="text-[10px]">{extractedCharacters.length} 个</Badge>
+                <Badge variant="outline" className="text-3xs">{extractedCharacters.length} 个</Badge>
               </DialogTitle>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               以下是 AI 从剧本原文中提取的角色设定草稿，请勾选需要入库的角色，已存在的角色会自动跳过
             </p>
           </DialogHeader>
@@ -1574,14 +1574,14 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
                           <div className="flex items-center gap-2">
                             <h4 className="text-sm font-semibold text-foreground">{char.name}</h4>
                             {char.gender && (
-                              <Badge variant="outline" className="text-[9px]">{char.gender}</Badge>
+                              <Badge variant="outline" className="text-4xs">{char.gender}</Badge>
                             )}
                             {exists && (
-                              <Badge variant="outline" className="border-muted text-muted-foreground text-[9px]">已存在</Badge>
+                              <Badge variant="outline" className="border-muted text-muted-foreground text-4xs">已存在</Badge>
                             )}
                           </div>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">{char.identity || '未设置身份'}</p>
-                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                          <p className="mt-0.5 text-3xs text-muted-foreground">{char.identity || '未设置身份'}</p>
+                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-3xs text-muted-foreground">
                             <div className="flex gap-1">
                               <span className="shrink-0 text-muted-foreground/60">外貌：</span>
                               <span className="truncate">
@@ -1614,7 +1614,7 @@ ${currentValue || '（空，请根据角色信息生成合理的可视化描述�
 
           <DialogFooter className="border-t border-border/60 pt-4">
             <div className="flex w-full items-center justify-between">
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-3xs text-muted-foreground">
                 已选 {selectedExtractIds.size} 个 · 入库后可在角色库中编辑完善
               </p>
               <div className="flex gap-2">

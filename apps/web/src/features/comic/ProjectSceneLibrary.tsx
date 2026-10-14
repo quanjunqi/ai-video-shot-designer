@@ -233,7 +233,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
           </div>
           <div>
             <h2 className="text-base font-semibold">项目场景设定集</h2>
-            <p className="text-[11px] text-muted-foreground">全剧通用场景设定，所有剧集共享引用 · 共 {scenes.length} 个场景</p>
+            <p className="text-2xs text-muted-foreground">全剧通用场景设定，所有剧集共享引用 · 共 {scenes.length} 个场景</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -263,8 +263,8 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
                   <div>
                     <h3 className="text-sm font-semibold">{scene.name}</h3>
                     <div className="flex gap-1">
-                      {scene.sceneType && <Badge variant="outline" className="text-[9px]">{scene.sceneType}</Badge>}
-                      {scene.timePeriod && <Badge variant="outline" className="text-[9px]">{scene.timePeriod}</Badge>}
+                      {scene.sceneType && <Badge variant="outline" className="text-4xs">{scene.sceneType}</Badge>}
+                      {scene.timePeriod && <Badge variant="outline" className="text-4xs">{scene.timePeriod}</Badge>}
                     </div>
                   </div>
                 </div>
@@ -273,7 +273,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(scene.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
-              <div className="space-y-2 text-[11px] text-muted-foreground">
+              <div className="space-y-2 text-2xs text-muted-foreground">
                 <div className="flex gap-2"><span className="shrink-0 text-muted-foreground/60">地点：</span><span className="truncate">{scene.location || '未设置'}</span></div>
                 <div className="flex gap-2"><span className="shrink-0 text-muted-foreground/60">光线：</span><span className="truncate">{scene.lighting || '未设置'}</span></div>
                 <div className="flex gap-2"><span className="shrink-0 text-muted-foreground/60">氛围：</span><span className="line-clamp-2">{scene.atmosphere || '未设置'}</span></div>
@@ -292,39 +292,39 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
               <div>
                 <h4 className="mb-3 text-xs font-semibold text-sky-500">基本信息</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2"><label className="mb-1 block text-[11px] text-muted-foreground">场景名称 *</label><Input value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="如：青云峰山顶" /></div>
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">场景类型</label>
+                  <div className="col-span-2"><label className="mb-1 block text-2xs text-muted-foreground">场景名称 *</label><Input value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="如：青云峰山顶" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">场景类型</label>
                     <select className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={form.sceneType} onChange={(e) => updateField('sceneType', e.target.value)}>
                       <option value="">请选择</option>{SCENE_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select></div>
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">故事时间</label><Input value={form.timePeriod} onChange={(e) => updateField('timePeriod', e.target.value)} placeholder="如：黄昏" /></div>
-                  <div className="col-span-2"><label className="mb-1 block text-[11px] text-muted-foreground">地点/地理位置</label><Input value={form.location} onChange={(e) => updateField('location', e.target.value)} placeholder="如：青云派后山" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">故事时间</label><Input value={form.timePeriod} onChange={(e) => updateField('timePeriod', e.target.value)} placeholder="如：黄昏" /></div>
+                  <div className="col-span-2"><label className="mb-1 block text-2xs text-muted-foreground">地点/地理位置</label><Input value={form.location} onChange={(e) => updateField('location', e.target.value)} placeholder="如：青云派后山" /></div>
                 </div>
               </div>
               <div>
                 <h4 className="mb-3 text-xs font-semibold text-sky-500">空间描述</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">空间布局</label><Input value={form.layout} onChange={(e) => updateField('layout', e.target.value)} placeholder="如：开放式平台" /></div>
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">空间尺寸</label><Input value={form.size} onChange={(e) => updateField('size', e.target.value)} placeholder="如：约三丈见方" /></div>
-                  <div className="col-span-2"><label className="mb-1 block text-[11px] text-muted-foreground">建筑结构</label><Textarea value={form.structure} onChange={(e) => updateField('structure', e.target.value)} placeholder="如：石台四周有石栏，北侧有石阶下山" rows={2} /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">空间布局</label><Input value={form.layout} onChange={(e) => updateField('layout', e.target.value)} placeholder="如：开放式平台" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">空间尺寸</label><Input value={form.size} onChange={(e) => updateField('size', e.target.value)} placeholder="如：约三丈见方" /></div>
+                  <div className="col-span-2"><label className="mb-1 block text-2xs text-muted-foreground">建筑结构</label><Textarea value={form.structure} onChange={(e) => updateField('structure', e.target.value)} placeholder="如：石台四周有石栏，北侧有石阶下山" rows={2} /></div>
                 </div>
               </div>
               <div>
                 <h4 className="mb-3 text-xs font-semibold text-sky-500">环境描述</h4>
                 <div className="grid grid-cols-3 gap-3">
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">天气</label><Input value={form.weather} onChange={(e) => updateField('weather', e.target.value)} placeholder="如：晴" /></div>
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">光线</label><Input value={form.lighting} onChange={(e) => updateField('lighting', e.target.value)} placeholder="如：夕阳斜照" /></div>
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">氛围</label><Input value={form.atmosphere} onChange={(e) => updateField('atmosphere', e.target.value)} placeholder="如：庄严肃穆" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">天气</label><Input value={form.weather} onChange={(e) => updateField('weather', e.target.value)} placeholder="如：晴" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">光线</label><Input value={form.lighting} onChange={(e) => updateField('lighting', e.target.value)} placeholder="如：夕阳斜照" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">氛围</label><Input value={form.atmosphere} onChange={(e) => updateField('atmosphere', e.target.value)} placeholder="如：庄严肃穆" /></div>
                 </div>
               </div>
               <div>
                 <h4 className="mb-3 text-xs font-semibold text-sky-500">物品描述</h4>
                 <div className="space-y-3">
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">家具/固定装置</label><Textarea value={form.furniture} onChange={(e) => updateField('furniture', e.target.value)} placeholder="如：石桌、石凳、香炉" rows={2} /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">家具/固定装置</label><Textarea value={form.furniture} onChange={(e) => updateField('furniture', e.target.value)} placeholder="如：石桌、石凳、香炉" rows={2} /></div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-muted-foreground">包含的道具（从项目道具库选择，场景中固定存在的道具）</label>
+                    <label className="mb-1 block text-2xs text-muted-foreground">包含的道具（从项目道具库选择，场景中固定存在的道具）</label>
                     {projectProps.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-center text-[10px] text-muted-foreground">
+                      <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-center text-3xs text-muted-foreground">
                         项目道具库为空，请先在道具库中建立道具设定
                       </div>
                     ) : (
@@ -340,22 +340,22 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
                               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${selected ? 'border-sky-500 bg-sky-500' : 'border-border'}`}>
                                 {selected && <Check className="h-2.5 w-2.5 text-white" />}
                               </div>
-                              <span className="text-[11px]">{p.name}</span>
-                              {p.propType && <Badge variant="outline" className="ml-auto text-[8px]">{p.propType}</Badge>}
+                              <span className="text-2xs">{p.name}</span>
+                              {p.propType && <Badge variant="outline" className="ml-auto text-4xs">{p.propType}</Badge>}
                             </div>
                           );
                         })}
                       </div>
                     )}
-                    <p className="mt-1 text-[10px] text-muted-foreground">已选 {selectedIncludedProps.size} 个道具</p>
+                    <p className="mt-1 text-3xs text-muted-foreground">已选 {selectedIncludedProps.size} 个道具</p>
                   </div>
                 </div>
               </div>
               <div>
                 <h4 className="mb-3 text-xs font-semibold text-sky-500">其他</h4>
                 <div className="space-y-3">
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">特殊标记</label><Input value={form.specialMarks} onChange={(e) => updateField('specialMarks', e.target.value)} placeholder="如：石壁上刻有门派戒律" /></div>
-                  <div><label className="mb-1 block text-[11px] text-muted-foreground">背景故事/场景历史</label><Textarea value={form.background} onChange={(e) => updateField('background', e.target.value)} placeholder="如：青云派历代掌门试炼之地" rows={2} /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">特殊标记</label><Input value={form.specialMarks} onChange={(e) => updateField('specialMarks', e.target.value)} placeholder="如：石壁上刻有门派戒律" /></div>
+                  <div><label className="mb-1 block text-2xs text-muted-foreground">背景故事/场景历史</label><Textarea value={form.background} onChange={(e) => updateField('background', e.target.value)} placeholder="如：青云派历代掌门试炼之地" rows={2} /></div>
                 </div>
               </div>
             </div>
@@ -373,7 +373,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-lg shadow-sky-500/20"><MapPin className="h-5 w-5 text-white" /></div>
-              <div><DialogTitle>{viewing?.name}</DialogTitle><p className="text-[11px] text-muted-foreground">项目级场景设定 · 全剧通用 · 只读</p></div>
+              <div><DialogTitle>{viewing?.name}</DialogTitle><p className="text-2xs text-muted-foreground">项目级场景设定 · 全剧通用 · 只读</p></div>
             </div>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto py-4">
@@ -397,10 +397,10 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
                           const prop = projectProps.find((p) => p.name === name.trim());
                           if (!prop) return null;
                           return (
-                            <div key={idx} className="rounded-lg bg-sky-500/10 px-2 py-1 text-[10px]">
+                            <div key={idx} className="rounded-lg bg-sky-500/10 px-2 py-1 text-3xs">
                               <span className="font-medium text-sky-600">{prop.name}</span>
                               {prop.propType && <span className="ml-1 text-muted-foreground">({prop.propType})</span>}
-                              {prop.defaultHolder && <div className="mt-0.5 text-[9px] text-muted-foreground">持有者：{prop.defaultHolder}</div>}
+                              {prop.defaultHolder && <div className="mt-0.5 text-4xs text-muted-foreground">持有者：{prop.defaultHolder}</div>}
                             </div>
                           );
                         })}
@@ -413,7 +413,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
             )}
           </div>
           <DialogFooter className="border-t border-border/60 pt-4">
-            <p className="mr-auto text-[10px] text-muted-foreground">项目级设定为全剧通用</p>
+            <p className="mr-auto text-3xs text-muted-foreground">项目级设定为全剧通用</p>
             <Button type="button" variant="outline" onClick={() => { if (viewing) openEdit(viewing); setViewing(null); }}><Edit3 className="mr-1.5 h-3.5 w-3.5" />编辑</Button>
             <Button type="button" onClick={() => setViewing(null)}>关闭</Button>
           </DialogFooter>
@@ -431,7 +431,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
       {/* 提取结果预览 */}
       <Dialog open={extractOpen} onOpenChange={setExtractOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-violet-500" />从剧本提取的场景设定<Badge variant="outline" className="text-[10px]">{extractedScenes.length} 个</Badge></DialogTitle><p className="text-[11px] text-muted-foreground">请勾选需要入库的场景</p></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-violet-500" />从剧本提取的场景设定<Badge variant="outline" className="text-3xs">{extractedScenes.length} 个</Badge></DialogTitle><p className="text-2xs text-muted-foreground">请勾选需要入库的场景</p></DialogHeader>
           <div className="flex-1 overflow-y-auto py-4">
             {extractedScenes.length === 0 ? <div className="py-12 text-center text-sm text-muted-foreground">暂无提取结果</div> : (
               <div className="space-y-3 px-6">
@@ -443,8 +443,8 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
                       <div className="flex items-start gap-3">
                         <button type="button" onClick={() => !exists && toggleExtractSelect(index)} className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${exists ? 'cursor-not-allowed border-muted bg-muted' : selected ? 'border-violet-500 bg-violet-500' : 'border-border hover:border-violet-500'}`} disabled={exists}>{selected && !exists && <Check className="h-3 w-3 text-white" />}</button>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2"><h4 className="text-sm font-semibold">{scene.name}</h4>{scene.sceneType && <Badge variant="outline" className="text-[9px]">{scene.sceneType}</Badge>}{scene.timePeriod && <Badge variant="outline" className="text-[9px]">{scene.timePeriod}</Badge>}{exists && <Badge variant="outline" className="border-muted text-muted-foreground text-[9px]">已存在</Badge>}</div>
-                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground"><div>地点：{scene.location || '未设置'}</div><div>氛围：{scene.atmosphere || '未设置'}</div><div className="col-span-2">光线：{scene.lighting || '未设置'}</div></div>
+                          <div className="flex items-center gap-2"><h4 className="text-sm font-semibold">{scene.name}</h4>{scene.sceneType && <Badge variant="outline" className="text-4xs">{scene.sceneType}</Badge>}{scene.timePeriod && <Badge variant="outline" className="text-4xs">{scene.timePeriod}</Badge>}{exists && <Badge variant="outline" className="border-muted text-muted-foreground text-4xs">已存在</Badge>}</div>
+                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-3xs text-muted-foreground"><div>地点：{scene.location || '未设置'}</div><div>氛围：{scene.atmosphere || '未设置'}</div><div className="col-span-2">光线：{scene.lighting || '未设置'}</div></div>
                         </div>
                       </div>
                     </div>
@@ -454,7 +454,7 @@ export default function ProjectSceneLibrary({ projectId }: { projectId: string }
             )}
           </div>
           <DialogFooter className="border-t border-border/60 pt-4">
-            <p className="mr-auto text-[10px] text-muted-foreground">已选 {selectedExtractIds.size} 个</p>
+            <p className="mr-auto text-3xs text-muted-foreground">已选 {selectedExtractIds.size} 个</p>
             <Button type="button" variant="outline" onClick={() => setExtractOpen(false)}>取消</Button>
             <Button type="button" onClick={handleConfirmExtract} className="bg-gradient-to-r from-violet-500 to-violet-600" disabled={selectedExtractIds.size === 0}><Check className="mr-1.5 h-3.5 w-3.5" />确认入库 ({selectedExtractIds.size})</Button>
           </DialogFooter>

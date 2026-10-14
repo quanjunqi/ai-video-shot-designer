@@ -106,7 +106,7 @@ export default function ReferenceBar({
       >
         <X className="h-2.5 w-2.5" />
       </button>
-      <span className="absolute bottom-0.5 left-0.5 rounded bg-primary/90 px-1 text-[8px] leading-[12px] text-primary-foreground">
+      <span className="absolute bottom-0.5 left-0.5 rounded bg-primary/90 px-1 text-4xs leading-[12px] text-primary-foreground">
         @{label}
       </span>
     </div>
@@ -180,14 +180,14 @@ function SlotChip({
           type="button"
           aria-label={thumb ? `更换${label}参考图` : `选择${label}参考图`}
           className={cn(
-            'flex h-11 items-center gap-1.5 rounded-lg border border-dashed border-border px-2 text-[10px] text-muted-foreground hover:bg-muted',
+            'flex h-11 items-center gap-1.5 rounded-lg border border-dashed border-border px-2 text-3xs text-muted-foreground hover:bg-muted',
             thumb && 'border-solid border-border pr-7',
           )}
         >
           {thumb ? (
             <>
               <img src={thumb} alt="" className="h-9 w-14 rounded object-cover" />
-              <span className="text-[9px]">@{label}</span>
+              <span className="text-4xs">@{label}</span>
             </>
           ) : (
             <>
@@ -233,8 +233,8 @@ function AssetGrid({ assets, onPick }: { assets: Asset[]; onPick: (a: Asset) => 
             {a.imageUrl && <img src={a.imageUrl} alt="" className="h-full w-full object-cover" />}
           </div>
           <div className="p-1.5">
-            <div className="truncate text-[10px] font-medium">{a.name}</div>
-            <div className="text-[9px] text-muted-foreground">v{a.currentVersion} · {a.kind === 'character' ? '角色' : a.kind === 'scene' ? '场景' : '道具'}</div>
+            <div className="truncate text-3xs font-medium">{a.name}</div>
+            <div className="text-4xs text-muted-foreground">v{a.currentVersion} · {a.kind === 'character' ? '角色' : a.kind === 'scene' ? '场景' : '道具'}</div>
           </div>
         </button>
       ))}

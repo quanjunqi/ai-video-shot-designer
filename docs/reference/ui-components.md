@@ -12,7 +12,7 @@
 | 组件文件 | 55 个 / 6739 行 |
 | 死组件（零引用） | 35 个 |
 | 语义 token（:root/.dark） | 69 个 |
-| Tailwind 工具类映射（@theme inline） | 54 条 |
+| Tailwind 工具类映射（@theme inline） | 58 条 |
 | 字体族 / prose 映射（typography.css） | 3 / 36 |
 | 语义注记覆盖 | 55/55 |
 | 展示页 demo 覆盖 | 55/55 |
@@ -170,6 +170,10 @@
 | `--shadow-lg` | `var(--shadow-lg)` | 阴影 | `shadow-lg` |
 | `--shadow-xl` | `var(--shadow-xl)` | 阴影 | `shadow-xl` |
 | `--shadow-2xl` | `var(--shadow-2xl)` | 阴影 | `shadow-2xl` |
+| `--text-4xs` | `0.5625rem` | 字号 | `text-4xs` |
+| `--text-3xs` | `0.625rem` | 字号 | `text-3xs` |
+| `--text-2xs` | `0.6875rem` | 字号 | `text-2xs` |
+| `--text-md` | `0.8125rem` | 字号 | `text-md` |
 
 ### 3.1 排版（typography）
 

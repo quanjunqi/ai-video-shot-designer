@@ -101,7 +101,7 @@ function NavLinkItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
                 to={c.path}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors',
+                    'flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-md transition-colors',
                     isActive
                       ? 'bg-accent/70 font-medium text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground',
@@ -155,7 +155,7 @@ export default function SideNav({ collapsed }: { collapsed: boolean }) {
         {!collapsed && (
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold leading-tight">镜序 Studio</div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">JINGXU STUDIO</div>
+            <div className="font-mono text-4xs uppercase tracking-widest text-muted-foreground">JINGXU STUDIO</div>
           </div>
         )}
       </div>
@@ -174,7 +174,7 @@ export default function SideNav({ collapsed }: { collapsed: boolean }) {
             <NavLinkItem key={item.key} item={item} collapsed={collapsed} />
           ))}
         </div>
-        <div className={cn('mt-3 px-1 font-mono text-[9px] text-muted-foreground', collapsed && 'text-center')}>
+        <div className={cn('mt-3 px-1 font-mono text-4xs text-muted-foreground', collapsed && 'text-center')}>
           {!collapsed ? 'V0.2 · 镜序前端原型' : 'V0.2'}
         </div>
       </div>

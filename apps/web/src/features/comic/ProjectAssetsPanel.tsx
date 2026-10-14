@@ -38,12 +38,12 @@ export default function ProjectAssetsPanel({ projectId }: { projectId: string })
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <Layers className="h-4 w-4 shrink-0 text-primary" />
         <h2 className="whitespace-nowrap text-sm font-semibold">项目资产库</h2>
-        <Badge variant="outline" className="font-mono text-[10px]">{assets.length}</Badge>
+        <Badge variant="outline" className="font-mono text-3xs">{assets.length}</Badge>
         <button
           type="button"
           onClick={() => setGlobalOnly((v) => !v)}
           className={cn(
-            'ml-auto flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium transition-colors',
+            'ml-auto flex h-7 items-center gap-1 rounded-md border px-2 text-3xs font-medium transition-colors',
             globalOnly ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground',
           )}
           title="仅显示全局资产"
@@ -62,7 +62,7 @@ export default function ProjectAssetsPanel({ projectId }: { projectId: string })
               type="button"
               onClick={() => setKind(t.key)}
               className={cn(
-                'h-6 rounded px-2 text-[10px] font-medium transition-colors',
+                'h-6 rounded px-2 text-3xs font-medium transition-colors',
                 kind === t.key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -71,7 +71,7 @@ export default function ProjectAssetsPanel({ projectId }: { projectId: string })
           ))}
         </div>
         <Select value={source} onValueChange={(v) => setSource(v as string)}>
-          <SelectTrigger className="h-7 flex-1 border-border text-[10px]">
+          <SelectTrigger className="h-7 flex-1 border-border text-3xs">
             <SelectValue placeholder="全部来源集" />
           </SelectTrigger>
           <SelectContent>
@@ -93,7 +93,7 @@ export default function ProjectAssetsPanel({ projectId }: { projectId: string })
             <p className="text-xs text-muted-foreground">暂无匹配资产</p>
             <Link
               to={`/comic/projects/${projectId}`}
-              className="mt-1 inline-flex h-7 items-center gap-1 rounded-md bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="mt-1 inline-flex h-7 items-center gap-1 rounded-md bg-primary px-3 text-2xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Plus className="h-3 w-3" />
               进入剧集工坊创建
@@ -111,7 +111,7 @@ export default function ProjectAssetsPanel({ projectId }: { projectId: string })
                     decoding="async"
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <span className="absolute left-1.5 top-1.5 z-20 rounded bg-background/80 px-1 py-0.5 text-[9px] font-medium backdrop-blur">
+                  <span className="absolute left-1.5 top-1.5 z-20 rounded bg-background/80 px-1 py-0.5 text-4xs font-medium backdrop-blur">
                     {KIND_LABEL[a.kind]}
                   </span>
                   {a.scope === 'global' && (
@@ -122,8 +122,8 @@ export default function ProjectAssetsPanel({ projectId }: { projectId: string })
                   )}
                 </div>
                 <div className="p-2">
-                  <div className="truncate text-[11px] font-medium">{a.name}</div>
-                  <div className="font-mono text-[9px] text-muted-foreground">v{a.currentVersion}</div>
+                  <div className="truncate text-2xs font-medium">{a.name}</div>
+                  <div className="font-mono text-4xs text-muted-foreground">v{a.currentVersion}</div>
                 </div>
               </div>
             ))}
