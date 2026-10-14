@@ -34,7 +34,8 @@ npm run visual:baseline   # 有意变更布局时刷新基线（随 PR 提交）
 ```
 
 - 基线同环境可比：CI 与本地均为无 BFF 的 error 态布局
-- 视觉静态规则（V-001~V-003）已并入 quality-gate：间距 4px 节奏 / 禁止硬编码色值 / 标题字号用尺度 token
+- 视觉静态规则（V-001~V-003b）已并入 quality-gate：间距 4px 节奏 / 禁止硬编码色值 / 标题字号用尺度 token /
+  **小字号任意值 text-[Npx] 阻断新增**（V-003b，存量走 `apps/web/ui-text-debt-baseline.json` 棘轮，只减不增）
 
 ## 品质标准
 
@@ -55,6 +56,7 @@ Awwwards / Webby Awards / FWA 获奖级网站。交付前从 8 维度自检：
 | V-001 | 间距用 4px 节奏 token（非 4 倍数任意值间距） | quality-gate |
 | V-002 | 禁止硬编码色值（#hex/rgb/hsl，用语义色 token） | quality-gate |
 | V-003 | 标题（h1-h3）字号用尺度 token，禁 text-[Npx] | quality-gate |
+| V-003b | **小字号用尺度 token**：`text-4xs`(9px)/`text-3xs`(10px)/`text-2xs`(11px)/`text-xs`(12px)/`text-md`(13px)，禁 `text-[Npx]`（**阻断**新增；存量见 `ui-text-debt-baseline.json`，只减不增；`components/ui/**` 为上游组件，豁免） | quality-gate |
 
 ## 反例库（常见错误）
 

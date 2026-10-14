@@ -5,13 +5,23 @@
 //   R9  `|| ??` 混用（oxc PARSE_ERROR 反例）
 //   纯图标按钮缺 title/aria-label（可访问性 + 自动化定位）
 //   页级容器滥用 max-w-*（卡片过窄居中）
+//   V-003b 小字号用任意值 text-[Npx]（TASK-UI-003：尺度 token 收敛，**阻断**新增）
 // 用法：node scripts/quality-gate.mjs；exit 1 = 有阻断项。
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
 
 const SRC = join(import.meta.dirname, '..', 'src');
+const TEXT_DEBT_BASELINE = join(import.meta.dirname, '..', 'ui-text-debt-baseline.json');
 const errors = [];
 const warnings = [];
+
+// V-003b：小字号离散步长棘轮（TASK-UI-003）。
+// 为什么是 error：字号离散步长曾是"静默债务"（实测 991 处），只有**阻断新增**才止得住；
+// 存量走基线（`ui-text-debt-baseline.json`，只减不增），清零后基线应为空对象。
+// 为什么豁免 components/ui/**：那是上游 shadcn 风格基础组件，不在本卡范围（已知 calendar.tsx 2 处）。
+const TEXT_ARBITRARY = /\btext-\[[0-9.]+(?:px|rem)\]/g;
+const textDebt = new Map();
+const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
 function walk(dir) {
   for (const name of readdirSync(dir)) {
@@ -23,6 +33,12 @@ function walk(dir) {
 
 function checkFile(file, src) {
   const lines = src.split('\n');
+
+  // V-003b：统计本文件的小字号任意值（先剥注释，避免把说明文字当成用法）
+  if (!file.includes('/components/ui/')) {
+    const hits = stripComments(src).match(TEXT_ARBITRARY);
+    if (hits) textDebt.set(rel(file), hits.length);
+  }
 
   // R9: `|| ??` / `&& ??` 混用（oxc PARSE_ERROR 的根因模式）
   // 精确判定：同一子句内（无括号/逗号/分号隔离）`|||&&` 与 `??` 相邻 = 真反例；
@@ -115,6 +131,32 @@ function rel(p) {
 }
 
 walk(SRC);
+
+// V-003b 棘轮：逐文件与基线比较，**超过基线即阻断**；减少时提示收紧基线
+{
+  const baseline = existsSync(TEXT_DEBT_BASELINE)
+    ? JSON.parse(readFileSync(TEXT_DEBT_BASELINE, 'utf8')).textArbitrary ?? {}
+    : {};
+  if (process.argv.includes('--update-text-debt')) {
+    const next = Object.fromEntries([...textDebt.entries()].sort());
+    writeFileSync(TEXT_DEBT_BASELINE, JSON.stringify({ textArbitrary: next }, null, 2) + '\n');
+    console.log(`  ✓ V-003b 基线已更新：${Object.keys(next).length} 个文件仍有小字号任意值`);
+  } else {
+    const TOKENS = 'text-4xs(9px) / text-3xs(10px) / text-2xs(11px) / text-xs(12px) / text-md(13px)';
+    for (const [file, count] of textDebt) {
+      const budget = baseline[file] ?? 0;
+      if (count > budget) {
+        errors.push(
+          `小字号必须用尺度 token（V-003b）：${file} 有 ${count} 处 text-[Npx]（基线允许 ${budget}）。改用 ${TOKENS}`,
+        );
+      }
+    }
+    const shrank = Object.entries(baseline).filter(([f, n]) => (textDebt.get(f) ?? 0) < n);
+    if (shrank.length) {
+      console.log(`  ℹ️ V-003b 基线可收紧（${shrank.length} 个文件已减少/清零）：node scripts/quality-gate.mjs --update-text-debt`);
+    }
+  }
+}
 
 console.log(`\n[quality-gate] ${errors.length} error(s), ${warnings.length} warning(s)\n`);
 for (const e of errors) console.log(`✗ ${e}`);
