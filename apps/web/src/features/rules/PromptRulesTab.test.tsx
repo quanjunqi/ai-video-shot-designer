@@ -5,8 +5,16 @@ import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import PromptRulesTab from './PromptRulesTab';
 
-vi.mock('@/stores/usePromptRuleStore', () => ({
-  usePromptRuleStore: () => ({
+const storeMocks = vi.hoisted(() => ({
+  upsertTemplate: vi.fn(),
+  removeTemplate: vi.fn(),
+  toggleEnabled: vi.fn(),
+  restoreVersion: vi.fn(),
+  loadFromServer: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/stores/usePromptRuleStore', () => {
+  const state = {
     templates: [
       {
         version: 1,
@@ -24,16 +32,12 @@ vi.mock('@/stores/usePromptRuleStore', () => ({
     toggleEnabled: storeMocks.toggleEnabled,
     restoreVersion: storeMocks.restoreVersion,
     loadFromServer: storeMocks.loadFromServer,
-  }),
-}));
-
-const storeMocks = vi.hoisted(() => ({
-  upsertTemplate: vi.fn(),
-  removeTemplate: vi.fn(),
-  toggleEnabled: vi.fn(),
-  restoreVersion: vi.fn(),
-  loadFromServer: vi.fn().mockResolvedValue(undefined),
-}));
+  };
+  return {
+    // 组件以 selector 形式调用 store（usePromptRuleStore((s) => s.x)）
+    usePromptRuleStore: (selector: (s: typeof state) => unknown) => selector(state),
+  };
+});
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },

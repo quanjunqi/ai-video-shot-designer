@@ -180,7 +180,10 @@ func (r *relay) ack(ctx context.Context, id int64, workspace, aggregate string) 
 		return err
 	}
 	if aggregate != "" {
-		_, _ = tx.Exec(ctx, `UPDATE generation_intents SET status='dispatched',updated_at=now() WHERE workspace_id=$2 AND id=$1 AND status='pending'`, aggregate, workspace)
+		// intent 状态同步是尽力而为：失败不得阻塞 outbox ack（否则事件重投导致重复派发），但必须可见。
+		if _, err = tx.Exec(ctx, `UPDATE generation_intents SET status='dispatched',updated_at=now() WHERE workspace_id=$2 AND id=$1 AND status='pending'`, aggregate, workspace); err != nil {
+			Logger.Warn("event intent dispatched mark failed (ack proceeds)", "event_id", id, slog.Any("err", err))
+		}
 	}
 	return tx.Commit(ctx)
 }

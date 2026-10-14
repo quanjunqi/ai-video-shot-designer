@@ -400,13 +400,13 @@ export default function ProjectCharacterLibrary({ projectId }: { projectId: stri
           ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
           : raw;
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed: unknown = JSON.parse(jsonStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
             // 过滤掉没有名字的角色
-            const valid = parsed.filter((c: any) => c.name && c.name.trim());
+            const valid = (parsed as ProjectCharacterForm[]).filter((c) => c.name && c.name.trim());
             if (valid.length > 0) {
               setExtractedCharacters(valid);
-              setSelectedExtractIds(new Set(valid.map((_: any, i: number) => i)));
+              setSelectedExtractIds(new Set(valid.map((_, i: number) => i)));
               setExtractOpen(true);
               toast.success(`已从剧本提取 ${valid.length} 个角色设定，请确认后入库`);
             } else {

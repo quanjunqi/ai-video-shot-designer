@@ -99,6 +99,8 @@ func (store PostgresStore) Update(ctx context.Context, workspace, id string, inp
 	var args []interface{}
 	argIdx := 1
 
+	// 动态 SET 白名单（BE-PGX-001）：列名仅来自下方 addSet("字面量", …) 硬编码调用，
+	// 值全部 $N 参数化；禁止将请求体字段名拼入 col。
 	addSet := func(col string, val interface{}) {
 		sets = append(sets, fmt.Sprintf("%s = $%d", col, argIdx))
 		args = append(args, val)

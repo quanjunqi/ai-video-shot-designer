@@ -12,7 +12,7 @@ func TestDeliverSendsTrustedContextAndToken(t *testing.T) {
 	var got event
 	var auth string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 		got.Workspace = r.Header.Get("X-Workspace-Id")
 		got.Actor = r.Header.Get("X-Actor-Id")
 		auth = r.Header.Get("Authorization")
