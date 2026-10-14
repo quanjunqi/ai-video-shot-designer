@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import HomePage from '@/pages/Home';
@@ -29,6 +30,12 @@ import { MODEL_CENTER_DEFAULT_PATH } from '@/features/model-center/model-center-
 import ModelCostsPage from '@/pages/ModelCosts';
 import ModelAuditPage from '@/pages/ModelAudit';
 import NotFoundPage from '@/pages/NotFoundPage/NotFoundPage';
+
+// 组件库展示页：只在开发环境注册。**必须写成条件表达式**，不要写成「常量 + 死分支」——
+// 后者死分支里的动态 import 仍会被打包器产出 chunk（实测 dist 会多出 UiKitPage-*.js）；
+// 这样写 prod 构建可完全消除（实测产物 0 个 ui-kit 资源），35 个零引用组件也不会被带进产物。
+// 清单口径见 .agents/skills/frontend-coding/ui-components.md
+const UiKitPage = import.meta.env.DEV ? lazy(() => import('@/pages/dev/ui-kit/UiKitPage')) : null;
 
 // 旧路由迁移：/drama/:projectId → /comic/projects/:projectId
 function DramaProjectRedirect() {
@@ -80,6 +87,18 @@ export default function App() {
             <Route key={r.from} path={settingsRelativePath(r.from)} element={<Navigate to={r.to} replace />} />
           ))}
         </Route>
+
+        {/* 组件库展示页（仅开发环境）：见 apps/web/scripts/ui-inventory.mjs 生成的清单 */}
+        {import.meta.env.DEV && (
+          <Route
+            path="dev/ui-kit" /* ui-route:dev-only —— 开发工具页，不进 routes.json 送审枚举 */
+            element={
+              <Suspense fallback={null}>
+                <UiKitPage />
+              </Suspense>
+            }
+          />
+        )}
 
         {/* 旧路由迁移跳转 */}
         <Route path="drama" element={<Navigate to="/comic/projects" replace />} />

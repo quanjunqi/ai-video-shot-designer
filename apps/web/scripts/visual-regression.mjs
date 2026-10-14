@@ -8,6 +8,7 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
@@ -21,7 +22,8 @@ const APP_ROOT = join(__dirname, '..');
 const BASELINE_DIR = join(APP_ROOT, 'visual-baseline');
 const DIFF_DIR = join(APP_ROOT, '.visual-diff'); // gitignore，不入库
 
-// 关键页面清单（路由 → 语义名）。只放有真实布局的核心页，保持基线稳定。
+// 关键页面清单（路由 → 语义名 [→ 窗口尺寸]）。只放有真实布局的核心页，保持基线稳定。
+// 第三项可选：长页面（如组件库总览）需要更高的窗口，否则只截到首屏。
 const PAGES = [
   ['/models/costs', 'model-costs'],
   ['/models/audit', 'model-audit'],
@@ -29,6 +31,8 @@ const PAGES = [
   ['/settings/models/catalog', 'settings-model-catalog'],
   ['/settings/models', 'settings-logical-models'],
   ['/comic/projects', 'comic-projects'],
+  // 组件库总览（仅 DEV 注册）：设计系统清单的视觉留痕。页面很长，用高窗口一次截全。
+  ['/dev/ui-kit', 'ui-kit', '1440,3400'],
 ];
 
 const VIEWPORT = '1440,900';
@@ -72,15 +76,23 @@ function startPreview() {
   });
 }
 
-async function shoot(url, outPath) {
+async function shoot(url, outPath, viewport = VIEWPORT) {
   const chrome = chromePath();
+  // 显式指定 user-data-dir：默认目录在某些环境建不出来（实测 "Failed to create a unique
+  // user data directory for headless"）。**不能放在仓库内**——Chrome 会往里写大量文件，
+  // 触发 Vite 文件监听风暴并把 dev server 打死（实测截图到第二页即 ERR_CONNECTION_REFUSED）。
+  const profile = join(tmpdir(), 'mdp-visual-chrome-profile');
+  mkdirSync(profile, { recursive: true });
   const args = [
     '--headless=new',
     '--disable-gpu',
     '--hide-scrollbars',
     '--no-sandbox', // CI（ubuntu root 用户）必需；macOS 上无害
+    '--no-first-run',
+    '--disable-extensions',
+    `--user-data-dir=${profile}`,
     '--force-device-scale-factor=1',
-    `--window-size=${VIEWPORT}`,
+    `--window-size=${viewport}`,
     `--virtual-time-budget=4000`,
     `--screenshot=${outPath}`,
     url,
@@ -117,10 +129,10 @@ async function main() {
   const preview = await startPreview();
   console.log(`[visual-regression] preview server 就绪 :${PORT}`);
   const results = [];
-  for (const [route, name] of PAGES) {
+  for (const [route, name, viewport] of PAGES) {
     const url = `http://localhost:${PORT}${route}`;
     const current = join(DIFF_DIR, `${name}.png`);
-    await shoot(url, current);
+    await shoot(url, current, viewport);
     const baseline = join(BASELINE_DIR, `${name}.png`);
 
     if (update) {
