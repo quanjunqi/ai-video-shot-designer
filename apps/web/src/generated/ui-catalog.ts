@@ -10,11 +10,13 @@ export type UiComponent = {
   category: string; notes: UiNotes;
 };
 export type UiToken = { name: string; light: string; dark: string | null; group: string; utilities: string[] };
+export type UiThemeUtility = { name: string; value: string; group: string };
+export type UiTypography = { plugin: string | null; prose: { name: string; value: string }[] };
 export type UiCatalog = {
   stats: { components: number; lines: number; dead: number; tokens: number; withNotes: number; withDemo: number };
   categories: string[]; components: UiComponent[]; tokens: UiToken[];
   missingNotes: string[]; missingDemos: string[]; unknownNotes: string[];
-  themeUtilities: number; typographyUtilities: number;
+  themeUtilities: UiThemeUtility[]; typography: UiTypography; themeUtilityCount: number;
 };
 
 export const UI_CATALOG: UiCatalog = {
@@ -22,7 +24,7 @@ export const UI_CATALOG: UiCatalog = {
     "components": 55,
     "lines": 6739,
     "dead": 35,
-    "tokens": 62,
+    "tokens": 69,
     "withNotes": 55,
     "withDemo": 55
   },
@@ -3611,6 +3613,24 @@ export const UI_CATALOG: UiCatalog = {
       "utilities": []
     },
     {
+      "name": "--font-sans",
+      "light": "'LarkHackSafariFont', 'LarkEmojiFont', 'LarkChineseQuote', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'Tahoma', 'PingFang SC', 'Microsoft Yahei', 'Arial', 'Hiragino Sans GB', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+      "dark": null,
+      "group": "字体 / 排版",
+      "utilities": [
+        "--font-sans"
+      ]
+    },
+    {
+      "name": "--font-serif",
+      "light": "'Geist', 'Geist Fallback', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif",
+      "dark": null,
+      "group": "字体 / 排版",
+      "utilities": [
+        "--font-serif"
+      ]
+    },
+    {
       "name": "--font-mono",
       "light": "'IBM Plex Mono', 'Source Code Pro', monospace",
       "dark": null,
@@ -3692,6 +3712,51 @@ export const UI_CATALOG: UiCatalog = {
       ]
     },
     {
+      "name": "--shadow-sm",
+      "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.02), 0px 1px 2px -1px hsl(0 0% 0% / 0.02)",
+      "dark": null,
+      "group": "圆角 / 阴影",
+      "utilities": [
+        "--shadow-sm"
+      ]
+    },
+    {
+      "name": "--shadow",
+      "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.02), 0px 1px 2px -1px hsl(0 0% 0% / 0.02)",
+      "dark": null,
+      "group": "圆角 / 阴影",
+      "utilities": [
+        "--shadow"
+      ]
+    },
+    {
+      "name": "--shadow-md",
+      "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.02), 0px 2px 4px -1px hsl(0 0% 0% / 0.02)",
+      "dark": null,
+      "group": "圆角 / 阴影",
+      "utilities": [
+        "--shadow-md"
+      ]
+    },
+    {
+      "name": "--shadow-lg",
+      "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.02), 0px 4px 6px -1px hsl(0 0% 0% / 0.02)",
+      "dark": null,
+      "group": "圆角 / 阴影",
+      "utilities": [
+        "--shadow-lg"
+      ]
+    },
+    {
+      "name": "--shadow-xl",
+      "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.02), 0px 8px 10px -1px hsl(0 0% 0% / 0.02)",
+      "dark": null,
+      "group": "圆角 / 阴影",
+      "utilities": [
+        "--shadow-xl"
+      ]
+    },
+    {
       "name": "--shadow-2xl",
       "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.05)",
       "dark": null,
@@ -3718,6 +3783,426 @@ export const UI_CATALOG: UiCatalog = {
   "missingNotes": [],
   "missingDemos": [],
   "unknownNotes": [],
-  "themeUtilities": 54,
-  "typographyUtilities": 1
+  "themeUtilities": [
+    {
+      "name": "--color-background",
+      "value": "var(--background)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-foreground",
+      "value": "var(--foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-card",
+      "value": "var(--card)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-card-foreground",
+      "value": "var(--card-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-card-border",
+      "value": "var(--card-border)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-popover",
+      "value": "var(--popover)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-popover-foreground",
+      "value": "var(--popover-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-primary",
+      "value": "var(--primary)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-primary-foreground",
+      "value": "var(--primary-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-secondary",
+      "value": "var(--secondary)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-secondary-foreground",
+      "value": "var(--secondary-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-muted",
+      "value": "var(--muted)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-muted-foreground",
+      "value": "var(--muted-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-accent",
+      "value": "var(--accent)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-accent-foreground",
+      "value": "var(--accent-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-info",
+      "value": "var(--info)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-info-foreground",
+      "value": "var(--info-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-destructive",
+      "value": "var(--destructive)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-destructive-foreground",
+      "value": "var(--destructive-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-success",
+      "value": "var(--success)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-success-foreground",
+      "value": "var(--success-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-warning",
+      "value": "var(--warning)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-warning-foreground",
+      "value": "var(--warning-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-border",
+      "value": "var(--border)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-input",
+      "value": "var(--input)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-ring",
+      "value": "var(--ring)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-chart-1",
+      "value": "var(--chart-1)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-chart-2",
+      "value": "var(--chart-2)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-chart-3",
+      "value": "var(--chart-3)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-chart-4",
+      "value": "var(--chart-4)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-chart-5",
+      "value": "var(--chart-5)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar",
+      "value": "var(--sidebar)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-foreground",
+      "value": "var(--sidebar-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-primary",
+      "value": "var(--sidebar-primary)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-primary-foreground",
+      "value": "var(--sidebar-primary-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-accent",
+      "value": "var(--sidebar-accent)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-accent-foreground",
+      "value": "var(--sidebar-accent-foreground)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-border",
+      "value": "var(--sidebar-border)",
+      "group": "色彩"
+    },
+    {
+      "name": "--color-sidebar-ring",
+      "value": "var(--sidebar-ring)",
+      "group": "色彩"
+    },
+    {
+      "name": "--font-sans",
+      "value": "var(--font-sans)",
+      "group": "字体"
+    },
+    {
+      "name": "--font-mono",
+      "value": "var(--font-mono)",
+      "group": "字体"
+    },
+    {
+      "name": "--font-serif",
+      "value": "var(--font-serif)",
+      "group": "字体"
+    },
+    {
+      "name": "--radius-sm",
+      "value": "calc(var(--radius) - 4px)",
+      "group": "圆角"
+    },
+    {
+      "name": "--radius-md",
+      "value": "calc(var(--radius) - 2px)",
+      "group": "圆角"
+    },
+    {
+      "name": "--radius-lg",
+      "value": "var(--radius)",
+      "group": "圆角"
+    },
+    {
+      "name": "--radius-xl",
+      "value": "calc(var(--radius) + 4px)",
+      "group": "圆角"
+    },
+    {
+      "name": "--shadow-2xs",
+      "value": "var(--shadow-2xs)",
+      "group": "阴影"
+    },
+    {
+      "name": "--shadow-xs",
+      "value": "var(--shadow-xs)",
+      "group": "阴影"
+    },
+    {
+      "name": "--shadow-sm",
+      "value": "var(--shadow-sm)",
+      "group": "阴影"
+    },
+    {
+      "name": "--shadow",
+      "value": "var(--shadow)",
+      "group": "其他"
+    },
+    {
+      "name": "--shadow-md",
+      "value": "var(--shadow-md)",
+      "group": "阴影"
+    },
+    {
+      "name": "--shadow-lg",
+      "value": "var(--shadow-lg)",
+      "group": "阴影"
+    },
+    {
+      "name": "--shadow-xl",
+      "value": "var(--shadow-xl)",
+      "group": "阴影"
+    },
+    {
+      "name": "--shadow-2xl",
+      "value": "var(--shadow-2xl)",
+      "group": "阴影"
+    }
+  ],
+  "typography": {
+    "plugin": "@tailwindcss/typography",
+    "prose": [
+      {
+        "name": "--tw-prose-body",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-headings",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-lead",
+        "value": "var(--muted-foreground)"
+      },
+      {
+        "name": "--tw-prose-links",
+        "value": "var(--primary)"
+      },
+      {
+        "name": "--tw-prose-bold",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-counters",
+        "value": "var(--muted-foreground)"
+      },
+      {
+        "name": "--tw-prose-bullets",
+        "value": "var(--primary)"
+      },
+      {
+        "name": "--tw-prose-hr",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-quotes",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-quote-borders",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-captions",
+        "value": "var(--muted-foreground)"
+      },
+      {
+        "name": "--tw-prose-kbd",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-kbd-shadows",
+        "value": "--alpha(var(--foreground) / 90%)"
+      },
+      {
+        "name": "--tw-prose-code",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-pre-code",
+        "value": "var(--accent-foreground)"
+      },
+      {
+        "name": "--tw-prose-pre-bg",
+        "value": "var(--accent)"
+      },
+      {
+        "name": "--tw-prose-th-borders",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-td-borders",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-invert-body",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-headings",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-lead",
+        "value": "var(--muted-foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-links",
+        "value": "var(--primary)"
+      },
+      {
+        "name": "--tw-prose-invert-bold",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-counters",
+        "value": "var(--muted-foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-bullets",
+        "value": "var(--primary)"
+      },
+      {
+        "name": "--tw-prose-invert-hr",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-invert-quotes",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-quote-borders",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-invert-captions",
+        "value": "var(--muted-foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-kbd",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-kbd-shadows",
+        "value": "--alpha(var(--foreground) / 90%)"
+      },
+      {
+        "name": "--tw-prose-invert-code",
+        "value": "var(--foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-pre-code",
+        "value": "var(--accent-foreground)"
+      },
+      {
+        "name": "--tw-prose-invert-pre-bg",
+        "value": "var(--accent)"
+      },
+      {
+        "name": "--tw-prose-invert-th-borders",
+        "value": "var(--border)"
+      },
+      {
+        "name": "--tw-prose-invert-td-borders",
+        "value": "var(--border)"
+      }
+    ]
+  },
+  "themeUtilityCount": 54
 };

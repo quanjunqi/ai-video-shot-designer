@@ -75,6 +75,25 @@ function Chip({ children, mono = true }: { children: ReactNode; mono?: boolean }
   );
 }
 
+// 非色彩 token 用对应的 CSS 属性做真实预览（字体族出字样、阴影/圆角出盒子），
+// 否则色块会是空的——「色块为空属正常」对读者并不友好。
+function TokenPreview({ token }: { token: UiToken }) {
+  if (token.name.startsWith('--font-')) {
+    return (
+      <span className="min-w-0 flex-1 truncate text-base" style={{ fontFamily: `var(${token.name})` }}>
+        Ag 漫剧 123
+      </span>
+    );
+  }
+  if (token.name.startsWith('--shadow')) {
+    return <span className="bg-card border-border size-6 shrink-0 rounded-sm border" title={token.light} style={{ boxShadow: `var(${token.name})` }} />;
+  }
+  if (token.name.startsWith('--radius')) {
+    return <span className="bg-muted size-6 shrink-0" title={token.light} style={{ borderRadius: `var(${token.name})` }} />;
+  }
+  return <TokenSwatch token={token} />;
+}
+
 function TokenSwatch({ token }: { token: UiToken }) {
   return (
     <span className="flex shrink-0 items-center gap-1">
@@ -117,7 +136,7 @@ function TokenPalette() {
             {tokens.map((token) => (
               <li key={token.name} className="border-border flex min-w-0 flex-wrap items-center gap-3 border-b py-2 last:border-b-0">
                 <code className="min-w-0 flex-1 truncate font-mono text-xs">{token.name}</code>
-                <TokenSwatch token={token} />
+                <TokenPreview token={token} />
                 <span
                   className="text-muted-foreground hidden min-w-0 flex-1 truncate font-mono text-xs lg:block"
                   title={token.dark ? `${token.light} → ${token.dark}` : token.light}
@@ -295,6 +314,9 @@ export default function UiKitPage() {
           <a href="#tokens" className="bg-muted hover:bg-accent rounded-md px-2 py-1 text-xs font-medium">
             设计 token（{tokenList.length}）
           </a>
+          <a href="#utilities" className="bg-muted hover:bg-accent rounded-md px-2 py-1 text-xs font-medium">
+            工具类映射（{UI_CATALOG.themeUtilityCount}）
+          </a>
           {navGroups.map((group) => (
             <a
               key={group.id}
@@ -327,7 +349,7 @@ export default function UiKitPage() {
           <div className="grid min-w-0 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <StatCard label="组件" value={String(stats.components)} hint={`${navGroups.length} 个分类`} />
             <StatCard label="组件代码行数" value={String(stats.lines)} hint={`最大单文件 ${maxLines} 行`} />
-            <StatCard label="设计 token" value={String(stats.tokens)} hint={`${UI_CATALOG.themeUtilities} 个主题工具类`} />
+            <StatCard label="设计 token" value={String(stats.tokens)} hint={`${UI_CATALOG.themeUtilityCount} 条 Tailwind 映射`} />
             <StatCard label="零引用组件" value={String(stats.dead)} hint="死组件棘轮基线" />
             <StatCard label="语义注记覆盖" value={`${stats.withNotes}/${stats.components}`} hint={`${notesPercent}% · 缺 ${stats.components - stats.withNotes} 个`} />
             <StatCard
@@ -362,6 +384,66 @@ export default function UiKitPage() {
             </span>
           </div>
           <TokenPalette />
+        </section>
+
+        <section id="utilities" className="flex min-w-0 scroll-mt-24 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="text-xl font-semibold tracking-tight">Tailwind 工具类映射与排版</h2>
+            <p className="text-muted-foreground text-sm">
+              权威表来自 <code className="font-mono text-xs">@theme inline</code> 与{' '}
+              <code className="font-mono text-xs">typography.css</code>（插件{' '}
+              <code className="font-mono text-xs">{UI_CATALOG.typography.plugin ?? '—'}</code>）：写 UI 用工具类，不要硬编码数值（V-002）。
+            </p>
+          </div>
+          <div className="bg-card min-w-0 overflow-x-auto rounded-lg border">
+            <table className="w-full min-w-0 text-sm">
+              <thead className="bg-muted/40 text-muted-foreground text-xs">
+                <tr>
+                  <th className="px-3 py-2 text-left">@theme token</th>
+                  <th className="px-3 py-2 text-left">值</th>
+                  <th className="px-3 py-2 text-left">分类</th>
+                  <th className="px-3 py-2 text-left">对应工具类</th>
+                </tr>
+              </thead>
+              <tbody>
+                {UI_CATALOG.themeUtilities.map((u) => (
+                  <tr key={u.name} className="border-border border-t">
+                    <td className="px-3 py-1.5 font-mono text-xs">{u.name}</td>
+                    <td className="text-muted-foreground truncate px-3 py-1.5 font-mono text-xs" title={u.value}>{u.value}</td>
+                    <td className="px-3 py-1.5 text-xs">{u.group}</td>
+                    <td className="px-3 py-1.5 font-mono text-xs">
+                      {u.name.startsWith('--color-')
+                        ? `bg-${u.name.slice(8)} / text-${u.name.slice(8)} / border-${u.name.slice(8)}`
+                        : u.name.startsWith('--radius-')
+                          ? `rounded-${u.name.slice(9)}`
+                          : u.name.startsWith('--shadow-')
+                            ? `shadow-${u.name.slice(9)}`
+                            : u.name.startsWith('--font-')
+                              ? `font-${u.name.slice(7)}`
+                              : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="bg-card flex min-w-0 flex-col gap-2 rounded-lg border p-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h3 className="text-sm font-semibold">排版</h3>
+              <Badge variant="outline">prose 映射 {UI_CATALOG.typography.prose.length} 条</Badge>
+            </div>
+            <div className="flex min-w-0 flex-col gap-2">
+              {['--font-sans', '--font-mono', '--font-serif'].map((name) => (
+                <div key={name} className="flex min-w-0 flex-wrap items-baseline gap-3">
+                  <code className="text-muted-foreground w-28 shrink-0 font-mono text-xs">{name}</code>
+                  <span className="min-w-0 truncate" style={{ fontFamily: `var(${name})` }}>Ag 漫剧导演工坊 12345</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              标题字号必须用尺度 token（禁 <code className="font-mono">text-[Npx]</code>，V-003）；长文正文用 <code className="font-mono">prose</code>。
+            </p>
+          </div>
         </section>
 
         <section id="components" className="flex min-w-0 scroll-mt-24 flex-col gap-8">

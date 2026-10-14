@@ -61,7 +61,7 @@ const walk = (dir, exts, out = []) => {
 // 解析 :root（浅色）/.dark（深色）/ @theme inline（Tailwind 工具类映射）
 function cssBlocks(css) {
   const blocks = {};
-  const re = /(^|\n)(\s*(?::root|\.dark|@theme[^{]*))\s*\{/g;
+  const re = /(^|\n)(\s*(?::root|\.dark|@theme[^{]*|@utility\s+[a-zA-Z0-9_-]+))\s*\{/g;
   let m;
   while ((m = re.exec(css))) {
     const start = css.indexOf('{', m.index) + 1;
@@ -79,10 +79,11 @@ function cssBlocks(css) {
 const varsOf = (block) => {
   const out = {};
   const clean = (block || '').replace(/\/\*[\s\S]*?\*\//g, '');
-  for (const line of clean.split('\n')) {
-    const m = line.match(/^\s*(--[a-zA-Z0-9-]+)\s*:\s*([^;]+);/);
-    if (m) out[m[1]] = m[2].trim();
-  }
+  // 变量值可能跨多行（如 --font-sans 后面跟一长串字体族、--shadow-md 的多段阴影），
+  // 按行匹配会漏掉 —— 实测漏了 --font-sans/--font-serif 与 5 个 shadow。这里按 `;` 收口。
+  const re = /(--[a-zA-Z0-9-]+)\s*:\s*([^;]+);/g;
+  let m;
+  while ((m = re.exec(clean))) out[m[1]] = m[2].replace(/\s+/g, ' ').trim();
   return out;
 };
 const groupOf = (name) => {
@@ -109,7 +110,29 @@ function collectTokens() {
       .filter(([, v]) => v.includes(`var(${name})`))
       .map(([k]) => k),
   }));
-  return { tokens, themeMap, typography: read(path.join(SRC, 'typography.css')) };
+  // @theme inline 是 Tailwind 工具类的**权威映射**：--color-primary → bg-primary/text-primary/…、
+  // --radius-lg → rounded-lg、--shadow-sm → shadow-sm、--font-sans → font-sans。
+  // 这类 token 有的在 :root 里有语义来源（颜色/字体），有的没有（radius-sm/md/lg/xl 是 calc 派生），
+  // 所以单独成表，agent 写 UI 时应按这张表选工具类而不是硬编码数值。
+  const themeUtilities = Object.entries(themeMap).map(([name, value]) => ({
+    name,
+    value,
+    group: name.startsWith('--color-')
+      ? '色彩'
+      : name.startsWith('--radius-')
+        ? '圆角'
+        : name.startsWith('--shadow-')
+          ? '阴影'
+          : name.startsWith('--font-')
+            ? '字体'
+            : '其他',
+  }));
+  // typography.css：@tailwindcss/typography 插件 + prose（长文正文）的 token 映射
+  const typographySrc = read(path.join(SRC, 'typography.css'));
+  const plugin = (typographySrc.match(/@plugin\s+"([^"]+)"/) || [])[1] ?? null;
+  const proseBlock = cssBlocks(typographySrc)['@utility prose'] ?? '';
+  const prose = Object.entries(varsOf(proseBlock)).map(([name, value]) => ({ name, value }));
+  return { tokens, themeMap, themeUtilities, typography: { plugin, prose } };
 }
 
 // ── 2. 组件抽取 ─────────────────────────────────────────────────────────────
@@ -253,7 +276,7 @@ function collectDemos() {
 
 // ── 4. 组装 catalog ─────────────────────────────────────────────────────────
 function build() {
-  const { tokens, themeMap, typography } = collectTokens();
+  const { tokens, themeMap, themeUtilities, typography } = collectTokens();
   const tokenNames = new Set(tokens.map((t) => t.name));
   const allSrcFiles = walk(SRC, ['.tsx', '.ts']);
   const notes = collectNotes();
@@ -286,8 +309,9 @@ function build() {
     missingNotes,
     missingDemos,
     unknownNotes,
-    themeUtilities: Object.keys(themeMap).length,
-    typographyUtilities: (typography.match(/@utility/g) || []).length,
+    themeUtilities,
+    typography,
+    themeUtilityCount: Object.keys(themeMap).length,
   };
   return { catalog, missingNotes, missingDemos, unknownNotes };
 }
@@ -305,11 +329,13 @@ export type UiComponent = {
   category: string; notes: UiNotes;
 };
 export type UiToken = { name: string; light: string; dark: string | null; group: string; utilities: string[] };
+export type UiThemeUtility = { name: string; value: string; group: string };
+export type UiTypography = { plugin: string | null; prose: { name: string; value: string }[] };
 export type UiCatalog = {
   stats: { components: number; lines: number; dead: number; tokens: number; withNotes: number; withDemo: number };
   categories: string[]; components: UiComponent[]; tokens: UiToken[];
   missingNotes: string[]; missingDemos: string[]; unknownNotes: string[];
-  themeUtilities: number; typographyUtilities: number;
+  themeUtilities: UiThemeUtility[]; typography: UiTypography; themeUtilityCount: number;
 };
 `;
 
@@ -322,7 +348,7 @@ function renderAgentMd(c) {
     '> `ui-components.notes.md` 补一段注记，然后 `npm run ui:generate`。', '',
     `## 概览（自动统计）`, '',
     `- 组件 **${c.stats.components}** 个 / ${c.stats.lines} 行；死组件（零引用）**${c.stats.dead}** 个`,
-    `- 设计 token **${c.stats.tokens}** 个；Tailwind 映射 ${c.themeUtilities} 条`,
+    `- 语义 token **${c.stats.tokens}** 个；Tailwind 工具类映射 ${c.themeUtilityCount} 条；排版：字体 ${c.typography ? 3 : 0} 族 + prose 映射 ${c.typography?.prose.length ?? 0} 条`,
     `- 注记覆盖 **${c.stats.withNotes}/${c.stats.components}**；展示页 demo 覆盖 **${c.stats.withDemo}/${c.stats.components}**`,
     '', '## 按分类速查', '', '| 分类 | 组件 |', '|---|---|');
   for (const cat of CATEGORIES) {
@@ -365,7 +391,9 @@ function renderHumanMd(c) {
     '| 项 | 数值 |', '|---|---|',
     `| 组件文件 | ${c.stats.components} 个 / ${c.stats.lines} 行 |`,
     `| 死组件（零引用） | ${c.stats.dead} 个 |`,
-    `| 设计 token | ${c.stats.tokens} 个（Tailwind 映射 ${c.themeUtilities} 条） |`,
+    `| 语义 token（:root/.dark） | ${c.stats.tokens} 个 |`,
+    `| Tailwind 工具类映射（@theme inline） | ${c.themeUtilityCount} 条 |`,
+    `| 字体族 / prose 映射（typography.css） | ${c.typography.prose.length ? 3 : 0} / ${c.typography.prose.length} |`,
     `| 语义注记覆盖 | ${c.stats.withNotes}/${c.stats.components} |`,
     `| 展示页 demo 覆盖 | ${c.stats.withDemo}/${c.stats.components} |`, '',
     '## 2. 设计 token（自动从 `src/tailwind-theme.css` 抽取）', '',
@@ -378,21 +406,42 @@ function renderHumanMd(c) {
     }
     L.push('');
   }
-  L.push('## 3. 组件规格', '', '| 组件 | 分类 | 行数 | variant | size | 引用 | 死组件 | 文件 |', '|---|---|---|---|---|---|---|---|');
+  L.push('## 3. Tailwind 工具类映射（`@theme inline` 权威表）', '',
+    '> 写 UI **用这一列的工具类**，不要硬编码数值（V-002）。', '',
+    '| @theme token | 值 | 分类 | 对应工具类 |', '|---|---|---|---|');
+  for (const t of c.themeUtilities) {
+    const util = t.name.startsWith('--color-')
+      ? `bg-${t.name.slice(8)} / text-${t.name.slice(8)} / border-${t.name.slice(8)}`
+      : t.name.startsWith('--radius-')
+        ? `rounded-${t.name.slice(9)}`
+        : t.name.startsWith('--shadow-')
+          ? `shadow-${t.name.slice(9)}`
+          : t.name.startsWith('--font-')
+            ? `font-${t.name.slice(7)}`
+            : '—';
+    L.push(`| \`${t.name}\` | \`${t.value}\` | ${t.group} | \`${util}\` |`);
+  }
+  L.push('', '### 3.1 排版（typography）', '',
+    `- 插件：${c.typography.plugin ? `\`${c.typography.plugin}\`` : '（无）'}`,
+    '- 字体族：`font-sans`（界面默认）· `font-mono`（代码/数字/ID）· `font-serif`（长文衬线，少用）',
+    '- 标题字号**必须用尺度 token**（禁 `text-[Npx]`，V-003）；长文正文用 `prose`（其 token 映射如下）', '',
+    '| prose token | 值 |', '|---|---|');
+  for (const p of c.typography.prose) L.push(`| \`${p.name}\` | \`${p.value}\` |`);
+  L.push('', '## 4. 组件规格', '', '| 组件 | 分类 | 行数 | variant | size | 引用 | 死组件 | 文件 |', '|---|---|---|---|---|---|---|---|');
   for (const x of c.components) {
     const v = x.variants.find((z) => z.name === 'variant');
     const s = x.variants.find((z) => z.name === 'size');
     L.push(`| \`${x.name}\` | ${x.category} | ${x.lines} | ${v ? v.values.join('/') : '—'} | ${s ? s.values.join('/') : '—'} | ${x.usage.count} | ${x.dead ? '⚠️' : ''} | \`${x.file.replace(/^apps\/web\//, '')}\` |`);
   }
-  L.push('', '## 4. 死组件清单（决定删 / 留 / 合并）', '',);
+  L.push('', '## 5. 死组件清单（决定删 / 留 / 合并）', '',);
   const dead = c.components.filter((x) => x.dead);
   L.push(dead.length ? dead.map((x) => `- \`${x.name}\`（${x.lines} 行，\`${x.file}\`）`).join('\n') : '（无）', '',
-    '## 5. 怎么成长（新增/修改组件时）', '',
+    '## 6. 怎么成长（新增/修改组件时）', '',
     '1. 改/加组件代码（`src/components/ui/*.tsx`，沿用 `cva` + `data-slot` 约定）。',
     '2. 在 `.agents/skills/frontend-coding/ui-components.notes.md` 补一段 `## <组件名>`（分类/何时用/别用/反例/相关）。',
     '3. 在 `src/pages/dev/ui-kit/demos/<分类>.tsx` 加一条 demo（展示页与截图基线要用）。',
     '4. `npm run ui:generate`，把生成物一起提交；漏做任何一步 `npm run ui:check` 会红（CI 同款）。', '',
-    '## 6. 可视化展示页', '',
+    '## 7. 可视化展示页', '',
     '`npm run dev` 后打开 **`/dev/ui-kit`**（仅开发环境注册，prod 构建不含）——按分类渲染全部组件与变体、',
     'token 色板，并标注缺 demo 的组件。');
   return L.join('\n') + '\n';
