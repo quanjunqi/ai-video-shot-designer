@@ -12,7 +12,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡基本信息的 `**状态**：`，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（30 张）
+## 索引（31 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -46,10 +46,11 @@
 | TASK-SEC-004 | 鉴权改数据驱动（authHeader + authPrefix） | — | — | — | [TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md) |
 | TASK-SUPPLY-001 | ① 算力接入（设置中心）实施计划 | — | — | — | [TASK-SUPPLY-001-supply-access-plan-2026-10-11.md](TASK-SUPPLY-001-supply-access-plan-2026-10-11.md) |
 | TASK-UI-001 | UI 组件与设计 token 清单（专业级 · 可成长） | P1 | 进行中 | ✅ | [TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md) |
+| TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 待验收 | ✅ | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
 
 ## 现状（自动统计，供 Owner 看缺口）
 
-- 任务卡：**30** 张；写明 **优先级** 12 张、**状态** 3 张。
-- 验收清单：**1** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行）。
-- 说明：清单只统计**已落盘**的清单文件；`TASK-UI-001` 是本台账启用后第一张带验收清单的卡。
+- 任务卡：**31** 张；写明 **优先级** 13 张、**状态** 4 张。
+- 验收清单：**2** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 验收留痕机制自 `TASK-UI-001` 起启用。
 
