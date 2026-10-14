@@ -25,11 +25,12 @@ description: 当承接任何开发任务（新功能、修复、重构）时加�
 | AC-005 | PR 必须附勾对结果（通过项/未过项/原因） | PR 审查 |
 | AC-006 | 三态（loading/error/empty）与边界逐项过 | 审查 |
 | AC-007 | 反模式速查逐条自查（FE-*/BE-* 命中即改） | GATE + 审查 |
+| AC-008 | 清单必须落成文件：`.github/tasks/<TASK-ID>-acceptance.md`（与任务卡同目录；无任务卡时用 `<日期>-<简述>-acceptance.md`） | 文件存在 |
 
 ## 强制流程（每次开发）
 
 ```
-需求 → 1. 产验收清单（需求点→可验证判据）
+需求 → 1. 产验收清单（复制 templates/ → `.github/tasks/<TASK-ID>-acceptance.md`）
       → 2. 对照设计稿逐点映射（设计稿每个模块都有需求来源）
       → 3. 开发（按编码规范写）
       → 4. 自检勾对（清单逐项：过/未过/原因）
@@ -50,5 +51,6 @@ description: 当承接任何开发任务（新功能、修复、重构）时加�
 ## 完整文档
 
 → `templates/acceptance-checklist.md`（验收清单模板，逐字段说明）
+→ `.github/tasks/README.md`（任务卡台账与清单命名）
 → `.agents/skills/frontend-coding`（怎么写代码，MUST 规则）
 → `.agents/skills/backend-coding`（怎么写代码，MUST 规则）
