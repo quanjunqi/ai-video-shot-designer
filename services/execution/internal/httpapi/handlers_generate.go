@@ -1,30 +1,25 @@
 package httpapi
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"shotdesigner/services/execution/internal/mapping"
-
+	"errors"
 	"fmt"
 	"io"
-
-	"shotdesigner/services/execution/internal/audit"
-	"shotdesigner/services/execution/internal/catalog"
-
-	"crypto/rand"
-	"shotdesigner/services/execution/internal/engine"
-
-	"net/http"
-
-	"shotdesigner/services/execution/internal/artifact"
-
 	"log/slog"
-	"shotdesigner/services/execution/internal/job"
-
+	"net/http"
 	"os"
-
 	"strings"
 	"time"
+
+	"shotdesigner/services/execution/internal/artifact"
+	"shotdesigner/services/execution/internal/audit"
+	"shotdesigner/services/execution/internal/breaker"
+	"shotdesigner/services/execution/internal/catalog"
+	"shotdesigner/services/execution/internal/engine"
+	"shotdesigner/services/execution/internal/job"
+	"shotdesigner/services/execution/internal/mapping"
 )
 
 // Quota 为 nil 时不做限流与成本判定（便于渐进启用与测试）
@@ -111,8 +106,24 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 	//     返回第一个候选的原始状态码与文案（单候选场景与改动前逐字一致）
 	//   - 引擎调用失败：仍返回 200 + {ok:false, run:…}（与改动前一致），另加 attempts 轨迹
 	// 配置类失败用包级 cfgErr 承载（见文件末尾），以便与引擎失败区分。
+	//
+	// T4 单元熔断：候选先经 Breaker 过滤（冷却中的单元不消耗尝试次数）；引擎失败按
+	// 表 3-1 分类 —— 硬 4xx/内容安全拒绝 ⇒ HardFailure 直返（不切换）；软 4xx/5xx/超时
+	// ⇒ 计入失败计数并继续切换；成功 ⇒ 重置该单元。
 	var firstCfgErr *cfgErr
 	var lastOut engine.RunResult
+	if h.Breaker != nil {
+		filtered, filterErr := h.Breaker.FilterHealthy(r.Context(), unitsOf(candidates))
+		if errors.Is(filterErr, breaker.ErrUnitCooling) {
+			writeError(w, 503, "ALL_UNITS_COOLING", "all candidate units are cooling")
+			return
+		}
+		if filterErr != nil {
+			// fail-open：DB 故障放行全部候选（FilterHealthy 已返回原序列），仅告警
+			_ = filterErr
+		}
+		candidates = candidatesOf(filtered, candidates)
+	}
 	used, attempts, attemptErr := catalog.AttemptEach(candidates, func(m catalog.Model) error {
 		if m.ProtocolTemplateID == "" {
 			e := &cfgErr{status: 422, code: "MODEL_NO_PROTOCOL", msg: "model has no protocol template; attach one first"}
@@ -152,9 +163,34 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 			Runtime:          in.Runtime,
 		}, h.EngineClient)
 		lastOut = out
-		return err
+		if err != nil {
+			// T4 表 3-1：按错误码分类决定切换/直返；失败计入该单元（软 4xx/5xx/超时/网络）
+			cls := breaker.Classify(out.Status, false)
+			if h.Breaker != nil {
+				switch cls {
+				case breaker.ClassHard4xx, breaker.ClassContentSafety:
+					// 硬失败不计数（换渠道无意义）
+				default:
+					h.Breaker.RecordFailure(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel})
+				}
+			}
+			if cls == breaker.ClassHard4xx || cls == breaker.ClassContentSafety {
+				return &catalog.HardFailure{Status: out.Status, Msg: err.Error()}
+			}
+			return err
+		}
+		if h.Breaker != nil {
+			h.Breaker.RecordSuccess(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel})
+		}
+		return nil
 	})
 	if attemptErr != nil {
+		// T4 表 3-1：硬失败（硬 4xx / 内容安全拒绝）直接返回该候选的状态码与原因（不切换）
+		var hf *catalog.HardFailure
+		if errors.As(attemptErr, &hf) {
+			writeError(w, hf.Status, "UPSTREAM_HARD_FAILURE", hf.Msg)
+			return
+		}
 		if firstCfgErr != nil {
 			writeError(w, firstCfgErr.status, firstCfgErr.code, firstCfgErr.msg)
 			return
@@ -305,6 +341,23 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
 	}
+	// T4 单元熔断：冷却中的候选先剔除（不消耗尝试次数）；全部冷却 ⇒ 显式失败。
+	if h.Breaker != nil {
+		filtered, filterErr := h.Breaker.FilterHealthy(r.Context(), unitsOf(candidates))
+		if errors.Is(filterErr, breaker.ErrUnitCooling) {
+			writeAudit("failed", nil, "all candidate units are cooling", "", "")
+			writeError(w, 503, "ALL_UNITS_COOLING", "all candidate units are cooling")
+			return
+		}
+		if filterErr != nil {
+			// fail-open：DB 故障放行全部候选（FilterHealthy 已返回原序列），仅告警
+			_ = filterErr
+		}
+		candidates = candidatesOf(filtered, candidates)
+	}
+	// 此处保留 candidates[0] 用于预派发（协议模板/凭据检查、异步 job 创建）：
+	// 异步分支的失败切换不在这里做 —— 它落到 job，由 worker 按 attempt 推进候选
+	// （同一套顺序，见 catalog.PickForAttempt 注释）；同步分支的切换走下方 AttemptEach。
 	model := &candidates[0]
 	// 渠道已解析：从此之后的审计都能带上真实 channel_id。
 	auditChannelID = model.ChannelID
@@ -517,10 +570,36 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			Runtime:          runtime,
 		}, h.EngineClient)
 		out = o
-		return runErr
+		if runErr != nil {
+			// T4 表 3-1：硬失败（硬 4xx / 内容安全拒绝）直返不切换；软 4xx/5xx/超时/网络
+			// 计入失败计数并继续切换；成功重置该单元。
+			cls := breaker.Classify(o.Status, false)
+			if h.Breaker != nil {
+				switch cls {
+				case breaker.ClassHard4xx, breaker.ClassContentSafety:
+				default:
+					h.Breaker.RecordFailure(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel})
+				}
+			}
+			if cls == breaker.ClassHard4xx || cls == breaker.ClassContentSafety {
+				return &catalog.HardFailure{Status: o.Status, Msg: runErr.Error()}
+			}
+			return runErr
+		}
+		if h.Breaker != nil {
+			h.Breaker.RecordSuccess(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel})
+		}
+		return nil
 	})
 	auditTokenIn, auditTokenOut, auditTokenCached = engine.UsageFromExtracted(out.Extracted)
 	if syncErr != nil {
+		// T4 表 3-1：硬失败（硬 4xx / 内容安全拒绝）按上游状态码直返（不切换、不 200 包装）
+		var hf *catalog.HardFailure
+		if errors.As(syncErr, &hf) {
+			writeAudit("failed", nil, hf.Msg, "", "")
+			writeError(w, hf.Status, "UPSTREAM_HARD_FAILURE", hf.Msg)
+			return
+		}
 		respBytes, _ := json.Marshal(out)
 		writeAudit("failed", respBytes, out.Error, "", "")
 		writeJSON(w, 200, map[string]any{"ok": false, "status": "failed", "error": out.Error, "run": out, "attempts": syncAttempts})
@@ -633,3 +712,32 @@ func genRequestID() string {
 // cfgErr：配置类失败（无协议模板 / 模板缺失 / 取不到凭据）。
 // 为什么要区分：失败切换后若**所有**候选都是配置问题，必须保留**第一个**候选的原始
 // 状态码与文案（单候选场景与改动前逐字一致）；而引擎失败仍走 200 + {ok:false}（同改动前）。
+
+// unitsOf 把候选序列映射为熔断单元序列（T4，供 FilterHealthy 使用）。
+func unitsOf(cands []catalog.Model) []breaker.Unit {
+	out := make([]breaker.Unit, 0, len(cands))
+	for _, c := range cands {
+		out = append(out, breaker.Unit{ChannelID: c.ChannelID, ProviderModel: c.ProviderModel})
+	}
+	return out
+}
+
+// candidatesOf 把健康单元序列映射回候选序列（保持原顺序；FilterHealthy 返回的单元
+// 顺序与输入一致，因此按单元匹配重建候选即可）。
+func candidatesOf(healthy []breaker.Unit, orig []catalog.Model) []catalog.Model {
+	if len(healthy) == 0 || len(orig) == 0 {
+		return orig
+	}
+	healthySet := make(map[string]bool, len(healthy))
+	for _, u := range healthy {
+		healthySet[u.String()] = true
+	}
+	out := make([]catalog.Model, 0, len(orig))
+	for _, c := range orig {
+		key := breaker.Unit{ChannelID: c.ChannelID, ProviderModel: c.ProviderModel}.String()
+		if healthySet[key] {
+			out = append(out, c)
+		}
+	}
+	return out
+}
