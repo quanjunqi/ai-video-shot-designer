@@ -251,35 +251,44 @@ jobs:
           only-new-issues: true
           args: --timeout=5m
 
-      # 容器方式启动 MinIO（仅 asset job）。
-      # ⚠ MinIO 开源版已归档：dl.min.io 全部 410 Gone，GitHub Releases 已移除二进制 assets。
-      #   唯一可用通道是 Docker Hub minio/minio 镜像（runner 上 postgres:16 官方镜像可正常拉取，
-      #   该镜像同为 Docker Hub 分发；匿名配额限流时自动重试规避 429）。
-      #   启动参数 --address 绑定本机 9000，与 ASSET_TEST_S3_ENDPOINT=127.0.0.1:9000 对应。
-      - name: Start MinIO (asset 集成测试需要)
+      # 二进制方式启动 S3 兼容网关（仅 asset job）。
+      # ⚠ MinIO 开源版已归档，全部历史通道失效（逐一实测）：
+      #   dl.min.io = 410 Gone；GitHub Releases = 0 assets；Docker Hub minio/minio = 仓库不存在。
+      #   改用 SeaweedFS（GitHub Releases 有 linux_amd64 二进制，同域下载稳定，S3 API 兼容）。
+      #   固定版本 + gzip 校验保证可复现；S3 端口 9000 与 ASSET_TEST_S3_ENDPOINT 对应。
+      - name: Start S3 (SeaweedFS, asset 集成测试需要)
         if: steps.rel.outputs.run == 'true' && matrix.service == 'asset'
         run: |
-          for i in $(seq 1 5); do
-            if docker pull -q minio/minio:latest; then
-              echo "minio image pulled (attempt $i)"
-              break
-            fi
-            echo "docker pull minio 失败（第 $i 次），等待 30s 后重试"
-            sleep 30
-          done
-          docker run -d --rm --name ci-minio \
-            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
-            -p 9000:9000 minio/minio:latest server /data
+          curl -sL --retry 3 --retry-all-errors --max-time 300 \
+            -o /tmp/seaweed.tar.gz https://github.com/seaweedfs/seaweedfs/releases/download/4.48/linux_amd64.tar.gz
+          # 校验下载产物是 gzip（防止拿到限流错误页）
+          if [ "$(head -c 2 /tmp/seaweed.tar.gz | od -An -tx1 | tr -d ' \n')" != "1f8b" ]; then
+            echo "::error::SeaweedFS 下载产物非 gzip"
+            head -c 300 /tmp/seaweed.tar.gz
+            exit 1
+          fi
+          tar xzf /tmp/seaweed.tar.gz -C /tmp
+          WEED_BIN="$(find /tmp -maxdepth 2 -name weed -type f | head -1)"
+          if [ -z "$WEED_BIN" ]; then
+            echo "::error::未找到 weed 二进制"
+            tar tzf /tmp/seaweed.tar.gz | head
+            exit 1
+          fi
+          echo "weed bin: $WEED_BIN"
+          cat > /tmp/s3-config.json <<'JSON'
+{"identities":[{"name":"ci","credentials":[{"accessKey":"minioadmin","secretKey":"minioadmin"}]}]}
+JSON
+          "$WEED_BIN" server -s3 -s3.port=9000 -s3.config=/tmp/s3-config.json -dir=/tmp/weed-data > /tmp/s3.log 2>&1 &
           for i in $(seq 1 90); do
-            if curl -sf http://127.0.0.1:9000/minio/health/live > /dev/null 2>&1; then
-              echo "MinIO ready (attempt $i)"
+            if curl -s -o /dev/null http://127.0.0.1:9000/ 2>/dev/null; then
+              echo "S3 ready (attempt $i)"
               break
             fi
             sleep 1
           done
-          if ! curl -sf http://127.0.0.1:9000/minio/health/live > /dev/null 2>&1; then
-            echo "::error::MinIO 未就绪，日志如下"
-            docker logs ci-minio 2>&1 | tail -20
+          if ! curl -s -o /dev/null http://127.0.0.1:9000/ 2>/dev/null; then
+            echo "::error::S3 未就绪，日志如下"
+            cat /tmp/s3.log
             exit 1
           fi
 
