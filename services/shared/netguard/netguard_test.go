@@ -135,7 +135,7 @@ func TestClient_AllowPrivatePermitsLocalProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AllowPrivate 下本地请求应成功，实际: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != "OK" {
 		t.Fatalf("响应体异常: %q", body)
@@ -189,7 +189,7 @@ func TestClient_RequestWithContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("请求失败: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("状态码 %d", resp.StatusCode)
 	}

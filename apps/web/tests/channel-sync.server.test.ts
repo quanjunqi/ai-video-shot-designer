@@ -51,8 +51,16 @@ test('渠道卡片只读展示同步状态与上次同步时间（P2-1b）', () 
 });
 
 test('只读投影的类型与映射齐备（syncKind/syncModelsPath/syncPricingPath/lastSyncAt）', () => {
-  assert.match(CLIENT, /lastSyncAt/, 'ServerCatalogChannel 必须含 lastSyncAt');
-  assert.match(CLIENT, /syncModelsPath/, 'ServerCatalogChannel 必须含 syncModelsPath');
+  // 契约生成化后 ServerCatalogChannel 为 ApiSchemas['CatalogChannel'] 别名：
+  // ① client.ts 必须指向契约 schema（而非手写结构漂移）
+  assert.match(CLIENT, /ServerCatalogChannel = ApiSchemas\['CatalogChannel'\]/, 'ServerCatalogChannel 必须引用契约生成类型');
+  // ② 契约生成类型必须含 4 个平台侧同步投影字段（它们由契约声明、服务端返回）
+  const GEN = readFileSync(join(import.meta.dirname, '..', 'src', 'types', 'api-generated.ts'), 'utf8');
+  assert.match(GEN, /syncKind\?: string/, '契约必须声明 syncKind');
+  assert.match(GEN, /syncModelsPath\?: string/, '契约必须声明 syncModelsPath');
+  assert.match(GEN, /syncPricingPath\?: string/, '契约必须声明 syncPricingPath');
+  assert.match(GEN, /lastSyncAt\?: string \| null/, '契约必须声明 lastSyncAt');
+  // ③ store 仍必须把投影透传进 ChannelConfig
   assert.match(STORE, /lastSyncAt: c\.lastSyncAt/, 'store 必须把投影透传进 ChannelConfig');
 });
 

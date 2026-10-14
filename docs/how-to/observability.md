@@ -1,12 +1,15 @@
 # 日志与可观测性规范
 
-本文定义后端服务的日志、健康检查规范。
+本文定义后端服务的日志、指标、健康检查规范。
+统一实现位于 `services/shared/observability`（JSON slog 日志器、请求观测中间件、Prometheus text 格式指标端点）。
 
 ## 日志
 
 ### 用 slog，不要用标准 log 包
 
 新代码一律用 `log/slog`（Go 1.21+ 标准库）。旧代码随改动逐步替换。
+所有服务 `cmd/server` 启动时通过 `observability.NewJSONLogger(service)` 获得统一 JSON 日志器：
+`LOG_LEVEL=debug` 可开 Debug（生产默认 Info）；每条日志自动带 `service` 字段。
 
 ### 日志级别
 
@@ -21,16 +24,47 @@
 
 所有 Info 及以上日志必须带：
 
-- `service` — 服务名
+- `service` — 服务名（由日志器自动注入）
 - `request_id` — 请求 ID，跨服务透传
 - `workspace_id` — 租户 ID（可用时）
 - `actor_id` — 操作者 ID（可用时）
+
+### 请求日志中间件（每个 HTTP 服务必配）
+
+所有服务（workspace / production / execution / asset / web-bff）的 Handler 必须包一层
+`observability.WithObservability(logger, metrics)`，它负责：
+
+- **request_id 链路**：从 `X-Request-ID` 透传（上游已带则沿用，否则生成 32 位 hex）；
+  回写响应头，并写入 context（`observability.RequestIDFrom(ctx)`）。
+- **结构化日志**：每条请求记录 `method / path / status / latency_ms / request_id / workspace_id / actor_id`。
+- **指标采集**：计数与耗时进入进程内累加器，`GET /metrics` 输出。
+
+### request_id 跨服务透传
+
+- BFF 是前端唯一入口，负责链路 ID 的生成与透传：其 `httpClient` 使用
+  `requestIDTransport`（`RoundTrip` 从 context 取 request_id 自动注入每个上游请求头），
+  **各转发 handler 无需逐处复制 header**。
+- 服务间直接调用（如 execution 调 production catalog）同样经各自 http.Client 时，
+  需要透传的调用方用 `observability.WithRequestID(ctx, id)` + Transport 注入，或显式设置 `X-Request-ID`。
 
 ### 日志里不能出现什么
 
 - API Key、Secret、完整 Authorization 头
 - 用户隐私原文（剧本全文等）
 - 数据库连接串里的密码
+
+## 指标
+
+每个 HTTP 服务暴露 `GET /metrics`（Prometheus text 格式，零第三方依赖）：
+
+| 指标 | 类型 | 含义 |
+|---|---|---|
+| `http_requests_total{method,path,status}` | counter | 请求计数（按方法/路径/状态码） |
+| `http_request_duration_seconds{method,path}` | summary | 请求耗时（sum + count，可算均值/分位） |
+| `go_goroutines` | gauge | 当前 goroutine 数 |
+| `go_heap_bytes` | gauge | 当前堆内存字节数 |
+
+抓取端（如 Prometheus / Grafana / 自建采集）按 `service` label 区分服务。
 
 ## 健康检查
 

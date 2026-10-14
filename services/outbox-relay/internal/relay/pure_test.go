@@ -1,4 +1,4 @@
-package main
+package relay
 
 import (
 	"encoding/hex"
@@ -49,7 +49,7 @@ func TestEnvFallsBackOnUnsetAndEmpty(t *testing.T) {
 			if c.set != nil {
 				t.Setenv("RELAY_TEST_KEY", *c.set)
 			}
-			if got := env("RELAY_TEST_KEY", "fallback"); got != c.want {
+			if got := Env("RELAY_TEST_KEY", "fallback"); got != c.want {
 				t.Fatalf("期望 %q，得到 %q", c.want, got)
 			}
 		})
@@ -73,7 +73,7 @@ func TestEnvIntOnlyAcceptsPositiveNumbers(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Setenv("RELAY_TEST_INT", c.set)
-			if got := envInt("RELAY_TEST_INT", 7); got != c.want {
+			if got := EnvInt("RELAY_TEST_INT", 7); got != c.want {
 				t.Fatalf("期望 %d，得到 %d", c.want, got)
 			}
 		})

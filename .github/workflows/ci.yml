@@ -26,6 +26,7 @@ jobs:
       frontend: ${{ steps.detect.outputs.frontend }}
       backend: ${{ steps.detect.outputs.backend }}
       security: ${{ steps.detect.outputs.security }}
+      openapi: ${{ steps.detect.outputs.openapi }}
       services: ${{ steps.detect.outputs.services }}
       reason: ${{ steps.detect.outputs.reason }}
     steps:
@@ -103,10 +104,24 @@ jobs:
         working-directory: apps/web
         run: npm run gate
 
+      - name: Contract sync check (契约生成类型同步)
+        if: needs.changes.outputs.frontend == 'true'
+        working-directory: apps/web
+        run: npm run api:check
+        # 说明：openapi/bff.yaml 或前端类型有改动时，生成类型必须与契约同步（openapi/* 已并入 frontend=true）。
+        # openapi-typescript --check 在生成物过期时退出非 0，阻断契约漂移（类型不一致）合入。
+
       - name: Unit tests
         if: needs.changes.outputs.frontend == 'true'
         working-directory: apps/web
         run: npm test
+
+      # 视觉回归（visual:check）定位为【本地交付工具 + L3 人工兜底】，不上 CI：
+      #  基线在 macOS 本机生成入库，CI 为 ubuntu runner，跨平台字体渲染差异会稳定越过
+      #  2% 阈值造成假阳性（本 PR 首次上 CI 即实测失败，本地同基线 0.00% 通过）。
+      #  CI 前端门禁以 typecheck + eslint + quality-gate + contract sync + unit tests 为准；
+      #  布局质量仍由 frontend-quality 的 8 维度自检 + L3 浏览器截图兜底。
+      #  本地使用：npm run visual:check（有基线改动时先 npm run visual:baseline）。
 
       - name: Skipped (无前端改动)
         if: needs.changes.outputs.frontend != 'true'
@@ -140,13 +155,29 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U shotdesigner -d postgres"
           --health-interval 5s --health-timeout 5s --health-retries 12
+      # asset 的 Put/Commit/GetContent 集成测试需要真实对象存储
+      # （store_minio_integration_test.go / handler_integration_test.go）。
+      # 口令是 CI 一次性凭据，不是任何真实密钥。
+      # ★ MinIO 开源版 2025-10 归档后全部分发通道关闭（逐一实测）：
+      #   dl.min.io 410 Gone；GitHub Releases 二进制 assets 清空；Docker Hub
+      #   minio/minio 仓库移除（pull access denied）。故在公网服务器
+      #   (120.25.150.72:9000) 部署真实 MinIO 容器供 CI 直连：
+      #   - 保持被测对象是真实 MinIO，不改中间件；
+      #   - 凭据通过 repo secrets 注入（仓库 public，禁止明文写密码）；
+      #   - 测试数据无敏感，端点走 HTTP（Secure=false）。
     env:
-      # 三个服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
+      # 各服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
       # 它们都自建【随机 schema】并在结束时清理 ⇒ 共用同一个库是安全的。
       EXECUTION_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
       PRODUCTION_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
       WORKSPACE_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
       ASSET_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
+      # outbox-relay 的 claim/ack/fail/runOnce 集成测试（表在 production 迁移里）
+      OUTBOX_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
+      # asset MinIO 集成测试：直连公网真实 MinIO（120.25.150.72:9000，安全组已放行）
+      ASSET_TEST_S3_ENDPOINT: 120.25.150.72:9000
+      ASSET_TEST_S3_ACCESS_KEY: ${{ secrets.ASSET_TEST_S3_ACCESS_KEY }}
+      ASSET_TEST_S3_SECRET_KEY: ${{ secrets.ASSET_TEST_S3_SECRET_KEY }}
     strategy:
       # fail-fast: false —— 一个服务失败不应取消其余服务的检查，
       # 否则日志只显示 cancelled，会掩盖其它服务的真实结果。
@@ -182,7 +213,7 @@ jobs:
         if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.26.9' # 锁定含 GO-2026-6617 修复的版本（net/http HPACK 竞态，1.26.8 受影响）；与各服务 go.mod 的 go 1.26.0 补丁版本兼容
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
@@ -221,6 +252,9 @@ jobs:
           working-directory: services/${{ matrix.service }}
           only-new-issues: true
           args: --timeout=5m
+
+      # asset 的 S3 集成测试直连公网真实 MinIO（120.25.150.72:9000），
+      # 凭据走 repo secrets（见上方 env 注释）。无需在本机再启动 S3 服务。
 
       - name: Test
         if: steps.rel.outputs.run == 'true'
@@ -307,11 +341,44 @@ jobs:
         if: needs.changes.outputs.security == 'true'
         uses: actions/checkout@v7
 
+      # W6：govulncheck 需要 Go 工具链（ubuntu-latest 不自带）——版本与 backend 一致，
+      # 最新 1.25 patch 同时消除标准库 net/http 漏洞。
+      - name: Setup Go
+        if: needs.changes.outputs.security == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.9' # 锁定含 GO-2026-6617 修复的版本（govulncheck 扫描本标准库漏洞）；与 go.mod go 1.26.0 补丁版本兼容
+
+      # W6：secrets 扫描 —— 检出硬编码密钥/凭据/Token 即阻断（零权限依赖：直接跑官方二进制）
+      - name: Gitleaks secrets scan
+        if: needs.changes.outputs.security == 'true'
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp
+          /tmp/gitleaks detect --source=. --no-banner --redact --config=.gitleaks.toml
+
       - name: Run Gosec Security Scanner
         if: needs.changes.outputs.security == 'true'
         uses: securego/gosec@master
         with:
           args: ./services/...
+
+      # W6：Go 依赖漏洞扫描（govulncheck，覆盖全部 7 个 module）。
+      # 退出码语义：0=无漏洞；1=代码受影响的漏洞（阻断）；3=依赖含漏洞但代码未调用（放行并提示）。
+      # 标准库漏洞由 setup-go 的 1.25.x 最新 patch 消除；工具链漏洞不在此阻断。
+      - name: Govulncheck (Go dependencies)
+        if: needs.changes.outputs.security == 'true'
+        run: |
+          for dir in shared workspace production execution asset web-bff outbox-relay; do
+            (cd "services/$dir" && go run golang.org/x/vuln/cmd/govulncheck@latest -mode=source ./...)
+            code=$?
+            case $code in
+              0) ;;
+              1) echo "::error::govulncheck：$dir 存在受影响漏洞"; exit 1 ;;
+              3) echo "::warning::govulncheck：$dir 依赖含漏洞但代码未调用（放行）" ;;
+              *) echo "::error::govulncheck 异常退出码 $code（$dir）"; exit 1 ;;
+            esac
+          done
 
       # 生产依赖：高危/严重直接阻断（当前 0 high / 0 critical，应始终通过）
       # 必须显式指定官方 registry：apps/web/.npmrc 指向 npmmirror，而该镜像未实现

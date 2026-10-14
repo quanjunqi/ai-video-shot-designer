@@ -562,7 +562,7 @@ export default function SettingsChannelsPage() {
                   </div>
                   {editForm.syncKind !== 'none' && (
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
+                      <div className="min-w-0 space-y-1.5">
                         <Label className="text-xs text-muted-foreground">模型列表路径</Label>
                         <Input value={editForm.syncModelsPath} onChange={(e) => setEditForm({ ...editForm, syncModelsPath: e.target.value })} placeholder="/v1/models" className="font-mono text-xs" />
                       </div>

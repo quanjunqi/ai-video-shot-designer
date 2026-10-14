@@ -1,7 +1,7 @@
 // 项目级道具库（Prop Bible）：全剧通用道具设定管理
 // 功能：道具卡片网格、新增/编辑/删除道具、道具详情展示、从剧本批量提取
 import { useState, useMemo } from 'react';
-import { Package, Plus, Trash2, Edit3, X, Save, Sparkles, Loader2, Check, BookOpen } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Save, Sparkles, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -98,7 +98,7 @@ export default function ProjectPropLibrary({ projectId }: { projectId: string })
 
   const openEdit = (prop: ProjectProp) => {
     setEditingId(prop.id);
-    const { id, projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = prop;
+    const { projectId: _pid, createdAt: _c, updatedAt: _u, ...rest } = prop;
     setForm(rest);
     setEditOpen(true);
   };

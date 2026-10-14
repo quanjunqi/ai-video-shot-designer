@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"os"
@@ -15,7 +15,7 @@ import (
 // 并用 B 的凭据去上游调用 —— 这类缺陷**不会报错**，只会用错人的钱与凭据，
 // 人眼审查极难发现（本项目已因此栽过多次）。
 func TestWorkerHasNoHardcodedWorkspace(t *testing.T) {
-	b, err := os.ReadFile("main.go")
+	b, err := os.ReadFile("worker.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,14 +41,14 @@ func TestWsOfFallsBackForLegacyJobs(t *testing.T) {
 // 审计清理（purge）**刻意**挂在哨兵值下：它不是任何租户的行为。
 // 我最初的全局替换误伤过它 ⇒ 钉一条不变量记住这个决定。
 func TestAuditPurgeStaysUnderSystemWorkspace(t *testing.T) {
-	b, err := os.ReadFile("main.go")
+	b, err := os.ReadFile("purger.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	src := string(b)
-	idx := strings.Index(src, "func runAuditPurger(")
+	idx := strings.Index(src, "func RunAuditPurger(")
 	if idx < 0 {
-		t.Fatal("未找到 runAuditPurger")
+		t.Fatal("未找到 RunAuditPurger")
 	}
 	body := src[idx:]
 	if end := strings.Index(body, "\nfunc "); end > 0 {
