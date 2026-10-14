@@ -213,7 +213,7 @@ jobs:
         if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.x' # 与各服务 go.mod 的 go 1.26.0 一致；若低于 go.mod，GOTOOLCHAIN=auto 会下载另一版本并污染 GOCACHE（compile: version mismatch）
+          go-version: '1.26.9' # 锁定含 GO-2026-6617 修复的版本（net/http HPACK 竞态，1.26.8 受影响）；与各服务 go.mod 的 go 1.26.0 补丁版本兼容
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
@@ -347,7 +347,7 @@ jobs:
         if: needs.changes.outputs.security == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.x' # 与 go.mod go 1.26.0 一致（govulncheck 扫描同样本标准库）
+          go-version: '1.26.9' # 锁定含 GO-2026-6617 修复的版本（govulncheck 扫描本标准库漏洞）；与 go.mod go 1.26.0 补丁版本兼容
 
       # W6：secrets 扫描 —— 检出硬编码密钥/凭据/Token 即阻断（零权限依赖：直接跑官方二进制）
       - name: Gitleaks secrets scan
