@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T23:12:00+0800",
+  "updatedAt": "2026-10-15T23:35:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -46,7 +46,7 @@
     {
       "id": "TASK-CREATE-001",
       "title": "能力驱动的生成参数控件 schema",
-      "status": "unknown",
+      "status": "待验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md)"
@@ -54,7 +54,7 @@
     {
       "id": "TASK-CREATE-002",
       "title": "智能创作 Composer 布局与结果主舞台",
-      "status": "unknown",
+      "status": "待验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md)"
@@ -62,7 +62,7 @@
     {
       "id": "TASK-CREATE-003",
       "title": "结果元数据、参数复用与取消/重试",
-      "status": "unknown",
+      "status": "待验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md)"
@@ -70,7 +70,7 @@
     {
       "id": "TASK-CREATE-004",
       "title": "草稿持久化（按工作台分桶）",
-      "status": "unknown",
+      "status": "待验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-CREATE-004-draft-persistence.md](TASK-CREATE-004-draft-persistence.md)"
@@ -78,7 +78,7 @@
     {
       "id": "TASK-CREATE-005",
       "title": "风格库与镜头语言库接入提示词",
-      "status": "unknown",
+      "status": "待验收",
       "priority": "P2",
       "pr": null,
       "file": "[TASK-CREATE-005-style-lens-presets.md](TASK-CREATE-005-style-lens-presets.md)"
@@ -102,7 +102,7 @@
     {
       "id": "TASK-FIX-002",
       "title": "状态模型三处不一致的约束修复",
-      "status": "unknown",
+      "status": "已验收",
       "priority": null,
       "pr": null,
       "file": "[TASK-FIX-002-status-model-alignment.md](TASK-FIX-002-status-model-alignment.md)"
@@ -110,7 +110,7 @@
     {
       "id": "TASK-FIX-003",
       "title": "协议模板补齐 `pollPath`（异步轮询路径）",
-      "status": "unknown",
+      "status": "已验收",
       "priority": null,
       "pr": null,
       "file": "[TASK-FIX-003-protocol-poll-path.md](TASK-FIX-003-protocol-poll-path.md)"
@@ -150,7 +150,7 @@
     {
       "id": "TASK-INFRA-002",
       "title": "CI 按改动范围执行",
-      "status": "unknown",
+      "status": "待验收",
       "priority": null,
       "pr": null,
       "file": "[TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md)"
@@ -230,7 +230,7 @@
     {
       "id": "TASK-P2-001",
       "title": "Phase 2.1 — 统一 Executor 接口定义",
-      "status": "unknown",
+      "status": "待验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-P2-001-executor-interface.md](TASK-P2-001-executor-interface.md)"
@@ -294,7 +294,7 @@
     {
       "id": "TASK-SEC-003",
       "title": "auth_type 增加 `token`（无前缀 Authorization）",
-      "status": "unknown",
+      "status": "待验收",
       "priority": null,
       "pr": null,
       "file": "[TASK-SEC-003-auth-type-token.md](TASK-SEC-003-auth-type-token.md)"
@@ -302,7 +302,7 @@
     {
       "id": "TASK-SEC-004",
       "title": "鉴权改数据驱动（authHeader + authPrefix）",
-      "status": "unknown",
+      "status": "待验收",
       "priority": null,
       "pr": null,
       "file": "[TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md)"
@@ -354,6 +354,14 @@
       "priority": "P1（治理；排期 §5.5「验收闭环」的机制化）",
       "pr": null,
       "file": "[TASK-PROC-003/task.md](TASK-PROC-003/task.md)"
+    },
+    {
+      "id": "TASK-PROC-004",
+      "title": "存量台账真实化（13 张 unknown 卡逐卡核实与状态回填）",
+      "status": "待验收",
+      "priority": "P1（治理；排期 v2 §1.4 补正的执行）",
+      "pr": null,
+      "file": "[TASK-PROC-004/task.md](TASK-PROC-004/task.md)"
     }
   ]
 }
