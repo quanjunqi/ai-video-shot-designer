@@ -15,7 +15,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡 front-matter，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（40 张）
+## 索引（43 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -23,7 +23,7 @@
 | TASK-ASSET-001 | execution 产物落盘 MinIO（第一刀） | P0（ROADMAP #3，明确"建议提前做"） | 已验收（b8b9a31 已合并） | — | [TASK-ASSET-001-artifact-persist.md](TASK-ASSET-001-artifact-persist.md) |
 | TASK-AUDIT-001 | 审计能力实施清单（④ 如何做好审计） | P0（排期第一批第 5 刀） | 已验收（PR #197 已合并，2d32e05；D1–D7 全过，D8 访问控制归 AUTH-001，D9 不做） | ✅ | [TASK-AUDIT-001/task.md](TASK-AUDIT-001/task.md) |
 | TASK-AUDIT-002 | 审计业务归因列（T1） | — | 已验收（PR #165 已合并） | — | [TASK-AUDIT-002-attribution-columns.md](TASK-AUDIT-002-attribution-columns.md) |
-| TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 已合并（PR #203，fbffb64；判据 1/2/4/5 ✅、判据 3 ✅△、判据 6 ⏳ 待 Owner 真机走查） | ✅ | [TASK-AUTH-001/task.md](TASK-AUTH-001/task.md) |
+| TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 待验收（PR #203 已合并 fbffb64；判据 1/2/4/5 ✅、判据 3 ✅△、判据 6 ⏳ 待 Owner 真机走查） | ✅ | [TASK-AUTH-001/task.md](TASK-AUTH-001/task.md) |
 | TASK-CREATE-001 | 能力驱动的生成参数控件 schema | P1 | — | — | [TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md) |
 | TASK-CREATE-002 | 智能创作 Composer 布局与结果主舞台 | P1 | — | — | [TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md) |
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | — | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |
@@ -54,23 +54,25 @@
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |
 | TASK-SEC-001 | 模型网关出站 SSRF 防护 | P0（阶段1 第1项） | 已验收（PR #195 已合并，0b06a8d；8/8 验收标准） | ✅ | [TASK-SEC-001/task.md](TASK-SEC-001/task.md) |
-| TASK-SEC-002 | 配额与限流（QPS 令牌桶 + 日/月成本上限） | P0（排期第一批第 6 刀） | 已验收（PR #<待开>；10/10 验收标准） | ✅ | [TASK-SEC-002/task.md](TASK-SEC-002/task.md) |
+| TASK-SEC-002 | 配额与限流（QPS 令牌桶 + 日/月成本上限） | P0（排期第一批第 6 刀） | 已验收（PR #199 已合并，a5fe704；10/10 验收标准） | ✅ | [TASK-SEC-002/task.md](TASK-SEC-002/task.md) |
 | TASK-SEC-003 | auth_type 增加 `token`（无前缀 Authorization） | — | — | — | [TASK-SEC-003-auth-type-token.md](TASK-SEC-003-auth-type-token.md) |
 | TASK-SEC-004 | 鉴权改数据驱动（authHeader + authPrefix） | — | — | — | [TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md) |
 | TASK-SUPPLY-001 | ① 算力接入（设置中心）实施计划 | — | 已验收（供给池各 PR 已合并） | — | [TASK-SUPPLY-001-supply-access-plan-2026-10-11.md](TASK-SUPPLY-001-supply-access-plan-2026-10-11.md) |
 | TASK-UI-001 | UI 组件与设计 token 清单（专业级 · 可成长） | P1 | 进行中 | ✅ | [TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md) |
 | TASK-UI-002 | 组件库展示页受众分离改版（产品/设计可用） | P1 | 进行中 | ✅ | [TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md) |
-| TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 待验收 | ✅ | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
-| TASK-UI-004 | 死代码口径修正 + 零引用组件裁剪 | P2 | 待验收 | ✅ | [TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md) |
+| TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 已验收（PR #175 已合并；V-003b 门禁 + 989 处收敛） | ✅ | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
+| TASK-UI-004 | 死代码口径修正 + 零引用组件裁剪 | P2 | 已验收（PR #176 已合并；组件 55 → 42） | ✅ | [TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md) |
 
 ## 现状（自动统计，供 Owner 看缺口）
 
-- 任务卡：**42** 张（含 1 张 PLAN）；写明 **优先级** 23 张、**状态** 20 张。
-- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001/002、**INFRA-005（T13 验收）、FIX-001/004/005、INFRA-001/003/004、SEC-001/002、AUDIT-001**（共 24 张，代码/规则均已合并 develop）。
-- 已合并（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，PR #203 已合并 fbffb64）**；判据 6（Owner 真机三角色走查）待闭合
-- 待走查：**AUTH-001 判据 6（T13 判据 5，TopBar dev 身份切换）**
-- 待开工（P1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**；CREATE-001~006 / OBS-001 / FIX-002 / FIX-003 / P2-001 按排期推进。
+- 任务卡：**43** 张（含 1 张 PLAN）；写明 **优先级** 32 张、**状态** 29 张。
+- 已验收（25）：MODEL-001/003/004/005、AUDIT-001/002、ROUTE-001/002/003、ASSET-001、SUPPLY-001、OBS-002、PROC-001/002、INFRA-001/003/004/005（T13 验收）、FIX-001/004/005、SEC-001/002、UI-003/004（代码/规则均已合并 develop）。
+- 待验收（1）：**AUTH-001（模型中心权限矩阵，T13 判据 5，PR #203 已合并 fbffb64）**——判据 1/2/4/5 ✅、判据 3 ✅△，**判据 6（Owner 真机三角色走查）为 T13 唯一未闭合项**，走查指南见 `docs/how-to/t13-walkthrough-guide.md`。
+- 进行中（2）：UI-001（组件/token 清单）、UI-002（组件库改版）——CREATE 系列前置。
+- 待开工（1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**。
+- 未排期/无状态（14）：CREATE-001~006、OBS-001、FIX-002、FIX-003、P2-001、SEC-003/004、INFRA-002、PLAN-a-and-adr008-2026-10-10。
 - 排期唯一事实源：`docs/product/task-queue-plan-2026-10-15.md`（依赖链 + 批次 + 防重演约束）。
-- 验收清单：**10** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 验收清单：**19** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 开发日志：**5 个任务**（10 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 
