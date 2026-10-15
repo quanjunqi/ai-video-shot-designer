@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-16T01:00:00+08:00",
+  "updatedAt": "2026-10-16T01:30:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -30,6 +30,20 @@
         "额外发现：同步只给裸名字——tags 全空 / endpoint_types 全 [] / vendor 全 custom / pricing 0-79 / model_type 全占位 'model'"
       ],
       "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T01:30:00+08:00",
+      "phase": "Owner 澄清 + 拍板",
+      "action": "Owner 纠正我对逻辑模型的理解，并就 mock 渠道/加价方式/免费模型三项拍板；据此核实并第三次收缩卡范围",
+      "evidence": [
+        "纠正：逻辑模型 = 通用「模型分组/特殊收纳」机制，工作层也可用（主入口仍是模型广场）；免费模型只是案例；不替 Owner 建分组数据",
+        "核实该功能已存在：openapi/bff.yaml:1326/1368/1385/1411/1428（CRUD + /{id}/candidates）；apps/web/src/pages/SettingsLogicalModels.tsx 591 行；表 logical_models + model_catalog.logical_model_id（migration 025/026）",
+        "拍板1：mock 渠道全部删除（6 条，仅留 PearAPI）",
+        "拍板2：加价 = 原价 + 原价×比例%，逐模型可设 + 勾选批量；⚠️ 核实现有字段无『比例』（仅 cost_*/price_*/price_source/price_synced_at）⇒ 需新增且独立存储",
+        "拍板3：免费模型 Owner 自决，本卡只交付功能"
+      ],
+      "decisionRef": "D-007",
       "blockRef": null
     }
   ],
@@ -99,6 +113,40 @@
       "choice": "对齐官方文档（Owner 定）",
       "reason": "推断值会造出与官方不符的能力声明，导致请求被上游拒绝",
       "timing": "Owner 答复"
+    },
+    {
+      "id": "D-007",
+      "topic": "逻辑模型的范围（第二次纠正）",
+      "options": [
+        "只用于收纳免费模型",
+        "通用『模型分组/特殊收纳』机制，工作层也可用"
+      ],
+      "choice": "通用分组机制（Owner 澄清）",
+      "reason": "Owner：免费模型只是案例，不是唯一用途；主入口仍是模型广场。且核实发现功能已存在（契约+591行UI+候选绑定）⇒ 本卡改为验证可用+工作层接线，不造分组数据",
+      "timing": "Owner 澄清"
+    },
+    {
+      "id": "D-008",
+      "topic": "mock 渠道处置",
+      "options": [
+        "禁用",
+        "标注 demo",
+        "全部删除"
+      ],
+      "choice": "全部删除（Owner 拍板）",
+      "reason": "Owner 决定删除；需级联检查 model_catalog 中挂在 mock 渠道的行，迁移可追溯、不静默丢数据",
+      "timing": "Owner 拍板"
+    },
+    {
+      "id": "D-009",
+      "topic": "加价比例如何落地",
+      "options": [
+        "只存算好的 price_amount",
+        "独立存比例，售价=原价×(1+比例)"
+      ],
+      "choice": "独立存比例",
+      "reason": "现有字段无『比例』；原价变动时售价必须跟随 ⇒ 比例必须独立存储。Owner 要求逐模型可设 + 勾选批量设置",
+      "timing": "Owner 拍板"
     }
   ],
   "verifications": [
@@ -153,5 +201,9 @@
       "evidence": "本卡仅有四件套文档"
     }
   ],
-  "retrospective": null
+  "retrospective": {
+    "good": "坚持『未获口径不写数据』——三轮里每次拿不到口径都停下来问，避免了造第二份 mock",
+    "improve": "对『逻辑模型』连续两轮理解偏差（先按 dev-plan 的 5 个命名，再按『只收纳免费模型』），两次都是没先问清语义就动手。供需要求的语义要靠澄清，不能靠上下文推断",
+    "followups": "①能力档位待官方文档调研回填；②PearAPI 计费模式（按次/包月）待 Owner 确认，影响『免费』语义；③加价比例默认值/是否分档待定"
+  }
 }
