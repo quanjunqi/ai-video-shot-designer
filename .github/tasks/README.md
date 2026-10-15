@@ -29,7 +29,7 @@
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |
 | TASK-CREATE-004 | 草稿持久化（按工作台分桶） | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-004-draft-persistence.md](TASK-CREATE-004-draft-persistence.md) |
 | TASK-CREATE-005 | 风格库与镜头语言库接入提示词 | P2 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-005-style-lens-presets.md](TASK-CREATE-005-style-lens-presets.md) |
-| TASK-CREATE-006 | 参数三级披露 + 字段说明 + 表单/JSON 双视图 | P1 | — ⚠️ **编号冲突，暂停闭合**：ADR 分片 6 = 后端 `aspectRatios`（未交付），与本卡同号不同事。裁定见 TASK-PROC-004 | — | [TASK-CREATE-006-param-tiers-and-json-view.md](TASK-CREATE-006-param-tiers-and-json-view.md) |
+| TASK-CREATE-010 | 参数三级披露 + 字段说明 + 表单/JSON 双视图（原误标 CREATE-006，已正名） | P1 | 待验收（✅ 代码侧已实现；ADR 分片 6 = 后端 `aspectRatios` 已归位为独立待办） | — | [TASK-CREATE-010-param-tiers-and-json-view.md](TASK-CREATE-010-param-tiers-and-json-view.md) |
 | TASK-FIX-001 | 修复 project_characters 缺失建表迁移与 020 重复主键缺陷 | P0（阻塞级） | 已验收（e38b033 已合并；Docker 三类验证 2026-10-15） | ✅ | [TASK-FIX-001-project-characters-migration.md](TASK-FIX-001-project-characters-migration.md) |
 | TASK-FIX-002 | 状态模型三处不一致的约束修复 | — | 已验收（✅ 已实现；三迁移 + 文档 + CHANGELOG 齐备，逐条对上其验收标准） | — | [TASK-FIX-002-status-model-alignment.md](TASK-FIX-002-status-model-alignment.md) |
 | TASK-FIX-003 | 协议模板补齐 `pollPath`（异步轮询路径） | — | 已验收（✅ 已实现；UI 字段/校验/预览 + 迁移 029，4/4 验收标准命中） | — | [TASK-FIX-003-protocol-poll-path.md](TASK-FIX-003-protocol-poll-path.md) |
@@ -74,7 +74,9 @@
 - 进行中（1）：**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
 - ✅ **UI-001/UI-002 已按 v2 §3.3① 拆分闭合**：「交付段」判据机器验证通过（`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42）→ 记已验收；「维护段」（新增组件必须同步清单）已由 CI `ui:check` 步骤长期强制，**不再占用卡片状态**。⇒ **CREATE 系列的组件基座依赖已解除**。
 - 待开工（0）：—
-- **仍未填写状态（2）**：`PLAN-a-and-adr008-2026-10-10`（文档类，非任务，不适用）、**`TASK-CREATE-006`（⚠️ 编号冲突，暂停闭合**——ADR 分片 6 = 后端 `aspectRatios`（未交付）与本卡同号不同事，裁定见 TASK-PROC-004）。
+- **仍未填写状态（1）**：`PLAN-a-and-adr008-2026-10-10`（文档类，非任务，不适用）。
+- ✅ **CREATE-006 编号冲突已按 ADR 分片表裁定并正名（2026-10-15）**：平铺卡重编号为 **`TASK-CREATE-010`**（内容不变，记待验收）；**ADR 分片 6 = 后端 `capability.aspectRatios` 归位为独立待办**，列入 `plans/` 分片待办台账。
+- 🆕 **真实待办源**：**`plans/2026-10-15-adr-shard-backlog.md`**（ADR 分片 6~13，2026-10-15 核实发现台账"未排期卡"多为已实现，故改用分片表定待办范围）。
 - 排期唯一事实源：**`docs/product/task-queue-plan-v2-2026-10-15.md`**（依赖链 + 冲突面 + 波次/并行池 + 验收时间盒 + 防重演约束）。v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
 - **⚠️ 存量卡大面积"已实现未闭环"已核实并回填（2026-10-15）**：13 张原 `unknown` 卡逐卡核实，结果为 2 张已验收 + 10 张转为待验收 + 1 张编号冲突暂停。**排期不应再把这些卡读作"待开发"**，见 v2 §1.4。
 - **待人工动作（v2 §3.1 第 0 波）**：① 合并①→⑥ 六个 PR ② **一场走查闭合 4 条判据**（AUTH-001 判据 6 + INFRA-005 判据 1/4/5）③ **IA-001 设计稿评审**（设计稿 §7 五项勾选表）④ **确认 CREATE-006 编号裁定**（TASK-PROC-004）。

@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T23:45:00+0800",
+  "updatedAt": "2026-10-16T00:05:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -84,12 +84,12 @@
       "file": "[TASK-CREATE-005-style-lens-presets.md](TASK-CREATE-005-style-lens-presets.md)"
     },
     {
-      "id": "TASK-CREATE-006",
-      "title": "参数三级披露 + 字段说明 + 表单/JSON 双视图",
-      "status": "unknown",
+      "id": "TASK-CREATE-010",
+      "title": "参数三级披露 + 字段说明 + 表单/JSON 双视图（原误标 CREATE-006，已正名）",
+      "status": "待验收",
       "priority": "P1",
       "pr": null,
-      "file": "[TASK-CREATE-006-param-tiers-and-json-view.md](TASK-CREATE-006-param-tiers-and-json-view.md)"
+      "file": "[TASK-CREATE-010-param-tiers-and-json-view.md](TASK-CREATE-010-param-tiers-and-json-view.md)"
     },
     {
       "id": "TASK-FIX-001",

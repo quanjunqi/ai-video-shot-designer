@@ -64,6 +64,12 @@ depends_on: TASK-PROC-003（台账校验门禁）
 
 > 未经 Owner 确认前，**不重编号、不闭合 CREATE-006**；本卡只登记裁定与证据。
 
+> ✅ **执行记录（2026-10-15，后续提交）**：Owner 授权「按专业建议执行」后，本裁定已落地——
+> 平铺卡已 `git mv` 为 `TASK-CREATE-010-param-tiers-and-json-view.md`（内容不变，记「待验收」）；
+> **ADR 分片 6 = `capability.aspectRatios` 归位为独立待办**，列入 `.github/tasks/plans/` 分片待办台账。
+> 上文保留裁定当时的表述与旧文件名，作为审计链的一部分。
+
+
 ## 范围
 
 - ✅ 逐卡核实并留存证据（`file:line` / 迁移号 / CHANGELOG）
