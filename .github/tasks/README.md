@@ -12,7 +12,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡基本信息的 `**状态**：`，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（38 张）
+## 索引（40 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -20,6 +20,7 @@
 | TASK-ASSET-001 | execution 产物落盘 MinIO（第一刀） | P0（ROADMAP #3，明确"建议提前做"） | 已验收（b8b9a31 已合并） | — | [TASK-ASSET-001-artifact-persist.md](TASK-ASSET-001-artifact-persist.md) |
 | TASK-AUDIT-001 | 审计能力实施清单（④ 如何做好审计） | — | 待 Owner 确认（本卡只出清单，不动代码） | — | [TASK-AUDIT-001-audit-capability-plan.md](TASK-AUDIT-001-audit-capability-plan.md) |
 | TASK-AUDIT-002 | 审计业务归因列（T1） | — | 已验收（PR #165 已合并） | — | [TASK-AUDIT-002-attribution-columns.md](TASK-AUDIT-002-attribution-columns.md) |
+| TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 待开工（排期第一批第 8 刀） | 开工前产出 | [TASK-AUTH-001-model-center-permissions.md](TASK-AUTH-001-model-center-permissions.md) |
 | TASK-CREATE-001 | 能力驱动的生成参数控件 schema | P1 | — | — | [TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md) |
 | TASK-CREATE-002 | 智能创作 Composer 布局与结果主舞台 | P1 | — | — | [TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md) |
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | — | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |
@@ -31,11 +32,12 @@
 | TASK-FIX-003 | 协议模板补齐 `pollPath`（异步轮询路径） | — | — | — | [TASK-FIX-003-protocol-poll-path.md](TASK-FIX-003-protocol-poll-path.md) |
 | TASK-FIX-004 | 任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T13 验收缺口 1） | P0 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md) |
 | TASK-FIX-005 | 创建页积分 NaN/undefined 兜底（T13 验收缺口 2） | P1 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md) |
+| TASK-IA-001 | 模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板） | P1 | 待开工（排期第二批第 9 刀，设计稿先行） | 开工前产出 | [TASK-IA-001-ia-budget-relocation.md](TASK-IA-001-ia-budget-relocation.md) |
 | TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | — | — | — | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | — | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
 | TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | — | — | — | [TASK-INFRA-003-worker-reliability.md](TASK-INFRA-003-worker-reliability.md) |
 | TASK-INFRA-004 | 把「渠道探测」抽成一份公共能力（B3a） | — | **已确认，可开工**（Owner 2026-10-10：① 直接合并本清… | — | [TASK-INFRA-004-probe-extraction.md](TASK-INFRA-004-probe-extraction.md) |
-| TASK-INFRA-005 | P0 全链路集成验收（T13，dev-plan §9） | P0（M5 验收） | 已验收（判据 1/2/3/4 ✅；判据 5 依赖 T10 未验收，待补权限矩阵卡） | — | [TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md) |
+| TASK-INFRA-005 | P0 全链路集成验收（T13，dev-plan §9） | P0（M5 验收） | 已验收（判据 1/2/3/4 ✅；判据 5 依赖 AUTH-001 已建卡 P0，待开工） | — | [TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md) |
 | TASK-MODEL-001 | T0 权威价格校准 | P0 | 已验收（PR #164 已合并） | — | [TASK-MODEL-001-price-calibration.md](TASK-MODEL-001-price-calibration.md) |
 | TASK-MODEL-003 | T2-1 运营报表聚合查询 API | P0（A 轨 T2 第一刀） | 已验收（PR #166 已合并） | — | [TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md) |
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
@@ -59,9 +61,11 @@
 
 ## 现状（自动统计，供 Owner 看缺口）
 
-- 任务卡：**40** 张（含 1 张 PLAN）；写明 **优先级** 21 张、**状态** 18 张。
+- 任务卡：**42** 张（含 1 张 PLAN）；写明 **优先级** 23 张、**状态** 20 张。
 - 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001、**INFRA-005（T13 验收）、FIX-004/005**（共 18 张，代码/规则均已合并 develop）。
-- 待开工（底座 P0 缺口）：**无 P0 待开工**——T13 判据 1-4 全部闭合；剩余为判据 5（权限矩阵，依赖 T10，未建卡）。
+- 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；另有 FIX-001 / INFRA-001 / INFRA-003 / SEC-001 / SEC-002 / INFRA-004（AUDIT-001 实施）按排期文档顺序推进。
+- 待开工（P1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**；CREATE-001~006 / OBS-001 / FIX-002 / FIX-003 / P2-001 按排期推进。
+- 排期唯一事实源：`docs/product/task-queue-plan-2026-10-15.md`（依赖链 + 批次 + 防重演约束）。
 - 验收清单：**8** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 
