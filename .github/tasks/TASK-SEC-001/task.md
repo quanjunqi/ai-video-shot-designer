@@ -5,7 +5,7 @@ priority: P0
 depends_on: TASK-INFRA-004
 criteria: 8
 criteriaPassed: 8
-pr: "#<待开>"
+pr: "#195"
 ---
 
 # TASK-SEC-001：模型网关出站 SSRF 防护
