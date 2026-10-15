@@ -87,8 +87,13 @@
 ## 三、方案：四层结构（三层能力 + 一层别名）
 
 ```
-有效能力(渠道 × 模型) = 渠道覆盖 ?? 模型能力字典(canonical_provider_model) ?? 平台默认
+有效能力(渠道 × 模型) = 渠道覆盖 ?? 模型能力字典(upstream_model) ?? **NOASSERTION（显式「不知道」）**
 ```
+
+> ⚠️ **本公式已修正**：初稿写的是 `?? 平台默认`。经调研（K8s/SPDX）发现那是**静默断言缺陷**——
+> 当字典里**没有**该字段时落到 `platform_default`，等于**把一个你不知道的事实断言成真**。
+> 正确做法是解析为显式 `NOASSERTION`，由上层决定拒绝还是无约束放行。
+> **SPDX 的关键设计**：「字段缺席 ≡ `NOASSERTION`（不知道）」，而不是「无限制」。
 
 | 层 | 内容 | 权威来源 | 谁会改 / 多久改一次 | 现状 |
 |---|---|---|---|---|
@@ -185,19 +190,181 @@ channel_model_aliases(channel_id, relay_model_id, canonical_provider_model,
 
 ---
 
-## 七、待决策项（评审时定）
+## 七、五项决策结论（基于先例调研，Owner 2026-10-16 委托）
 
-| # | 决策 | 选项 |
-|---|---|---|
-| 1 | ①层字典的**键**用什么 | A `canonical_provider_model` 字符串 / B 引入"上游模型"独立实体（有 id 与别名集） |
-| 2 | 别名映射的 `canonical` 为空时怎么处理 | A 该模型**不可用**（fail-closed）/ B 可用但标"能力未知" |
-| 3 | ②层同步采到 `model_type` 后，**是否仍允许人工改类型** | A 人工覆盖优先 / B 渠道声明优先（人工只读） |
-| 4 | 官网不给的字段（如 Grok 全系无官方源）如何标注 | A 落第三方值 + 标来源 / B **不落值**，UI 显示"能力未核实" |
-| 5 | 是否把本方案提升为 **ADR** | A 是（触及供给单元语义）/ B 留在任务内 |
+> 调研方式：抓取**一手规范正文 + 活体 API**（OpenRouter `/api/v1/models` **实时 462 个模型**、
+> K8s `api-conventions`、SPDX 2.3.1、CycloneDX ECMA-424、SLSA v1.1、external-dns、
+> LiteLLM、one-api/new-api、AWS Bedrock 生命周期）。
+> ⚠️ **其中 D1 推翻了我的初步判断**（我原倾向"字符串起步"），调研证据表明应按 B 做。
 
-**我的倾向**：1-B（独立实体更干净，但成本高，可先用 1-A 起步）；2-B（可用但要显式标注，避免"静默不可用"）；3-A（人工兜底总是要留）；4-A + 显式标注（Owner 已指示可用非官方来源）；5-A。
+### D1 · 字典键 = **一等 `upstream_models` 实体**（B，非字符串）
 
----
+**先例（活体实测）**：OpenRouter 462 个模型中 **317 个（69%）可路由名 ≠ 权威快照名**；
+**88 个 canonical 实体被多个 id 共享**。它用**三个独立字段**处理命名：
+`id`（可路由）/ `canonical_slug`（权威快照，含日期）/ `alias_target`（`~…-latest` 追踪型别名，显式隔离）。
+LiteLLM 同样分四字段：`model_id`（代理 id）/ `model_name`（对外契约名）/ `model`（上游真名）/ **`base_model`（能力与计价锚点）**。
+HF Hub 用带类型的 `base_model` 关系 + `new_version` 显式换代指针。SPDX 7.2 明言需要唯一 id 才能表达元素间关系。
+
+**决定性理由（针对本项目）**：**我们其实已经选了 B** ——
+`channel_model_aliases(channel_id, relay_model_id, canonical_provider_model, confidence, source)`
+就是一张 B 形状的表（多对一 + 置信度 + 来源）。若能力字典用**裸字符串**做键，
+该列就退化为**无外键的软引用** ⇒ 改名/合并/拆分时**静默孤儿化**，
+且无法阻止 `claude-sonnet-4-5` / `claude-sonnet-4.5` / `anthropic/claude-sonnet-4-5` 被当成三个东西。
+**而且**：当同一模型经两个 relay 暴露**互相矛盾**的声明时，必须能说"这两条谈的是同一个东西"——这需要实体身份。
+
+```sql
+upstream_models(id, canonical_slug UNIQUE,  -- 含快照号，不可变，如 doubao-seedance-2-5-260628
+                provider, family, status)   -- status: active|legacy|eol（见 D2）
+model_capability_dict(upstream_model_id PK REFERENCES upstream_models(id), ...)
+upstream_model_aliases(alias UNIQUE PRIMARY KEY,      -- 唯一 ⇒ O(1) 反查
+                       upstream_model_id REFERENCES upstream_models(id),
+                       alias_kind,  -- vendor_snapshot|vendor_marketing|variant|latest_tracking|relay_id
+                       source)      -- auto_sync|manual|inferred_from_probe（见 D3-4）
+```
+
+**两条硬约束**：
+- **实体创建必须是人工/审核动作，同步只能创建别名**（否则表会被爬虫灌出重复实体——OpenRouter 的 374 个 canonical 是人工治理的结果）
+- **合并用软合并**：`merge_into(upstream_model_id)` 保留被合并实体、重指别名，**不物理删除**
+
+**若坚持字符串**：那它必须是**不可变带版本**形式（强制 `provider/model-YYYYMMDD`），并在别名表加指向"已知 canonical 名单"的 FK/CHECK。**做对了其实就是 B——只是少了实体表。**
+
+### D2 · canonical 未知时 = **可见可用但标 `unverified`**，fail-closed 只施加在"选择"上
+
+**先例**：
+- **K8s**：「Controllers should apply their conditions … **even if the `status` is Unknown**」——对象**永远可列出**，"是否可被调度选中"是**另一个**显式状态；`observedGeneration` 另表"观测是否过期"
+- **AWS Bedrock**：`Active`/`Legacy`/`EOL` 三态，**Legacy 仍可用**，只是"新客户不能采纳"
+- **OpenRouter**：462 个里有 **3 个 `supported_parameters` 为空数组，仍在上架且可路由**；未知用显式 token（`"quantization":"unknown"`）
+- **SPDX**：字段缺席 ≡ `NOASSERTION`，**不是"无限制"**
+- **HF Hub 的反面教训**：曾自动把一切 `config.json` 判为 transformers，2024-08 后**改为不推断** ⇒「宁可不给值，也不要给错值」
+
+**三段式规则**：
+
+| 环节 | 行为 |
+|---|---|
+| 上架/可见 | **fail-open**——未识别 canonical 也进目录，`capability_status='unverified'`，UI 带徽标 |
+| **能力驱动选择/推荐/规划** | **fail-closed**——不能被"9:16、10 秒、3 张参考图"这类约束查询自动选中 |
+| 显式执行（用户点名） | **fail-open** 放行，但能力按「未约束」处理，**绝不填 `platform_default`** |
+
+**理由（成本不对称，方向与直觉相反）**：这是**付费视频生成**。错误的能力断言（假阳性）会
+**烧掉上游额度 + 产生失败 Job + 让用户白等**，且 `gateway_audit_logs` 会记下一次
+"我们明知不确定却声称支持"的调用——在本仓审计纪律下这是**最难解释**的记录。
+反之假阴性只损失一个可能能用的模型，且用户可显式绕开。
+⇒ **发现阶段 fail-open（别藏），断言阶段 fail-closed（别声称你不知道的事）。**
+
+**必须配的升级路径**（否则 `unverified` 会成永久垃圾场）：
+同一 `(channel, relay_model_id)` 连续 N 次成功生成且回传参数一致 ⇒ 自动生成一条
+`relay_probe` 断言（confidence 0.8），甚至反推 canonical。**这条"观测反哺声明"闭环是自愈关键。**
+
+### D3 · **人工覆盖赢**，且必须**分表 + 分权限**（构造上冲不掉，不是约定上）
+
+**先例（Q3 的权威答案就在 K8s）**：
+- K8s `api-conventions`：`spec`（期望态，人工）与 `status`（观测态，控制器）**分字段、分授权**：
+  「controllers are granted **read-only access to `spec`** but full write access to `status`」；
+  且「**PUT/POST MUST ignore the `status` values**, to avoid accidentally overwriting」
+- K8s 默认化铁律：「**we never want to change or override a value that was provided by the user.
+  If they requested something invalid, they should get an error.**」
+  ⇒ 渠道声明 = "控制器赋的默认值"，人工覆盖 = "用户显式 spec" ⇒ **后者必须赢**
+- **external-dns**：手工记录要被纳管靠**补写所有权标记**（TXT `heritage=external-dns,owner=…`），
+  而非被覆写；`--policy=upsert-only` ⇒「**will not delete existing records**」
+- **LiteLLM**：按行打归属标记（`db_model`）+「config 模型不能被 UI 编辑」+
+  「**Choose one source of truth**」+「同键冲突时 DB 值绝对赢，改 YAML 无效」
+- **one-api README 自认**：渠道 `model_mapping` 是**有损**重写（「如无必要请不要设置…会导致请求体被重新构造而非直接透传」）
+  ⇒ **渠道声明本来就不该被当作能力真相来源**
+- **SPDX**：`Declared`（上游自述）与 `Concluded`（我们的结论）**是两个字段**，
+  且标准**强制要求"二者不一致时给出解释"**
+- **Wikidata**：「**弃用而不删除**」——保留错误陈述可防止他人重新加入
+
+**方案**：
+
+```sql
+-- 同步 Job 的唯一写目标（发现态，可随意覆写）
+channel_model_discovered(channel_id, relay_model_id, raw_declared JSONB,
+                         fetched_at, fetch_status,  -- ok|http_404|timeout|stale
+                         PRIMARY KEY (channel_id, relay_model_id))
+
+-- 人工写入；**同步 Job 的 DB 角色无任何写权限**（连 SQL 权限都不授予）
+channel_model_overrides(id, channel_id, upstream_model_id REFERENCES upstream_models(id),
+                        field, value JSONB, author_user_id, reason,
+                        created_at, superseded_by, status)
+```
+
+**解析顺序：人工覆盖 > 渠道声明 > 模型字典 > `NOASSERTION`**
+
+**四条约束**（否则人工覆盖会变成不可审计的暗改）：
+1. **字段白名单**：只允许覆盖 `aspect_ratios` / `duration_*` / `reference_image_max` /
+   `generation_modes` / `quality_tiers`；**禁止**覆盖认证、`base_url`、上游模型 id、渠道归属
+   （改了那些就是**换了一个供给单元**，应新建行而非覆盖）
+2. **强制 `author` + `reason`**（SPDX 的 "should be explained"）
+3. **`value` 必须过与模型字典同一套 JSON Schema 校验** ⇒ 非法值**报错**，不静默纠正（K8s 铁律）
+4. **UI 必须显式展示三层来源**（override / channel-declared / inherited）并对冲突打警告徽标
+
+**同步绝不冲刷人工值的三道保险**：
+- **权限层**：同步角色的 DB 权限里**没有** overrides 的 INSERT/UPDATE/DELETE ⇒ **构造上不可能**
+- **只增不删**：relay_model_id 从渠道列表消失 ⇒ 置 `fetch_status='stale'`，**保留行**（external-dns `upsert-only`）
+- **追平不自动删**：渠道声明追平了人工覆盖 ⇒ 标 `status='redundant'` 并在 UI 提示，**绝不自动删除**
+  ——**人类显式写下的东西只有人类能删**
+
+**crux 的另一种选择的代价**：若把人工覆盖放进**同步会写的同一行**，就必须自己实现三方合并。
+K8s 花了**两代机制**（`last-applied-configuration` 注解 → SSA 的 `managedFields` 字段所有权）
+才解决"如何区分用户删掉的字段与控制器加的字段"这**一个**问题；LiteLLM 干脆放弃。
+⇒ **(a) 分表+分权限** 用一次 join 买到 **(b) 单行+merge** 需要一整套机制才能买到的保证。
+
+### D4 · 无权威来源时 **存值 + 结构化 provenance + 强制衰减**
+
+**先例**：
+- **CycloneDX（ECMA-424）`evidence.identity[]`** —— 现成四件套：
+  `Identity(field, confidence, concluded_value, methods, tools)`；
+  `Method(technique, confidence, value)`；且「**Confidence is specific to the technique used**」
+  ⇒ **置信度是方法内部概念，不跨方法可比**
+- **SLSA v1.1**：信任挂在 **`builder.id`**（来源）上，**不挂在值上**；
+  外部参数「**are untrusted; they MUST be included … and MUST be verified downstream**」
+- **SPDX**：`NOASSERTION` 是**一等 token**；且「preferable to include an explanation when Concluded is NOASSERTION」
+- **Wikidata**：「**Ranks should not be confused with references**… References merely state **where** a value comes from;
+  ranks indicate **what value is considered most correct**」⇒ **两轴不可合并**
+- **Bedrock**：「Model lifecycle dates are specific to Amazon Bedrock and may differ from dates published by
+  model providers」⇒ 必须能同时存"厂商说 6 月 EOL"与"渠道说能用到 9 月"
+
+**`source_tier` 枚举（含等级）**：
+`vendor_official`(70) > `vendor_api_probe`(65) > `relay_probe`(60) > `relay_declared`(50)
+> `aggregator_third_party`(35) > `community`(20) > `platform_default`(10)
+
+**断言表**（`capability_assertions`）：`upstream_model_id` + `channel_id`(NULL=模型级) + `field` + `value`
++ `source_tier` + `source_uri` + `source_actor` + `method` + `confidence` + **`preference`（与 source 正交）**
++ `asserted_at` / `verified_at` / **`expires_at`** + `status`
+
+**五条规则**：
+1. **永不删除冲突断言**，只改 `status`（Wikidata：弃用而不删除，"allows other users to know not to re-add the value"）
+2. **`expires_at` 到期即降级为未验证**，不是删除 ⇒ 这是**防止第三方数据静默固化**的唯一可靠机制
+   （relay 声明会静默漂移；new-api 有大量"上游模型同步误判废弃"的 issue）
+   TTL 建议：`aggregator_third_party` 30 天 / `relay_declared` 7 天 / `community` 90 天
+3. **第三方值永远不能把字段提升为 `verified`**（只有 ≥ `relay_probe` 且未过期才算）
+4. **UI 必须显示来源等级**——否则第三方值会被当成官方事实（**Grok 全系正是此风险**：无一官方源）
+5. **加 `external_refs JSONB`**（照抄 OpenRouter 的 `hugging_face_id`），如
+   `{"openrouter":"…","litellm":"…","hf":"…"}` ⇒ 让"我们为什么认为它支持 21:9"事后可追溯
+
+**⚠️ 关于 `confidence`（0–1）**：`0.8` 与 `0.7` 的差别**没有客观依据**，容易变成伪精确。
+诚实做法：**只把 `source_tier` 当排序键，`confidence` 仅用于同 tier 内打破平局**。
+**不要写跨 tier 的置信度比较逻辑。**
+
+**为什么不能选 B（什么都不存）**：不是因为它少信息，而是**它把不确定性推给每个读者**。
+production（目录）/ execution（网关）/ web-bff（展示）**三个服务都会读能力**；
+若"未知"意味着"库里没有"，三者会各自兜底 ⇒ **产出三种不同行为**，且**没有任何一处能回答"我们为什么这么做"**。
+SPDX 坚持 `NOASSERTION` 是**一个值**而非字段缺席，正是为了让这个判断**集中在一处**。
+
+### D5 · **提升为 ADR**
+
+**建议**：`docs/adr/` 新增 **《供给单元能力来源与解析优先级》**；过程材料（含被否掉的备选方案）
+留 `.github/tasks/TASK-MODEL-006/`；任务卡反向链接 ADR 单号。
+
+**三条判据全中**：(a) **难逆转**（迁移只增不改，落地即近乎不可撤销）；
+(b) **横切三服务**（解析优先级事实上成为 workspace/production/execution 之间的隐式契约）；
+(c) **未来必被重争**。
+
+**最有说服力的一条理由**：**「同步永不冲刷人工覆盖」这条规则，如果不落在 ADR 里，
+会被下一个同步 Job 在"顺手清理一下"时删掉。**
+
+**若成为长期强制规则**（如"新增能力字段必须走 assertions 表"），按本仓
+「机制落地 = 同步 AGENTS.md」回写 AGENTS.md —— **ADR 解释为什么，AGENTS.md 保证换会话不遗忘**，两者不重复。
 
 ## 八、非范围（本方案不做）
 
