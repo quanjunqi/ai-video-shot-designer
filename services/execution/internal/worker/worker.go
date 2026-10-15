@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"shotdesigner/services/execution/internal/alert"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/breaker"
 	"shotdesigner/services/execution/internal/budget"
@@ -50,7 +51,8 @@ func wsOf(j job.Job) string {
 // 由 cmd 以 goroutine 启动（并发闸门与容量由调用方装配）。
 // brk 是单元熔断 Store（T4）；为 nil 时熔断语义不生效（fail-open）。
 // holds 是预算预扣/结算状态机（T3）；为 nil 时不预扣（fail-open）。
-func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store, brk *breaker.Store, holds budget.HoldsStore) {
+// Run 启动 worker 主循环。alertEval 为 nil 时 T11 告警不生效（fail-open）。
+func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store, brk *breaker.Store, holds budget.HoldsStore, alertEval *alert.Evaluator) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	// Track jobs currently being executed to avoid duplicate dispatch
@@ -92,15 +94,16 @@ func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Clie
 				defer gate.Release()
 				defer executing.Delete(job.ID)
 				Logger.Info("goroutine finished", "job_id", job.ID)
-				executeJob(ctx, s, cat, cred, client, job, as, brk, holds)
+				executeJob(ctx, s, cat, cred, client, job, as, brk, holds, alertEval)
 			}(j, jobCtx, jobCancel)
 		}
 	}
 }
 
 // executeJob runs a single job through the engine and updates its status.
-// brk 为 nil 时熔断语义不生效（fail-open）；holds 为 nil 时不预扣（fail-open）。
-func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store, brk *breaker.Store, holds budget.HoldsStore) {
+// brk 为 nil 时熔断语义不生效（fail-open）；holds 为 nil 时不预扣（fail-open）；
+// alertEval 为 nil 时 T11 告警不生效（fail-open）。
+func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store, brk *breaker.Store, holds budget.HoldsStore, alertEval *alert.Evaluator) {
 	// holdID 在模型解析后填入；panic/终态时据此退扣（fail-open：退扣失败只告警不阻断）。
 	var holdID string
 	defer func() {
@@ -109,6 +112,14 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 			auditTerminal(ctx, as, j, false, fmt.Sprintf("internal panic: %v", r), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, fmt.Sprintf("internal panic: %v", r))
 			releaseHold(ctx, holds, holdID)
+		}
+		// T11：任务终态后评估该 workspace 错误率突增（告警，fail-open）。
+		// 任务可能因重试而多次走到这里？不会——executeJob 每次执行只跑一次，
+		// 重试是新的 executeJob 调用（job 重新入队）。窗口聚合在 DB 侧，天然防抖。
+		if alertEval != nil && j.WorkspaceID != "" {
+			alertCtx, alertCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			alertEval.EvaluateErrorRate(alertCtx, j.WorkspaceID)
+			alertCancel()
 		}
 	}()
 
@@ -144,8 +155,9 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	}
 	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
 	if err != nil {
-		// catalog 未命中：channel/provider 未知，传空（空串不覆盖，T1）
-		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as, "", "", holds, "")
+		// catalog 未命中：channel/provider 未知，传空（空串不覆盖，T1）。
+		// 无上游 HTTP 状态码：statusCode=0（网络层语义，与 breaker.Classify(status=0) 一致）。
+		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as, "", "", holds, "", 0)
 		return
 	}
 	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
@@ -301,25 +313,32 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		// 硬 4xx（400/401/403/404/422）不重试不切换 ⇒ 直接终态（不白白消耗 attempt）；
 		// 软 4xx / 5xx / 超时 / 网络层 ⇒ 计入失败计数并走既有 failOrRetry（切换=换候选重试）。
 		cls := breaker.Classify(result.Status, false)
+		// T11：引擎失败的上游 HTTP 状态码写入审计（错误码分布数据源；0=网络层）。
+		statusCode := int(result.Status)
+		enteredCooldown := false
 		if brk != nil {
 			switch cls {
 			case breaker.ClassHard4xx, breaker.ClassContentSafety:
 				// 不计数（不是渠道故障；重试/换渠道无意义）
 			default:
-				brk.RecordFailure(ctx, breaker.Unit{ChannelID: hitChannelID, ProviderModel: hitProviderModel})
+				enteredCooldown = brk.RecordFailure(ctx, breaker.Unit{ChannelID: hitChannelID, ProviderModel: hitProviderModel})
 			}
 		}
 		switch cls {
 		case breaker.ClassHard4xx, breaker.ClassContentSafety:
 			// 硬失败：直返，不重试（表 3-1）。终态审计行补齐供给单元（T1）。
 			msg := "model call failed: " + err.Error()
-			auditTerminal(ctx, as, j, false, msg, nil)
+			auditTerminalWithStatus(ctx, as, j, false, msg, nil, statusCode)
 			_ = s.Complete(ctx, j.ID, false, nil, msg)
 			releaseHold(ctx, holds, holdID)
 			return
 		default:
 			// T1：引擎失败但模型已命中 —— 终态审计行补齐 channel/provider（供给单元）
-			failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel, holds, holdID)
+			failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel, holds, holdID, statusCode)
+			// T11：本次失败使单元进入冷却 ⇒ 熔断告警（fail-open，不阻断）
+			if enteredCooldown {
+				alertBreaker(ctx, alertEval, j.WorkspaceID, hitChannelID, hitProviderModel)
+			}
 			return
 		}
 	}
@@ -346,13 +365,13 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	// 关键检查：如果没有提取到任何图片URL，应该标记为failed，而不是succeeded
 	if len(result.Extracted) == 0 {
 		Logger.Warn("no image URL extracted, marking as failed", "job_id", j.ID)
-		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
+		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel, nil)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
 		releaseHold(ctx, holds, holdID)
 		return
 	}
 
-	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
+	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel, nil)
 	// T3 结算：成功按实际成本结算，退 预扣-实际 差额（实际=权威价 hitCost）。
 	// 结算失败 fail-open：仅告警，不阻断任务完成（任务已成功）。
 	settleHold(ctx, holds, holdID, hitCost)
@@ -369,7 +388,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 // 配置类/永久性错误不走这里，而是直接 Complete(false) —— 否则会白白消耗尝试次数
 // （例如「model not found」重试 3 次毫无意义）。
 // holds/holdID：T3 预算预扣。终态（回退标记失败/死信）退扣；仅重试时不退（任务还在跑）。
-func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string, holds budget.HoldsStore, holdID string) {
+// statusCode（T11）：引擎失败的上游 HTTP 状态码（错误码分布数据源）；重试中不使用，终态写入。
+func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string, holds budget.HoldsStore, holdID string, statusCode int) {
 	cfg := job.DefaultRetryConfig()
 	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
@@ -378,7 +398,7 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		Logger.Warn("FailOrRetry 失败，回退为标记失败", "job_id", j.ID, slog.Any("err", err))
 		// D2b：这是【终态】（回退为标记失败）
 		// T1：命中模型后的失败终态也补齐 channel/provider（空串不覆盖，供 T2 按供给单元聚合）
-		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
+		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel, &statusCode)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
 		releaseHold(ctx, holds, holdID)
 	case retried:
@@ -390,9 +410,21 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		// 上面的 case retried 分支【不写】—— 那个任务还会重试，不是终态；
 		// 提前写会把"还在重试"记成"已失败"。
 		// T1：命中模型后的死信终态同样补齐 channel/provider
-		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
+		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel, &statusCode)
 		releaseHold(ctx, holds, holdID)
 	}
+}
+
+// alertBreaker 触发熔断告警（T11）：单元进入冷却时调用。alertEval 为 nil 时不生效（fail-open）。
+func alertBreaker(ctx context.Context, alertEval *alert.Evaluator, workspaceID, channelID, providerModel string) {
+	if alertEval == nil || workspaceID == "" {
+		return
+	}
+	unit := channelID
+	if providerModel != "" {
+		unit = channelID + "/" + providerModel
+	}
+	alertEval.NotifyBreaker(ctx, workspaceID, unit)
 }
 
 // settleHold 结算预扣（成功路径）：实际=权威价。失败 fail-open 仅告警（任务已成功）。

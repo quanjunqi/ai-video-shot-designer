@@ -2,8 +2,11 @@ package httpserver
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -146,9 +149,41 @@ func (s *server) channelSync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
+	// T11 同步失败告警：上游同步非 2xx（未配置 400 / 渠道不存在 404 / 抓取失败 502 / 未装配 503）
+	// ⇒ 上报 execution 告警端点（异步 best-effort，不阻断同步响应）。
+	if resp.StatusCode >= 400 {
+		s.reportSyncFailure(r.Context(), channelID)
+	}
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
+}
+
+// reportSyncFailure 把渠道同步失败上报给 execution 告警端点（T11）。
+// best-effort：execution 不可达或失败只记日志，不阻断同步响应（告警是附加能力）。
+func (s *server) reportSyncFailure(ctx context.Context, channelID string) {
+	body, err := json.Marshal(map[string]string{"channel_id": channelID})
+	if err != nil {
+		slog.Warn("reportSyncFailure marshal failed", "err", err)
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		s.executionURL+"/internal/v1/alerts/sync-failure", bytes.NewReader(body))
+	if err != nil {
+		slog.Warn("reportSyncFailure request build failed", "err", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+s.executionToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		slog.Warn("reportSyncFailure upstream failed", "channel_id", channelID, "err", err)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	_ = resp.Body
 }
 
 // workspaceChannels forwards user-scoped channel CRUD (tenant-owned, NOT the

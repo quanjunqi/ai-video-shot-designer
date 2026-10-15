@@ -20,13 +20,13 @@ func TestAuditHelpersAreSafeWithNilStore(t *testing.T) {
 	auditTerminalUsage(ctx, nil, job.Job{ID: "job_3"}, true, "", []byte(`{"ok":true}`), map[string]any{
 		"usage.prompt_tokens":     float64(35),
 		"usage.completion_tokens": float64(38),
-	}, 12, 0, "", "", "")
+	}, 12, 0, "", "", "", nil)
 	// 对抗性输入：用法抽取不得因奇怪类型而 panic
 	auditTerminalUsage(ctx, nil, job.Job{ID: "job_4"}, false, "x", nil, map[string]any{
 		"usage.prompt_tokens":     []int{1, 2, 3},
 		"usage.completion_tokens": map[string]string{"a": "b"},
-	}, 0, 0, "", "", "")
-	auditTerminalUsage(ctx, nil, job.Job{ID: "job_5"}, false, "x", nil, nil, 0, 0, "", "", "")
+	}, 0, 0, "", "", "", nil)
+	auditTerminalUsage(ctx, nil, job.Job{ID: "job_5"}, false, "x", nil, nil, 0, 0, "", "", "", nil)
 }
 
 var _ = audit.SystemWorkspace // 断言 audit 包的哨兵常量仍可被引用（D6 依赖它归属清理记录）

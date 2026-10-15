@@ -97,11 +97,26 @@ func (s *Store) FilterHealthy(ctx context.Context, cands []Unit) ([]Unit, error)
 //
 // 达阈值 ⇒ 进入冷却（cooldown_until = now + Cooldown）。
 // 熔断关闭 / DB 故障：仅日志，不阻断主流程（fail-open）。
-func (s *Store) RecordFailure(ctx context.Context, u Unit) {
+// 返回 true 表示【本次失败使该单元进入冷却】（before < AllowedFails 且 after >= AllowedFails），
+// 供 T11 熔断告警触发（同一单元进入冷却只告警一次，由调用方判断；与 alert 冷却去重配套）。
+func (s *Store) RecordFailure(ctx context.Context, u Unit) bool {
 	if s == nil || s.Pool == nil || !s.Cfg.Enabled() {
-		return
+		return false
 	}
-	_, err := s.Pool.Exec(ctx, `
+	// 先读当前失败计数：判定"本次是否新进入冷却"（更新后无法取到旧值）。
+	// 竞态（多实例同时失败）只会导致【多发】告警，由 alert 冷却去重兜底，不会漏发。
+	var before int
+	err := s.Pool.QueryRow(ctx,
+		`SELECT fail_count FROM channel_health WHERE channel_id=$1 AND provider_model=$2`,
+		u.ChannelID, u.ProviderModel,
+	).Scan(&before)
+	if errors.Is(err, pgx.ErrNoRows) {
+		before = 0 // 无记录 = 从未失败
+	} else if err != nil {
+		s.Log.Warn("breaker: RecordFailure pre-read failed (fail-open)", "unit", u.String(), "err", err)
+		return false
+	}
+	_, err = s.Pool.Exec(ctx, `
 		INSERT INTO channel_health (channel_id, provider_model, fail_count, cooldown_until, last_failure_at, updated_at)
 		VALUES ($1, $2, 1, NULL, now(), now())
 		ON CONFLICT (channel_id, provider_model) DO UPDATE SET
@@ -115,7 +130,10 @@ func (s *Store) RecordFailure(ctx context.Context, u Unit) {
 	`, u.ChannelID, u.ProviderModel, s.Cfg.AllowedFails, s.Cfg.Cooldown.Seconds())
 	if err != nil {
 		s.Log.Warn("breaker: RecordFailure failed (fail-open)", "unit", u.String(), "err", err)
+		return false
 	}
+	// 本次失败前未达阈值、失败后达到阈值 ⇒ 新进入冷却
+	return before < s.Cfg.AllowedFails && before+1 >= s.Cfg.AllowedFails
 }
 
 // RecordSuccess 记录一次成功：重置计数、清冷却（恢复）。

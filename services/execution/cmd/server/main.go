@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"shotdesigner/services/execution/internal/alert"
 	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/breaker"
@@ -111,7 +112,13 @@ func main() {
 	breakerCfg := breaker.FromEnv(os.Getenv)
 	breakerStore := breaker.New(pool, breakerCfg, worker.Logger)
 	worker.Logger.Info("单元熔断配置", "enabled", breakerCfg.Enabled(), "allowed_fails", breakerCfg.AllowedFails, "cooldown", breakerCfg.Cooldown.String(), "health_check", breakerCfg.HealthCheck.String())
-	go worker.Run(store, catalogClient, credsClient, engineClient, gate, auditStore, breakerStore, budgetHolds)
+	// T11 最小告警（TASK-OBS-002）：错误率突增/熔断/同步失败 → webhook。
+	// 配置存 alert_config（018）；webhook 客户端简单 POST + 3 重试。
+	// 告警是 best-effort：评估/发送失败只记日志，不阻断任务主流程。
+	alertStore := alert.New(pool, worker.Logger)
+	alertWebhook := alert.NewWebhookClient(worker.Logger)
+	alertEval := alert.NewEvaluator(alertStore, alertWebhook, worker.Logger)
+	go worker.Run(store, catalogClient, credsClient, engineClient, gate, auditStore, breakerStore, budgetHolds, alertEval)
 
 	// D6：审计保留期清理。**默认关闭**（天数未设置 = 0）—— 清理是破坏性操作，
 	// 在没有人类显式配置之前不启动，避免"部署一次就默默删掉历史审计"。
@@ -147,7 +154,7 @@ func main() {
 	// T0 价格校准台账：对账端点（POST /internal/v1/reconcile）写入 price_calibration_logs
 	reconcileStore := &reconcile.Store{Pool: pool}
 	metrics := observability.NewMetrics()
-	observed := observability.WithObservability(worker.Logger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore, Breaker: breakerStore, Budget: budgetChecker, BudgetHolds: budgetHolds}.Routes())
+	observed := observability.WithObservability(worker.Logger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore, Breaker: breakerStore, Budget: budgetChecker, BudgetHolds: budgetHolds, Alert: alertEval}.Routes())
 	server := &http.Server{Addr: addr, Handler: observed, ReadHeaderTimeout: 5 * time.Second}
 	worker.Logger.Info("execution service listening", "addr", addr)
 	if err := server.ListenAndServe(); err != nil {

@@ -70,6 +70,9 @@ func (s *server) Routes() http.Handler {
 	// T2 运营报表聚合（成本看板数据源）：透传 execution /internal/v1/audit/stats[/trend]
 	mux.HandleFunc("/api/v1/audit/stats", s.auditStatsProxy)
 	mux.HandleFunc("/api/v1/audit/stats/trend", s.auditTrendProxy)
+	// T11 渠道健康面板：供给单元健康聚合 + 告警配置（透传 execution）
+	mux.HandleFunc("/api/v1/audit/health", s.auditHealthProxy)
+	mux.HandleFunc("/api/v1/alerts/config", s.alertConfigProxy)
 	mux.HandleFunc("/api/v1/generate", s.generate)
 	mux.HandleFunc("/api/v1/channels/", s.channelProbe)
 	// 更具体的模式优先于上面的 "/api/v1/channels/"（Go 1.22 ServeMux 的最具体匹配）

@@ -113,6 +113,40 @@ export interface AuditTrendPoint {
   p95_latency_ms: number;
   cost_calibrated: number;
   cost_estimated_calls: number;
+}
+
+/** T11 供给单元（渠道×模型）健康聚合行（口径与 /internal/v1/audit/health 一致） */
+export interface UnitHealth {
+  channel_id: string;
+  provider_model: string;
+  calls: number;
+  success_calls: number;
+  failed_calls: number;
+  /** 0-100 成功率（服务端算） */
+  success_rate: number;
+  /** 错误码分布桶：hard_4xx/soft_4xx/server_5xx/network/content_safety/other */
+  error_codes: Record<string, number>;
+  /** 熔断中（channel_health cooldown_until > now） */
+  cooling: boolean;
+  /** 熔断三态：normal（正常）/ cooling（冷却中）/ half_open（半开探活） */
+  breaker_state: 'normal' | 'cooling' | 'half_open';
+  probe_owner?: string;
+  cooldown_until?: string;
+  fail_count: number;
+  last_failure_at?: string;
+  last_success_at?: string;
+  last_seen_at?: string;
+}
+
+/** T11 告警配置（对应 execution alert_config，读取即默认） */
+export interface AlertConfig {
+  workspace_id: string;
+  enabled: boolean;
+  error_rate_threshold_pct: number;
+  error_rate_window_min: number;
+  cooldown_min: number;
+  webhook_url: string;
+  last_triggered_at?: string;
 }export type GenerateResponse = ApiSchemas['GenerateResponse'];export type GenerateAsyncAccepted = ApiSchemas['GenerateAsyncAccepted'];export type ProbeResult = ApiSchemas['ProbeResult'];export type CredentialStatus = ApiSchemas['CredentialStatus'];
 
 // ---- Logical models & candidate bindings (production, ADR-003 §3.1) ----
@@ -491,6 +525,22 @@ export const api = {
         ...(params?.until ? { until: params.until } : {}),
       }).toString()}`,
     ),
+  // T11 渠道健康面板：供给单元健康聚合 + 告警配置
+  listUnitHealth: (params?: { since?: string; until?: string; limit?: number }) =>
+    request<{ workspace_id: string; units: UnitHealth[] }>(
+      `/api/v1/audit/health?${new URLSearchParams({
+        ...(params?.since ? { since: params.since } : {}),
+        ...(params?.until ? { until: params.until } : {}),
+        limit: String(params?.limit ?? 100),
+      }).toString()}`,
+    ),
+  getAlertConfig: () => request<AlertConfig>('/api/v1/alerts/config'),
+  saveAlertConfig: (cfg: Partial<AlertConfig>) =>
+    request<AlertConfig>('/api/v1/alerts/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg),
+    }),
   // Episodes
   listEpisodes: (projectId: string) =>
     request<{ items: ServerEpisode[] }>(`/api/v1/comic-projects/${encodeURIComponent(projectId)}/episodes`),

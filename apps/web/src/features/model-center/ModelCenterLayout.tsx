@@ -1,9 +1,9 @@
 // EXPORTS: default ModelCenterLayout
-// 模型中心壳（高保真稿 GATE-2）：左侧二级导航 6 项 + 内容区。
+// 模型中心壳（高保真稿 GATE-2 + T11）：左侧二级导航 7 项 + 内容区。
 // 与 SettingsLayout 同一视觉语言（左右双栏、52 宽二级导航、顶部分组任务一句话）。
 // 未实装分组渲染 ModelCenterPlaceholder（「建设中」占位，禁僵尸按钮）。
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Boxes, ShoppingBag, Cable, Coins, ScrollText, FileCode2, type LucideIcon } from 'lucide-react';
+import { Boxes, ShoppingBag, Cable, Coins, ScrollText, FileCode2, HeartPulse, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   MODEL_CENTER_NAV,
@@ -18,6 +18,7 @@ const NAV_ICON: Record<ModelCenterSectionKey, LucideIcon> = {
   costs: Coins,
   audit: ScrollText,
   protocols: FileCode2,
+  health: HeartPulse,
 };
 
 /** 未实装分组的占位视图：明确「建设中」，无任何伪交互（frontend-quality：禁僵尸按钮） */
@@ -29,7 +30,7 @@ export function ModelCenterPlaceholder({ label }: { label: string }) {
       </div>
       <p className="text-sm font-medium text-foreground">{label}</p>
       <p className="max-w-72 text-xs text-muted-foreground">
-        该模块正在建设中，后续迭代开放。当前已开放：成本与用量、审计日志。
+        该模块正在建设中，后续迭代开放。当前已开放：成本与用量、审计日志、健康。
       </p>
     </div>
   );
