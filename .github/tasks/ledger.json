@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T17:55:00+08:00",
+  "updatedAt": "2026-10-15T22:40:46+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -38,10 +38,10 @@
     {
       "id": "TASK-AUTH-001",
       "title": "模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍",
-      "status": "待开工",
+      "status": "已合并（PR #203，fbffb64）",
       "priority": "**P0**",
-      "pr": null,
-      "file": "[TASK-AUTH-001-model-center-permissions.md](TASK-AUTH-001-model-center-permissions.md)"
+      "pr": 203,
+      "file": "[TASK-AUTH-001/task.md](TASK-AUTH-001/task.md)"
     },
     {
       "id": "TASK-CREATE-001",
