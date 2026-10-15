@@ -1996,10 +1996,11 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 2,
+        "count": 3,
         "files": [
           "apps/web/src/components/ui/sidebar.tsx",
-          "apps/web/src/features/genworkbench/CreateWorkbench.tsx"
+          "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
+          "apps/web/src/features/tasks/TaskDetailSheet.tsx"
         ]
       },
       "dead": false,
@@ -3600,15 +3601,15 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 187,
+    "scannedFiles": 190,
     "text": [
       {
         "value": "xs",
-        "count": 431
+        "count": 434
       },
       {
         "value": "sm",
-        "count": 194
+        "count": 195
       },
       {
         "value": "lg",
@@ -3640,11 +3641,11 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 718
+        "count": 726
       },
       {
         "value": "1",
-        "count": 506
+        "count": 511
       },
       {
         "value": "3",
@@ -3656,7 +3657,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "4",
-        "count": 246
+        "count": 252
       },
       {
         "value": "0.5",
@@ -3668,7 +3669,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "6",
-        "count": 75
+        "count": 77
       },
       {
         "value": "0",
@@ -3687,11 +3688,11 @@ export const UI_CATALOG: UiCatalog = {
         "count": 9
       },
       {
-        "value": "7",
-        "count": 6
+        "value": "10",
+        "count": 9
       },
       {
-        "value": "10",
+        "value": "7",
         "count": 6
       },
       {
@@ -3736,7 +3737,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 209
+        "count": 212
       },
       {
         "value": "xl",

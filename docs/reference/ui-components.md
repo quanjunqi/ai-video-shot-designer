@@ -219,15 +219,15 @@
 | `--tw-prose-invert-pre-bg` | `var(--accent)` |
 | `--tw-prose-invert-th-borders` | `var(--border)` |
 | `--tw-prose-invert-td-borders` | `var(--border)` |
-### 3.2 尺度实际用法（从源码统计 187 个文件）
+### 3.2 尺度实际用法（从源码统计 190 个文件）
 
 > 回答的是「**实际在用哪几档**」，不是「有哪些档位」；统计按源码文本匹配，可能含少量非样式字符串。
 
 | 类别 | 常用档位（次数） | 离散步长（建议收敛） |
 |---|---|---|
-| 字号 | `xs`(431) · `sm`(194) · `lg`(20) · `base`(11) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
-| 间距 | `2`(718) · `1`(506) · `3`(452) · `1.5`(395) · `4`(246) · `0.5`(133) | `-0.45rem`(2) · `-0.35rem`(2) |
-| 圆角 | `lg`(209) · `xl`(169) · `DEFAULT`(113) · `md`(97) · `full`(68) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
+| 字号 | `xs`(434) · `sm`(195) · `lg`(20) · `base`(11) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
+| 间距 | `2`(726) · `1`(511) · `3`(452) · `1.5`(395) · `4`(252) · `0.5`(133) | `-0.45rem`(2) · `-0.35rem`(2) |
+| 圆角 | `lg`(212) · `xl`(169) · `DEFAULT`(113) · `md`(97) · `full`(68) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
 | 阴影 | `DEFAULT`(61) · `md`(30) · `lg`(27) · `sm`(13) · `xs`(5) · `2xl`(5) | `0_0_0_1px_hsl(var(--sidebar-border))`(1) · `0_0_0_1px_hsl(var(--sidebar-accent))`(1) |
 | 行高 / 字距 | `relaxed`(75) · `none`(8) · `5`(7) · `snug`(4) · `wide`(12) · `wider`(7) · `tight`(5) · `widest`(4) | — |
 
@@ -270,7 +270,7 @@
 | `scroll-area` | 布局 | 59 | — | — | 0 | ⚠️ | `src/components/ui/scroll-area.tsx` |
 | `select` | 数据录入 | 244 | — | — | 22 |  | `src/components/ui/select.tsx` |
 | `separator` | 基础 | 29 | — | — | 3 |  | `src/components/ui/separator.tsx` |
-| `sheet` | 反馈 | 140 | — | — | 2 |  | `src/components/ui/sheet.tsx` |
+| `sheet` | 反馈 | 140 | — | — | 3 |  | `src/components/ui/sheet.tsx` |
 | `sidebar` | 布局 | 728 | default/outline | default/sm/lg | 0 | ⚠️ | `src/components/ui/sidebar.tsx` |
 | `skeleton` | 基础 | 14 | — | — | 1 |  | `src/components/ui/skeleton.tsx` |
 | `slider` | 数据录入 | 88 | — | — | 0 | ⚠️ | `src/components/ui/slider.tsx` |

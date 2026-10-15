@@ -45,7 +45,7 @@
 | TASK-MODEL-003 | T2-1 运营报表聚合查询 API | P0（A 轨 T2 第一刀） | 已验收（PR #166 已合并） | — | [TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md) |
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
 | TASK-MODEL-005 | T3 成本预算落地（budget_rules + 预扣/结算状态机） | P0（A 轨 M2） | 已验收（PR #181 已合并，314ec60） | ✅ | [TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md) |
-| TASK-OBS-001 | 任务中心展示「请求参数 / 进度 / 产物」 | — | — | — | [TASK-OBS-001-task-center-detail.md](TASK-OBS-001-task-center-detail.md) |
+| TASK-OBS-001 | 任务中心展示「请求参数 / 进度 / 产物」 | P1（排期 v2 §3.2 并行候选池） | 待验收（详情抽屉已交付；4 项证据不足如实列入未过项） | ✅ | [TASK-OBS-001/task.md](TASK-OBS-001/task.md) |
 | TASK-OBS-002 | T11 渠道健康面板 + 三类最小告警 | P0（A 轨 M4） | 已验收（PR #183 已合并，97df90e9） | ✅ | [TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md) |
 | TASK-P2-001 | Phase 2.1 — 统一 Executor 接口定义 | P1 | — | — | [TASK-P2-001-executor-interface.md](TASK-P2-001-executor-interface.md) |
 | TASK-PROC-001 | 规则流程治理：AC-009 UI 设计稿先行关卡 + 台账同步 | P1 | 已验收（PR #179 已合并） | — | [TASK-PROC-001-rule-governance.md](TASK-PROC-001-rule-governance.md) |
@@ -66,17 +66,17 @@
 
 ## 现状（自动统计，供 Owner 看缺口）
 
-- 任务卡：**44** 张（含 1 张 PLAN）；写明 **优先级** 33 张、**状态** 30 张。
+- 任务卡：**44** 张（含 1 张 PLAN）；写明 **优先级** 34 张、**状态** 31 张。
 - 已验收（25）：MODEL-001/003/004/005、AUDIT-001/002、ROUTE-001/002/003、ASSET-001、SUPPLY-001、OBS-002、PROC-001/002、INFRA-001/003/004/005（T13 验收）、FIX-001/004/005、SEC-001/002、UI-003/004（代码/规则均已合并 develop）。
 - 待验收（2）：**AUTH-001（模型中心权限矩阵，T13 判据 5，PR #203 已合并 fbffb64）**——判据 1/2/4/5 ✅、判据 3 ✅△，**判据 6（Owner 真机三角色走查）为 T13 唯一未闭合项**，走查指南见 `docs/how-to/t13-walkthrough-guide.md`；**PROC-003（台账一致性校验门禁）**——验收 14/14，PR 待开。
-- 进行中（3）：UI-001（组件/token 清单）、UI-002（组件库改版）——**v2 §3.3 已重定义终态（交付段 + 维护段）**；**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
+- 进行中（4）：UI-001（组件/token 清单）、UI-002（组件库改版）——**v2 §3.3 已重定义终态（交付段 + 维护段）**；**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**；**OBS-001（任务中心详情抽屉；原卡缺口 1/2 经核实已修复，剩余为前端展示层）**。
 - 待开工（0）：—
-- 未排期/无状态（14）：CREATE-001~006、OBS-001、FIX-002、FIX-003、P2-001、SEC-003/004、INFRA-002、PLAN-a-and-adr008-2026-10-10。
+- 未排期/无状态（13）：CREATE-001~006、FIX-002、FIX-003、P2-001、SEC-003/004、INFRA-002、PLAN-a-and-adr008-2026-10-10。
 - 排期唯一事实源：**`docs/product/task-queue-plan-v2-2026-10-15.md`**（依赖链 + 冲突面 + 波次/并行池 + 验收时间盒 + 防重演约束）。v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
-- **并行候选池（v2 §3.2，无依赖、可立即开工）**：OBS-001、FIX-002、FIX-003。
+- **并行候选池（v2 §3.2）**：FIX-002、FIX-003 **仍未被认领**（OBS-001 已开工）。
 - **待人工动作（v2 §3.1 第 0 波）**：① 合并台账回填 PR ② 合并 PROC-003 PR ③ **一场走查闭合 4 条判据**（AUTH-001 判据 6 + INFRA-005 判据 1/4/5）④ **IA-001 设计稿评审**（设计稿 §7 五项勾选表）。
-- 验收清单：**21** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
-- 开发日志：**7 个任务**（14 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
+- 验收清单：**22** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 开发日志：**8 个任务**（16 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
 - 台账一致性由 `.github/scripts/check-task-ledger.sh` 机器校验（CI Documentation Check + 本地 preflight 门 0b），`--self-test` 可验证门禁有效性。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 

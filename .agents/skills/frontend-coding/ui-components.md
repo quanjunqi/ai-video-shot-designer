@@ -10,7 +10,7 @@
 - 组件 **42** 个 / 5081 行；死组件（零引用）**20** 个
 - 语义 token **69** 个；Tailwind 工具类映射 58 条；排版：字体 3 族 + prose 映射 36 条
 - 注记覆盖 **42/42**；展示页 demo 覆盖 **42/42**
-- 尺度实际用法：字号常用 xs(431)；离散步长 6 处（优先用尺度 token）
+- 尺度实际用法：字号常用 xs(434)；离散步长 6 处（优先用尺度 token）
 
 ## 按分类速查
 
@@ -426,7 +426,7 @@
 
 - 文件：`apps/web/src/components/ui/sheet.tsx`（140 行）· 导出：`Sheet`、`SheetTrigger`、`SheetClose`、`SheetContent`、`SheetHeader`、`SheetFooter`、`SheetTitle`、`SheetDescription`
 - 底座：`@radix-ui/react-dialog`
-- 引用：2 处（`sidebar.tsx`、`CreateWorkbench.tsx`）
+- 引用：3 处（`sidebar.tsx`、`CreateWorkbench.tsx`、`TaskDetailSheet.tsx`）
 - **何时用**：从边侧滑出的辅助面板（详情、设置、移动端菜单），保留上下文
 - **别用**：需居中聚焦的短表单用 dialog；底部手势抽屉用 drawer
 - 反例：❌ 用 sheet 承载需全神贯注的长表单（宽度不足）；❌ 缺 SheetTitle 与 Description 致 a11y 警告（UC-005）

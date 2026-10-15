@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T23:06:00+0800",
+  "updatedAt": "2026-10-15T23:12:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -214,10 +214,10 @@
     {
       "id": "TASK-OBS-001",
       "title": "任务中心展示「请求参数 / 进度 / 产物」",
-      "status": "unknown",
-      "priority": null,
+      "status": "待验收",
+      "priority": "P1（排期 v2 §3.2 并行候选池；无前置）",
       "pr": null,
-      "file": "[TASK-OBS-001-task-center-detail.md](TASK-OBS-001-task-center-detail.md)"
+      "file": "[TASK-OBS-001/task.md](TASK-OBS-001/task.md)"
     },
     {
       "id": "TASK-OBS-002",
