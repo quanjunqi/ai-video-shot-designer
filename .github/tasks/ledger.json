@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T00:05:00+0800",
+  "updatedAt": "2026-10-15T23:40:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -362,6 +362,14 @@
       "priority": "P1（治理；排期 v2 §1.4 补正的执行）",
       "pr": null,
       "file": "[TASK-PROC-004/task.md](TASK-PROC-004/task.md)"
+    },
+    {
+      "id": "TASK-INFRA-006",
+      "title": "T13 走查自动化（headless Chrome + 三角色切换 + 五站截图）",
+      "status": "待开工",
+      "priority": "P0（T13 收官的使能项）",
+      "pr": null,
+      "file": "[TASK-INFRA-006/task.md](TASK-INFRA-006/task.md)"
     }
   ]
 }
