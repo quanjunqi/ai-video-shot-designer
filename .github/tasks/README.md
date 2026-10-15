@@ -37,7 +37,7 @@
 | TASK-MODEL-001 | T0 权威价格校准 | P0 | 已验收（PR #164 已合并） | — | [TASK-MODEL-001-price-calibration.md](TASK-MODEL-001-price-calibration.md) |
 | TASK-MODEL-003 | T2-1 运营报表聚合查询 API | P0（A 轨 T2 第一刀） | 已验收（PR #166 已合并） | — | [TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md) |
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
-| TASK-MODEL-005 | T3 成本预算落地（budget_rules + 预扣/结算状态机） | P0（A 轨 M2） | 待开工 | — | [TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md) |
+| TASK-MODEL-005 | T3 成本预算落地（budget_rules + 预扣/结算状态机） | P0（A 轨 M2） | 已验收（PR #181 已合并，314ec60） | ✅ | [TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md) |
 | TASK-OBS-001 | 任务中心展示「请求参数 / 进度 / 产物」 | — | — | — | [TASK-OBS-001-task-center-detail.md](TASK-OBS-001-task-center-detail.md) |
 | TASK-OBS-002 | T11 渠道健康面板 + 三类最小告警 | P0（A 轨 M4） | 待开工 | — | [TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md) |
 | TASK-P2-001 | Phase 2.1 — 统一 Executor 接口定义 | P1 | — | — | [TASK-P2-001-executor-interface.md](TASK-P2-001-executor-interface.md) |
@@ -58,8 +58,8 @@
 ## 现状（自动统计，供 Owner 看缺口）
 
 - 任务卡：**38** 张（含 1 张 PLAN）；写明 **优先级** 20 张、**状态** 14 张。
-- 已验收：MODEL-001/003/004、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001（共 13 张，代码/规则均已合并 develop）。
-- 待开工（底座 P0 缺口）：**MODEL-005（T3 预算）、OBS-002（T11 健康面板）、INFRA-005（T13 验收）**——T3 可开工。
-- 验收清单：**4** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001（共 14 张，代码/规则均已合并 develop）。
+- 待开工（底座 P0 缺口）：**OBS-002（T11 健康面板）、INFRA-005（T13 验收）**——下一刀为 T11（OBS-002）。
+- 验收清单：**5** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 
