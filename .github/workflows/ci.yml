@@ -572,6 +572,30 @@ jobs:
       - name: Validate workflow structure invariants
         run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
 
+      # 台账一致性（AC-008/010/011）：README（人读表）× ledger.json（机读视图）× 任务卡 front-matter
+      # 三方一致；状态词表只认中文五值（待开工/进行中/待验收/已验收/已关闭，unknown = 未填写）。
+      #
+      # 为什么需要它：这两个视图此前是**双维护、无校验**，一致性只靠人记得。实测漂移四类
+      # （标题截断 40 字符 / 状态写成自由文本 / 数量口径不一致 / 状态滞后），历史
+      # `chore/ledger-backfill-*` PR 已重复回填 6 次 —— 靠人事后修不能终止它。
+      #
+      # ★ 刻意挂在 docs job 的**步骤级**上，不新增 job：新增 job 必须重新登记为必需检查，
+      #   一旦漏配就卡死所有 PR（见 check-workflow-structure.sh 不变量 1 与 ci-triage skill）。
+      #
+      # 退出码语义：0=通过；1=违规；2=**无法检查**（缺 python3 等）—— 2 不等于通过，显式判红。
+      # 本地同口径：scripts/preflight.sh 调用**同一个脚本**，不另写第二份实现。
+      - name: Check task ledger consistency (台账一致性)
+        run: |
+          set +e
+          bash .github/scripts/check-task-ledger.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::台账一致性检查【未验证】（缺 python3 等）—— 未验证不等于通过"
+            exit 1
+          fi
+          exit "$rc"
+
   # 契约破坏性变更检测（PR 专用）
   # bff.yaml 是前后端字段级契约的唯一事实源。frontend job 的 `npm run api:check` 只保证
   # 「生成类型与契约同步」（契约内部自洽），回答不了「已有客户端会不会被改挂」——

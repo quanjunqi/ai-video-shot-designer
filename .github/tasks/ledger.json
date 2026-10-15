@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T23:05:00+0800",
+  "updatedAt": "2026-10-15T23:00:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -346,6 +346,14 @@
       "priority": "P2",
       "pr": 176,
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
+    },
+    {
+      "id": "TASK-PROC-003",
+      "title": "台账一致性校验门禁（AC-008/010/011 结构化合规）",
+      "status": "待验收",
+      "priority": "P1（治理；排期 §5.5「验收闭环」的机制化）",
+      "pr": null,
+      "file": "[TASK-PROC-003/task.md](TASK-PROC-003/task.md)"
     }
   ]
 }

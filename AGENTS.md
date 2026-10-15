@@ -81,6 +81,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - 所有 AI 模型调用必须经 execution 网关，写 `gateway_audit_logs`
 - 密钥只在 workspace 加密存储，禁止硬编码
 - BFF 是前端唯一入口，禁止前端直连后端服务
+- **台账一致性门禁（AC-008/010/011）**：`.github/scripts/check-task-ledger.sh` 校验 `README.md`（人读）× `ledger.json`（机读）× 任务卡 front-matter **三方一致**：状态词表只认中文五值（`待开工/进行中/待验收/已验收/已关闭`，`unknown`＝未填写、README 记 `—`）、顺序无关、数量与 ID 集合双向相等、标题逐字相等、`file` 链接可达、任务目录四件套齐全。退出码 `0` 通过 / `1` 违规 / **`2`＝无法检查（缺 python3 等）——2 不等于通过**。CI 挂在 `Documentation Check` job 的**步骤级**（不新增 job，避免必需检查漏报卡死 PR）、本地在 `scripts/preflight.sh` 门 0b，**同一个脚本单一实现**。**改台账（README/ledger.json/任务卡 front-matter）必跑**；`--self-test` 跑 10 条反例自检证明门禁真的会红
 - **机制落地 = 同步本文件**：任何新规则/新机制（AC 条目、基建行为变更如迁移执行器、流程纪律）落地后，必须回写 AGENTS.md（本文件是换会话/换模型不遗忘的唯一入口）
 
 ## 任务文档结构（一个任务一个文件夹；AC-008/AC-010/AC-011）

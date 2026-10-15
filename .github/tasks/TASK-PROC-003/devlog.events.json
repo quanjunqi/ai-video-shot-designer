@@ -1,0 +1,194 @@
+{
+  "taskId": "TASK-PROC-003",
+  "updatedAt": "2026-10-15T22:58:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-15T22:54:00+08:00",
+      "phase": "开工/探查",
+      "action": "读 ci.yml 全文 + ci-triage skill + check-coverage.sh/check-shell-vars.sh/preflight.sh 范式，确定门禁挂载点与脚本写法约束",
+      "evidence": [
+        ".github/workflows/ci.yml:414-417（docs job 无 needs、无 job 级 if ⇒ 始终上报）",
+        ".agents/skills/ci-triage/SKILL.md（必需检查必须每次上报；禁 job 级 if、禁 continue-on-error）",
+        ".github/scripts/check-coverage.sh（用法/退出码头注释 + set -uo pipefail + ROOT 定位范式）",
+        "scripts/check-shell-vars.sh:48-53（会扫未跟踪脚本 ⇒ 新脚本立即受该门约束）"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T22:55:00+08:00",
+      "phase": "立卡",
+      "action": "创建 .github/tasks/TASK-PROC-003/ 工作区（task.md / devlog.md / devlog.events.json / acceptance.md），先于写码（AC-008/AC-010 先行）",
+      "evidence": [".github/tasks/TASK-PROC-003/task.md", ".github/tasks/TASK-PROC-003/acceptance.md"],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T22:56:00+08:00",
+      "phase": "过程纠正",
+      "action": "自查发现开发日志首次落盘时把后续条目与尚未产生的验证结果一并写入（预先声称未产生的结果），当场重写为仅含已发生条目，后续逐条追加",
+      "evidence": [".github/tasks/TASK-PROC-003/devlog.md（22:56 条目下的「过程记录」）"],
+      "decisionRef": "D-003",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T22:56:00+08:00",
+      "phase": "开发",
+      "action": "实现 .github/scripts/check-task-ledger.sh：bash 外壳 + python3 内联主体，9 类校验 + --self-test 反例模式（临时副本注入缺陷，不污染仓库）",
+      "evidence": [".github/scripts/check-task-ledger.sh"],
+      "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T22:56:00+08:00",
+      "phase": "门禁自证",
+      "action": "在归一词表之前先跑正例，确认门能抓到真实存在的漂移（而非写完就跑绿）：输出 8 处 front-matter 违规、rc=1",
+      "evidence": [
+        "TASK-AUDIT-001/INFRA-003/SEC-001/SEC-002 front-matter status='accepted' 不在约定五值",
+        "⇒ 台账一致性门禁未通过：8 处违规 rc=1"
+      ],
+      "decisionRef": "D-006",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T22:56:00+08:00",
+      "phase": "数据归一",
+      "action": "4 张卡 front-matter accepted → 已验收；本卡登记进 README.md（抬头 43→44 张）与 ledger.json（43→44 条）；正例复跑 rc=0",
+      "evidence": [
+        ".github/tasks/TASK-AUDIT-001/task.md",
+        ".github/tasks/TASK-INFRA-003/task.md",
+        ".github/tasks/TASK-SEC-001/task.md",
+        ".github/tasks/TASK-SEC-002/task.md",
+        ".github/tasks/README.md",
+        ".github/tasks/ledger.json"
+      ],
+      "decisionRef": "D-006",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T22:57:00+08:00",
+      "phase": "验证",
+      "action": "跑全部门：台账正例 + 10 条反例自检 + 缺 python3 语义(rc=2) + CI 结构不变量 + shell 规则自检 + YAML 解析 + preflight --changed",
+      "evidence": ["V-001~V-015（本文件 verifications 段）"],
+      "decisionRef": "D-005",
+      "blockRef": "B-002"
+    },
+    {
+      "ts": "2026-10-15T22:57:00+08:00",
+      "phase": "接线",
+      "action": "ci.yml 的 docs job 末尾新增步骤 Check task ledger consistency；scripts/preflight.sh 新增门 0b；AGENTS.md「关键 gotchas」回写机制",
+      "evidence": [
+        ".github/workflows/ci.yml（docs job 步骤数 11、仍无 job 级 if）",
+        "scripts/preflight.sh（门 0b，调用同一脚本）",
+        "AGENTS.md（台账一致性门禁条目）"
+      ],
+      "decisionRef": "D-007",
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "门禁挂载点",
+      "options": ["新增独立 CI job", "挂进现有 docs job 的步骤"],
+      "choice": "挂进现有 docs job 的步骤",
+      "reason": "docs job 无 needs、无 job 级 if ⇒ 始终运行并上报；新增 job 要重新登记必需检查，漏配即卡死全部 PR（ci-triage 核心不变量）",
+      "timing": "开工"
+    },
+    {
+      "id": "D-002",
+      "topic": "任务 ID 归属",
+      "options": ["TASK-INFRA-006", "TASK-PROC-003"],
+      "choice": "TASK-PROC-003",
+      "reason": "校验主体是任务文档规则（AC-008/010/011），不是基础设施；PROC-001 交付物即「AC-009 关卡 + 台账同步」，同族",
+      "timing": "开工"
+    },
+    {
+      "id": "D-003",
+      "topic": "开发日志写法自查",
+      "options": ["保留预写的后续条目", "重写为仅含已发生条目并逐条追加"],
+      "choice": "重写",
+      "reason": "AC-010 要求随开发同步记录；预先写入未产生的验证结果等同于事后补写的镜像违规（审计不可信）",
+      "timing": "立卡后"
+    },
+    {
+      "id": "D-004",
+      "topic": "实现语言",
+      "options": ["纯 bash+grep", "python3 内联（bash 外壳）"],
+      "choice": "python3 内联（bash 外壳）",
+      "reason": "需解析 markdown 表格与 JSON；grep 对多字节/转义/嵌套引号极脆。先例：check-coverage.sh 用 python3 内联解析 coverprofile",
+      "timing": "开发"
+    },
+    {
+      "id": "D-005",
+      "topic": "反例验证方式",
+      "options": ["手工临时改文件再改回", "脚本内置 --self-test 在临时副本注入缺陷"],
+      "choice": "脚本内置 --self-test",
+      "reason": "门禁有效性必须可复跑、可留痕；手工改回容易漏改。同族先例：UI-003 判据 7 用临时文件验证 V-003b 真的会红",
+      "timing": "开发"
+    },
+    {
+      "id": "D-006",
+      "topic": "front-matter 状态词表",
+      "options": ["校验兼容 accepted + 已验收", "归一到中文五值后只认一套"],
+      "choice": "归一到中文五值后只认一套",
+      "reason": "双词表＝规则写两处迟早分叉；AC-011 要求 front-matter status 与台账同源。按任务卡约束 4「不得放宽判据」，改数据而非改判据",
+      "timing": "开发"
+    },
+    {
+      "id": "D-007",
+      "topic": "是否纳入 preflight",
+      "options": ["只挂 CI", "同时纳入 scripts/preflight.sh"],
+      "choice": "同时纳入 preflight",
+      "reason": "仓库既有原则「本地与 CI 同命令、同脚本、同基线」，否则又是本地记得住的几道门",
+      "timing": "接线"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "判据1 正例（44 张卡）", "command": "bash .github/scripts/check-task-ledger.sh", "result": "PASS", "evidence": "rc=0，输出「台账一致性门禁通过」" },
+    { "id": "V-002", "criterion": "判据2 JSON 非法", "command": "check-task-ledger.sh --self-test（反例 A）", "result": "PASS", "evidence": "rc=1，1 处违规" },
+    { "id": "V-003", "criterion": "判据3 状态越界", "command": "--self-test（反例 B）", "result": "PASS", "evidence": "rc=1，2 处违规" },
+    { "id": "V-004", "criterion": "判据4 数量不一致", "command": "--self-test（反例 C）", "result": "PASS", "evidence": "rc=1，2 处违规" },
+    { "id": "V-005", "criterion": "判据5 ID 集合不一致", "command": "--self-test（反例 D）", "result": "PASS", "evidence": "rc=1，2 处违规" },
+    { "id": "V-006", "criterion": "判据6 标题 40 字符截断", "command": "--self-test（反例 E）", "result": "PASS", "evidence": "rc=1，1 处违规" },
+    { "id": "V-007", "criterion": "判据7 file 链接悬空", "command": "--self-test（反例 F）", "result": "PASS", "evidence": "rc=1，1 处违规" },
+    { "id": "V-008", "criterion": "判据8 目录缺 devlog.events.json", "command": "--self-test（反例 G）", "result": "PASS", "evidence": "rc=1，1 处违规" },
+    { "id": "V-009", "criterion": "判据9 front-matter 词表 + 与台账一致", "command": "--self-test（反例 H/I）", "result": "PASS", "evidence": "rc=1；2 处 / 1 处违规" },
+    { "id": "V-010", "criterion": "判据10 缺 python3 → rc=2", "command": "PATH=<仅含 git> /bin/bash .github/scripts/check-task-ledger.sh", "result": "PASS", "evidence": "rc=2，输出含「未验证」（首次测法错误得 rc=127，见 B-002）" },
+    { "id": "V-011", "criterion": "判据11 CI 结构不变量", "command": "bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml", "result": "PASS", "evidence": "rc=0；9 项必需检查名齐备且无 job 级 if" },
+    { "id": "V-012", "criterion": "判据12 preflight 同口径", "command": "PREFLIGHT_BASE=origin/develop scripts/preflight.sh --changed", "result": "PASS", "evidence": "输出含「✅ 台账一致性（README × ledger.json × front-matter）」" },
+    { "id": "V-013", "criterion": "判据13 AGENTS.md 回写", "command": "grep -n '台账一致性门禁' AGENTS.md", "result": "PASS", "evidence": "命中「关键 gotchas」段" },
+    { "id": "V-014", "criterion": "判据14 真实全量数据未放宽判据", "command": "同 V-001", "result": "PASS", "evidence": "44 张卡 rc=0；4 卡词表为改数据而非改判据" },
+    { "id": "V-015", "criterion": "附加 shell 规则 + YAML 可解析", "command": "bash scripts/check-shell-vars.sh；yaml.safe_load(ci.yml)", "result": "PASS", "evidence": "17 个脚本 rc=0；docs job 无 if、步骤 11 个" }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "门先修好会让 develop 直接变红",
+      "rootCause": "校验器对每个 PR 都跑，而 develop 台账本身有 4 条截断标题 + 数量漂移（40 vs 43）",
+      "solution": "本分支 stack 在回填分支（chore/ledger-backfill-2026-10-15f）之上，合并顺序：回填 → 本 PR",
+      "lesson": "加门禁前先确认当前基线能通过，否则门本身成为阻塞源"
+    },
+    {
+      "id": "B-002",
+      "block": "验证「缺 python3 → rc=2」时首次得到 rc=127，误以为脚本有问题",
+      "rootCause": "测法错误：env PATH=/nonexistent bash … 让 env 找不到 bash 本体，脚本根本没执行",
+      "solution": "改为 PATH 只含 git 的临时目录 + 用 /bin/bash 绝对路径调用，得到预期 rc=2",
+      "lesson": "失败的验证要先怀疑测法：rc=127 是命令未找到，与脚本自身退出码语义无关"
+    }
+  ],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "✓", "evidence": "V-001~V-015 全部在 commit 前跑完" },
+    { "item": "按路径 add（禁 git add -A）", "result": "✓", "evidence": "commit 前 git diff --cached --name-only 核对；deploy/site 既有改动未纳入" },
+    { "item": "只改点名范围（未越界）", "result": "✓", "evidence": "校验器 + 4 卡词表 + ci.yml 一步骤 + preflight 门 0b + AGENTS.md + 本卡四件套 + 台账登记" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "✓", "evidence": "acceptance.md 14/14" },
+    { "item": "GATE / 后端门禁全绿", "result": "✓", "evidence": "无 Go/前端改动；shell + workflow 结构 + 台账 + YAML + preflight 全绿" },
+    { "item": "台账同步（状态/PR 号）", "result": "✓", "evidence": "README.md + ledger.json 已加本卡行且与 front-matter 一致" },
+    { "item": "迁移只增不改 / 号段合规（如涉）", "result": "✓", "evidence": "本刀无迁移" }
+  ],
+  "retrospective": {
+    "good": "把「门禁挂载点」当不变量问题而非便利问题解——不新增 job，故不新增必需检查上报面，避开本仓库反复出现的「假防线/卡死 PR」模式；--self-test 让「门真的会红」成为可复跑断言（10/10）；并在归一词表前先跑正例，亲眼看到门抓到真实漂移",
+    "improve": "①「缺 python3」判据的验证方法首次写错（rc=127 vs rc=2 未区分）；②日志首版预写了未产生的验证结果，虽当场纠正，但反映「先把文档写完整」的惯性会与 AC-010 冲突——写文档时应只写已发生事实",
+    "followups": "① 评估方案 B：ledger.json 从任务卡 front-matter 生成，根治双维护；② 存量 14 张卡无状态、11 张无优先级，交排期 v2；③ 38 张平铺卡待迁移到文件夹结构；④ 校验器只做结构一致性，清单判据成立性与证据真实性仍需人工/审计 agent"
+  }
+}

@@ -1,6 +1,6 @@
 ---
 taskId: TASK-SEC-002
-status: accepted
+status: 已验收
 priority: P0（排期第一批第 6 刀）
 pr: "#199"
 criteria: 10

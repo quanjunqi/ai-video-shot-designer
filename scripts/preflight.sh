@@ -106,6 +106,23 @@ if [ "${1:-}" = "--stale" ]; then
   exit 1
 fi
 
+# ---- 门 0b：台账一致性（AC-008/010/011）----
+# 判据：README（人读表）× ledger.json（机读视图）× 任务卡 front-matter 三方一致。
+# 与 CI 的 Documentation Check 步骤调用**同一个脚本** —— 单一实现，避免"两套口径"
+# （同 门 0 与 scripts/check-shell-vars.sh 的处置方式）。
+# 退出码 2 = 无法检查（缺 python3）⇒ 判【未验证】，不等于通过。
+if bash "$ROOT/.github/scripts/check-task-ledger.sh" >"$TMP/ledger.out" 2>&1; then
+  ok "台账一致性（README × ledger.json × front-matter）"
+else
+  rc=$?
+  if [ "$rc" = "2" ]; then
+    bad "台账一致性【未验证】（缺 python3）—— 不等于通过"
+  else
+    bad "台账一致性（AC-008/010/011）"
+  fi
+  sed 's/^/      /' "$TMP/ledger.out" | head -20
+fi
+
 # ---- 选定要检查的服务与前端 ----
 FRONTEND=1
 declare -a TARGETS=()

@@ -1,6 +1,6 @@
 ---
 taskId: TASK-AUDIT-001
-status: accepted
+status: 已验收
 priority: P0（排期第一批第 5 刀）
 pr: "#197"
 slices: D1-D7 accepted / D8 partial（访问控制归 AUTH-001）/ D9 declined
