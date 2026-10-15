@@ -10,6 +10,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useJobResumer } from '@/hooks/useJobResumer';
+import { devActorInitial, useAuthStore } from '@/stores/useAuthStore';
 
 function ThemeSync() {
   const theme = useSettingsStore((s) => s.theme);
@@ -31,6 +32,16 @@ export default function AppShell() {
   useEffect(() => {
     void syncCatalog();
   }, [syncCatalog]);
+
+  // TASK-AUTH-001：启动拉取当前身份（/api/v1/me → role 驱动导航过滤与页面守卫）。
+  // dev 模式优先用 localStorage 记忆的身份（TopBar 下拉切换）。
+  const hydrate = useAuthStore((s) => s.hydrate);
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      useAuthStore.setState({ actorId: devActorInitial() });
+    }
+    void hydrate();
+  }, [hydrate]);
 
   return (
     <ThemeProvider attribute="class" enableSystem defaultTheme="dark">

@@ -56,8 +56,8 @@ feature/* 开发：统一从 develop 拉
 
 | 服务 | 号段 |
 |---|---|
-| workspace | 001-009 |
-| execution | 010-019 |
+| workspace | 001-009（已满）；**020-029**（2026-10-15 新认领：dev 角色种子等） |
+| execution | 010-018（已用）；019 可用 |
 | production 模型中心 | 024-039 |
 | production 项目知识库 | 040-049 |
 | production 无限画布 | 050-059 |
