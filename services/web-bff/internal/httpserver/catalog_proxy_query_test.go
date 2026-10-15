@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,7 +22,8 @@ func TestCatalogProxyForwardsQueryString(t *testing.T) {
 	}))
 	defer production.Close()
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK) // authorize 放行
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 
@@ -56,7 +58,10 @@ func TestCatalogProxyKeepsPathCleanWithoutQuery(t *testing.T) {
 		_, _ = w.Write([]byte(`{"channels":[],"models":[],"templates":[]}`))
 	}))
 	defer production.Close()
-	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
+	}))
 	defer workspace.Close()
 	s := &server{
 		httpClient:      &http.Client{Timeout: 2 * time.Second},

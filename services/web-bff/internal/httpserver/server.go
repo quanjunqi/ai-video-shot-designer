@@ -90,11 +90,13 @@ func (s *server) Routes() http.Handler {
 	// T3 预算规则（TASK-MODEL-005）：透传 workspace /internal/v1/workspaces/{ws}/budget/rules
 	mux.HandleFunc("/api/v1/workspace/budget", s.workspaceBudget)
 	mux.HandleFunc("/api/v1/workspace/budget/", s.workspaceBudget)
+	// TASK-AUTH-001：当前身份（workspace/actor/role），前端启动拉取以驱动角色控制
+	mux.HandleFunc("GET /api/v1/me", s.me)
 	return withTimeout(mux)
 }
 
-// requestIDTransport 自动把 context 中的 request_id 注入每个上游请求头
-// （BFF 是所有内部服务的唯一入口，负责链路 ID 的生成与透传；
+// requestIDTransport 自动把 context 中的 request_id 与已验证角色注入每个上游请求头
+// （BFF 是所有内部服务的唯一入口，负责链路 ID 的生成与透传、角色可信注入；
 //
 //	各 handler 无需逐处复制 header —— RoundTrip 统一处理）。
 type requestIDTransport struct{ base http.RoundTripper }
@@ -102,6 +104,11 @@ type requestIDTransport struct{ base http.RoundTripper }
 func (t requestIDTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if rid := observability.RequestIDFrom(req.Context()); rid != "" {
 		req.Header.Set(observability.HeaderRequestID, rid)
+	}
+	// TASK-AUTH-001：授权通过后由 ctx 携带的角色注入下游（production 中间件校验防绕过）。
+	// 只有经 BFF authorize 验证过的角色才会在此注入，下游不信任客户端自报。
+	if role := roleFrom(req.Context()); role != "" {
+		req.Header.Set(HeaderRole, role)
 	}
 	return t.base.RoundTrip(req)
 }

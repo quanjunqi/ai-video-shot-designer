@@ -14,7 +14,8 @@ func (s *server) auditExport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -22,6 +23,7 @@ func (s *server) auditExport(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet,
 		s.executionURL+"/internal/v1/audit/export?"+r.URL.RawQuery, nil)
 	if err != nil {
@@ -70,7 +72,8 @@ func (s *server) alertConfigProxy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -78,6 +81,7 @@ func (s *server) alertConfigProxy(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	upstreamPath := "/internal/v1/alerts/config"
 	var body io.Reader
 	if r.Body != nil {
@@ -112,7 +116,8 @@ func (s *server) auditGetProxy(upstreamPath string, w http.ResponseWriter, r *ht
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -120,6 +125,7 @@ func (s *server) auditGetProxy(upstreamPath string, w http.ResponseWriter, r *ht
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	if r.URL.RawQuery != "" {
 		upstreamPath += "?" + r.URL.RawQuery
 	}

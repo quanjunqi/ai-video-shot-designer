@@ -45,7 +45,8 @@ func TestChannelProbeForwardsToExecutionWithoutBody(t *testing.T) {
 	defer execution.Close()
 
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +101,8 @@ func TestChannelProbeForwardsExecutionErrorStatus(t *testing.T) {
 	}))
 	defer execution.Close()
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +126,8 @@ func TestChannelProbeForwardsExecutionErrorStatus(t *testing.T) {
 // TestChannelProbeUnavailableWhenExecutionDown：execution 不可用时如实 503。
 func TestChannelProbeUnavailableWhenExecutionDown(t *testing.T) {
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
@@ -177,6 +180,12 @@ func TestChannelProbeRejectsWhenWorkspaceAuthorizationFails(t *testing.T) {
 func TestWorkspaceCredentialsRewritesPath(t *testing.T) {
 	var seenPath, seenMethod, seenAuth string
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TASK-AUTH-001：authorize 探测命中同一 URL 时返回角色 JSON
+		if strings.Contains(r.URL.Path, "/authorize") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"role":"owner"}`)
+			return
+		}
 		seenPath = r.URL.Path
 		seenMethod = r.Method
 		seenAuth = r.Header.Get("Authorization")
@@ -186,7 +195,8 @@ func TestWorkspaceCredentialsRewritesPath(t *testing.T) {
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer production.Close()
 
@@ -257,7 +267,8 @@ func TestProjectsInjectsTrustedContextAndIdempotency(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer workspace-secret" {
 			t.Errorf("workspace token was not forwarded")
 		}
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -300,7 +311,8 @@ func TestProjectsInjectsTrustedContextAndIdempotency(t *testing.T) {
 
 func TestProjectsPreservesProductionValidationErrors(t *testing.T) {
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -321,7 +333,8 @@ func TestProjectsPreservesProductionValidationErrors(t *testing.T) {
 
 func TestProjectsReturnsUnavailableWhenProductionCannotRespond(t *testing.T) {
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -342,7 +355,8 @@ func TestProjectsReturnsUnavailableWhenProductionCannotRespond(t *testing.T) {
 
 func TestProjectDetailPathIsForwarded(t *testing.T) {
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -383,7 +397,8 @@ func TestLogicalModelsListForwardsQueryAndInternalPath(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer workspace-secret" {
 			t.Errorf("workspace token was not forwarded")
 		}
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -431,7 +446,8 @@ func TestLogicalModelsCreateForwardsToInternalPath(t *testing.T) {
 		path, method, contentType, body string
 	}{}
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -515,7 +531,8 @@ func TestLogicalModelsPreservesBusinessErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var seenPath string
 			workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = io.WriteString(w, `{"role":"owner"}`)
 			}))
 			t.Cleanup(workspace.Close)
 			production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -551,7 +568,8 @@ func TestLogicalModelsUnbindForwardsDeleteAndReturnsNoContent(t *testing.T) {
 		path, method string
 	}{}
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -579,7 +597,8 @@ func TestLogicalModelsUnbindForwardsDeleteAndReturnsNoContent(t *testing.T) {
 func TestLogicalModelsRejectsUnsupportedMethod(t *testing.T) {
 	productionCalls := 0
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -641,6 +660,12 @@ func TestWorkspaceBudgetRewritesPathAndPassesMethods(t *testing.T) {
 		seenBody                       string
 	)
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TASK-AUTH-001：authorize 探测命中同一 URL 时返回角色 JSON
+		if strings.Contains(r.URL.Path, "/authorize") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"role":"owner"}`)
+			return
+		}
 		seenPath, seenMethod = r.URL.Path, r.Method
 		seenAuth = r.Header.Get("Authorization")
 		b, _ := io.ReadAll(r.Body)
@@ -651,7 +676,8 @@ func TestWorkspaceBudgetRewritesPathAndPassesMethods(t *testing.T) {
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer production.Close()
 
@@ -710,7 +736,8 @@ func TestWorkspaceBudgetAuthAndMethodGuard(t *testing.T) {
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer production.Close()
 
