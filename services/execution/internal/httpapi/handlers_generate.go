@@ -16,6 +16,7 @@ import (
 	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/breaker"
+	"shotdesigner/services/execution/internal/budget"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/engine"
 	"shotdesigner/services/execution/internal/job"
@@ -321,6 +322,31 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 			writeAudit(d.Status, nil, d.Reason, "", "")
 			writeError(w, http.StatusTooManyRequests, strings.ToUpper(d.Status), d.Reason)
 			return
+		}
+	}
+	// T3 预算校验（TASK-MODEL-005）：读生效规则 → 累计已用（审计花费 + 未结算预扣）
+	// vs 上限。超限 block 拦截（明确配额错误码 BUDGET_EXCEEDED）；达阈值告警；
+	// 预算系统故障 fail-open（放行 + 审计标记"预算未校验"）。
+	if h.Budget != nil {
+		var used budget.Used
+		if h.BudgetHolds != nil {
+			heldDay, heldMonth, heldErr := h.BudgetHolds.Outstanding(r.Context(), ws)
+			if heldErr != nil {
+				slog.Warn("budget: holds outstanding unavailable, fail-open", "workspace", ws, "error", heldErr)
+				writeAudit("budget_unchecked", nil, "budget holds unavailable (fail-open)", "", "")
+			} else {
+				used = budget.Used{Day: heldDay, Month: heldMonth}
+			}
+		}
+		d := h.Budget.Check(r.Context(), ws, used)
+		if !d.Allowed {
+			writeAudit(d.Status, nil, d.Reason, "", "")
+			writeError(w, http.StatusTooManyRequests, "BUDGET_EXCEEDED", d.Reason)
+			return
+		}
+		if d.FailOpen {
+			writeAudit("budget_unchecked", nil, d.Reason, "", "")
+			slog.Warn("budget: check failed open", "workspace", ws, "reason", d.Reason)
 		}
 	}
 

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"shotdesigner/services/execution/internal/budget"
 	"shotdesigner/services/execution/internal/quota"
 	"shotdesigner/services/execution/internal/reconcile"
 
@@ -48,6 +49,10 @@ type Handler struct {
 	ReconcileStore *reconcile.Store
 	// Breaker 是单元熔断 Store（T4，TASK-ROUTE-003）。为 nil 时熔断语义不生效（fail-open）。
 	Breaker *breaker.Store
+	// Budget 是请求前预算校验器（T3，TASK-MODEL-005）。为 nil 时不校验（fail-open）。
+	Budget *budget.Checker
+	// BudgetHolds 是预算预扣/结算状态机（T3）。为 nil 时不预扣（fail-open）。
+	BudgetHolds budget.HoldsStore
 }
 
 type Store interface {

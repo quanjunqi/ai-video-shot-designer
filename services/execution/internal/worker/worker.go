@@ -18,6 +18,7 @@ import (
 
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/breaker"
+	"shotdesigner/services/execution/internal/budget"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/engine"
@@ -48,7 +49,8 @@ func wsOf(j job.Job) string {
 // Run 是 worker 主循环：轮询队列 → 翻转 queued→running → 执行 → 审计终态。
 // 由 cmd 以 goroutine 启动（并发闸门与容量由调用方装配）。
 // brk 是单元熔断 Store（T4）；为 nil 时熔断语义不生效（fail-open）。
-func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store, brk *breaker.Store) {
+// holds 是预算预扣/结算状态机（T3）；为 nil 时不预扣（fail-open）。
+func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, gate *job.Semaphore, as *audit.Store, brk *breaker.Store, holds budget.HoldsStore) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	// Track jobs currently being executed to avoid duplicate dispatch
@@ -90,20 +92,23 @@ func Run(s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Clie
 				defer gate.Release()
 				defer executing.Delete(job.ID)
 				Logger.Info("goroutine finished", "job_id", job.ID)
-				executeJob(ctx, s, cat, cred, client, job, as, brk)
+				executeJob(ctx, s, cat, cred, client, job, as, brk, holds)
 			}(j, jobCtx, jobCancel)
 		}
 	}
 }
 
 // executeJob runs a single job through the engine and updates its status.
-// brk 为 nil 时熔断语义不生效（fail-open）。
-func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store, brk *breaker.Store) {
+// brk 为 nil 时熔断语义不生效（fail-open）；holds 为 nil 时不预扣（fail-open）。
+func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *creds.Client, client *http.Client, j job.Job, as *audit.Store, brk *breaker.Store, holds budget.HoldsStore) {
+	// holdID 在模型解析后填入；panic/终态时据此退扣（fail-open：退扣失败只告警不阻断）。
+	var holdID string
 	defer func() {
 		if r := recover(); r != nil {
 			Logger.Info("execution worker: panic in job %s: %v", j.ID, r)
 			auditTerminal(ctx, as, j, false, fmt.Sprintf("internal panic: %v", r), nil)
 			_ = s.Complete(ctx, j.ID, false, nil, fmt.Sprintf("internal panic: %v", r))
+			releaseHold(ctx, holds, holdID)
 		}
 	}()
 
@@ -140,7 +145,7 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
 	if err != nil {
 		// catalog 未命中：channel/provider 未知，传空（空串不覆盖，T1）
-		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as, "", "")
+		failOrRetry(ctx, s, j, "catalog unavailable: "+err.Error(), as, "", "", holds, "")
 		return
 	}
 	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
@@ -227,6 +232,22 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		return
 	}
 
+	// T3 预算预扣（TASK-MODEL-005）：异步任务执行前按模型权威价【预扣估算上限】。
+	// 预扣即封顶 —— 未结算预扣计入"已用"（校验叠加），防并发提交同时放行超支。
+	// 预扣按 day 周期落行（created_at 决定归属；Outstanding 按当日/当月窗口合计）。
+	// holds 为 nil（预算关闭）或预扣失败 → fail-open：放行执行 + 告警（不阻断任务）。
+	if holds != nil && hitCost > 0 {
+		hr, holdErr := holds.Hold(ctx, budget.HoldRecord{
+			JobID: j.ID, WorkspaceID: jobWorkspace, Period: "day",
+			HoldAmount: hitCost,
+		})
+		if holdErr != nil {
+			Logger.Warn("budget: hold unavailable, fail-open", "job_id", j.ID, "error", holdErr)
+		} else {
+			holdID = hr.ID
+		}
+	}
+
 	// 将 aspect_ratio 转换为 size（OpenAI Images API 只接受 size 参数）
 	aspectSizeMap := map[string]string{
 		"1:1":  "1024x1024",
@@ -294,10 +315,11 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 			msg := "model call failed: " + err.Error()
 			auditTerminal(ctx, as, j, false, msg, nil)
 			_ = s.Complete(ctx, j.ID, false, nil, msg)
+			releaseHold(ctx, holds, holdID)
 			return
 		default:
 			// T1：引擎失败但模型已命中 —— 终态审计行补齐 channel/provider（供给单元）
-			failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel)
+			failOrRetry(ctx, s, j, err.Error(), as, hitChannelID, hitProviderModel, holds, holdID)
 			return
 		}
 	}
@@ -326,10 +348,14 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		Logger.Warn("no image URL extracted, marking as failed", "job_id", j.ID)
 		auditTerminalUsage(ctx, as, j, false, "model returned no image URL", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
 		_ = s.Complete(ctx, j.ID, false, resultBytes, "model returned no image URL")
+		releaseHold(ctx, holds, holdID)
 		return
 	}
 
 	auditTerminalUsage(ctx, as, j, true, "", resultBytes, result.Extracted, result.ElapsedMs, hitCost, hitUnit, hitChannelID, hitProviderModel)
+	// T3 结算：成功按实际成本结算，退 预扣-实际 差额（实际=权威价 hitCost）。
+	// 结算失败 fail-open：仅告警，不阻断任务完成（任务已成功）。
+	settleHold(ctx, holds, holdID, hitCost)
 
 	completeErr := s.Complete(ctx, j.ID, true, resultBytes, "")
 	if completeErr != nil {
@@ -342,7 +368,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 // 未达上限则退避重排，达到上限则进入死信。
 // 配置类/永久性错误不走这里，而是直接 Complete(false) —— 否则会白白消耗尝试次数
 // （例如「model not found」重试 3 次毫无意义）。
-func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string) {
+// holds/holdID：T3 预算预扣。终态（回退标记失败/死信）退扣；仅重试时不退（任务还在跑）。
+func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string, holds budget.HoldsStore, holdID string) {
 	cfg := job.DefaultRetryConfig()
 	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
@@ -353,8 +380,10 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		// T1：命中模型后的失败终态也补齐 channel/provider（空串不覆盖，供 T2 按供给单元聚合）
 		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
 		_ = s.Complete(ctx, j.ID, false, nil, msg)
+		releaseHold(ctx, holds, holdID)
 	case retried:
 		Logger.Warn("第 N 次失败，稍后重试", "job_id", j.ID, "attempt", j.Attempt, "backoff", backoff.Round(time.Second).String(), "reason", msg)
+		// 重试中：不退扣（任务还在队列里，预算继续封顶）
 	default:
 		Logger.Warn("重试耗尽，进入死信", "job_id", j.ID, "attempt", j.Attempt, "reason", msg)
 		// D2b：这是【终态】（重试耗尽 → 死信）。
@@ -362,5 +391,26 @@ func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *au
 		// 提前写会把"还在重试"记成"已失败"。
 		// T1：命中模型后的死信终态同样补齐 channel/provider
 		auditTerminalT(ctx, as, j, false, msg, nil, 0, 0, 0, 0, 0, "", channelID, providerModel)
+		releaseHold(ctx, holds, holdID)
+	}
+}
+
+// settleHold 结算预扣（成功路径）：实际=权威价。失败 fail-open 仅告警（任务已成功）。
+func settleHold(ctx context.Context, holds budget.HoldsStore, holdID string, actual float64) {
+	if holds == nil || holdID == "" {
+		return
+	}
+	if _, err := holds.Settle(ctx, holdID, actual); err != nil {
+		Logger.Warn("budget: settle failed (fail-open)", "hold_id", holdID, "error", err)
+	}
+}
+
+// releaseHold 退扣（失败/取消/panic 终态路径）：全部退还。失败 fail-open 仅告警。
+func releaseHold(ctx context.Context, holds budget.HoldsStore, holdID string) {
+	if holds == nil || holdID == "" {
+		return
+	}
+	if _, err := holds.Release(ctx, holdID); err != nil {
+		Logger.Warn("budget: release failed (fail-open)", "hold_id", holdID, "error", err)
 	}
 }
