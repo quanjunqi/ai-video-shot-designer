@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T23:35:00+0800",
+  "updatedAt": "2026-10-15T23:45:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -318,7 +318,7 @@
     {
       "id": "TASK-UI-001",
       "title": "UI 组件与设计 token 清单（专业级 · 可成长）",
-      "status": "进行中",
+      "status": "已验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md)"
@@ -326,7 +326,7 @@
     {
       "id": "TASK-UI-002",
       "title": "组件库展示页受众分离改版（产品/设计可用）",
-      "status": "进行中",
+      "status": "已验收",
       "priority": "P1",
       "pr": null,
       "file": "[TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md)"

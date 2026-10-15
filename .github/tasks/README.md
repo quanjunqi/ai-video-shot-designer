@@ -60,8 +60,8 @@
 | TASK-SEC-003 | auth_type 增加 `token`（无前缀 Authorization） | — | 待验收（✅ 代码核实通过；缺单测/真库实测） | — | [TASK-SEC-003-auth-type-token.md](TASK-SEC-003-auth-type-token.md) |
 | TASK-SEC-004 | 鉴权改数据驱动（authHeader + authPrefix） | — | 待验收（✅ 代码核实通过；卡片要求的单测+真库集成未执行） | — | [TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md) |
 | TASK-SUPPLY-001 | ① 算力接入（设置中心）实施计划 | — | 已验收（供给池各 PR 已合并） | — | [TASK-SUPPLY-001-supply-access-plan-2026-10-11.md](TASK-SUPPLY-001-supply-access-plan-2026-10-11.md) |
-| TASK-UI-001 | UI 组件与设计 token 清单（专业级 · 可成长） | P1 | 进行中 | ✅ | [TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md) |
-| TASK-UI-002 | 组件库展示页受众分离改版（产品/设计可用） | P1 | 进行中 | ✅ | [TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md) |
+| TASK-UI-001 | UI 组件与设计 token 清单（专业级 · 可成长） | P1 | 已验收（**交付段**；维护段转 CI 门禁）——v2 §3.3① 判据机器验证通过：`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42 | ✅ | [TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md) |
+| TASK-UI-002 | 组件库展示页受众分离改版（产品/设计可用） | P1 | 已验收（**交付段**；维护段转 CI 门禁）——v2 §3.3① 判据机器验证通过：`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42 | ✅ | [TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md) |
 | TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 已验收（PR #175 已合并；V-003b 门禁 + 989 处收敛） | ✅ | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
 | TASK-UI-004 | 死代码口径修正 + 零引用组件裁剪 | P2 | 已验收（PR #176 已合并；组件 55 → 42） | ✅ | [TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md) |
 
@@ -69,9 +69,10 @@
 
 - 任务卡：**44** 张（含 1 张 PLAN）；写明 **优先级** 34 张、**状态** 31 张。
 - 任务卡：**45** 张（含 1 张 PLAN）；写明 **优先级** 35 张、**状态** 43 张。
-- 已验收（27）：MODEL-001/003/004/005、AUDIT-001/002、ROUTE-001/002/003、ASSET-001、SUPPLY-001、OBS-002、PROC-001/002、INFRA-001/003/004/005（T13 验收）、FIX-001/004/005、SEC-001/002、UI-003/004、**FIX-002/003**（代码/规则均已合并 develop）。
+- 已验收（29）：MODEL-001/003/004/005、AUDIT-001/002、ROUTE-001/002/003、ASSET-001、SUPPLY-001、OBS-002、PROC-001/002、INFRA-001/003/004/005（T13 验收）、FIX-001/004/005、SEC-001/002、UI-001~004、**FIX-002/003**（代码/规则均已合并 develop）。
 - 待验收（13）：**AUTH-001**（判据 6 Owner 真机三角色走查 = T13 唯一未闭合项，见 `docs/how-to/t13-walkthrough-guide.md`）、**PROC-003**（台账校验门禁 14/14）、**PROC-004**（存量台账真实化 8/8）、**OBS-001**（详情抽屉）、**SEC-003/004**、**P2-001**、**INFRA-002**、**CREATE-001~005**（后 9 张均为**代码已实现、待正式验收**，各自残留项见 TASK-PROC-004 devlog）。
-- 进行中（3）：UI-001（组件/token 清单）、UI-002（组件库改版）——**v2 §3.3 已重定义终态（交付段 + 维护段）**；**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
+- 进行中（1）：**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
+- ✅ **UI-001/UI-002 已按 v2 §3.3① 拆分闭合**：「交付段」判据机器验证通过（`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42）→ 记已验收；「维护段」（新增组件必须同步清单）已由 CI `ui:check` 步骤长期强制，**不再占用卡片状态**。⇒ **CREATE 系列的组件基座依赖已解除**。
 - 待开工（0）：—
 - **仍未填写状态（2）**：`PLAN-a-and-adr008-2026-10-10`（文档类，非任务，不适用）、**`TASK-CREATE-006`（⚠️ 编号冲突，暂停闭合**——ADR 分片 6 = 后端 `aspectRatios`（未交付）与本卡同号不同事，裁定见 TASK-PROC-004）。
 - 排期唯一事实源：**`docs/product/task-queue-plan-v2-2026-10-15.md`**（依赖链 + 冲突面 + 波次/并行池 + 验收时间盒 + 防重演约束）。v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
