@@ -33,7 +33,7 @@
 | TASK-FIX-004 | 任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T13 验收缺口 1） | P0 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md) |
 | TASK-FIX-005 | 创建页积分 NaN/undefined 兜底（T13 验收缺口 2） | P1 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md) |
 | TASK-IA-001 | 模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板） | P1 | 待开工（排期第二批第 9 刀，设计稿先行） | 开工前产出 | [TASK-IA-001-ia-budget-relocation.md](TASK-IA-001-ia-budget-relocation.md) |
-| TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | — | — | — | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
+| TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | P0（基建） | 已验收（d612122 已合并；Docker 8 类场景验证 2026-10-15） | ✅ | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | — | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
 | TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | — | — | — | [TASK-INFRA-003-worker-reliability.md](TASK-INFRA-003-worker-reliability.md) |
 | TASK-INFRA-004 | 把「渠道探测」抽成一份公共能力（B3a） | — | **已确认，可开工**（Owner 2026-10-10：① 直接合并本清… | — | [TASK-INFRA-004-probe-extraction.md](TASK-INFRA-004-probe-extraction.md) |
@@ -63,10 +63,10 @@
 ## 现状（自动统计，供 Owner 看缺口）
 
 - 任务卡：**42** 张（含 1 张 PLAN）；写明 **优先级** 23 张、**状态** 20 张。
-- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001、**INFRA-005（T13 验收）、FIX-001/004/005**（共 19 张，代码/规则均已合并 develop）。
+- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001、**INFRA-005（T13 验收）、FIX-001/004/005**（共 20 张，代码/规则均已合并 develop）。
 - 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；另有 INFRA-003 / SEC-001 / SEC-002（AUDIT-001 实施）按排期文档顺序推进。
 - 待开工（P1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**；CREATE-001~006 / OBS-001 / FIX-002 / FIX-003 / P2-001 按排期推进。
 - 排期唯一事实源：`docs/product/task-queue-plan-2026-10-15.md`（依赖链 + 批次 + 防重演约束）。
-- 验收清单：**9** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 验收清单：**10** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 
