@@ -181,11 +181,12 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /internal/v1/logical-models/{id}/candidates", h.listLogicalModelCandidates)
 	mux.HandleFunc("POST /internal/v1/logical-models/{id}/candidates", h.bindLogicalModelCandidates)
 	mux.HandleFunc("DELETE /internal/v1/logical-models/{id}/candidates/{modelId}", h.unbindLogicalModelCandidate)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// TASK-AUTH-001：角色校验中间件包在最外层（探活放行、其余按矩阵裁定，先鉴权再进超时层）
+	return h.authz(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
 		mux.ServeHTTP(w, r.WithContext(ctx))
-	})
+	}))
 }
 
 func (h Handler) createIntent(w http.ResponseWriter, r *http.Request) {
