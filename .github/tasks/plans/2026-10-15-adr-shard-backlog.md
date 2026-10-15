@@ -24,24 +24,21 @@
 
 ---
 
-## 二、分片 6~13 待办清单
+## 二、分片 6~13 待办清单（2026-10-16 逐片核实升级）
 
-> ⚠️ **证据强度声明（重要）**：下表为 **grep 级初步对账**，**不是逐条判据核实**。
-> "grep 无命中"**不等于**"确定未实现"——可能以其他命名实现，或部分交付。
-> **每片排到时必须按排期 v2 §5 第 8 条先逐条核实其前提，再建卡。**
+> **证据强度已升级**：初版为 grep 级；本节已按「读代码定根因」逐片核实（片 6 已交付，见 §三）。
+> 仍**不等于**逐条验收判据核实——每片排到时按 §四 规则建卡并细化。
 
-| 片 | 内容（ADR 原文） | 初步对账 | 证据 | 建议 |
+| 片 | 内容（ADR 原文） | 核实结论 | **根因/证据（已定位）** | 建议 |
 |---|---|---|---|---|
-| **6** | `capability.aspectRatios` 追加（D3-B） | ⚠️ **数据未追加** | `apps/web/src/config/create/control-schema.ts:125,248` 有 `aspectRatios: FallbackRange`，但 **`values: []` + `source: 'platform-default'`** ⇒ **前端消费管道在、目录数据缺** | **Priority 1**：范围最清晰、依赖最少（改目录数据 + 契约）；且已"正名"（原误标 CREATE-006，见 §三） |
-| **7** | 个人素材 + 结果提升为资产（D4） | ⚠️ 未见实现 | grep `promote`/`提升为资产`/`个人素材` 无命中 | Priority 2：与片 13（结果写回）同族，建议合并评估 |
-| **8** | 音频模型类型缺口（D8） | ⚠️ 未见实现 | `model-catalog.ts` 无 audio 类型标记 | Priority 3：阻塞音频能力，但影响面窄 |
-| **9** | 补齐其余 7 个协议模板 `capabilities` | ⚠️ 未见实现 | — | Priority 3：纯数据补齐，可与其他片并行 |
-| **10** | 队列抽屉（暂停/恢复/清空） | ⚠️ 未见实现 | grep `队列抽屉`/`pauseAll`/`清空队列` 无命中 | Priority 4：**ADR 标注"待后端状态机"** ⇒ 有外部前置，需先确认后端 |
-| **11** | 横向比多模型并排视图 | ⚠️ 未见实现 | grep `并排`/`compare` 无命中 | Priority 4：UX 增强，非阻塞 |
-| **12** | 积分账本与并发额度 | ⚠️ 未见实现 | 仅命中无关同名（任务中心「账目」页签、`services/execution/internal/reconcile`） | Priority 5：与 V2 §3.4 的 P2-001（统一 Executor）可能交织，需整体评估 |
-| **13** | 结果写回链路 + **任务删除接口** | ⚠️ **删除接口确认不存在** | `apps/web/src/lib/api/client.ts` 无 `deleteTask`；`openapi/bff.yaml` 任务仅 `cancel`/`retry`（CREATE-003 核实时已确认） | Priority 2：删除接口是**契约先行**工作（openapi → BFF → 前端），且任务中心已有取消/重试，补删除价值明确 |
-
----
+| **6** | `capability.aspectRatios` 追加（D3-B） | ✅ **机制已交付**（TASK-CREATE-006，待验收） | 前端声明优先路径已落地；**契约/后端/迁移均不需要**（capability 是 JSONB 开放对象） | 仅剩**数据填报**（产品决策） |
+| **8** | 音频模型类型缺口（D8） | ⚠️ **未交付，根因明确** | **`production/004_catalog.sql:23`：`type text NOT NULL CHECK (type IN ('text','image','video'))` —— 无 `audio`**；前端 `runnableModels()` 对 `audio` 直接 `return []`（注释指向 D8）⇒ **整个音频工作台不可用** | **🔥 建议下一个做**：范围最清晰（DB CHECK + 迁移 + 目录 + 前端），价值高（解锁一类能力） |
+| **7** | 个人素材 + 结果提升为资产（D4） | ⚠️ 未交付 | 契约**无 promote 接口**；`CreateWorkbench.tsx:243` 的 `asset_id` 是生成**入参**，非"结果提升为资产" | Priority 2：与片 13 同族（结果写回），建议合并评估 |
+| **13** | 结果写回链路 + 任务删除接口 | ⚠️ **删除接口确认不存在** | `lib/api/client.ts` 无 `deleteTask`；`openapi/bff.yaml` 任务仅 `cancel`/`retry` | Priority 2：**契约先行**（openapi → BFF → 前端），范围清晰 |
+| **9** | 补齐其余 7 个协议模板 `capabilities` | ⚠️ 未交付 | 模型目录无 `capabilities` 字段 | Priority 3：纯数据补齐，可与其他片并行 |
+| **10** | 队列抽屉（暂停/恢复/清空） | ⚠️ 未交付 | `lib/api/client.ts` 无队列相关 API | Priority 4：**ADR 标注"待后端状态机"** ⇒ 先确认后端前置 |
+| **11** | 横向比多模型并排视图 | ⚠️ 未交付 | `apps/web/src/pages/` 无对比页 | Priority 4：UX 增强，非阻塞 |
+| **12** | 积分账本与并发额度 | ⚠️ **部分重叠，需拆分核实** | 成本额度/限流**已由 SEC-002 交付**（`services/execution/internal/quota/quota.go`）；"**积分**账本"未见 ⇒ 需先界定与 SEC-002 的边界，避免重复建设 | Priority 5：**先做边界界定再排期** |
 
 ## 三、已归位的编号（2026-10-15 裁定落地）
 
