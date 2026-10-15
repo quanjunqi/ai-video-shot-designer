@@ -64,6 +64,20 @@ export interface UserChannelItem {
   syncModelsPath?: string;
   syncPricingPath?: string;
   trustNote?: string;
+}
+
+/** T3 预算规则（TASK-MODEL-005）。Scope: tenant（租户级）/ workspace（工作区级）。 */
+export interface BudgetRuleItem {
+  id?: string;
+  workspaceId?: string;
+  scope: 'tenant' | 'workspace';
+  period: 'day' | 'month';
+  limitAmount: number;
+  action: 'warn' | 'block';
+  warnAt?: number;
+  enabled?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }export type ServerCatalogDirectory = ApiSchemas['CatalogDirectory'];export type ServerProtocolTemplate = ApiSchemas['ProtocolTemplate'];export type ServerCatalogModelPatch = ApiSchemas['CatalogModelPatch'];
 
 /** 一次上游同步的结果计数（与 production 的 SyncResult 一一对应）。 */
@@ -277,6 +291,15 @@ export const api = {
     }),
   deleteUserChannel: (channelId: string) =>
     request<void>(`/api/v1/workspace/channels/${encodeURIComponent(channelId)}`, { method: 'DELETE' }),
+  listBudgetRules: () => request<{ items: BudgetRuleItem[] }>('/api/v1/workspace/budget/rules'),
+  upsertBudgetRule: (input: BudgetRuleItem) =>
+    request<{ rule: BudgetRuleItem }>('/api/v1/workspace/budget/rules', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+  deleteBudgetRule: (period: 'day' | 'month') =>
+    request<void>(`/api/v1/workspace/budget/rules/${period}`, { method: 'DELETE' }),
   getCatalog: () => request<ServerCatalogDirectory>('/api/v1/catalog'),
   // 策展（O-1 Phase D）：列出某渠道的上游供给 + 把其中一条加入产品目录。
   // 注意 query 必须经 BFF 透传 —— catalogProxy 曾漏掉 RawQuery（已在 #157 修好并加护栏）。

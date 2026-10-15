@@ -84,6 +84,9 @@ func (s *server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/workspace/credentials/", s.workspaceCredentials)
 	mux.HandleFunc("/api/v1/workspace/channels", s.workspaceChannels)
 	mux.HandleFunc("/api/v1/workspace/channels/", s.workspaceChannels)
+	// T3 预算规则（TASK-MODEL-005）：透传 workspace /internal/v1/workspaces/{ws}/budget/rules
+	mux.HandleFunc("/api/v1/workspace/budget", s.workspaceBudget)
+	mux.HandleFunc("/api/v1/workspace/budget/", s.workspaceBudget)
 	return withTimeout(mux)
 }
 
