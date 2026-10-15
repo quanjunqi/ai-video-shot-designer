@@ -120,6 +120,19 @@
   `.agents/skills/database-migrations/SKILL.md` 的号段表（规则文件，本卡未擅自改）。
 - **决策**：D-013（本轮收口，不在余量不足时硬推跨三层链路）。
 
+### 2026-10-16 02:35 收口验证（含一次自查纠正）
+
+- **动作**：对 production 服务跑 `go build` / `go vet` / `go test -race`。
+- **自查纠正（重要）**：第一次跑时我写了
+  `go build ./... 2>&1 | tail -3 && echo "✅"` —— **管道让 `tail` 的退出码掩盖了 `go build` 的失败**，
+  实际因沙箱拒绝写 `~/Library/Caches/go-build` 而失败，但 `✅` 照样打印了。
+  **这是一次假验证**。改用可写 `GOCACHE` + `set -o pipefail`（并读 `${PIPESTATUS[0]}`）重跑。
+- **真实结果**：`go build` rc=0 · `go vet` rc=0 · `go test -race` **8 个包全 ok**
+  （catalog / episode / episodeasset / httpapi / intent / project / projectcharacter / ruletemplate）
+- **教训**：**验证命令本身也会骗人**。`cmd | tail && echo OK` 这种写法在失败时依然打印成功；
+  必须 `set -o pipefail` 并核对真实退出码。本仓库 `scripts/preflight.sh` 头注早已写明这一点
+  （"set -o pipefail：下面用了 tee，若不设，退出码会变成 tee 的而掩盖测试失败"）——我复现了同一类错误。
+
 ### 2026-10-16 02:30 本轮收口：为什么停在这里
 
 第 3~5 项（Go 加价计算 → 契约暴露 → 前端批量）是一条**跨三层的完整链**：
