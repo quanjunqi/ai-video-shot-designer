@@ -30,6 +30,10 @@ type WorkspaceStore interface {
 	ListUserChannels(context.Context, string) ([]store.UserChannel, error)
 	UpsertUserChannel(context.Context, string, store.UserChannel) (store.UserChannel, error)
 	DeleteUserChannel(context.Context, string, string) error
+	ListBudgetRules(context.Context, string) ([]store.BudgetRule, error)
+	EffectiveBudgetRules(context.Context, string) ([]store.BudgetRule, error)
+	UpsertBudgetRule(context.Context, string, store.BudgetRule) (store.BudgetRule, error)
+	DeleteBudgetRule(context.Context, string, string) error
 }
 
 // CredentialInput is the credential write payload. AuthHeader/AuthPrefix are the
@@ -63,6 +67,9 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /internal/v1/workspaces/{workspace_id}/channels", h.listUserChannels)
 	mux.HandleFunc("PUT /internal/v1/workspaces/{workspace_id}/channels/{channel_id}", h.putUserChannel)
 	mux.HandleFunc("DELETE /internal/v1/workspaces/{workspace_id}/channels/{channel_id}", h.deleteUserChannel)
+	mux.HandleFunc("GET /internal/v1/workspaces/{workspace_id}/budget/rules", h.listBudgetRules)
+	mux.HandleFunc("PUT /internal/v1/workspaces/{workspace_id}/budget/rules", h.putBudgetRule)
+	mux.HandleFunc("DELETE /internal/v1/workspaces/{workspace_id}/budget/rules/{period}", h.deleteBudgetRule)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
