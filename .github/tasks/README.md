@@ -54,7 +54,7 @@
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |
 | TASK-SEC-001 | 模型网关出站 SSRF 防护 | P0（阶段1 第1项） | 已验收（PR #195 已合并，0b06a8d；8/8 验收标准） | ✅ | [TASK-SEC-001/task.md](TASK-SEC-001/task.md) |
-| TASK-SEC-002 | 配额与限流（QPS 令牌桶 + 日/月成本上限） | — | — | — | [TASK-SEC-002-quota-rate-limit.md](TASK-SEC-002-quota-rate-limit.md) |
+| TASK-SEC-002 | 配额与限流（QPS 令牌桶 + 日/月成本上限） | P0（排期第一批第 6 刀） | 已验收（PR #<待开>；10/10 验收标准） | ✅ | [TASK-SEC-002/task.md](TASK-SEC-002/task.md) |
 | TASK-SEC-003 | auth_type 增加 `token`（无前缀 Authorization） | — | — | — | [TASK-SEC-003-auth-type-token.md](TASK-SEC-003-auth-type-token.md) |
 | TASK-SEC-004 | 鉴权改数据驱动（authHeader + authPrefix） | — | — | — | [TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md) |
 | TASK-SUPPLY-001 | ① 算力接入（设置中心）实施计划 | — | 已验收（供给池各 PR 已合并） | — | [TASK-SUPPLY-001-supply-access-plan-2026-10-11.md](TASK-SUPPLY-001-supply-access-plan-2026-10-11.md) |
@@ -66,8 +66,8 @@
 ## 现状（自动统计，供 Owner 看缺口）
 
 - 任务卡：**42** 张（含 1 张 PLAN）；写明 **优先级** 23 张、**状态** 20 张。
-- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001/002、**INFRA-005（T13 验收）、FIX-001/004/005、INFRA-001/004、SEC-001、AUDIT-001**（共 22 张，代码/规则均已合并 develop）。
-- 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；另有 INFRA-003 / SEC-002（AUDIT-001 实施）按排期文档顺序推进。
+- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001/002、**INFRA-005（T13 验收）、FIX-001/004/005、INFRA-001/004、SEC-001/002、AUDIT-001**（共 23 张，代码/规则均已合并 develop）。
+- 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；另有 INFRA-003 按排期文档顺序推进。
 - 待开工（P1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**；CREATE-001~006 / OBS-001 / FIX-002 / FIX-003 / P2-001 按排期推进。
 - 排期唯一事实源：`docs/product/task-queue-plan-2026-10-15.md`（依赖链 + 批次 + 防重演约束）。
 - 验收清单：**10** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。

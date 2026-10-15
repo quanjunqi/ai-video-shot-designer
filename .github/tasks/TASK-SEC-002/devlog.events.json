@@ -1,0 +1,75 @@
+{
+  "taskId": "TASK-SEC-002",
+  "updatedAt": "2026-10-15T16:30:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-15T16:10:00+08:00",
+      "phase": "开工/探查",
+      "action": "读任务卡 10 条验收标准与测试命令；确认排期第 6 刀依赖 AUDIT-001（cost_amount 写入，刚验收）；探查 develop 现状",
+      "evidence": ["TASK-SEC-002/task.md", "docs/product/task-queue-plan-2026-10-15.md §3 序6", "services/execution/internal/quota/quota.go", "services/execution/cmd/server/main.go:89-90"],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T16:20:00+08:00",
+      "phase": "验证",
+      "action": "跑验收测试：quota 10 项单测（令牌桶/隔离/关闭/日上限/月上限/零开销/fail-open/TTL/QPS 先于成本/FromEnv）+ HTTP 层 2 项（429 RATE_LIMITED / 未启用不拦截）",
+      "evidence": ["go test ./internal/quota/ -v → 10/10 PASS", "go test ./internal/httpapi/ -run 'RateLimited|QuotaDisabled' -v → 2/2 PASS", "migrations/009_quota.sql", "audit/store.go:188 Spend"],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T16:30:00+08:00",
+      "phase": "提交",
+      "action": "落任务文档（task.md front-matter、acceptance.md 10/10、devlog.md、devlog.events.json）+ 台账/ledger 同步",
+      "evidence": [".github/tasks/TASK-SEC-002/", ".github/tasks/README.md", ".github/tasks/ledger.json"],
+      "decisionRef": null,
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "本刀性质",
+      "options": ["重新开发配额限流", "验收闭环（实现已在 develop）"],
+      "choice": "验收闭环",
+      "reason": "quota 包 + Spend + 009 迁移 + 网关接线全部在位，任务卡阶段 1 表已标 ✅；10 条标准均有对应测试",
+      "timing": "开工"
+    },
+    {
+      "id": "D-002",
+      "topic": "是否补新测试",
+      "options": ["补测试", "不补（现有覆盖已完整）"],
+      "choice": "不补",
+      "reason": "10 条验收标准与 quota 单测/HTTP 测试逐条对应（测试名即标准语义），覆盖完整",
+      "timing": "验证中"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "标准1 令牌桶补充/容量", "command": "go test ./internal/quota/ -run TestAllowQPS_TokenBucketRefillAndBurst", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-002", "criterion": "标准2 租户隔离", "command": "go test ./internal/quota/ -run TestAllowQPS_PerWorkspaceIsolation", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-003", "criterion": "标准3 QPS<=0 关闭", "command": "go test ./internal/quota/ -run TestQPS_DisabledWhenZeroOrNegative", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-004", "criterion": "标准4 日/月上限拒绝", "command": "go test ./internal/quota/ -run 'TestCheckCost_DailyLimit|TestCheckCost_MonthlyLimit'", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-005", "criterion": "标准5 零开销跳过", "command": "go test ./internal/quota/ -run TestCheckCost_NoLimitConfiguredSkipsProvider", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-006", "criterion": "标准6 fail-open", "command": "go test ./internal/quota/ -run TestCheckCost_FailsOpenOnProviderError", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-007", "criterion": "标准7 TTL 缓存", "command": "go test ./internal/quota/ -run TestCheckCost_SpendCacheAvoidsRepeatedQueries", "result": "PASS", "evidence": "quota.go SpendCacheTTL 30s" },
+    { "id": "V-008", "criterion": "标准8 QPS 先于成本", "command": "go test ./internal/quota/ -run TestCheck_QPSBeforeCost", "result": "PASS", "evidence": "quota_test.go" },
+    { "id": "V-009", "criterion": "标准9 HTTP 429 RATE_LIMITED", "command": "go test ./internal/httpapi/ -run TestGenerateRejectsWhenRateLimited", "result": "PASS", "evidence": "handler_test.go" },
+    { "id": "V-010", "criterion": "标准10 未启用不拦截", "command": "go test ./internal/httpapi/ -run TestGenerateUnaffectedWhenQuotaDisabled", "result": "PASS", "evidence": "handler_test.go" }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "✓", "evidence": "V-001~V-010" },
+    { "item": "按路径 add（禁 git add -A）", "result": "✓", "evidence": "commit 明细" },
+    { "item": "只改点名范围（未越界）", "result": "✓", "evidence": "仅任务文档" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "✓", "evidence": "acceptance.md 10/10" },
+    { "item": "GATE / 后端门禁全绿", "result": "✓", "evidence": "gofmt/build/vet/test" },
+    { "item": "台账同步（状态/PR 号）", "result": "✓", "evidence": "ledger.json + README" },
+    { "item": "迁移只增不改 / 号段合规（如涉）", "result": "✓", "evidence": "本刀无迁移（009 已在 develop）" }
+  ],
+  "retrospective": {
+    "good": "任务卡自带测试命令与验收标准，验证即对照执行零歧义；10 标准 ↔ 10 单测一一对应",
+    "improve": "SEC-002 卡阶段 1 表已标 ✅ 但台账状态未回流（仍 —）——同一'实现完成未同步台账'问题，本次修复",
+    "followups": "多实例分布式限流（Redis）属阶段 2；差异化限额待定；阶段 1 三项 P0（SSRF/worker 可靠性/配额限流）全部闭合"
+  }
+}

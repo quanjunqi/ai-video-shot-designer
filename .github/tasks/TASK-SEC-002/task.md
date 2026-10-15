@@ -1,3 +1,13 @@
+---
+taskId: TASK-SEC-002
+status: accepted
+priority: P0（排期第一批第 6 刀）
+pr: "#<待开>"
+criteria: 10
+criteriaPassed: 10
+depends_on: TASK-AUDIT-001（cost_amount 写入）
+---
+
 # TASK-SEC-002：配额与限流（QPS 令牌桶 + 日/月成本上限）
 
 > 按 `.github/TASK_TEMPLATE.md` 填写。阶段 1 三项 P0 的第 3 项（最后一项）。
