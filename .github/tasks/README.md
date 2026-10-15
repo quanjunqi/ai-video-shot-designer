@@ -29,13 +29,13 @@
 | TASK-FIX-001 | 修复 project_characters 缺失建表迁移与 020 重复主键缺陷 | — | — | — | [TASK-FIX-001-project-characters-migration.md](TASK-FIX-001-project-characters-migration.md) |
 | TASK-FIX-002 | 状态模型三处不一致的约束修复 | — | — | — | [TASK-FIX-002-status-model-alignment.md](TASK-FIX-002-status-model-alignment.md) |
 | TASK-FIX-003 | 协议模板补齐 `pollPath`（异步轮询路径） | — | — | — | [TASK-FIX-003-protocol-poll-path.md](TASK-FIX-003-protocol-poll-path.md) |
-| TASK-FIX-004 | 任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T13 验收缺口 1） | P0 | 待开工 | — | [TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md) |
-| TASK-FIX-005 | 创建页积分 NaN/undefined 兜底（T13 验收缺口 2） | P1 | 待开工 | — | [TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md) |
+| TASK-FIX-004 | 任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T13 验收缺口 1） | P0 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md) |
+| TASK-FIX-005 | 创建页积分 NaN/undefined 兜底（T13 验收缺口 2） | P1 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md) |
 | TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | — | — | — | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | — | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
 | TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | — | — | — | [TASK-INFRA-003-worker-reliability.md](TASK-INFRA-003-worker-reliability.md) |
 | TASK-INFRA-004 | 把「渠道探测」抽成一份公共能力（B3a） | — | **已确认，可开工**（Owner 2026-10-10：① 直接合并本清… | — | [TASK-INFRA-004-probe-extraction.md](TASK-INFRA-004-probe-extraction.md) |
-| TASK-INFRA-005 | P0 全链路集成验收（T13，dev-plan §9） | P0（M5 验收） | 已验收（判据 2/3/4 ✅、判据 1 部分、判据 5 依赖 T10 未验收；缺口已建卡 FIX-004/005） | — | [TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md) |
+| TASK-INFRA-005 | P0 全链路集成验收（T13，dev-plan §9） | P0（M5 验收） | 已验收（判据 1/2/3/4 ✅；判据 5 依赖 T10 未验收，待补权限矩阵卡） | — | [TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md) |
 | TASK-MODEL-001 | T0 权威价格校准 | P0 | 已验收（PR #164 已合并） | — | [TASK-MODEL-001-price-calibration.md](TASK-MODEL-001-price-calibration.md) |
 | TASK-MODEL-003 | T2-1 运营报表聚合查询 API | P0（A 轨 T2 第一刀） | 已验收（PR #166 已合并） | — | [TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md) |
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
@@ -59,9 +59,9 @@
 
 ## 现状（自动统计，供 Owner 看缺口）
 
-- 任务卡：**40** 张（含 1 张 PLAN）；写明 **优先级** 21 张、**状态** 16 张。
-- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001、**INFRA-005（T13 验收，部分）**（共 15 张，代码/规则均已合并 develop）。
-- 待开工（底座 P0 缺口）：**FIX-004（任务中心 kind=text 崩溃，T13 验收缺口 1）**——T13 判据 1「拿产物」闭合的前置。
-- 验收清单：**6** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 任务卡：**40** 张（含 1 张 PLAN）；写明 **优先级** 21 张、**状态** 18 张。
+- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001、**INFRA-005（T13 验收）、FIX-004/005**（共 18 张，代码/规则均已合并 develop）。
+- 待开工（底座 P0 缺口）：**无 P0 待开工**——T13 判据 1-4 全部闭合；剩余为判据 5（权限矩阵，依赖 T10，未建卡）。
+- 验收清单：**8** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 
