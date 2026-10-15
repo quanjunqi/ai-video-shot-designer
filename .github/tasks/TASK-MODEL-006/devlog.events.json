@@ -1,0 +1,68 @@
+{
+  "taskId": "TASK-MODEL-006",
+  "updatedAt": "2026-10-16T00:45:00+08:00",
+  "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
+  "events": [
+    {
+      "ts": "2026-10-16T00:45:00+08:00",
+      "phase": "立卡/前提核实",
+      "action": "Owner 定调『业务代码只是壳子+mock，当务之急是底座能力』后，直接查真库量化底座缺口（不凭印象立卡）",
+      "evidence": [
+        "useSettingsStore.ts:115 catalogSource 初始值 'demo'（硬编码 model-catalog.ts）；:130 成功才变 'server'；:134 失败退 'offline-fallback'",
+        "production 库：logical_models = 2 行，id 为 accept-smoke-text / accept-smoke-image（dev-plan T6 的『冒烟 2 行』）",
+        "model_catalog 18 行，仅 3 行有 logical_model_id（入池）",
+        "provider_model 非空仅 6/18；入池行 gpt-image-2 的 provider_model 为空 ⇒ 违反供给单元「ProviderModel 必填」语义",
+        "channel_models 79 条全部来自 PearAPI 单渠道（7 渠道中 6 个无同步数据）",
+        "protocol_templates 仅 2/8 有 capabilities（pt_builtin_openai / pt_builtin_openai_img，形态完整可照抄）"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": "B-001"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "立一张卡还是三张（T5/T6/T12）",
+      "options": ["三张独立卡", "一张卡三子项"],
+      "choice": "一张卡三子项",
+      "reason": "三者同属『供给单元池真实化』一个工作流、共享同一份真实数据口径；dev-plan 亦视作同一计划内三个可独立 PR。避免三张卡重复描述同一套背景数据",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "未获 Owner 数据口径时怎么办",
+      "options": ["先按合理猜测填数据", "只做结构，数据留空并标注"],
+      "choice": "只做结构，数据留空并标注",
+      "reason": "猜测填数据等于造第二份 mock——本卡要消灭的正是 mock。数据（哪些模型可用/挂哪些候选/价格口径/能力档位）是产品事实，AI 不得臆测",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-003",
+      "topic": "是否顺带做『入池』管理 UI",
+      "options": ["做", "不做（另议）"],
+      "choice": "不做（另议）",
+      "reason": "入池 = 管理员精选，其 UI 属模型中心页面工作，与本卡的数据/机制层解耦",
+      "timing": "立卡"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "前提核实（供开工用，非验收判据）", "command": "查 production 真库 6 项计数 + 读 useSettingsStore", "result": "PASS", "evidence": "缺口量化；见 events[0].evidence 与 task.md 背景表" }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "数据部分无法开工",
+      "rootCause": "缺 Owner 提供的 4 项真实口径（哪些模型可用 / 各逻辑模型挂哪些候选 / 价格来源 / 能力档位取值）",
+      "solution": "结构部分（迁移骨架、能力字段、Resolve 过滤）可先行；数据部分等口径",
+      "lesson": "供给侧数据是产品事实，不是工程推导；AI 只能建结构，不能替产品决定『某个模型支持哪些比例』"
+    }
+  ],
+  "disciplineSelfCheck": [
+    { "item": "立卡前核实前提（排期 v2 §5 第 8 条）", "result": "✓", "evidence": "V-001：真库 6 项计数，非 grep 级" },
+    { "item": "开工前产出验收清单（AC-008）", "result": "✓", "evidence": "acceptance.md 12 条判据" },
+    { "item": "任务卡带 front-matter（AC-011）", "result": "✓", "evidence": "status/priority/depends_on/criteria" },
+    { "item": "不臆造产品数据", "result": "✓", "evidence": "D-002 + task.md『需 Owner 提供的信息』表" },
+    { "item": "尚未开工（未写码）", "result": "✓", "evidence": "本卡仅有四件套文档" }
+  ],
+  "retrospective": null
+}
