@@ -35,7 +35,7 @@
 | TASK-FIX-003 | 协议模板补齐 `pollPath`（异步轮询路径） | — | — | — | [TASK-FIX-003-protocol-poll-path.md](TASK-FIX-003-protocol-poll-path.md) |
 | TASK-FIX-004 | 任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T13 验收缺口 1） | P0 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md) |
 | TASK-FIX-005 | 创建页积分 NaN/undefined 兜底（T13 验收缺口 2） | P1 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md) |
-| TASK-IA-001 | 模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板） | P1 | 待开工（排期第二批第 9 刀，设计稿先行） | 开工前产出 | [TASK-IA-001-ia-budget-relocation.md](TASK-IA-001-ia-budget-relocation.md) |
+| TASK-IA-001 | 模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板） | P1（排期 v2 §3.3 第 2 波首位） | 进行中（设计稿 v1 待 Owner 评审；AC-009 未过评审不写码） | ✅ | [TASK-IA-001/task.md](TASK-IA-001/task.md) |
 | TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | P0（基建） | 已验收（d612122 已合并；Docker 8 类场景验证 2026-10-15） | ✅ | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | — | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
 | TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | P0（排期第一批第 7 刀） | 已验收（PR #201 已合并，e5c710ab；8/8 验收标准） | ✅ | [TASK-INFRA-003/task.md](TASK-INFRA-003/task.md) |
@@ -69,13 +69,14 @@
 - 任务卡：**44** 张（含 1 张 PLAN）；写明 **优先级** 33 张、**状态** 30 张。
 - 已验收（25）：MODEL-001/003/004/005、AUDIT-001/002、ROUTE-001/002/003、ASSET-001、SUPPLY-001、OBS-002、PROC-001/002、INFRA-001/003/004/005（T13 验收）、FIX-001/004/005、SEC-001/002、UI-003/004（代码/规则均已合并 develop）。
 - 待验收（2）：**AUTH-001（模型中心权限矩阵，T13 判据 5，PR #203 已合并 fbffb64）**——判据 1/2/4/5 ✅、判据 3 ✅△，**判据 6（Owner 真机三角色走查）为 T13 唯一未闭合项**，走查指南见 `docs/how-to/t13-walkthrough-guide.md`；**PROC-003（台账一致性校验门禁）**——验收 14/14，PR 待开。
-- 进行中（2）：UI-001（组件/token 清单）、UI-002（组件库改版）——**v2 §3.3 已重定义终态（交付段 + 维护段），见排期 v2**。
-- 待开工（1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**。
+- 进行中（3）：UI-001（组件/token 清单）、UI-002（组件库改版）——**v2 §3.3 已重定义终态（交付段 + 维护段）**；**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
+- 待开工（0）：—
 - 未排期/无状态（14）：CREATE-001~006、OBS-001、FIX-002、FIX-003、P2-001、SEC-003/004、INFRA-002、PLAN-a-and-adr008-2026-10-10。
 - 排期唯一事实源：**`docs/product/task-queue-plan-v2-2026-10-15.md`**（依赖链 + 冲突面 + 波次/并行池 + 验收时间盒 + 防重演约束）。v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
 - **并行候选池（v2 §3.2，无依赖、可立即开工）**：OBS-001、FIX-002、FIX-003。
-- 验收清单：**20** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
-- 开发日志：**6 个任务**（12 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
+- **待人工动作（v2 §3.1 第 0 波）**：① 合并台账回填 PR ② 合并 PROC-003 PR ③ **一场走查闭合 4 条判据**（AUTH-001 判据 6 + INFRA-005 判据 1/4/5）④ **IA-001 设计稿评审**（设计稿 §7 五项勾选表）。
+- 验收清单：**21** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 开发日志：**7 个任务**（14 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
 - 台账一致性由 `.github/scripts/check-task-ledger.sh` 机器校验（CI Documentation Check + 本地 preflight 门 0b），`--self-test` 可验证门禁有效性。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 

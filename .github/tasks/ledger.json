@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T23:00:00+0800",
+  "updatedAt": "2026-10-15T23:06:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -134,10 +134,10 @@
     {
       "id": "TASK-IA-001",
       "title": "模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板）",
-      "status": "待开工",
-      "priority": "P1",
+      "status": "进行中",
+      "priority": "P1（排期 v2 §3.3 第 2 波首位；解锁 CREATE 系列）",
       "pr": null,
-      "file": "[TASK-IA-001-ia-budget-relocation.md](TASK-IA-001-ia-budget-relocation.md)"
+      "file": "[TASK-IA-001/task.md](TASK-IA-001/task.md)"
     },
     {
       "id": "TASK-INFRA-001",

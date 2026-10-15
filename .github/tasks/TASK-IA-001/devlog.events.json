@@ -1,0 +1,125 @@
+{
+  "taskId": "TASK-IA-001",
+  "updatedAt": "2026-10-15T23:06:00+08:00",
+  "note": "本卡为 UI 任务，按 AC-009 分两阶段：设计阶段（本次）→ Owner 评审 → 开发阶段。当前停在评审关卡，未写码。",
+  "events": [
+    {
+      "ts": "2026-10-15T23:02:00+08:00",
+      "phase": "开工/探查",
+      "action": "核实原卡三处 IA 缺口是否仍成立；定位预算区块与导航配置的真实路径",
+      "evidence": [
+        "缺口①成立：apps/web/src/pages/SettingsPreferences.tsx:237-287（预算区块，TASK-MODEL-005 交付）",
+        "缺口②不成立：apps/web/src/features/settings/settings-navigation.ts:6-8（用量已按方案 A 移出，导航收敛 3 项）、:106-110（深链 /settings/usage → /tasks?tab=ledger）",
+        "缺口③需修正为三方：/settings/channels（SettingsChannels.tsx 已实装）、/models/channels（ModelCenterLayout.tsx:34 建设中占位）、/models/health（已实装，承载观测）",
+        "导航配置真实路径是 apps/web/src/features/**，非 src/config/**（已在排期 v2 §2.2 更正）"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:03:00+08:00",
+      "phase": "迁移任务卡",
+      "action": "把平铺卡 TASK-IA-001-ia-budget-relocation.md 迁入 .github/tasks/TASK-IA-001/ 文件夹结构（task.md + devlog.md + devlog.events.json + acceptance.md + design-prototype.html）；README 与 ledger 的 file 字段改指新路径",
+      "evidence": [".github/tasks/TASK-IA-001/", ".github/tasks/README.md", ".github/tasks/ledger.json"],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:04:00+08:00",
+      "phase": "设计稿",
+      "action": "产出 design-prototype.html v1：7 节（范围修正 / 方案 A 落位示意+备选取舍 / 角色可见性 / 渠道归属三候选 / 旧入口去向 / 技术方案 / 评审勾选表）",
+      "evidence": [".github/tasks/TASK-IA-001/design-prototype.html"],
+      "decisionRef": "D-003",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:05:00+08:00",
+      "phase": "停在评审关卡",
+      "action": "确认本 PR 无任何 apps/web 代码改动，等 Owner 按 §7 勾选表裁定；AC-009 未过评审不得写码",
+      "evidence": ["本分支 diff 仅含 .github/tasks/TASK-IA-001/**、README.md、ledger.json、旧平铺卡删除"],
+      "decisionRef": null,
+      "blockRef": "B-001"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "缺口② 设置「用量」导航是否处理",
+      "options": ["按原卡重新裁定", "确认已由方案 A 解决、不再处理，仅纳入回归验证"],
+      "choice": "确认已解决、不再处理",
+      "reason": "实测导航已收敛 3 项且深链有落点；重复裁定会产生无收益的导航抖动。既有测试已锁定「改回 6 项即失败」",
+      "timing": "探查"
+    },
+    {
+      "id": "D-002",
+      "topic": "缺口③ 的裁定对象",
+      "options": ["维持原卡的两方重叠描述", "修正为三方并给候选"],
+      "choice": "修正为三方",
+      "reason": "实测三个入口；/models/health 已承载观测职责——不修正对象会选错方案",
+      "timing": "探查"
+    },
+    {
+      "id": "D-003",
+      "topic": "预算区块落位",
+      "options": ["观测双列之后（全宽）", "页面顶部", "趋势图右侧窄栏"],
+      "choice": "观测双列之后（全宽）",
+      "reason": "改动面最小（既有双列布局不动）；不挤压观测内容；300px 窄栏容不下表单+列表",
+      "timing": "设计"
+    },
+    {
+      "id": "D-004",
+      "topic": "偏好页旧预算入口的处理机制",
+      "options": ["legacy redirect", "页内指路链接"],
+      "choice": "页内指路链接",
+      "reason": "实测不存在 budget 专属路由（无 /settings/budget 或锚点）⇒ 无「旧路径」可重定向。ADR-005 §3 的 redirect 模式适用于路径；此处正确机制是页内指路",
+      "timing": "设计"
+    },
+    {
+      "id": "D-005",
+      "topic": "预算区块的角色深度",
+      "options": ["仅 Admin+ 可见整个区块", "区块 Viewer+ 可见、操作 Admin+"],
+      "choice": "区块 Viewer+ 可见、操作 Admin+",
+      "reason": "Viewer 需要知道「有没有预算、会不会被拦」以解释成本截断，但不应有配置权；与 AUTH-001「单套界面按角色控制深度」一致，并吸收其遗留的「页内按钮级隐藏」",
+      "timing": "设计"
+    },
+    {
+      "id": "D-006",
+      "topic": "渠道归属推荐方案",
+      "options": ["候选1 移除渠道与凭据", "候选2 重定位为只读观测", "候选3 仅改文案"],
+      "choice": "候选1（推荐，终由 Owner 拍板）",
+      "reason": "文案与设置「渠道」几乎同义（用户无法区分）；观测职责已由「健康」承载；符合 ADR-005 D2；占位入口与 frontend-quality「禁僵尸按钮」相悖",
+      "timing": "设计"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "设计阶段 D1 设计稿可评审", "command": "浏览器打开 design-prototype.html", "result": "待评审", "evidence": "含 7 节 + §7 五项勾选表" },
+    { "id": "V-002", "criterion": "设计阶段 D2 范围修正有代码依据", "command": "逐条 read/grep 核对", "result": "PASS", "evidence": "settings-navigation.ts:6-8,106-110 / ModelCenterLayout.tsx:34 / SettingsPreferences.tsx:237-287" },
+    { "id": "V-003", "criterion": "开发阶段全部判据", "command": "—", "result": "未开始", "evidence": "AC-009：设计稿未过评审不得写码" }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "无法进入开发阶段",
+      "rootCause": "AC-009：UI 任务设计稿必须先经 Owner 评审通过",
+      "solution": "交付设计稿 + §7 评审勾选表，停在关卡等 Owner 裁定",
+      "lesson": "AI 不能自评 AC-009；把待人工决策项显式列成勾选表，可把 Owner 的决策成本压到最低"
+    },
+    {
+      "id": "B-002",
+      "block": "原卡三处缺口有 2 处与实现不符",
+      "rootCause": "任务卡写于方案 A 落地前，未随实现更新",
+      "solution": "开工先核实缺口是否仍成立，把修正写进 task.md §范围修正 与设计稿 §1",
+      "lesson": "开工第一件事是核实任务卡的前提；前提过时会导致照着旧描述做出无人要的东西"
+    }
+  ],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "✓", "evidence": "V-002 逐条核对代码依据；本 PR 无代码改动故无门禁可跑" },
+    { "item": "按路径 add（禁 git add -A）", "result": "✓", "evidence": "commit 前 git diff --cached --name-only 核对" },
+    { "item": "只改点名范围（未越界）", "result": "✓", "evidence": "仅任务文档 + 台账；零前端代码改动" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "部分", "evidence": "设计阶段判据待 Owner 评审后确认；开发阶段未开始" },
+    { "item": "GATE / 后端门禁全绿", "result": "N/A", "evidence": "本 PR 无代码改动（如实声明，不冒称通过）" },
+    { "item": "台账同步（状态/PR 号）", "result": "✓", "evidence": "README 行 + ledger file/status 已更新" },
+    { "item": "AC-009 未过评审不得写码", "result": "✓", "evidence": "本分支 diff 不含 apps/web/**" }
+  ],
+  "retrospective": null
+}
