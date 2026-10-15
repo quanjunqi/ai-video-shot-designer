@@ -23,7 +23,7 @@
 | TASK-ASSET-001 | execution 产物落盘 MinIO（第一刀） | P0（ROADMAP #3，明确"建议提前做"） | 已验收（b8b9a31 已合并） | — | [TASK-ASSET-001-artifact-persist.md](TASK-ASSET-001-artifact-persist.md) |
 | TASK-AUDIT-001 | 审计能力实施清单（④ 如何做好审计） | P0（排期第一批第 5 刀） | 已验收（PR #197 已合并，2d32e05；D1–D7 全过，D8 访问控制归 AUTH-001，D9 不做） | ✅ | [TASK-AUDIT-001/task.md](TASK-AUDIT-001/task.md) |
 | TASK-AUDIT-002 | 审计业务归因列（T1） | — | 已验收（PR #165 已合并） | — | [TASK-AUDIT-002-attribution-columns.md](TASK-AUDIT-002-attribution-columns.md) |
-| TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 待开工（排期第一批第 8 刀） | 开工前产出 | [TASK-AUTH-001-model-center-permissions.md](TASK-AUTH-001-model-center-permissions.md) |
+| TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 已合并（PR #203，fbffb64；判据 1/2/4/5 ✅、判据 3 ✅△、判据 6 ⏳ 待 Owner 真机走查） | ✅ | [TASK-AUTH-001/task.md](TASK-AUTH-001/task.md) |
 | TASK-CREATE-001 | 能力驱动的生成参数控件 schema | P1 | — | — | [TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md) |
 | TASK-CREATE-002 | 智能创作 Composer 布局与结果主舞台 | P1 | — | — | [TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md) |
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | — | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |
@@ -67,7 +67,8 @@
 
 - 任务卡：**42** 张（含 1 张 PLAN）；写明 **优先级** 23 张、**状态** 20 张。
 - 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001/002、**INFRA-005（T13 验收）、FIX-001/004/005、INFRA-001/003/004、SEC-001/002、AUDIT-001**（共 24 张，代码/规则均已合并 develop）。
-- 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；
+- 已合并（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，PR #203 已合并 fbffb64）**；判据 6（Owner 真机三角色走查）待闭合
+- 待走查：**AUTH-001 判据 6（T13 判据 5，TopBar dev 身份切换）**
 - 待开工（P1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**；CREATE-001~006 / OBS-001 / FIX-002 / FIX-003 / P2-001 按排期推进。
 - 排期唯一事实源：`docs/product/task-queue-plan-2026-10-15.md`（依赖链 + 批次 + 防重演约束）。
 - 验收清单：**10** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
