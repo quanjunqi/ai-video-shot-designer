@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T16:30:00+08:00",
+  "updatedAt": "2026-10-15T16:50:00+08:00",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -288,7 +288,7 @@
       "title": "配额与限流（QPS 令牌桶 + 日/月成本上限）",
       "status": "已验收",
       "priority": "P0（排期第一批第 6 刀）",
-      "pr": null,
+      "pr": "#199",
       "file": "[TASK-SEC-002/task.md](TASK-SEC-002/task.md)"
     },
     {

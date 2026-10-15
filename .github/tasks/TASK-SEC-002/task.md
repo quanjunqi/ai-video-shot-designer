@@ -2,7 +2,7 @@
 taskId: TASK-SEC-002
 status: accepted
 priority: P0（排期第一批第 6 刀）
-pr: "#<待开>"
+pr: "#199"
 criteria: 10
 criteriaPassed: 10
 depends_on: TASK-AUDIT-001（cost_amount 写入）
