@@ -15,7 +15,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡 front-matter，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（46 张）
+## 索引（47 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -29,6 +29,7 @@
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |
 | TASK-CREATE-004 | 草稿持久化（按工作台分桶） | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-004-draft-persistence.md](TASK-CREATE-004-draft-persistence.md) |
 | TASK-CREATE-005 | 风格库与镜头语言库接入提示词 | P2 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-005-style-lens-presets.md](TASK-CREATE-005-style-lens-presets.md) |
+| TASK-CREATE-006 | `capability.aspectRatios` 显式声明（ADR 分片 6 · D3-B） | P1（分片台账 Priority 1） | 待开工（前提已逐条核实；**编号已物归原主**——原借用本号的卡正名为 CREATE-010） | ✅ | [TASK-CREATE-006/task.md](TASK-CREATE-006/task.md) |
 | TASK-CREATE-010 | 参数三级披露 + 字段说明 + 表单/JSON 双视图（原误标 CREATE-006，已正名） | P1 | 待验收（✅ 代码侧已实现；ADR 分片 6 = 后端 `aspectRatios` 已归位为独立待办） | — | [TASK-CREATE-010-param-tiers-and-json-view.md](TASK-CREATE-010-param-tiers-and-json-view.md) |
 | TASK-FIX-001 | 修复 project_characters 缺失建表迁移与 020 重复主键缺陷 | P0（阻塞级） | 已验收（e38b033 已合并；Docker 三类验证 2026-10-15） | ✅ | [TASK-FIX-001-project-characters-migration.md](TASK-FIX-001-project-characters-migration.md) |
 | TASK-FIX-002 | 状态模型三处不一致的约束修复 | — | 已验收（✅ 已实现；三迁移 + 文档 + CHANGELOG 齐备，逐条对上其验收标准） | — | [TASK-FIX-002-status-model-alignment.md](TASK-FIX-002-status-model-alignment.md) |
@@ -74,15 +75,15 @@
 - 待验收（13）：**AUTH-001**（判据 6 Owner 真机三角色走查 = T13 唯一未闭合项，见 `docs/how-to/t13-walkthrough-guide.md`）、**PROC-003**（台账校验门禁 14/14）、**PROC-004**（存量台账真实化 8/8）、**OBS-001**（详情抽屉）、**SEC-003/004**、**P2-001**、**INFRA-002**、**CREATE-001~005**（后 9 张均为**代码已实现、待正式验收**，各自残留项见 TASK-PROC-004 devlog）。
 - 进行中（1）：**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
 - ✅ **UI-001/UI-002 已按 v2 §3.3① 拆分闭合**：「交付段」判据机器验证通过（`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42）→ 记已验收；「维护段」（新增组件必须同步清单）已由 CI `ui:check` 步骤长期强制，**不再占用卡片状态**。⇒ **CREATE 系列的组件基座依赖已解除**。
-- 待开工（1）：**INFRA-006（T13 走查自动化）**——把「一场走查闭合 4 条判据」从人工手点变成一条命令；前提（系统 Chrome 无头可用、栈可起、身份来自 localStorage）已实测核实。
+- 待开工（2）：**CREATE-006（`aspectRatios` 显式声明 = ADR 分片 6，第一片真实开发任务）**、**INFRA-006（T13 走查自动化）**——把「一场走查闭合 4 条判据」从人工手点变成一条命令；前提（系统 Chrome 无头可用、栈可起、身份来自 localStorage）已实测核实。
 - **仍未填写状态（1）**：`PLAN-a-and-adr008-2026-10-10`（文档类，非任务，不适用）。
 - ✅ **CREATE-006 编号冲突已按 ADR 分片表裁定并正名（2026-10-15）**：平铺卡重编号为 **`TASK-CREATE-010`**（内容不变，记待验收）；**ADR 分片 6 = 后端 `capability.aspectRatios` 归位为独立待办**，列入 `plans/` 分片待办台账。
 - 🆕 **真实待办源**：**`plans/2026-10-15-adr-shard-backlog.md`**（ADR 分片 6~13，2026-10-15 核实发现台账"未排期卡"多为已实现，故改用分片表定待办范围）。
 - 排期唯一事实源：**`docs/product/task-queue-plan-v2-2026-10-15.md`**（依赖链 + 冲突面 + 波次/并行池 + 验收时间盒 + 防重演约束）。v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
 - **⚠️ 存量卡大面积"已实现未闭环"已核实并回填（2026-10-15）**：13 张原 `unknown` 卡逐卡核实，结果为 2 张已验收 + 10 张转为待验收 + 1 张编号冲突暂停。**排期不应再把这些卡读作"待开发"**，见 v2 §1.4。
 - **待人工动作（v2 §3.1 第 0 波）**：① 合并①→⑥ 六个 PR ② **一场走查闭合 4 条判据**（AUTH-001 判据 6 + INFRA-005 判据 1/4/5）③ **IA-001 设计稿评审**（设计稿 §7 五项勾选表）⑤ 开工 INFRA-006（T13 走查自动化）④ **确认 CREATE-006 编号裁定**（TASK-PROC-004）。
-- 验收清单：**24** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
-- 开发日志：**10 个任务**（20 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
+- 验收清单：**25** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。
+- 开发日志：**11 个任务**（22 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
 - 台账一致性由 `.github/scripts/check-task-ledger.sh` 机器校验（CI Documentation Check + 本地 preflight 门 0b），`--self-test` 可验证门禁有效性。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 
