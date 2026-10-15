@@ -1,3 +1,13 @@
+---
+taskId: TASK-AUTH-001
+status: in_progress
+priority: P0（排期第一批第 8 刀）
+pr: "#<待开>"
+criteria: 4
+criteriaPassed: 0
+depends_on: TASK-AUDIT-001（D8 访问控制）
+---
+
 # TASK-AUTH-001：模型中心权限矩阵（T13 判据 5 · 三角色）
 
 ## 基本信息
