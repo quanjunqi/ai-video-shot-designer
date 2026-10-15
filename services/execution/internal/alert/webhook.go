@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -87,6 +86,3 @@ func (w *WebhookClient) Send(ctx context.Context, url string, p Payload) bool {
 	}
 	return false
 }
-
-// errWebhookDisabled 表示配置缺失/关闭（调用方跳过，非错误）。
-var errWebhookDisabled = errors.New("alert: webhook not configured or disabled")

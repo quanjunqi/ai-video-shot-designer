@@ -3640,7 +3640,7 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 717
+        "count": 716
       },
       {
         "value": "1",
@@ -3660,7 +3660,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "0.5",
-        "count": 134
+        "count": 133
       },
       {
         "value": "2.5",
@@ -3752,7 +3752,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "full",
-        "count": 69
+        "count": 68
       },
       {
         "value": "2xl",
