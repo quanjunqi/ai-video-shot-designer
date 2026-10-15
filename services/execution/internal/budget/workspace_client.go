@@ -39,7 +39,7 @@ func (c *WorkspaceClient) EffectiveRules(ctx context.Context, workspace string) 
 	if err != nil {
 		return nil, fmt.Errorf("budget: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("budget: upstream %d: %s", resp.StatusCode, truncate(body, 200))

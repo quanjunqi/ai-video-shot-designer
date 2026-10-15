@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,14 +19,6 @@ import (
 // 金额用 numeric(18,4)；读出 float64 仅用于比较/展示，运算收敛在 numeric 口径（BE-DATA-001）。
 type Store struct {
 	Pool *pgxpool.Pool
-	Now  func() time.Time // 测试注入；nil 取 time.Now
-}
-
-func (s *Store) now() time.Time {
-	if s.Now != nil {
-		return s.Now()
-	}
-	return time.Now()
 }
 
 const holdCols = `id, job_id, workspace_id, period, status, hold_amount, actual_amount, refund_amount, fail_open`
