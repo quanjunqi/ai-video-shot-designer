@@ -3600,15 +3600,15 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 184,
+    "scannedFiles": 185,
     "text": [
       {
         "value": "xs",
-        "count": 409
+        "count": 427
       },
       {
         "value": "sm",
-        "count": 191
+        "count": 193
       },
       {
         "value": "lg",
@@ -3620,7 +3620,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "xl",
-        "count": 2
+        "count": 3
       },
       {
         "value": "2xl",
@@ -3640,31 +3640,31 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 696
+        "count": 717
       },
       {
         "value": "1",
-        "count": 504
+        "count": 506
       },
       {
         "value": "3",
-        "count": 443
+        "count": 452
       },
       {
         "value": "1.5",
-        "count": 390
+        "count": 394
       },
       {
         "value": "4",
-        "count": 241
+        "count": 246
       },
       {
         "value": "0.5",
-        "count": 130
+        "count": 134
       },
       {
         "value": "2.5",
-        "count": 111
+        "count": 113
       },
       {
         "value": "6",
@@ -3676,7 +3676,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "5",
-        "count": 29
+        "count": 30
       },
       {
         "value": "8",
@@ -3695,16 +3695,16 @@ export const UI_CATALOG: UiCatalog = {
         "count": 6
       },
       {
+        "value": "3.5",
+        "count": 4
+      },
+      {
         "value": "16",
         "count": 4
       },
       {
         "value": "14",
         "count": 3
-      },
-      {
-        "value": "3.5",
-        "count": 2
       },
       {
         "value": "9",
@@ -3736,11 +3736,11 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 201
+        "count": 208
       },
       {
         "value": "xl",
-        "count": 164
+        "count": 169
       },
       {
         "value": "DEFAULT",
@@ -3748,11 +3748,11 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "md",
-        "count": 96
+        "count": 97
       },
       {
         "value": "full",
-        "count": 63
+        "count": 69
       },
       {
         "value": "2xl",
@@ -3874,7 +3874,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "tight",
-        "count": 4
+        "count": 5
       },
       {
         "value": "widest",

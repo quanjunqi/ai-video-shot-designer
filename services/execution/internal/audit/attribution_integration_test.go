@@ -60,8 +60,9 @@ func TestTerminalFillsSupplyUnit(t *testing.T) {
 	if err := s.Insert(ctx, log); err != nil {
 		t.Fatalf("insert: %v", err)
 	}
-	// 终态回填：status + 供给单元（空串不覆盖 submit 时已知值）
-	n, err := s.UpdateResultByJobID(ctx, "job-supply-1", "success", json.RawMessage(`{"ok":true}`), "", 12, 3, 5, 0, 1.5, "CNY", "chan-minimax", "MiniMax-Text-01", "task-9")
+	// 终态回填：status + 供给单元（空串不覆盖 submit 时已知值）+ status_code（T11）
+	sc := 200
+	n, err := s.UpdateResultByJobID(ctx, "job-supply-1", "success", json.RawMessage(`{"ok":true}`), "", 12, 3, 5, 0, 1.5, "CNY", "chan-minimax", "MiniMax-Text-01", "task-9", &sc)
 	if err != nil {
 		t.Fatalf("terminal update must not be blocked by guard trigger: %v", err)
 	}

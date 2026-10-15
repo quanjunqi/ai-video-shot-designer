@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -172,7 +173,10 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 				case breaker.ClassHard4xx, breaker.ClassContentSafety:
 					// 硬失败不计数（换渠道无意义）
 				default:
-					h.Breaker.RecordFailure(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel})
+					// T11：进入冷却 ⇒ 熔断告警（fail-open，不阻断）
+					if h.Breaker.RecordFailure(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel}) {
+						h.alertBreaker(r.Context(), ws, m.ChannelID, m.ProviderModel)
+					}
 				}
 			}
 			if cls == breaker.ClassHard4xx || cls == breaker.ClassContentSafety {
@@ -270,6 +274,13 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := h.AuditStore.Insert(r.Context(), auditLog); err != nil {
 			slog.Error("audit insert failed", "requestId", requestID, "status", status, "error", err)
+		}
+		// T11：每次审计写入后评估该 workspace 错误率突增（唯一收口，覆盖全部调用点）。
+		// fail-open：告警评估失败不阻断主流程；冷却去重防抖（alert 内部实现）。
+		if h.Alert != nil && ws != "" {
+			alertCtx, alertCancel := context.WithTimeout(r.Context(), 3*time.Second)
+			h.Alert.EvaluateErrorRate(alertCtx, ws)
+			alertCancel()
 		}
 	}
 	if h.Catalog == nil || h.Creds == nil || h.EngineClient == nil {
@@ -604,7 +615,10 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 				switch cls {
 				case breaker.ClassHard4xx, breaker.ClassContentSafety:
 				default:
-					h.Breaker.RecordFailure(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel})
+					// T11：进入冷却 ⇒ 熔断告警（fail-open，不阻断）
+					if h.Breaker.RecordFailure(r.Context(), breaker.Unit{ChannelID: m.ChannelID, ProviderModel: m.ProviderModel}) {
+						h.alertBreaker(r.Context(), ws, m.ChannelID, m.ProviderModel)
+					}
 				}
 			}
 			if cls == breaker.ClassHard4xx || cls == breaker.ClassContentSafety {

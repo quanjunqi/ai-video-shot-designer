@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T11 渠道健康面板 · 设计稿评审</title>
+<style>
+  /* 暗色主题，对齐现有 web 端风格（bg-950 / border-border / muted-foreground / teal-accent） */
+  :root {
+    --bg: #0b1220; --panel: #101a2c; --panel2: #0e1728;
+    --border: #1e293b; --border2: #27364b;
+    --text: #e2e8f0; --muted: #94a3b8;
+    --teal: #14b8a6; --teal-dim: rgba(20,184,166,.12);
+    --amber: #f59e0b; --amber-dim: rgba(245,158,11,.12);
+    --red: #ef4444; --red-dim: rgba(239,68,68,.12);
+    --green: #22c55e; --green-dim: rgba(34,197,94,.12);
+    --blue: #3b82f6; --blue-dim: rgba(59,130,246,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; padding: 24px; }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+
+  /* 评审横幅 */
+  .banner { background: linear-gradient(135deg, rgba(20,184,166,.14), rgba(245,158,11,.08)); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .banner h1 { font-size: 17px; font-weight: 600; }
+  .banner p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .banner .tag { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(20,184,166,.3); }
+  .banner .tag.warn { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,.3); }
+
+  /* 页面结构（模拟 app 内容区） */
+  .app { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .app-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .app-head .title { font-size: 14px; font-weight: 600; }
+  .app-head .crumbs { font-size: 11px; color: var(--muted); }
+  .app-head .spacer { flex: 1; }
+  .pill { font-size: 11px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border2); color: var(--muted); background: var(--panel2); }
+  .pill.active { color: var(--teal); border-color: rgba(20,184,166,.4); background: var(--teal-dim); }
+
+  .app-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* KPI 概览行 */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 800px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .kpi .label { font-size: 11px; color: var(--muted); }
+  .kpi .value { font-size: 20px; font-weight: 650; margin-top: 6px; letter-spacing: -.2px; }
+  .kpi .hint { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+  .kpi .value.ok { color: var(--green); } .kpi .value.bad { color: var(--red); } .kpi .value.warn { color: var(--amber); }
+
+  /* 筛选行 */
+  .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filters .sep { width: 1px; height: 16px; background: var(--border2); }
+  .chip { font-size: 11px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border2); color: var(--muted); cursor: pointer; background: transparent; }
+  .chip.active { color: var(--teal); border-color: rgba(20,184,166,.4); background: var(--teal-dim); }
+  .filters .time { margin-left: auto; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+  /* 单元健康卡片网格 */
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 1000px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) { .card-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; position: relative; display: flex; flex-direction: column; gap: 10px; }
+  .card .top { display: flex; align-items: center; gap: 8px; }
+  .card .name { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .sub { font-size: 10.5px; color: var(--muted); }
+  .card .spacer { flex: 1; }
+
+  .badge { font-size: 10.5px; padding: 3px 10px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .badge.ok { color: var(--green); background: var(--green-dim); border: 1px solid rgba(34,197,94,.3); }
+  .badge.cooling { color: var(--red); background: var(--red-dim); border: 1px solid rgba(239,68,68,.3); }
+  .badge.halfopen { color: var(--amber); background: var(--amber-dim); border: 1px solid rgba(245,158,11,.3); }
+  .badge.na { color: var(--muted); background: transparent; border: 1px dashed var(--border2); }
+
+  .card .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .m { text-align: left; }
+  .m .ml { font-size: 10px; color: var(--muted); }
+  .m .mv { font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .m .mv.good { color: var(--green); } .m .mv.mid { color: var(--amber); } .m .mv.bad { color: var(--red); }
+
+  /* 错误码分布迷你条 */
+  .dist { display: flex; flex-direction: column; gap: 5px; }
+  .dist-row { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+  .dist-row .dk { width: 64px; color: var(--muted); flex-shrink: 0; }
+  .dist-row .bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .dist-row .bar i { display: block; height: 100%; border-radius: 3px; }
+  .dist-row .dv { width: 34px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+  .c-hard { background: var(--red); } .c-soft { background: var(--amber); } .c-5xx { background: #f97316; }
+  .c-net { background: var(--blue); } .c-safety { background: #a855f7; } .c-ok { background: var(--green); }
+
+  /* 告警配置区 */
+  .alert-box { border: 1px dashed var(--border2); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .alert-box .t { font-size: 12px; font-weight: 600; }
+  .alert-box .d { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .switch { width: 34px; height: 18px; border-radius: 999px; background: var(--teal); position: relative; }
+  .switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+  .switch.off { background: var(--border2); }
+  .switch.off::after { right: auto; left: 2px; }
+  .input { background: var(--panel2); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--text); width: 150px; color-scheme: dark; }
+  .btn { font-size: 11px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border2); background: var(--panel2); color: var(--text); cursor: pointer; }
+  .btn.primary { background: var(--teal-dim); color: var(--teal); border-color: rgba(20,184,166,.4); }
+
+  /* 三态标注 */
+  .state-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 800px) { .state-notes { grid-template-columns: 1fr; } }
+  .state-note { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--panel2); }
+  .state-note .h { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .state-note .body { font-size: 10.5px; color: var(--muted); line-height: 1.6; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+  .dot.error { background: var(--red); } .dot.empty { background: var(--muted); }
+  @keyframes pulse { 50% { opacity: .4; } }
+
+  /* 页面说明 */
+  .spec { margin-top: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .spec h2 { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .spec ol { font-size: 11.5px; color: var(--muted); line-height: 1.8; padding-left: 18px; }
+  .spec li b { color: var(--text); font-weight: 600; }
+  .spec .warn-line { color: var(--amber); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">
+    <div>
+      <h1>T11 渠道健康面板 · 高保真设计稿（评审稿 v1）</h1>
+      <p>TASK-OBS-002 ｜ 目标：让运营看到供给单元（渠道×模型）健不健康。按 AC-009 设计稿先行，本稿评审通过后作为开发基准。</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <span class="tag">评审人：Owner (quanjunqi)</span>
+      <span class="tag warn">待评审</span>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="app-head">
+      <span class="crumbs">成本中心 / 健康</span>
+      <span class="title">渠道健康</span>
+      <span class="spacer"></span>
+      <span class="pill">近 30 天</span>
+      <span class="pill active">实时熔断</span>
+    </div>
+
+    <div class="app-body">
+      <!-- KPI 概览 -->
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">近 30 天调用量</div><div class="value">12,482</div><div class="hint">环比 +8.3%</div></div>
+        <div class="kpi"><div class="label">整体成功率</div><div class="value ok">96.4%</div><div class="hint">失败 448 次</div></div>
+        <div class="kpi"><div class="label">冷却中单元</div><div class="value bad">3</div><div class="hint">2 个待探活</div></div>
+        <div class="kpi"><div class="label">告警触发</div><div class="value warn">12</div><div class="hint">近 24h webhook 次数</div></div>
+      </div>
+
+      <!-- 筛选 -->
+      <div class="filters">
+        <button class="chip active">全部单元</button>
+        <button class="chip">仅异常</button>
+        <span class="sep"></span>
+        <button class="chip">渠道维度</button>
+        <button class="chip">模型维度</button>
+        <span class="time"><span style="color:var(--muted)">时间窗</span> 近7天 近30天 近90天</span>
+      </div>
+
+      <!-- 单元健康卡片 -->
+      <div class="card-grid">
+        <div class="card">
+          <div class="top">
+            <span class="name">volcano / doubao-pro-256k</span>
+            <span class="spacer"></span>
+            <span class="badge ok">正常</span>
+          </div>
+          <div class="sub">channel: volcano · model: doubao-pro-256k</div>
+          <div class="metrics">
+            <div class="m"><div class="ml">成功率</div><div class="mv good">99.1%</div></div>
+            <div class="m"><div class="ml">调用量</div><div class="mv">8,214</div></div>
+            <div class="m"><div class="ml">P95</div><div class="mv">1.2s</div></div>
+          </div>
+          <div class="dist">
+            <div class="dist-row"><span class="dk">成功 2xx</span><div class="bar"><i class="c-ok" style="width:99%"></i></div><span class="dv">99.1%</span></div>
+            <div class="dist-row"><span class="dk">5xx</span><div class="bar"><i class="c-5xx" style="width:.5%"></i></div><span class="dv">0.4%</span></div>
+            <div class="dist-row"><span class="dk">软 4xx</span><div class="bar"><i class="c-soft" style="width:.3%"></i></div><span class="dv">0.2%</span></div>
+            <div class="dist-row"><span class="dk">网络</span><div class="bar"><i class="c-net" style="width:.3%"></i></div><span class="dv">0.3%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <span class="name">grsai / grs-pro-vision</span>
+            <span class="spacer"></span>
+            <span class="badge cooling">冷却中</span>
+          </div>
+          <div class="sub">channel: grsai · model: grs-pro-vision · 冷却剩余 42s</div>
+          <div class="metrics">
+            <div class="m"><div class="ml">成功率</div><div class="mv bad">72.5%</div></div>
+            <div class="m"><div class="ml">调用量</div><div class="mv">1,286</div></div>
+            <div class="m"><div class="ml">P95</div><div class="mv mid">4.8s</div></div>
+          </div>
+          <div class="dist">
+            <div class="dist-row"><span class="dk">成功 2xx</span><div class="bar"><i class="c-ok" style="width:72%"></i></div><span class="dv">72.5%</span></div>
+            <div class="dist-row"><span class="dk">5xx</span><div class="bar"><i class="c-5xx" style="width:18%"></i></div><span class="dv">18.2%</span></div>
+            <div class="dist-row"><span class="dk">超时/网络</span><div class="bar"><i class="c-net" style="width:7%"></i></div><span class="dv">6.8%</span></div>
+            <div class="dist-row"><span class="dk">软 4xx</span><div class="bar"><i class="c-soft" style="width:2%"></i></div><span class="dv">2.5%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <span class="name">silicon / deepseek-v3</span>
+            <span class="spacer"></span>
+            <span class="badge halfopen">半开探活</span>
+          </div>
+          <div class="sub">channel: silicon · model: deepseek-v3 · 冷却到期，探活中</div>
+          <div class="metrics">
+            <div class="m"><div class="ml">成功率</div><div class="mv mid">89.3%</div></div>
+            <div class="m"><div class="ml">调用量</div><div class="mv">3,421</div></div>
+            <div class="m"><div class="ml">P95</div><div class="mv mid">2.1s</div></div>
+          </div>
+          <div class="dist">
+            <div class="dist-row"><span class="dk">成功 2xx</span><div class="bar"><i class="c-ok" style="width:89%"></i></div><span class="dv">89.3%</span></div>
+            <div class="dist-row"><span class="dk">5xx</span><div class="bar"><i class="c-5xx" style="width:6%"></i></div><span class="dv">5.9%</span></div>
+            <div class="dist-row"><span class="dk">网络</span><div class="bar"><i class="c-net" style="width:4%"></i></div><span class="dv">3.7%</span></div>
+            <div class="dist-row"><span class="dk">内容安全</span><div class="bar"><i class="c-safety" style="width:1%"></i></div><span class="dv">1.1%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <span class="name">volcano / doubao-lite-4k</span>
+            <span class="spacer"></span>
+            <span class="badge ok">正常</span>
+          </div>
+          <div class="sub">channel: volcano · model: doubao-lite-4k</div>
+          <div class="metrics">
+            <div class="m"><div class="ml">成功率</div><div class="mv good">98.7%</div></div>
+            <div class="m"><div class="ml">调用量</div><div class="mv">2,904</div></div>
+            <div class="m"><div class="ml">P95</div><div class="mv">0.9s</div></div>
+          </div>
+          <div class="dist">
+            <div class="dist-row"><span class="dk">成功 2xx</span><div class="bar"><i class="c-ok" style="width:98%"></i></div><span class="dv">98.7%</span></div>
+            <div class="dist-row"><span class="dk">软 4xx</span><div class="bar"><i class="c-soft" style="width:1%"></i></div><span class="dv">0.8%</span></div>
+            <div class="dist-row"><span class="dk">硬 4xx</span><div class="bar"><i class="c-hard" style="width:.5%"></i></div><span class="dv">0.5%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <span class="name">openai / gpt-4o</span>
+            <span class="spacer"></span>
+            <span class="badge na">无调用</span>
+          </div>
+          <div class="sub">channel: openai · model: gpt-4o · 近 30 天无数据</div>
+          <div class="metrics">
+            <div class="m"><div class="ml">成功率</div><div class="mv">—</div></div>
+            <div class="m"><div class="ml">调用量</div><div class="mv">0</div></div>
+            <div class="m"><div class="ml">P95</div><div class="mv">—</div></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);padding:4px 0;">无调用数据，等待首次请求。</div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <span class="name">aliyun / qwen-max</span>
+            <span class="spacer"></span>
+            <span class="badge ok">正常</span>
+          </div>
+          <div class="sub">channel: aliyun · model: qwen-max</div>
+          <div class="metrics">
+            <div class="m"><div class="ml">成功率</div><div class="mv good">97.8%</div></div>
+            <div class="m"><div class="ml">调用量</div><div class="mv">5,032</div></div>
+            <div class="m"><div class="ml">P95</div><div class="mv">1.5s</div></div>
+          </div>
+          <div class="dist">
+            <div class="dist-row"><span class="dk">成功 2xx</span><div class="bar"><i class="c-ok" style="width:97%"></i></div><span class="dv">97.8%</span></div>
+            <div class="dist-row"><span class="dk">5xx</span><div class="bar"><i class="c-5xx" style="width:1.5%"></i></div><span class="dv">1.5%</span></div>
+            <div class="dist-row"><span class="dk">软 4xx</span><div class="bar"><i class="c-soft" style="width:.7%"></i></div><span class="dv">0.7%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 告警配置 -->
+      <div class="alert-box">
+        <span class="switch"></span>
+        <div>
+          <div class="t">错误率突增告警</div>
+          <div class="d">连续 5 分钟错误率 &gt; 阈值时触发 webhook；冷却 10 分钟后可再次触发</div>
+        </div>
+        <span style="flex:1"></span>
+        <input class="input" value="20%" aria-label="错误率阈值">
+        <input class="input" value="https://hooks.example.com/alert" aria-label="webhook url" style="width:220px">
+        <button class="btn primary">保存</button>
+      </div>
+
+      <!-- 三态说明 -->
+      <div class="state-notes">
+        <div class="state-note">
+          <div class="h"><span class="dot loading"></span> Loading 态</div>
+          <div class="body">面板加载时显示骨架卡片 ×6（同卡片尺寸）或顶部转圈 +「正在加载健康数据…」文案；不闪白屏。</div>
+        </div>
+        <div class="state-note">
+          <div class="h"><span class="dot error"></span> Error 态</div>
+          <div class="body">聚合接口失败：顶部红色提示条「健康数据加载失败：&lt;真实根因&gt;」+ 重试按钮；已有数据时保留旧数据并标「数据可能过期」。</div>
+        </div>
+        <div class="state-note">
+          <div class="h"><span class="dot empty"></span> Empty 态</div>
+          <div class="body">近 30 天无任何调用：居中空态「暂无调用数据，健康面板将随首次调用生成」+ 去创建按钮。channel_health 表为空时徽标一律显示「正常」。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <h2>设计说明（供评审）</h2>
+    <ol>
+      <li><b>挂载位置</b>：成本中心下新增「健康」标签页（与 ModelAudit/ModelCosts 同级），路由 <code>/settings/health</code> 或成本中心 tab。</li>
+      <li><b>数据源</b>：新增 execution 聚合端点 <code>/internal/v1/audit/health</code>（按单元聚合错误码分布 + 成功率，复用 T2-1 的 audit 表查询模式），叠加 <code>channel_health</code> 表的熔断状态（正常/冷却/半开）与最近失败/成功时间。BFF 加代理端点 <code>/api/v1/audit/health</code>。</li>
+      <li><b>熔断三态判定</b>：cooldown_until IS NULL → 正常；cooldown_until &gt; now → 冷却中（显示剩余秒数）；cooldown_until &lt;= now 且 probe_owner 非空 → 半开探活；无 channel_health 行 → 正常（fail-open 语义一致）。</li>
+      <li><b>错误码分布</b>：按 breaker.Classify 分类着色——成功(绿)/硬4xx(红)/软4xx(琥珀)/5xx(橙)/网络(蓝)/内容安全(紫)。无数据单元显示「—」。</li>
+      <li><b>告警（三类最小）</b>：①错误率突增：滚动窗口错误率 &gt; 阈值(默认20%,可配)持续 5 分钟 → webhook；②熔断发生：单元进入冷却 → webhook（去重，同一单元冷却期间只发一次）；③同步失败：渠道同步任务失败 → webhook。webhook 简单 POST + 3 次重试，无独立告警服务（P1 外）。</li>
+      <li><b>告警配置 UI</b>：面板底部折叠区（默认展开），阈值/开关/webhook URL 可编辑，存 workspace 配置（复用 budget_rules 的 workspace 配置模式）。</li>
+      <li class="warn-line"><b>待定</b>：告警配置存哪（workspace 新表 vs execution 配置表）？面板路由放哪（独立页 vs 成本中心 tab）？请在评审中确认。</li>
+    </ol>
+  </div>
+
+</div>
+</body>
+</html>

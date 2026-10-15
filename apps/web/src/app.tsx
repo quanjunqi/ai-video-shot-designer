@@ -29,6 +29,7 @@ import ModelCenterLayout, { ModelCenterPlaceholder } from '@/features/model-cent
 import { MODEL_CENTER_DEFAULT_PATH } from '@/features/model-center/model-center-navigation';
 import ModelCostsPage from '@/pages/ModelCosts';
 import ModelAuditPage from '@/pages/ModelAudit';
+import ModelHealthPage from '@/pages/ModelHealth';
 import NotFoundPage from '@/pages/NotFoundPage/NotFoundPage';
 
 // 组件库展示页的开关：开发环境默认可用；非开发环境（预览/部署）用 VITE_ENABLE_UI_KIT=1
@@ -62,7 +63,7 @@ export default function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="shot-language" element={<ShotLanguagePage />} />
         <Route path="assets" element={<AssetsPage />} />
-        {/* 模型中心（高保真稿 GATE-2）：独立一级导航；T2-2 实装成本与用量/审计日志，其余入口建设中占位 */}
+        {/* 模型中心（高保真稿 GATE-2 + T11）：独立一级导航；实装成本与用量/审计日志/健康，其余入口建设中占位 */}
         <Route path="models" element={<ModelCenterLayout />}>
           <Route index element={<Navigate to={MODEL_CENTER_DEFAULT_PATH} replace />} />
           <Route path="catalog" element={<ModelCenterPlaceholder label="模型目录" />} />
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="channels" element={<ModelCenterPlaceholder label="渠道与凭据" />} />
           <Route path="costs" element={<ModelCostsPage />} />
           <Route path="audit" element={<ModelAuditPage />} />
+          <Route path="health" element={<ModelHealthPage />} />
           <Route path="protocols" element={<ModelCenterPlaceholder label="协议模板" />} />
         </Route>
         <Route path="settings" element={<SettingsLayout />}>

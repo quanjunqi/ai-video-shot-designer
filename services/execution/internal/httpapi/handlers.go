@@ -22,6 +22,7 @@ import (
 	"io"
 
 	"errors"
+	"shotdesigner/services/execution/internal/alert"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/breaker"
 	"shotdesigner/services/execution/internal/catalog"
@@ -53,6 +54,8 @@ type Handler struct {
 	Budget *budget.Checker
 	// BudgetHolds 是预算预扣/结算状态机（T3）。为 nil 时不预扣（fail-open）。
 	BudgetHolds budget.HoldsStore
+	// Alert 是 T11 告警评估器（错误率突增/熔断/同步失败 → webhook）。为 nil 时告警路由 503。
+	Alert *alert.Evaluator
 }
 
 type Store interface {
@@ -86,6 +89,13 @@ func (h Handler) Routes() http.Handler {
 	// T2 运营报表聚合：四维排行 + 日/周/月趋势（成本看板数据源）。
 	mux.HandleFunc("GET /internal/v1/audit/stats", h.listStats)
 	mux.HandleFunc("GET /internal/v1/audit/stats/trend", h.statsTrend)
+	// T11 渠道健康面板：供给单元健康聚合 + 错误码分布 + 熔断状态。
+	mux.HandleFunc("GET /internal/v1/audit/health", h.listHealth)
+	// T11 告警配置（错误率阈值/窗口/冷却/webhook）：读取即默认，PUT 落库。
+	mux.HandleFunc("GET /internal/v1/alerts/config", h.getAlertConfig)
+	mux.HandleFunc("PUT /internal/v1/alerts/config", h.putAlertConfig)
+	// T11 同步失败告警触发（BFF channelSync 转发失败时上报）。
+	mux.HandleFunc("POST /internal/v1/alerts/sync-failure", h.notifySyncFailure)
 	// 渠道探测：全仓唯一实现（BFF 只转发，不再自己在边缘发探测请求）。
 	mux.HandleFunc("POST /internal/v1/channels/{id}/probe", h.probeChannel)
 	// T0 价格对账：触发一次「审计实际成本 vs 目录权威价」的差异检查，写入校准台账。

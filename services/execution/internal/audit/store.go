@@ -31,12 +31,15 @@ type Log struct {
 	ResponsePayload json.RawMessage `json:"response_payload,omitempty"`
 	ErrorMessage    string          `json:"error_message,omitempty"`
 	Status          string          `json:"status"` // success/failed/rate_limited/cancelled/timeout
-	LatencyMs       int             `json:"latency_ms"`
-	TokenInput      int             `json:"token_input"`
-	TokenOutput     int             `json:"token_output"`
-	TokenCached     int             `json:"token_cached"`
-	CostAmount      float64         `json:"cost_amount"`
-	CostCurrency    string          `json:"cost_currency"`
+	// StatusCode 上游 HTTP 状态码（T11 错误码分布，迁移 017）。NULL=成功或未回填；
+	// 0=网络层失败（无 HTTP 响应）；400-599=上游状态码。与 breaker.Classify 表 3-1 配套。
+	StatusCode   *int    `json:"status_code,omitempty"`
+	LatencyMs    int     `json:"latency_ms"`
+	TokenInput   int     `json:"token_input"`
+	TokenOutput  int     `json:"token_output"`
+	TokenCached  int     `json:"token_cached"`
+	CostAmount   float64 `json:"cost_amount"`
+	CostCurrency string  `json:"cost_currency"`
 	// CostUnit 记录本次调用成本的计费单位（per_call/per_second/per_mtok_input/per_mtok_output）。
 	// T0 价格校准新增：来源 = 命中模型的 model_catalog.cost_unit（迁移 012 新增列）。
 	// 空 = 该模型无校准价（成本为 0 的"预估"口径，T2 报表据此区分已校准/预估）。
@@ -63,14 +66,14 @@ func (s Store) Insert(ctx context.Context, log Log) error {
 		INSERT INTO gateway_audit_logs (
 			request_id, workspace_id, project_id, episode_id, asset_id, shot_id, feature, user_id,
 			product, model_id, channel_id, provider_model, mode,
-			request_payload, response_payload, error_message, status,
+			request_payload, response_payload, error_message, status, status_code,
 			latency_ms, token_input, token_output, token_cached,
 			cost_amount, cost_currency, cost_unit, job_id, provider_task_id
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27)
 	`,
 		log.RequestID, log.WorkspaceID, log.ProjectID, log.EpisodeID, log.AssetID, log.ShotID, log.Feature, log.UserID,
 		log.Product, log.ModelID, log.ChannelID, log.ProviderModel, log.Mode,
-		requestPayload, log.ResponsePayload, log.ErrorMessage, log.Status,
+		requestPayload, log.ResponsePayload, log.ErrorMessage, log.Status, log.StatusCode,
 		log.LatencyMs, log.TokenInput, log.TokenOutput, log.TokenCached,
 		log.CostAmount, log.CostCurrency, log.CostUnit, log.JobID, log.ProviderTaskID,
 	)
@@ -110,12 +113,13 @@ func (s Store) UpdateResult(ctx context.Context, requestID string, status string
 //
 // 返回受影响行数：0 表示该 job【没有提交时的审计行】（例如经 /internal/v1/tasks 提交的任务）。
 // 调用方必须把这个 0 打出来 —— 静默的空更新会重现"审计看起来有、其实没更新"的问题。
-func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, costUnit, channelID, providerModel, providerTaskID string) (int64, error) {
+func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, responsePayload json.RawMessage, errorMessage string, latencyMs, tokenInput, tokenOutput, tokenCached int, costAmount float64, costUnit, channelID, providerModel, providerTaskID string, statusCode *int) (int64, error) {
 	// D5a：同一个收口点，异步终态也走 L0 脱敏
 	responsePayload = RedactJSON(responsePayload)
 	errorMessage = redactText(errorMessage)
 	// channel_id/provider_model（T1）：submit-time 行提交时未知，终态由 worker 补齐
 	// （供给单元 = 渠道×模型，T2 报表聚合依赖；空串不覆盖既有值，与 cost_unit 同语义）。
+	// status_code（T11）：NULL 不覆盖既有值（与 cost_unit 同语义）；成功终态不传（保持 NULL）。
 	tag, err := s.Pool.Exec(ctx, `
 		UPDATE gateway_audit_logs SET
 			status = $2,
@@ -129,9 +133,10 @@ func (s Store) UpdateResultByJobID(ctx context.Context, jobID, status string, re
 			cost_unit = COALESCE(NULLIF($10, ''), cost_unit),
 			channel_id = COALESCE(NULLIF($11, ''), channel_id),
 			provider_model = COALESCE(NULLIF($12, ''), provider_model),
-			provider_task_id = COALESCE(NULLIF($13, ''), provider_task_id)
+			provider_task_id = COALESCE(NULLIF($13, ''), provider_task_id),
+			status_code = COALESCE($14, status_code)
 		WHERE job_id = $1
-	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, costUnit, channelID, providerModel, providerTaskID)
+	`, jobID, status, responsePayload, errorMessage, latencyMs, tokenInput, tokenOutput, tokenCached, costAmount, costUnit, channelID, providerModel, providerTaskID, statusCode)
 	if err != nil {
 		return 0, err
 	}
