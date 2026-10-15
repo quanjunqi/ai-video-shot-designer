@@ -84,3 +84,79 @@
 2. **需 Owner 决策的别名映射**：见 §四
 3. **标记为「未验证≠通过」**：OpenAI 三个 gpt-image、xAI 两个 grok-imagine、`ltx-digitalhuman`
    ⇒ 在池中应为 **blocked / 待补官方依据**，**不用占位值**
+
+---
+
+# 补充 · 第二轮调研（非官方来源，逐值标注来源等级）
+
+> Owner 2026-10-16 指示：「不一定是官方文档才会，有时候其他网站也会收录」。
+> 本轮补齐首轮 5 个无依据模型 + 3 个字段缺口。
+> **来源分级**：`官方` / `官方镜像` / `权威聚合` / `第三方` / `社区`。**放宽来源不等于放弃可追溯。**
+
+## 0. ⚠️ 两个改变索引方式的发现
+
+| # | 发现 | 影响 |
+|---|---|---|
+| 1 | **`gpt-image-2.5` 不是合法的 API model ID** | 官方 `ImageModel` 枚举里只有 **`gpt-image-2.5-sunburst`** / **`-flare`**（及快照 `-2026-09-08`）⇒ relay 的 `gpt-image-2.5` **必须映射到 sunburst 或 flare 之一**，不能当独立模型落库。**这是第 8 项别名问题**（原 7 项之外） |
+| 2 | **`ltx-digitalhuman` 零来源** | GitHub 仓库搜索该 ID **total_count = 0**；Lightricks 官方模型面板只有 `ltx-2-5-fast/pro`、`ltx-2-3-fast/pro` ⇒ **确认「疑似 relay 自造别名」**。最可能对应 LTX-2.x 的 **audio-to-video / lipsync 数字人能力**，但**无任何证据** |
+
+## 1. 新取得的来源（首轮不可达的三家）
+
+| 对象 | 取得的来源 | 等级 |
+|---|---|---|
+| OpenAI 图像模型 | **`openai/openai-python` 的类型文件**（`image_edit_params.py` / `image_generate_params.py` / `image_model.py`）——**由 OpenAI 自己的 OpenAPI spec 生成 ⇒ 官方级** | **官方（间接）** |
+| 同上（交叉） | Microsoft Learn / Azure Foundry 的 DALL·E 文档 | 权威聚合 |
+| xAI Grok | 无官方页（docs.x.ai 全程不可达：直连/代理/.md 均失败） | —— |
+| xAI Grok（替代） | zenlayer 网关 API 文档、ComfyUI **官方** embedded-docs、Scenario help、Replicate | 第三方 / 社区 |
+| `ltx-digitalhuman` | **无** | —— |
+| `veo-3.1` 参考图 | ai.google.dev（**仅搜索索引快照**，正文 fetch 失败）+ apidog + Glama MCP schema | 官方（快照）/ 第三方 / 社区 |
+| `seedream-5-0` vs `-lite` | **BytePlus ModelArk（字节国际云）** 概览页 | **官方镜像** |
+
+## 2. OpenAI 图像三档（首轮无依据 → 现已有官方级来源）
+
+| 字段 | `gpt-image-1.5` | `gpt-image-2` | `gpt-image-2.5-sunburst` / `-flare` |
+|---|---|---|---|
+| 尺寸/比例 | **仅三档**：1024x1024 / 1536x1024 / 1024x1536 + auto | **任意 W×H**（两边被 16 整除；比例 1:3~3:1；最大 3840x2160；>2560x1440 为实验性）+ 三标准档 + auto | 同 gpt-image-2 的任意分辨率规则；推荐三标准档 |
+| 分辨率 | ~1MP（1K），无 4K | 含 4K 档（实验性） | 像素 655,360–8,294,400（4K） |
+| 参考图上限 | **16 张** | **16 张** | **16 张**（第三方独立复核一致） |
+| quality | low/medium/high/auto | low/medium/high/auto（**不支持 xhigh/max**） | low/medium/high/**xhigh**/**max**/auto |
+| `input_fidelity` | 支持 high/low | ⚠️ **必须省略该参数**（不支持） | —— |
+| n | 1–10 | 1–10 | 1–10 |
+| 流式 | partial_images 0–3 | 同 | 同 |
+| 其他 | 有限访问预览（Limited access preview） | 快照 ID `gpt-image-2-2026-04-21`；背景透明支持但标 preview | Sunburst=编辑精度优先 / Flare=速度优先，**均 GA**；prompt ≤32000 字符 |
+
+## 3. xAI Grok Imagine（**全部为第三方/社区，无官方源**）
+
+| 字段 | `grok-imagine-image-2.0` | `grok-imagine-video-1.5` |
+|---|---|---|
+| 宽高比 | 1:1,3:4,4:3,9:16,16:9,2:3,3:2,9:19.5,19.5:9,9:20,20:9,1:2,2:1,21:9,5:2,auto（第三方 zenlayer）<br>⚠️ **冲突**：ComfyUI 官方节点文档无 `21:9` / `5:2` | 1:1,16:9,9:16,4:3,3:4,3:2,2:3（默认 16:9） |
+| 分辨率 | 1k/1.5k/2k（第三方）<br>⚠️ **冲突**：ComfyUI 仅 1K/2K ⇒ **建议以 1k/2k 为稳** | 480p / 720p / 1080p（默认 720p）；reference-to-video 只到 720p |
+| 时长 | — | **1~15 秒**（旧 R2V 规格只到 10s） |
+| 参考图上限 | **3 张**（社区：ComfyUI embedded-docs；pro 版仅 1 张） | **7 张**（三源一致） |
+| 其他 | n 1–10；text-to-image + image edit（`<IMAGE_0>` 引用） | keyframes ≤4、reference_audios ≤3、输出变体 1–4、原生音频 |
+| quality | low/medium/auto（ComfyUI 无 auto） | — |
+
+> ⚠️ **风险提示**：xAI 全部字段**无一官方源**。落库时应标注为"第三方口径，待官方文档可达后复核"。
+
+## 4. 三个字段缺口的结论
+
+| 缺口 | 结论 | 来源等级 |
+|---|---|---|
+| `veo-3.1` / `-fast` 参考图上限 | **3 张 asset images（或 1 张 style image）** —— 官方搜索快照 + 第三方 + 社区**三源互证** | 官方（快照）+ 三方互证 ⇒ **可采信** |
+| `hailuo-2.3` 宽高比 | **官方 schema 根本没有 `aspect_ratio` 字段**（只有 model/prompt/prompt_optimizer/fast_pretreatment/duration/resolution/callback_url）⇒ **比例来自首帧**；权威聚合口径：图生视频跟随源图、文生视频默认 16:9 | **官方**（OpenAPI 原文坐实）<br>第三方 sousaku.ai 声称的 6 个比例枚举 ⇒ **低可信，不采信** |
+| `seedream-5-0-260128` vs `-lite-260128` | **同一档（都是 Lite）**：官方镜像写 "Seedream 5.0 lite — `seedream-5-0-260128`（also accepts `seedream-5-0-lite-260128`）"；**Pro 是另一个 ID** `dola-seedream-5-0-pro-260628` | **官方镜像**（BytePlus）⇒ 两个 ID 是**别名关系**<br>（社区 skill 文件称"完整版 vs 轻量版" ⇒ 冲突，以官方镜像为准） |
+
+## 5. 本轮仍无任何来源
+
+| # | 对象 | 说明 |
+|---|---|---|
+| 1 | **`ltx-digitalhuman` 全部字段** | 零来源（GitHub 搜索 0 命中，无任何中转站/聚合站文档提及）⇒ 标 `别名/疑似 relay 自造`，**不要当实测值** |
+| 2 | **`gpt-image-2.5` 作为单一 ID** | 官方枚举中不存在；只有 sunburst/flare ⇒ 表中保留该行时必须写 `别名 → sunburst \| flare` |
+| 3 | `grok-imagine-image-2.0` 的**官方**比例/分辨率/参考图上限 | docs.x.ai 全程不可达 |
+| 4 | `grok-imagine-video-1.5` 的**官方**时长/分辨率/参考图上限 | 同上 |
+| 5 | `veo-3.1` 的**官方页正文** | 仅搜索索引快照 |
+| 6 | `hailuo-2.3` 的**官方**比例清单 | 官方 schema 无该字段 |
+
+## 6. 别名问题从 7 项增至 8 项
+
+新增：**`gpt-image-2.5` → `gpt-image-2.5-sunburst` 或 `-flare`（需 Owner 定，二者档位分工不同）**
