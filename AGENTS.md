@@ -64,21 +64,42 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - Commit message：Conventional Commits（feat/fix/docs/refactor/test/chore）
 - 禁止直推 master；PR 等 CI 全绿后由 Owner 合并
 - 禁止 `git add -A`；按路径 add，提交前 `git diff --cached --name-only` 核对
+- **先本地验证再 commit**：前端改动用 `npm run gate`（GATE=0）、后端用 `go build ./... && go test ./... -race && go vet ./...`；未验证不得提交
+- **合并用 merge commit，禁止 squash**（保提交历史与审计链，见 `.agents/skills/parallel-worktree/SKILL.md`）
+- Dependabot/依赖升级 PR **必须开向 develop**（勿基于旧 master 重建分支，见 `.agents/skills/pr-workflow/SKILL.md`）
 
 ## 关键 gotchas
 
+- **开发日志是强制规则（AC-010）**：每张任务卡开工必须建 `.github/tasks/<TASK-ID>-devlog.md`，随开发同步记录动作/证据/决策/阻塞，PR 前完成；禁止交付前一次性补写。规则入口在本文件与 `.agents/skills/acceptance-checklist/SKILL.md`——换会话/换模型不失效
+- **迁移执行器**：`deploy/local/migrate.sh`（`schema_migrations` 版本+校验和跟踪，每文件只执行一次，重复 `compose up` 安全）；既有库无跟踪记录 → **fail-closed 拒绝**，需 `MIGRATE_ADOPT=1`（或加 `MIGRATE_ADOPT_UNTIL=<version>`）显式采纳（只登记不执行 SQL）
+- **审计纪律**：`gateway_audit_logs` 必须**同步写**（禁异步）、密钥打码 `<REDACTED>`、禁止绕过 execution 网关直调上游（见 `.agents/skills/audit-ledger/SKILL.md`）
+- **后端红线**：覆盖率棘轮 fail-closed（无 internal/ 即失败）、契约先行（错误码/状态枚举由契约定义）、金额禁 float64、错误码禁硬编码（见 `.agents/skills/backend-standards/SKILL.md`）
+- **前端红线**：CRUD 三态（loading/error/empty）必过、删除需确认弹窗、禁内联样式（动态值除外）（见 `.agents/skills/frontend-quality/SKILL.md`）
 - TypeScript 口径以 `apps/web/tsconfig.app.json` 为准（不是默认 tsconfig）。注意该文件目前 `strict: false`：类型安全靠 eslint（`no-explicit-any` 为 error）与审查兜底，别指望类型系统拦截
 - 测试不得依赖本地时区/系统时间（CI 跑 UTC）
 - 迁移文件只增不改，号段按服务认领
 - 所有 AI 模型调用必须经 execution 网关，写 `gateway_audit_logs`
 - 密钥只在 workspace 加密存储，禁止硬编码
 - BFF 是前端唯一入口，禁止前端直连后端服务
+- **机制落地 = 同步本文件**：任何新规则/新机制（AC 条目、基建行为变更如迁移执行器、流程纪律）落地后，必须回写 AGENTS.md（本文件是换会话/换模型不遗忘的唯一入口）
+
+## 每次开发的强制流程（换会话/换模型同样适用）
+
+```
+需求 → 0. 判定任务类型：UI 任务 → 设计稿/原型 → Owner 评审通过
+      → 1. 建开发日志（templates/devlog.md → .github/tasks/<TASK-ID>-devlog.md，随开发同步记录）
+      → 2. 产验收清单（templates/acceptance-checklist.md → .github/tasks/<TASK-ID>-acceptance.md）
+      → 3. 开发（按编码规范；日志同步记动作/决策/证据/阻塞）
+      → 4. 自检勾对 → 5. GATE + 测试（结果写入日志）→ 6. PR 附勾对 + 日志链接
+```
+
+> 完整规则见 `.agents/skills/acceptance-checklist/SKILL.md`（AC-001~010）。「未建日志 = 不得开工；未勾对 = 不得开 PR」。
 
 ## 场景化 Skills（按需加载，不要全读；总览与编写规范见 `.agents/README.md`）
 
 | 场景 | 加载 |
 |---|---|
-| 承接任何开发任务（开工前必读） | `.agents/skills/acceptance-checklist/SKILL.md` |
+| 承接任何开发任务（开工前必读；**先建开发日志 AC-010**） | `.agents/skills/acceptance-checklist/SKILL.md` |
 | 改前端代码 | **怎么写**：`.agents/skills/frontend-coding/SKILL.md`　**交付门禁**：`.agents/skills/frontend-quality/SKILL.md` |
 | 改后端 Go 代码 | **怎么写**：`.agents/skills/backend-coding/SKILL.md`　**分层/覆盖率棘轮**：`.agents/skills/backend-standards/SKILL.md` |
 | 并行开新 worktree | `.agents/skills/parallel-worktree/SKILL.md` |
