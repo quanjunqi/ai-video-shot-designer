@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-16T00:45:00+08:00",
+  "updatedAt": "2026-10-16T01:00:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -17,13 +17,30 @@
       ],
       "decisionRef": "D-001",
       "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-16T01:00:00+08:00",
+      "phase": "Owner 答复→范围修订",
+      "action": "向 Owner 提出 4 项数据口径问题，收到答复并据此修订范围（含推翻 dev-plan T6 假设）",
+      "evidence": [
+        "① 只有 PearAPI 一个中转站真实，其余 6 渠道（ComfyUI/Google/Grsai/即梦/MiniMax/OpenAI）为 mock",
+        "② 逻辑模型不作为普遍机制，仅用于『免费模型收纳』；工作层直接从模型广场选真实模型 ⇒ 推翻 dev-plan T6 的 5 个命名",
+        "③ 价格手动录入原价 + 加价（manual），落在 037 的 cost_*/price_* 分离",
+        "④ 能力档位对齐官方文档（已派只读调研）",
+        "额外发现：同步只给裸名字——tags 全空 / endpoint_types 全 [] / vendor 全 custom / pricing 0-79 / model_type 全占位 'model'"
+      ],
+      "decisionRef": "D-004",
+      "blockRef": null
     }
   ],
   "decisions": [
     {
       "id": "D-001",
       "topic": "立一张卡还是三张（T5/T6/T12）",
-      "options": ["三张独立卡", "一张卡三子项"],
+      "options": [
+        "三张独立卡",
+        "一张卡三子项"
+      ],
       "choice": "一张卡三子项",
       "reason": "三者同属『供给单元池真实化』一个工作流、共享同一份真实数据口径；dev-plan 亦视作同一计划内三个可独立 PR。避免三张卡重复描述同一套背景数据",
       "timing": "立卡"
@@ -31,7 +48,10 @@
     {
       "id": "D-002",
       "topic": "未获 Owner 数据口径时怎么办",
-      "options": ["先按合理猜测填数据", "只做结构，数据留空并标注"],
+      "options": [
+        "先按合理猜测填数据",
+        "只做结构，数据留空并标注"
+      ],
       "choice": "只做结构，数据留空并标注",
       "reason": "猜测填数据等于造第二份 mock——本卡要消灭的正是 mock。数据（哪些模型可用/挂哪些候选/价格口径/能力档位）是产品事实，AI 不得臆测",
       "timing": "立卡"
@@ -39,30 +59,99 @@
     {
       "id": "D-003",
       "topic": "是否顺带做『入池』管理 UI",
-      "options": ["做", "不做（另议）"],
+      "options": [
+        "做",
+        "不做（另议）"
+      ],
       "choice": "不做（另议）",
       "reason": "入池 = 管理员精选，其 UI 属模型中心页面工作，与本卡的数据/机制层解耦",
       "timing": "立卡"
+    },
+    {
+      "id": "D-004",
+      "topic": "逻辑模型的范围",
+      "options": [
+        "按 dev-plan 做 5 个普遍命名",
+        "收缩为『免费模型收纳』一种用途"
+      ],
+      "choice": "收缩（Owner 定）",
+      "reason": "Owner 明确：逻辑模型是特殊的收纳方式，工作层直接用模型广场真实模型；按 A 做会产出一套无人使用的命名体系",
+      "timing": "Owner 答复"
+    },
+    {
+      "id": "D-005",
+      "topic": "单元级价格来源",
+      "options": [
+        "从上游同步",
+        "手动录入原价 + 加价"
+      ],
+      "choice": "手动录入原价 + 加价（Owner 定）",
+      "reason": "上游不提供可用价格口径；manual+加价正落在 037 的 cost/price 分离设计上",
+      "timing": "Owner 答复"
+    },
+    {
+      "id": "D-006",
+      "topic": "能力档位取值来源",
+      "options": [
+        "按经验/推断填",
+        "对齐官方文档"
+      ],
+      "choice": "对齐官方文档（Owner 定）",
+      "reason": "推断值会造出与官方不符的能力声明，导致请求被上游拒绝",
+      "timing": "Owner 答复"
     }
   ],
   "verifications": [
-    { "id": "V-001", "criterion": "前提核实（供开工用，非验收判据）", "command": "查 production 真库 6 项计数 + 读 useSettingsStore", "result": "PASS", "evidence": "缺口量化；见 events[0].evidence 与 task.md 背景表" }
+    {
+      "id": "V-001",
+      "criterion": "前提核实（供开工用，非验收判据）",
+      "command": "查 production 真库 6 项计数 + 读 useSettingsStore",
+      "result": "PASS",
+      "evidence": "缺口量化；见 events[0].evidence 与 task.md 背景表"
+    }
   ],
   "blocks": [
     {
       "id": "B-001",
-      "block": "数据部分无法开工",
+      "block": "数据部分无法开工（已解除 2026-10-16）",
       "rootCause": "缺 Owner 提供的 4 项真实口径（哪些模型可用 / 各逻辑模型挂哪些候选 / 价格来源 / 能力档位取值）",
-      "solution": "结构部分（迁移骨架、能力字段、Resolve 过滤）可先行；数据部分等口径",
+      "solution": "Owner 已答复 4 项口径；范围据此修订（含推翻 dev-plan T6）",
       "lesson": "供给侧数据是产品事实，不是工程推导；AI 只能建结构，不能替产品决定『某个模型支持哪些比例』"
+    },
+    {
+      "id": "B-002",
+      "block": "同步只给裸名字",
+      "rootCause": "PearAPI 同步未提供 type/vendor/pricing/tags/endpoint_types（model_type 全为占位 'model'）",
+      "solution": "需分类与富化：79 个名字判定 type/vendor、补能力（官方文档）、补价格（manual）",
+      "lesson": "同步拿到『有名字』≠『能上架』；供给单元入池需要富化层，这是原 dev-plan 未显式列出的工作"
     }
   ],
   "disciplineSelfCheck": [
-    { "item": "立卡前核实前提（排期 v2 §5 第 8 条）", "result": "✓", "evidence": "V-001：真库 6 项计数，非 grep 级" },
-    { "item": "开工前产出验收清单（AC-008）", "result": "✓", "evidence": "acceptance.md 12 条判据" },
-    { "item": "任务卡带 front-matter（AC-011）", "result": "✓", "evidence": "status/priority/depends_on/criteria" },
-    { "item": "不臆造产品数据", "result": "✓", "evidence": "D-002 + task.md『需 Owner 提供的信息』表" },
-    { "item": "尚未开工（未写码）", "result": "✓", "evidence": "本卡仅有四件套文档" }
+    {
+      "item": "立卡前核实前提（排期 v2 §5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001：真库 6 项计数，非 grep 级"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 12 条判据"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "不臆造产品数据",
+      "result": "✓",
+      "evidence": "D-002 + task.md『需 Owner 提供的信息』表"
+    },
+    {
+      "item": "尚未开工（未写码）",
+      "result": "✓",
+      "evidence": "本卡仅有四件套文档"
+    }
   ],
   "retrospective": null
 }
