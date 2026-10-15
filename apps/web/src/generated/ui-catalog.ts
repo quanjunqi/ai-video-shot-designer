@@ -890,7 +890,7 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 26,
+        "count": 27,
         "files": [
           "apps/web/src/components/ui/command.tsx",
           "apps/web/src/features/comic/AddEpisodeDialog.tsx",
@@ -915,6 +915,7 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/SettingsChannels.tsx",
           "apps/web/src/pages/SettingsLogicalModels.tsx",
           "apps/web/src/pages/SettingsModels.tsx",
+          "apps/web/src/pages/SettingsPreferences.tsx",
           "apps/web/src/pages/SettingsProtocols.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx"
@@ -1258,7 +1259,7 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 28,
+        "count": 29,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolParamOverrides.tsx",
@@ -1285,6 +1286,7 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/SettingsChannels.tsx",
           "apps/web/src/pages/SettingsLogicalModels.tsx",
           "apps/web/src/pages/SettingsModels.tsx",
+          "apps/web/src/pages/SettingsPreferences.tsx",
           "apps/web/src/pages/SettingsProtocols.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx"
@@ -3602,11 +3604,11 @@ export const UI_CATALOG: UiCatalog = {
     "text": [
       {
         "value": "xs",
-        "count": 400
+        "count": 409
       },
       {
         "value": "sm",
-        "count": 190
+        "count": 191
       },
       {
         "value": "lg",
@@ -3638,7 +3640,7 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 690
+        "count": 696
       },
       {
         "value": "1",
@@ -3646,15 +3648,15 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "3",
-        "count": 436
+        "count": 443
       },
       {
         "value": "1.5",
-        "count": 384
+        "count": 390
       },
       {
         "value": "4",
-        "count": 239
+        "count": 241
       },
       {
         "value": "0.5",
@@ -3666,11 +3668,11 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "6",
-        "count": 74
+        "count": 75
       },
       {
         "value": "0",
-        "count": 33
+        "count": 34
       },
       {
         "value": "5",
@@ -3734,11 +3736,11 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 198
+        "count": 201
       },
       {
         "value": "xl",
-        "count": 163
+        "count": 164
       },
       {
         "value": "DEFAULT",

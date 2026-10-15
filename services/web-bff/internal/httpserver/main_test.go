@@ -634,3 +634,104 @@ func TestChannelProbeRejectsEarlyWithoutUpstreamCalls(t *testing.T) {
 		})
 	}
 }
+
+func TestWorkspaceBudgetRewritesPathAndPassesMethods(t *testing.T) {
+	var (
+		seenPath, seenMethod, seenAuth string
+		seenBody                       string
+	)
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenPath, seenMethod = r.URL.Path, r.Method
+		seenAuth = r.Header.Get("Authorization")
+		b, _ := io.ReadAll(r.Body)
+		seenBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, `{"items":[]}`)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/workspace/budget", s.workspaceBudget)
+	mux.HandleFunc("/api/v1/workspace/budget/", s.workspaceBudget)
+
+	// PUT 列表（upsert）
+	r := httptest.NewRequest(http.MethodPut, "/api/v1/workspace/budget/rules",
+		strings.NewReader(`{"scope":"workspace","period":"day","limitAmount":500,"action":"block"}`))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("PUT budget: expected 200, got %d", rec.Code)
+	}
+	if seenPath != "/internal/v1/workspaces/ws_dev/budget/rules" {
+		t.Fatalf("expected rewritten budget path, got %q", seenPath)
+	}
+	if seenMethod != http.MethodPut {
+		t.Fatalf("expected PUT, got %s", seenMethod)
+	}
+	if seenAuth != "Bearer workspace-secret" {
+		t.Fatalf("expected workspace token, got %q", seenAuth)
+	}
+	if !strings.Contains(seenBody, `"limitAmount":500`) {
+		t.Fatalf("body must pass through, got %q", seenBody)
+	}
+
+	// DELETE 周期
+	r = httptest.NewRequest(http.MethodDelete, "/api/v1/workspace/budget/rules/day", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+	if seenPath != "/internal/v1/workspaces/ws_dev/budget/rules/day" {
+		t.Fatalf("expected DELETE rewrite, got %q", seenPath)
+	}
+	if seenMethod != http.MethodDelete {
+		t.Fatalf("expected DELETE, got %s", seenMethod)
+	}
+
+	// GET 列表
+	r = httptest.NewRequest(http.MethodGet, "/api/v1/workspace/budget/rules", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK || seenMethod != http.MethodGet {
+		t.Fatalf("GET budget: code=%d method=%s", rec.Code, seenMethod)
+	}
+	if !strings.Contains(rec.Body.String(), `"items"`) {
+		t.Fatalf("GET budget must stream upstream body, got %q", rec.Body.String())
+	}
+}
+
+func TestWorkspaceBudgetAuthAndMethodGuard(t *testing.T) {
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/workspace/budget", s.workspaceBudget)
+	mux.HandleFunc("/api/v1/workspace/budget/", s.workspaceBudget)
+
+	// workspace 403 ⇒ FORBIDDEN
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/workspace/budget/rules", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("auth denied: expected 403, got %d", rec.Code)
+	}
+
+	// 不支持的方法 ⇒ 405
+	r = httptest.NewRequest(http.MethodPost, "/api/v1/workspace/budget/rules", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST budget: expected 405, got %d", rec.Code)
+	}
+}

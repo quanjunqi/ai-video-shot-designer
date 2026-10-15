@@ -225,9 +225,9 @@
 
 | 类别 | 常用档位（次数） | 离散步长（建议收敛） |
 |---|---|---|
-| 字号 | `xs`(400) · `sm`(190) · `lg`(20) · `base`(11) · `xl`(2) · `2xl`(1) | `0.8rem`(2) |
-| 间距 | `2`(690) · `1`(504) · `3`(436) · `1.5`(384) · `4`(239) · `0.5`(130) | `-0.45rem`(2) · `-0.35rem`(2) |
-| 圆角 | `lg`(198) · `xl`(163) · `DEFAULT`(113) · `md`(96) · `full`(63) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
+| 字号 | `xs`(409) · `sm`(191) · `lg`(20) · `base`(11) · `xl`(2) · `2xl`(1) | `0.8rem`(2) |
+| 间距 | `2`(696) · `1`(504) · `3`(443) · `1.5`(390) · `4`(241) · `0.5`(130) | `-0.45rem`(2) · `-0.35rem`(2) |
+| 圆角 | `lg`(201) · `xl`(164) · `DEFAULT`(113) · `md`(96) · `full`(63) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
 | 阴影 | `DEFAULT`(61) · `md`(30) · `lg`(27) · `sm`(13) · `xs`(5) · `2xl`(5) | `0_0_0_1px_hsl(var(--sidebar-border))`(1) · `0_0_0_1px_hsl(var(--sidebar-accent))`(1) |
 | 行高 / 字距 | `relaxed`(75) · `none`(8) · `5`(7) · `snug`(4) · `wide`(12) · `wider`(7) · `tight`(4) · `widest`(4) | — |
 
@@ -252,13 +252,13 @@
 | `checkbox` | 数据录入 | 33 | — | — | 3 |  | `src/components/ui/checkbox.tsx` |
 | `collapsible` | 布局 | 34 | — | — | 3 |  | `src/components/ui/collapsible.tsx` |
 | `command` | 导航 | 209 | — | — | 1 |  | `src/components/ui/command.tsx` |
-| `dialog` | 反馈 | 144 | — | — | 26 |  | `src/components/ui/dialog.tsx` |
+| `dialog` | 反馈 | 144 | — | — | 27 |  | `src/components/ui/dialog.tsx` |
 | `dropdown-menu` | 导航 | 330 | — | — | 2 |  | `src/components/ui/dropdown-menu.tsx` |
 | `empty` | 布局 | 105 | default/icon | — | 0 | ⚠️ | `src/components/ui/empty.tsx` |
 | `field` | 数据录入 | 249 | — | — | 0 | ⚠️ | `src/components/ui/field.tsx` |
 | `form` | 数据录入 | 168 | — | — | 0 | ⚠️ | `src/components/ui/form.tsx` |
 | `image` | 基础 | 184 | — | — | 0 | ⚠️ | `src/components/ui/image.tsx` |
-| `input` | 数据录入 | 22 | — | — | 28 |  | `src/components/ui/input.tsx` |
+| `input` | 数据录入 | 22 | — | — | 29 |  | `src/components/ui/input.tsx` |
 | `input-group` | 数据录入 | 167 | — | — | 0 | ⚠️ | `src/components/ui/input-group.tsx` |
 | `item` | 布局 | 194 | default/outline/muted | default/sm | 0 | ⚠️ | `src/components/ui/item.tsx` |
 | `label` | 数据录入 | 25 | — | — | 21 |  | `src/components/ui/label.tsx` |
