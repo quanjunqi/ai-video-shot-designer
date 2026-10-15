@@ -221,6 +221,53 @@
 | 8 | 能力档位骨架 | 字段 + 校验；**高置信 23 条可先落库**（见 [model-capabilities.md](model-capabilities.md) §五行动建议 1） |
 | 9 | 逻辑模型分组端到端验证 | 契约 `bff.yaml:1326/1368/1385/1411/1428` + `SettingsLogicalModels.tsx`（591 行）——从未被真实验证过 |
 
+### 第 3~5 项精确实施方案（已读码，下一轮可直接执行）
+
+> 本方案基于**实读 `services/production/internal/catalog/curation.go`（226 行）**，不是猜测。
+> 下一轮无需重新侦察。
+
+#### 第 3 项 · Go 侧加价计算（`curation.go`）
+
+现状（已读）：
+```go
+// :192  现有只有两个分支
+priceAmount, priceUnit, priceSource := in.PriceAmount, in.PriceUnit, "manual"
+if priceAmount == nil {
+    if amt, unit, ok := parsePricing(rawPricing); ok {
+        priceAmount, priceUnit, priceSource = &amt, unit, "synced"
+    }
+}
+```
+改动点（四处）：
+1. **`CuratedModel`（:125-139）与 `CurateInput`（:143-161）各加 `MarkupRatio *float64`**
+   （`CurateInput` 的注释风格是"留空表示未定价，不是 0" ⇒ 比例也照此：**留空 = 继承类型默认，不是 0**）
+2. **读类型级默认**：`SELECT ratio FROM markup_type_defaults WHERE workspace_id IN ('', $ws) ORDER BY (workspace_id='') ASC LIMIT 1`
+   —— 与 :179-183 读供给池价的**同构写法**（平台共享行排后 ⇒ 工作区行优先）
+3. **加第三个分支**（放在 `manual` 之后、`synced` 之前或之后需定；见下"判定顺序"）
+4. **`INSERT` / `ON CONFLICT DO UPDATE` / `RETURNING`（:199-218）加 `markup_ratio` 列**，
+   并接到 `RETURNING` 的 `Scan`（:222-224）
+
+**判定顺序（需在实现时定并写进注释）**：三者语义不同——
+`manual`（人工直接填售价）> `markup`（按比例算）> `synced`（取上游价）。
+倾向：**`in.PriceAmount` 非空 → manual（保持现状）**；否则**若有效比例存在 → markup**；
+否则 synced。即"人工填的售价优先于比例"。
+
+**测试**（`curation_test.go` 若有则扩，否则新建）：
+- 比例来自模型级 → 用它；为空 → 用类型默认；都为空 → **有效比例 0 ⇒ 售价 = 原价**（不凭空加价）
+- 原价变动后按比例重算（验证**比例独立存储**的价值）
+- `price_source` 三种取值正确
+
+#### 第 4 项 · 契约暴露（`openapi/bff.yaml`，**契约先行 CT-001**）
+- `CuratedModel` / `CurateInput` 对应 schema 加 `markupRatio`
+- 新增类型默认的读写端点（建议 `GET/PUT /api/v1/markup-defaults`，BFF 透传 production）
+- **改完必须** `npm run api:generate` → `api:check` 绿（否则 CI 的 Contract Sync 会红）
+
+#### 第 5 项 · 前端（`SettingsChannels.tsx` 挂载 `CurationPanel`）
+- `apps/web/src/features/settings/CurationPanel.tsx`（已有 `priceAmount`/`priceUnit` 输入）
+  + `curation.ts`（已有校验：`留空=未定价`、`填了售价就必须填单位`）
+- 加：比例输入 + **勾选多选批量设置**
+- ⚠️ **D-011：批量（改选中模型）与改类型默认（影响该类型全部未覆盖）必须做成两个可区分操作**
+
 ### 等外部输入
 
 | 事项 | 等什么 |
