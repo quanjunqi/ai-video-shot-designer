@@ -349,6 +349,7 @@ func TestLogicalModelUnbindMapsErrors(t *testing.T) {
 func TestLogicalModelRequiresInternalIdentity(t *testing.T) {
 	h := Handler{Token: "secret", LogicalModelStore: &fakeLogicalModelStore{}}
 	req := httptest.NewRequest(http.MethodGet, "/internal/v1/logical-models", nil)
+	req.Header.Set("X-Actor-Role", "owner") // TASK-AUTH-001：角色头通过 authz，由 handler 的 identity 校验返回 401
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
@@ -370,5 +371,6 @@ func logicalModelRequest(method, path, body string) *http.Request {
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set("X-Workspace-Id", "ws_1")
 	req.Header.Set("X-Actor-Id", "usr_1")
+	req.Header.Set("X-Actor-Role", "owner")
 	return req
 }

@@ -53,6 +53,7 @@ func TestGetCatalog(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set("X-Workspace-Id", "ws_1")
 	req.Header.Set("X-Actor-Id", "usr_1")
+	req.Header.Set("X-Actor-Role", "owner")
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -73,6 +74,7 @@ func TestGetCatalog(t *testing.T) {
 func TestGetCatalogUnauthenticated(t *testing.T) {
 	h := Handler{Token: "secret", CatalogStore: stubCatalogStore{}}
 	req := httptest.NewRequest(http.MethodGet, "/internal/v1/catalog", nil)
+	req.Header.Set("X-Actor-Role", "owner") // TASK-AUTH-001：角色头通过 authz，由 identity 校验返回 401
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
@@ -87,6 +89,7 @@ func TestUpdateModelRejectsUnknownID(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set("X-Workspace-Id", "ws_1")
 	req.Header.Set("X-Actor-Id", "usr_1")
+	req.Header.Set("X-Actor-Role", "owner")
 	rec := httptest.NewRecorder()
 	h.Routes().ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {

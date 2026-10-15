@@ -44,6 +44,7 @@ func curationReq(method, target, body string) *http.Request {
 	r.Header.Set("Authorization", "Bearer secret")
 	r.Header.Set("X-Workspace-Id", "ws_a")
 	r.Header.Set("X-Actor-Id", "user_a")
+	r.Header.Set("X-Actor-Role", "owner")
 	r.Header.Set("Content-Type", "application/json")
 	return r
 }

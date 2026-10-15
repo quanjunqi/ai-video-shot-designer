@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
+import { RequireRole } from '@/components/RequireRole';
 import HomePage from '@/pages/Home';
 import CanvasPage from '@/pages/Canvas';
 import CreateImagePage from '@/pages/CreateImage';
@@ -68,9 +69,25 @@ export default function App() {
           <Route index element={<Navigate to={MODEL_CENTER_DEFAULT_PATH} replace />} />
           <Route path="catalog" element={<ModelCenterPlaceholder label="模型目录" />} />
           <Route path="market" element={<ModelCenterPlaceholder label="模型广场" />} />
-          <Route path="channels" element={<ModelCenterPlaceholder label="渠道与凭据" />} />
+          {/* TASK-AUTH-001：渠道与凭据 = Admin+（后端矩阵兜底，前端守卫防直达） */}
+          <Route
+            path="channels"
+            element={
+              <RequireRole min="admin">
+                <ModelCenterPlaceholder label="渠道与凭据" />
+              </RequireRole>
+            }
+          />
           <Route path="costs" element={<ModelCostsPage />} />
-          <Route path="audit" element={<ModelAuditPage />} />
+          {/* TASK-AUTH-001：审计日志 = 仅 Owner（设计稿 v2 评审定稿） */}
+          <Route
+            path="audit"
+            element={
+              <RequireRole min="owner">
+                <ModelAuditPage />
+              </RequireRole>
+            }
+          />
           <Route path="health" element={<ModelHealthPage />} />
           <Route path="protocols" element={<ModelCenterPlaceholder label="协议模板" />} />
         </Route>
@@ -80,11 +97,32 @@ export default function App() {
           {/* 模型：顶层=对外能力（逻辑模型）；次级=具体模型与来源渠道（原「模型配置」目录行） */}
           <Route path="models" element={<SettingsLogicalModelsPage />} />
           <Route path="models/catalog" element={<SettingsModelsPage />} />
-          {/* 渠道：模型从哪来；协议配置取消一级导航后挂在渠道下（ADR-005 §3） */}
-          <Route path="channels" element={<SettingsChannelsPage />} />
-          <Route path="channels/protocols" element={<SettingsProtocolsPage />} />
-          {/* 用量：原「调用审计」并入（ADR-005 §3） */}
-          <Route path="preferences" element={<SettingsPreferencesPage />} />
+          {/* TASK-AUTH-001：渠道配置 = Admin+（Viewer 隐藏 + 后端 403） */}
+          <Route
+            path="channels"
+            element={
+              <RequireRole min="admin">
+                <SettingsChannelsPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="channels/protocols"
+            element={
+              <RequireRole min="admin">
+                <SettingsProtocolsPage />
+              </RequireRole>
+            }
+          />
+          {/* TASK-AUTH-001：偏好（含预算/默认模型等敏感配置）= Admin+，Viewer 隐藏（设计稿 v2 评审定稿） */}
+          <Route
+            path="preferences"
+            element={
+              <RequireRole min="admin">
+                <SettingsPreferencesPage />
+              </RequireRole>
+            }
+          />
           {/* 旧路径兼容（ADR-005 §3）：旧深链一律 replace 到新位置，不得 404。
               映射表唯一事实源在 features/settings/settings-navigation.ts，并由单测锁定。 */}
           {SETTINGS_LEGACY_REDIRECTS.map((r) => (

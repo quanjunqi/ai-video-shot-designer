@@ -8,10 +8,11 @@ import { cn } from '@/lib/utils';
 import {
   SETTINGS_CHANNEL_RULES_PATH,
   SETTINGS_MODEL_SUBVIEWS,
-  SETTINGS_NAV,
   settingsSectionForPath,
+  visibleSettingsNav,
   type SettingsSectionKey,
 } from '@/features/settings/settings-navigation';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const NAV_ICON: Record<SettingsSectionKey, typeof Boxes> = {
   models: Boxes,
@@ -23,12 +24,15 @@ export default function SettingsLayout() {
   const { pathname } = useLocation();
   const section = settingsSectionForPath(pathname);
   const onChannelRules = pathname === SETTINGS_CHANNEL_RULES_PATH;
+  const role = useAuthStore((s) => s.role);
+  // TASK-AUTH-001：按角色过滤设置子导航（偏好 Viewer 隐藏、渠道 Admin+；后端矩阵兜底）
+  const nav = visibleSettingsNav(role);
 
   return (
     <div className="flex h-full min-h-0">
       <nav className="flex w-full shrink-0 gap-1 overflow-x-auto border-b border-border p-2 md:w-52 md:flex-col md:space-y-1 md:overflow-x-hidden md:border-b-0 md:border-r md:p-3">
         <div className="px-2 pb-2 text-xs font-semibold text-muted-foreground">设置</div>
-        {SETTINGS_NAV.map((n) => {
+        {nav.map((n) => {
           const Icon = NAV_ICON[n.key];
           return (
             <NavLink

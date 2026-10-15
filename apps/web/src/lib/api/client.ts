@@ -1,4 +1,6 @@
 import type { components } from '@/types/api-generated';
+// 相对路径 + .ts 扩展名：node --test（无 @ alias / 扩展名自动解析）直接 import client.ts 时也能解析
+import { authHeaders } from '../../stores/useAuthStore.ts';
 type ApiSchemas = components['schemas'];
 
 export interface ApiErrorShape {
@@ -19,12 +21,15 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // TASK-AUTH-001：BFF 按 X-Workspace-Id/X-Actor-Id 解析角色并强制矩阵；前端只透传身份，
+  // 不声明角色（X-Actor-Role 由 BFF 鉴权通过后注入下游，前端不可自报）。
   const response = await fetch(path, {
     ...init,
     headers: {
       Accept: 'application/json',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       Pragma: 'no-cache',
+      ...authHeaders(),
       ...init?.headers,
     },
   });

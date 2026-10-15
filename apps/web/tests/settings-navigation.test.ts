@@ -157,12 +157,13 @@ test('app.tsx registers every settings route and wires the legacy redirects from
   }
 });
 
-// 「导航被改回 6 项」的护栏：布局只认导航表，且不得再出现被取消的三个顶层入口。
-test('the settings layout renders SETTINGS_NAV only, without the three demoted top-level entries', () => {
+// 「导航被改回 6 项」的护栏：布局只认导航表（TASK-AUTH-001 起经角色过滤渲染，
+// 过滤函数 visibleSettingsNav 内部仍以 SETTINGS_NAV 为唯一事实源），且不得再出现被取消的三个顶层入口。
+test('the settings layout renders SETTINGS_NAV (via role filter) only, without the three demoted top-level entries', () => {
   const layoutSource = stripComments(
     readFileSync(join(import.meta.dirname, '..', 'src', 'features', 'settings', 'SettingsLayout.tsx'), 'utf8'),
   );
-  assert.match(layoutSource, /SETTINGS_NAV\.map\(/, '布局必须由 SETTINGS_NAV 渲染导航');
+  assert.match(layoutSource, /visibleSettingsNav\(/, '布局必须经 visibleSettingsNav 渲染导航（角色过滤，事实源仍是 SETTINGS_NAV）');
   for (const dropped of ['协议配置', '调用审计', '逻辑模型管理']) {
     assert.ok(!layoutSource.includes(dropped), `布局里不应再出现被取消的顶层导航「${dropped}」`);
   }

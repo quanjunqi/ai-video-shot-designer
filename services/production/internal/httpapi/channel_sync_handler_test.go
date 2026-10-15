@@ -28,6 +28,7 @@ func syncRequest(channelID string) *http.Request {
 	r.Header.Set("Authorization", "Bearer secret")
 	r.Header.Set("X-Workspace-Id", "ws_dev")
 	r.Header.Set("X-Actor-Id", "user_dev")
+	r.Header.Set("X-Actor-Role", "owner")
 	return r
 }
 

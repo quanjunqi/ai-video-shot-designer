@@ -28,7 +28,8 @@ func TestAuditStatsProxyForwardsQueryAndStream(t *testing.T) {
 	}))
 	defer execution.Close()
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +72,8 @@ func TestAuditTrendProxyForwardsGranularity(t *testing.T) {
 	}))
 	defer execution.Close()
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

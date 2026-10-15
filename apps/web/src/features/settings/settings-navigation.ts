@@ -155,6 +155,23 @@ export function settingsSectionForPath(pathname: string): SettingsNavItem | unde
   return matched;
 }
 
+/** 角色等级（与 BFF authz.go 对齐，本地最小实现避免循环依赖） */
+const ROLE_RANK: Record<string, number> = { member: 0, viewer: 1, admin: 2, owner: 3 };
+
+/**
+ * 按角色过滤设置中心顶层导航（TASK-AUTH-001 设计稿 v2）：
+ * 「模型」= Viewer+（只读浏览逻辑模型/目录行）；「渠道」= Admin+；「偏好」= Admin+（Viewer 隐藏）。
+ * role 未知（''）按 member 处理（fail-safe 隐藏而非误放行）。
+ */
+export function visibleSettingsNav(role: string): readonly SettingsNavItem[] {
+  const rank = ROLE_RANK[role] ?? 0;
+  return SETTINGS_NAV.filter((n) => {
+    if (n.key === 'preferences') return rank >= ROLE_RANK.admin;
+    if (n.key === 'channels') return rank >= ROLE_RANK.admin;
+    return rank >= ROLE_RANK.viewer;
+  });
+}
+
 /** 当前路径落在「模型」分组的哪个视图上（最长前缀匹配：/settings/models/catalog → 次级视图） */
 export function settingsSubViewForPath(pathname: string): SettingsSubView | undefined {
   let matched: SettingsSubView | undefined;

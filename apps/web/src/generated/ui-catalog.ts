@@ -3600,15 +3600,15 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 185,
+    "scannedFiles": 187,
     "text": [
       {
         "value": "xs",
-        "count": 427
+        "count": 431
       },
       {
         "value": "sm",
-        "count": 193
+        "count": 194
       },
       {
         "value": "lg",
@@ -3640,7 +3640,7 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 716
+        "count": 718
       },
       {
         "value": "1",
@@ -3652,7 +3652,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "1.5",
-        "count": 394
+        "count": 395
       },
       {
         "value": "4",
@@ -3736,7 +3736,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 208
+        "count": 209
       },
       {
         "value": "xl",

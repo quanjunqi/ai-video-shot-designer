@@ -40,3 +40,20 @@ export function modelCenterSectionForPath(pathname: string): ModelCenterNavItem 
     MODEL_CENTER_NAV.find((n) => n.key === 'costs')!
   );
 }
+
+/** 角色等级（与 BFF authz.go / useAuthStore 对齐，本地最小实现避免循环依赖） */
+const ROLE_RANK: Record<string, number> = { member: 0, viewer: 1, admin: 2, owner: 3 };
+
+/**
+ * 按角色过滤模型中心二级导航（TASK-AUTH-001 设计稿 v2）：
+ * 审计日志 = 仅 Owner；渠道与凭据 = Admin+；其余（目录/广场/成本/协议/健康）= 全角色。
+ * role 未知（''）按 member 处理（fail-safe 隐藏而非误放行）。
+ */
+export function visibleModelCenterNav(role: string): readonly ModelCenterNavItem[] {
+  const rank = ROLE_RANK[role] ?? 0;
+  return MODEL_CENTER_NAV.filter((n) => {
+    if (n.key === 'audit') return rank >= ROLE_RANK.owner;
+    if (n.key === 'channels') return rank >= ROLE_RANK.admin;
+    return true;
+  });
+}

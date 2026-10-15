@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,7 +21,8 @@ func TestChannelSyncForwardsToProduction(t *testing.T) {
 	}))
 	defer production.Close()
 	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
 	}))
 	defer workspace.Close()
 
@@ -63,7 +65,8 @@ func TestChannelSyncPassesUpstreamStatusThrough(t *testing.T) {
 			_, _ = w.Write([]byte(`{"code":"X","message":"upstream said so"}`))
 		}))
 		workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"role":"owner"}`)
 		}))
 		s := &server{
 			httpClient:      &http.Client{Timeout: 2 * time.Second},

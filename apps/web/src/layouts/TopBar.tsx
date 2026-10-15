@@ -2,7 +2,7 @@
 // 顶部工具栏：面包屑 / 全局搜索 / 通知 / 设置 / 用户菜单
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Search, Bell, Settings, ChevronRight, UserRound } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Search, Bell, Settings, ChevronRight, UserRound, Check } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { useTaskStore } from '@/stores/useTaskStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLensStore } from '@/stores/useLensStore';
 import { useUIStore } from '@/stores/useUIStore';
+import { DEV_ACTORS, useAuthStore } from '@/stores/useAuthStore';
 import { placeholderUrl } from '@/lib/placeholder';
 import {
   SETTINGS_CHANNEL_RULES_PATH,
@@ -102,6 +103,35 @@ function buildCrumbs(pathname: string): Crumb[] {
     return crumbs;
   }
   return [{ label: pathname }];
+}
+
+/** TASK-AUTH-001：dev 身份切换下拉（仅开发环境渲染；生产不出现）。
+ *  对应 workspace 迁移 020 种子：owner=user_dev / admin=user_admin / viewer=user_viewer。
+ *  切换即换 X-Actor-Id 并重新拉取 /api/v1/me，驱动导航过滤与页面守卫。 */
+function DevActorSwitcher() {
+  const actorId = useAuthStore((s) => s.actorId);
+  const role = useAuthStore((s) => s.role);
+  const switchDevActor = useAuthStore((s) => s.switchDevActor);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" className="h-8 gap-1.5 px-2 text-xs">
+          <UserRound className="h-3.5 w-3.5" />
+          <span className="hidden capitalize md:inline">{role}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="text-xs">开发者身份（dev-only）</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {DEV_ACTORS.map((d) => (
+          <DropdownMenuItem key={d.actorId} className="cursor-pointer" onClick={() => void switchDevActor(d.actorId)}>
+            <span className="flex-1">{d.label}</span>
+            {d.actorId === actorId && <Check className="h-3.5 w-3.5 text-accent-foreground" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export default function TopBar({ collapsed }: { collapsed: boolean }) {
@@ -206,6 +236,9 @@ export default function TopBar({ collapsed }: { collapsed: boolean }) {
             <Settings className="h-4 w-4" />
           </Link>
         </Button>
+
+        {/* TASK-AUTH-001：dev 身份切换（仅开发环境）——三角色走查 T13 判据 5；生产环境不渲染 */}
+        {import.meta.env.DEV && <DevActorSwitcher />}
 
         {/* 用户菜单 */}
         <DropdownMenu>

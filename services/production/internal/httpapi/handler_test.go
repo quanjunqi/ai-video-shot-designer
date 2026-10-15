@@ -50,6 +50,7 @@ func request(method, path, body string) *http.Request {
 	r.Header.Set("Authorization", "Bearer test-token")
 	r.Header.Set("X-Workspace-Id", "workspace-1")
 	r.Header.Set("X-Actor-Id", "user-1")
+	r.Header.Set("X-Actor-Role", "owner") // TASK-AUTH-001：BFF 注入的可信角色（owner 全通过）
 	r.Header.Set("Idempotency-Key", "request-1")
 	return r
 }

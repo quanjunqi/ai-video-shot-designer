@@ -21,7 +21,8 @@ func (s *server) generationIntents(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -29,6 +30,7 @@ func (s *server) generationIntents(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 512*1024+4096))
 	if err != nil {
 		writeError(w, 400, "INVALID_BODY", "invalid body")
@@ -81,7 +83,8 @@ func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -89,6 +92,7 @@ func (s *server) channelProbe(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	channelID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/channels/"), "/probe")
 	if channelID == "" {
 		writeError(w, http.StatusBadRequest, "INVALID_PATH", "channel id is required")
@@ -126,7 +130,8 @@ func (s *server) channelSync(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_PATH", "channel id is required")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -134,6 +139,7 @@ func (s *server) channelSync(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost,
 		s.productionURL+"/internal/v1/channels/"+url.PathEscape(channelID)+"/sync", nil)
 	if err != nil {
@@ -198,7 +204,8 @@ func (s *server) workspaceChannels(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -206,6 +213,7 @@ func (s *server) workspaceChannels(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
@@ -251,7 +259,8 @@ func (s *server) workspaceBudget(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -259,6 +268,7 @@ func (s *server) workspaceBudget(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
@@ -303,7 +313,8 @@ func (s *server) workspaceCredentials(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -311,6 +322,7 @@ func (s *server) workspaceCredentials(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
@@ -351,7 +363,8 @@ func (s *server) catalogProxy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "production authorization failed")
 		} else {
@@ -359,6 +372,7 @@ func (s *server) catalogProxy(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
@@ -404,7 +418,8 @@ func (s *server) ruleTemplates(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "production authorization failed")
 		} else {
@@ -412,6 +427,7 @@ func (s *server) ruleTemplates(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
@@ -458,7 +474,8 @@ func (s *server) logicalModels(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "production authorization failed")
 		} else {
@@ -466,6 +483,7 @@ func (s *server) logicalModels(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
@@ -531,7 +549,8 @@ func (s *server) tasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -539,6 +558,7 @@ func (s *server) tasks(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
 	if err != nil {
 		writeError(w, 400, "INVALID_BODY", "invalid body")
@@ -586,7 +606,8 @@ func (s *server) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, 403, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -594,6 +615,7 @@ func (s *server) generate(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
 	if err != nil {
 		writeError(w, 400, "INVALID_BODY", "invalid body")
@@ -639,7 +661,8 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -647,6 +670,7 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
 	upstreamPath := "/internal/v1" + path
 	if r.URL.RawQuery != "" {
@@ -685,7 +709,8 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if err := s.authorize(r.Context()); err != nil {
+	role, err := s.authorize(r)
+	if err != nil {
 		if errors.Is(err, errAuthorizationDenied) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
 		} else {
@@ -693,6 +718,7 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	r = r.WithContext(withRole(r.Context(), role))
 	body, err := io.ReadAll(io.LimitReader(r.Body, 2*1024*1024+4096))
 	if err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)

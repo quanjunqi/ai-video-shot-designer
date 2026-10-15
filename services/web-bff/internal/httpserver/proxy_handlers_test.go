@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,6 +48,12 @@ func captureUpstream(t *testing.T, status int, body string) (*httptest.Server, *
 	t.Helper()
 	seen := &seenRequest{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TASK-AUTH-001：authorize 探测命中同一 URL 时返回角色 JSON，业务路径照旧
+		if strings.Contains(r.URL.Path, "/authorize") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"role":"owner"}`)
+			return
+		}
 		b := make([]byte, 4096)
 		n, _ := r.Body.Read(b)
 		seen.method = r.Method
@@ -66,7 +73,10 @@ func captureUpstream(t *testing.T, status int, body string) (*httptest.Server, *
 
 func authOK(t *testing.T) *httptest.Server {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":"owner"}`)
+	}))
 	t.Cleanup(srv.Close)
 	return srv
 }

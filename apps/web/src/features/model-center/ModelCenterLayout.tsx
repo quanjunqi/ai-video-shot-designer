@@ -6,10 +6,11 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Boxes, ShoppingBag, Cable, Coins, ScrollText, FileCode2, HeartPulse, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  MODEL_CENTER_NAV,
   modelCenterSectionForPath,
+  visibleModelCenterNav,
   type ModelCenterSectionKey,
 } from '@/features/model-center/model-center-navigation';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const NAV_ICON: Record<ModelCenterSectionKey, LucideIcon> = {
   catalog: Boxes,
@@ -39,12 +40,15 @@ export function ModelCenterPlaceholder({ label }: { label: string }) {
 export default function ModelCenterLayout() {
   const { pathname } = useLocation();
   const section = modelCenterSectionForPath(pathname);
+  const role = useAuthStore((s) => s.role);
+  // TASK-AUTH-001：按角色过滤二级导航（审计仅 Owner、渠道 Admin+；后端矩阵兜底）
+  const nav = visibleModelCenterNav(role);
 
   return (
     <div className="flex h-full min-h-0 flex-wrap md:flex-nowrap">
       <nav className="flex w-full shrink-0 gap-1 overflow-x-auto border-b border-border p-2 md:w-52 md:flex-col md:space-y-1 md:overflow-x-hidden md:border-b-0 md:border-r md:p-3">
         <div className="px-2 pb-2 text-xs font-semibold text-muted-foreground">模型中心</div>
-        {MODEL_CENTER_NAV.map((n) => {
+        {nav.map((n) => {
           const Icon = NAV_ICON[n.key];
           return (
             <NavLink
