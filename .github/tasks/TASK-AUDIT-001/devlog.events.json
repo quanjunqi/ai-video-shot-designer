@@ -1,0 +1,107 @@
+{
+  "taskId": "TASK-AUDIT-001",
+  "updatedAt": "2026-10-15T15:00:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-15T14:10:00+08:00",
+      "phase": "开工/探查",
+      "action": "读任务卡 D1–D9 切片清单与判据；确认排期第 5 刀范围；探查 develop 现状",
+      "evidence": ["task.md §3", "docs/product/task-queue-plan-2026-10-15.md §3 序5", "services/execution/internal/worker/audit.go", "services/execution/internal/audit/query.go:34", "services/execution/internal/worker/purger.go"],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T14:30:00+08:00",
+      "phase": "验证",
+      "action": "对照 D1–D7 判据逐项找实现证据与测试覆盖；确认 D1 判据①缺自动化测试",
+      "evidence": ["grep 各切片实现/测试文件", "redact_test.go 3 用例", "aggregate_integration_test.go Filter 用例"],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T14:45:00+08:00",
+      "phase": "开发",
+      "action": "补写 D1 判据①集成测试 TestGenerateUnknownModelWritesAuditRow（真库：空目录 mock → 未知 modelId → 404 + 审计 +1）",
+      "evidence": ["services/execution/internal/httpapi/handlers_generate_integration_test.go"],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T14:55:00+08:00",
+      "phase": "验证",
+      "action": "真库跑新测试 PASS；execution 全量（带 EXECUTION_TEST_DATABASE_URL，集成测试真跑）17 包全绿；gofmt/build/vet 全过",
+      "evidence": ["go test ./internal/httpapi/ -run TestGenerateUnknownModelWritesAuditRow → PASS", "go test ./... -count=1 → 17/17 ok"],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T15:00:00+08:00",
+      "phase": "提交",
+      "action": "落任务文档（task.md front-matter + 状态、acceptance.md、devlog.md、devlog.events.json）+ 台账/ledger 同步",
+      "evidence": [".github/tasks/TASK-AUDIT-001/", ".github/tasks/README.md", ".github/tasks/ledger.json"],
+      "decisionRef": "D-003/D-004",
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "本刀性质",
+      "options": ["重新开发 D1–D9", "验收闭环（实现已在 develop）"],
+      "choice": "验收闭环",
+      "reason": "任务卡明确只出清单；D1–D7 实现已随 AUDIT-002/T0/T1/T11 系列合并 develop；重复开发浪费",
+      "timing": "开工"
+    },
+    {
+      "id": "D-002",
+      "topic": "D1 判据①缺测试",
+      "options": ["口头断言已实现", "补集成测试闭环判据"],
+      "choice": "补集成测试",
+      "reason": "D1 是审计写入核心判据；可复跑验证优于代码审查推断；走 EXECUTION_TEST_DATABASE_URL skip 约定不阻塞 CI",
+      "timing": "验证中"
+    },
+    {
+      "id": "D-003",
+      "topic": "D8 访问控制归属",
+      "options": ["本刀实现", "归 AUTH-001"],
+      "choice": "归 AUTH-001",
+      "reason": "共享 token 弱鉴权的根治在三角色权限矩阵（T13 判据 5，第 8 刀 P0）；一处解决避免半吊子",
+      "timing": "收尾"
+    },
+    {
+      "id": "D-004",
+      "topic": "D9 质量评估",
+      "options": ["现在做", "不做"],
+      "choice": "不做",
+      "reason": "Owner 任务卡 §6 已定：新功能，性价比低于把已有的写对",
+      "timing": "开工（任务卡既定）"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "D1-① 未知 modelId → 审计+1", "command": "go test ./internal/httpapi/ -run TestGenerateUnknownModelWritesAuditRow（真库）", "result": "PASS", "evidence": "404 + COUNT=1 + status=failed + error 含 model not found" },
+    { "id": "V-002", "criterion": "D1-② channel_id 非空", "command": "代码审查 + TestTerminalFillsSupplyUnit", "result": "PASS", "evidence": "handlers_generate.go:266/400" },
+    { "id": "V-003", "criterion": "D1-③ Insert 失败可见", "command": "代码审查", "result": "PASS", "evidence": "handlers_generate.go:275 slog.Error" },
+    { "id": "V-004", "criterion": "D2 worker 审计", "command": "代码审查 + go test ./internal/worker/", "result": "PASS", "evidence": "main.go:121 + audit_test.go" },
+    { "id": "V-005", "criterion": "D3 终态回写", "command": "代码审查 + attribution 集成测试", "result": "PASS", "evidence": "query.go:34 + TestTerminalFillsSupplyUnit" },
+    { "id": "V-006", "criterion": "D4 token/cost 写入", "command": "代码审查 + TestAuditCostFor", "result": "PASS", "evidence": "handlers_generate.go:248 + auditTerminalUsage" },
+    { "id": "V-007", "criterion": "D5 脱敏", "command": "go test ./internal/audit/ -run TestRedact", "result": "PASS", "evidence": "redact_test.go 3 用例" },
+    { "id": "V-008", "criterion": "D6 保留期清理", "command": "代码审查 + go test ./internal/worker/ -run TestAuditPurge", "result": "PASS", "evidence": "purger.go + 删除留痕" },
+    { "id": "V-009", "criterion": "D7 查询聚合", "command": "aggregate/stats 集成测试", "result": "PASS", "evidence": "Filter + COUNT(*) OVER() + 服务端 stats" },
+    { "id": "V-010", "criterion": "全量无回归", "command": "EXECUTION_TEST_DATABASE_URL=... go test ./... -count=1", "result": "PASS", "evidence": "17 包全绿（audit 6.6s 含集成真跑）" }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "✓", "evidence": "V-001~V-010" },
+    { "item": "按路径 add（禁 git add -A）", "result": "✓", "evidence": "commit 明细" },
+    { "item": "只改点名范围（未越界）", "result": "✓", "evidence": "仅 1 个新测试文件 + 任务文档" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "✓", "evidence": "acceptance.md 逐切片" },
+    { "item": "GATE / 后端门禁全绿", "result": "✓", "evidence": "gofmt/build/vet/test" },
+    { "item": "台账同步（状态/PR 号）", "result": "✓", "evidence": "ledger.json + README" },
+    { "item": "迁移只增不改 / 号段合规（如涉）", "result": "✓", "evidence": "本刀无迁移" }
+  ],
+  "retrospective": {
+    "good": "先探查现状避免重复开发；对照判据找证据而非口头断言；缺测试补测试闭环",
+    "improve": "实现落地时未同步回流任务卡状态（卡仍写'只出清单'）——后续实现合并时同步更新卡状态",
+    "followups": "D8 访问控制随 AUTH-001（第 8 刀）；D8 不可变触发器独立后续；SEC-002 配额限流依赖本卡 D4 cost_amount 写入，可开"
+  }
+}

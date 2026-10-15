@@ -1,9 +1,17 @@
+---
+taskId: TASK-AUDIT-001
+status: accepted
+priority: P0（排期第一批第 5 刀）
+pr: "#<待开>"
+slices: D1-D7 accepted / D8 partial（访问控制归 AUTH-001）/ D9 declined
+---
+
 # TASK-AUDIT-001：审计能力实施清单（④ 如何做好审计）
 
 - **日期**：2026-10-10
 - **依据**：本会话已验证事实（下表每行均有 `文件:行` 或 SQL）· ADR-008 §5（巡检结果也将写入审计）
 - **Owner 已定**：**暂不含计费与多角色管理**
-- **状态**：待 Owner 确认（本卡只出清单，不动代码）
+- **状态**：已验收（2026-10-15；D1–D7 判据全过，D8 访问控制归 AUTH-001，D9 按 Owner 决定不做）
 
 ---
 
