@@ -1,10 +1,10 @@
 ---
 taskId: TASK-CREATE-006
-status: 待开工
+status: 待验收
 priority: P1（ADR 分片 6；分片台账 Priority 1——范围最清晰、依赖最少）
 pr: "#<待开>"
 criteria: 7
-criteriaPassed: 0
+criteriaPassed: 6
 depends_on: —（契约先行；无卡级前置）
 ---
 
@@ -34,18 +34,36 @@ depends_on: —（契约先行；无卡级前置）
 可能给出**模型实际不支持的比例**（用户提交后才在上游失败）。这与 TASK-CREATE-001
 「不展示无依据选项」的原则相冲突。
 
-## 范围
+## ⚠️ 范围修正（开工第一步核实前提的结果——原范围被证伪）
 
-- ✅ **契约先行**（CT-001）：`openapi/bff.yaml` 的 capability 增加 `aspectRatios`（字符串数组，可空）
-- ✅ **后端**（production 服务）：模型目录 capability 读写该字段并可对外暴露
-- ✅ **迁移**：按 `.agents/skills/database-migrations/SKILL.md` 号段认领（production 号段下一个可用号）
-- ✅ **前端**：`control-schema.ts` 优先消费 `capability.aspectRatios`（`source: 'declared'`）；
-  **未声明时保持现有 count-fallback 行为不变**（向后兼容，不破坏既有模型）
-- ✅ **数据**：为目录中已有模型补齐真实比例（至少视频侧，消除硬编码 3）
-- ✅ 测试：新增纯函数单测（declared 优先 / 缺失回退）+ 契约生成类型同步（`npm run api:check`）
+本卡立卡时（**未核实存储形态**）把范围写成「契约 → 后端 → 迁移 → 前端 → 数据」。
+开工核实后**三项不再需要**：
+
+| 原范围项 | 核实结果 | 依据 |
+|---|---|---|
+| 契约变更（`openapi/bff.yaml` 增 `aspectRatios`） | ❌ **不需要** | 模型 capability 在契约里是 `type: object`（开放对象）：`openapi/bff.yaml:2940,2996,3028,3177`；新增键不违反契约，`additionalProperties: true` |
+| 后端改动（production 读写该字段） | ❌ **不需要** | `capability` 是 **`jsonb`**（`services/production/migrations/004_catalog.sql:27`），后端按不透明对象透传，无字段级处理 |
+| 新增迁移 | ❌ **不需要**（仅"填数据"可选） | 同上：JSONB 加键无需 DDL。真实生效路径是**目录编辑 API 写 capability**；如需随迁移播种，按 `007`/`009` 的 `UPDATE model_catalog SET …` 先例另立数据卡 |
+
+⇒ **真实范围收缩为：前端消费路径 + 类型 + 数据示范 + 测试**（L → S/M）。
+
+**这只是"开工必先核实前提"（排期 v2 §5 第 8 条）第四次生效**——前三次分别是
+IA-001、OBS-001、v2 §3。**若不做这步，我会改一个本不需要改的契约并写一个本不需要的迁移。**
+
+## 范围（已按上述修正收缩）
+
+### 范围内
+
+- ✅ **前端消费路径**：`listAspectRatios(declared, count)` —— 声明优先（`source='declared'`），未声明退回既有 count-fallback
+- ✅ **类型**：`ImageCapability` / `VideoCapability` 增 `aspectRatios?: string[]`
+- ✅ **视频侧去硬编码**：不再写死 `listFallbackRange(3, …)`，改由目录数据决定
+- ✅ **数据示范**：前端 fallback 目录为 `minimax-h3` 声明真实比例，使 declared 路径端到端可验
+- ✅ **测试**：declared 优先 / 去重保序 / 空白与空数组回退 / 端到端（已声明 vs 未声明）
 
 ### 非范围
 
+- ❌ 契约变更、后端改动、新增迁移（**经核实不需要**，理由见上「范围修正」表）
+- ❌ 为**生产 DB 目录**批量填报各模型真实比例（属产品/数据决策，见「交付记录」）
 - ❌ 不改 QualityOptions 的同类机制（另议）
 - ❌ 不改任何**已执行**迁移
 - ❌ 不顺手改 UI 布局（只改选项来源）
@@ -63,9 +81,9 @@ depends_on: —（契约先行；无卡级前置）
 
 ## 验收标准
 
-1. 契约新增 `aspectRatios`（可空数组），`npm run api:check` 绿，oasdiff 无 ERR 级破坏
-2. 迁移在**全新库**上零错误；号段合规；旧库升级不破坏既有数据
-3. 后端可读写该字段；目录 API 返回它
+1. ~~契约新增 `aspectRatios`~~ → **经核实不需要**（capability 为开放对象，原判据作废，见「范围修正」）
+2. ~~迁移在全新库上零错误~~ → **经核实不需要**（JSONB 加键无 DDL，原判据作废）
+3. ~~后端可读写该字段~~ → **经核实不需要**（JSONB 不透明透传，原判据作废）
 4. 前端：目录**已声明**该字段的模型 → `source === 'declared'` 且 `options` 与声明**逐字一致**
 5. 前端：目录**未声明**的模型 → 行为与改动前**逐字一致**（回归断言）
 6. 视频侧不再硬编码 3（由目录数据决定）
@@ -86,3 +104,17 @@ cd services/production && go build ./... && go test ./... -race && go vet ./...
 
 本卡前提**已由本次核实**（见上「背景」表逐条证据）。开工时若发现 `develop` 已实现本项，
 则**转为验收闭环**而非重复开发。
+
+## 交付记录（2026-10-15）
+
+| 项 | 位置 |
+|---|---|
+| 声明优先的取值路径 | `apps/web/src/config/create/control-schema.ts` — `listAspectRatios(declared, count)`：去重保序、空白项忽略、空数组/全空白退回 count-fallback |
+| 两处调用点 | `:296`（图片，传 `capability.aspectRatios` + `aspectRatioCount`）、`:350`（视频，去硬编码 3） |
+| 类型 | `apps/web/src/config/models/model-catalog.ts` — `ImageCapability.aspectRatios?` / `VideoCapability.aspectRatios?` |
+| 数据示范 | 同上 — `minimax-h3` 声明 `['16:9','9:16']`（使 declared 路径端到端可验） |
+| 测试 | `apps/web/tests/create-control-schema.test.ts` — 新增 2 条（声明优先/去重/回退 + 端到端对比） |
+
+**未做（如实）**：为**生产 DB 目录**的模型批量填报真实比例。机制已就绪（JSONB 加键即可），
+但"某模型实际支持哪些比例"属**产品/数据决策**，不应由本卡臆测填写。
+建议：随各渠道接入时逐模型声明；或另立数据卡批量补齐。

@@ -85,8 +85,48 @@ test('图片比例：目录只给数量，取值走 count-fallback 并如实标�
   const six = buildControlSchema(modelById('gpt-image-2'), 'image');
   assert.equal(six.aspectRatios.values.length, 6);
 
-  assert.equal(listAspectRatios(99).values.length, COMMON_ASPECT_RATIOS.length);
-  assert.equal(listAspectRatios(undefined).values.length, 0);
+  // ADR 分片 6：签名改为 (declared, count)；未声明时行为与改动前逐字一致
+  assert.equal(listAspectRatios(undefined, 99).values.length, COMMON_ASPECT_RATIOS.length);
+  assert.equal(listAspectRatios(undefined, undefined).values.length, 0);
+  assert.equal(listAspectRatios(undefined, 99).source, 'count-fallback');
+  assert.equal(listAspectRatios(undefined, 99).declaredCount, 99);
+});
+
+test('ADR 分片 6：目录显式声明 aspectRatios 时走 declared，且与声明逐字一致', () => {
+  // 声明优先于数量（即便数量更大）
+  const declared = listAspectRatios(['16:9', '9:16'], 6);
+  assert.deepEqual(declared.values, ['16:9', '9:16']);
+  assert.equal(declared.source, 'declared');
+  assert.equal(declared.declaredCount, undefined);
+
+  // 顺序保持（不排序、不按通用表重排）
+  assert.deepEqual(listAspectRatios(['9:16', '16:9'], undefined).values, ['9:16', '16:9']);
+
+  // 去重但保序；空白项视作未声明该项
+  assert.deepEqual(listAspectRatios(['16:9', '16:9', ' 1:1 ', '', '  '], undefined).values, ['16:9', '1:1']);
+
+  // 空数组 / 全空白 ⇒ 语义等同未声明，如实退回 count-fallback（不放宽 source 语义）
+  assert.equal(listAspectRatios([], 3).source, 'count-fallback');
+  assert.equal(listAspectRatios(['', '  '], 3).source, 'count-fallback');
+  assert.equal(listAspectRatios([], 3).declaredCount, 3);
+});
+
+test('ADR 分片 6：声明式比例端到端生效（视频侧不再硬编码 3）', () => {
+  // minimax-h3 已声明 aspectRatios: ['16:9','9:16']
+  const h3 = buildControlSchema(modelById('minimax-h3'), 'video');
+  assert.equal(h3.aspectRatios.source, 'declared');
+  assert.deepEqual(h3.aspectRatios.values, ['16:9', '9:16']);
+
+  const ratioControl = h3.controls.find((c) => c.key === 'ratio');
+  assert.ok(ratioControl);
+  assert.equal(ratioControl.defaultValue, '16:9');
+  assert.deepEqual(ratioControl.options, ['16:9', '9:16']);
+  assert.equal(ratioControl.source, 'declared');
+
+  // 未声明的视频模型 → 仍走既有推断（3 项），回归不改
+  const other = buildControlSchema(modelById('seedance-2.0'), 'video');
+  assert.equal(other.aspectRatios.source, 'count-fallback');
+  assert.equal(other.aspectRatios.values.length, 3);
 });
 
 test('视频时长范围来自模型能力，不来自前端常量', () => {
