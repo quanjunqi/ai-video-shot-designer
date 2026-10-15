@@ -87,7 +87,7 @@
 
 | 冲突 | 涉及文件 | 处置 |
 |---|---|---|
-| **AUTH-001 ↔ IA-001** | `apps/web/src/config/model-center-navigation.ts`、`settings-navigation.ts` | AUTH-001 已改（devlog A-022：导航可见性过滤）；IA-001 要整改同一对文件（预算迁入 + 导航职责裁定）。**IA-001 开工前必须先 rebase 到含 AUTH-001 的 develop**，并按 `parallel-worktree` 热点文件规则串行化——两者不得并行开工 |
+| **AUTH-001 ↔ IA-001** | `apps/web/src/features/model-center/model-center-navigation.ts`、`apps/web/src/features/settings/settings-navigation.ts` | AUTH-001 已改（devlog A-022：导航可见性过滤）；IA-001 要整改同一对文件（预算迁入 + 导航职责裁定）。**IA-001 开工前必须先 rebase 到含 AUTH-001 的 develop**，并按 `parallel-worktree` 热点文件规则串行化——两者不得并行开工 |
 | AUTH-001 留口 ↔ IA-001 | 页内操作按钮级隐藏（成本预算编辑等） | AUTH-001 验收已声明"精细隐藏留 IA-001 联动"；IA-001 范围需吸收此项，否则权限矩阵在页内不完整 |
 
 ---
