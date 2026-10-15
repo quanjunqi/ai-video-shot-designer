@@ -1,0 +1,81 @@
+{
+  "taskId": "TASK-SEC-001",
+  "updatedAt": "2026-10-15T12:00:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-15T10:10:00+08:00",
+      "phase": "开工/探查",
+      "action": "读任务卡 8 条验收标准；建 worktree sec-001（fix/ssrf-guard-2026-10-15，基 origin/develop@2c3b998）；核对实现与测试覆盖",
+      "evidence": ["TASK-SEC-001/task.md", "services/shared/netguard/netguard.go", "services/execution/cmd/server/main.go:76-157", "services/execution/internal/engine/engine_test.go:497"],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T10:30:00+08:00",
+      "phase": "探查",
+      "action": "确认引擎出站已接入 netguard（sync httpapi / async worker 双路径 + 下载路径受控 client，asset 内部 API 普通 client 例外）",
+      "evidence": ["main.go:77 engineClient := upstreamPolicy.NewClient(600s)", "main.go:121 worker.Run(...engineClient)", "main.go:147 AssetHTTP &http.Client（内部例外）"],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T11:00:00+08:00",
+      "phase": "验证",
+      "action": "跑 netguard 11 单测 + engine SSRF 端到端 + execution 全量 build/vet/test",
+      "evidence": ["services/shared/netguard 11/11 PASS", "TestSubmit_SSRFGuardBlocksLoopbackUpstream PASS", "execution 全量全绿"],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T12:00:00+08:00",
+      "phase": "提交",
+      "action": "按 AC-010/AC-011 落任务文件夹（task.md/acceptance.md/devlog.md/devlog.events.json）+ 规则层同步（SKILL.md AC-011、模板、AGENTS.md、ledger.json）",
+      "evidence": [".github/tasks/TASK-SEC-001/", ".agents/skills/acceptance-checklist/SKILL.md", ".github/tasks/ledger.json"],
+      "decisionRef": null,
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "netguard 归属",
+      "options": ["execution/internal", "shared/（既有）"],
+      "choice": "shared/netguard（既有）",
+      "reason": "INFRA-004 已抽为公共能力（c4d66c3），SEC-001 直接复用，不重复实现",
+      "timing": "开工（既有事实）"
+    },
+    {
+      "id": "D-002",
+      "topic": "内部服务 client 是否套防护",
+      "options": ["也套防护", "保持普通 client"],
+      "choice": "保持普通 client",
+      "reason": "任务卡非范围：catalog/creds/asset 内部 API 目标是私网内部服务，套防护自断链路",
+      "timing": "开工（任务卡已定）"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "验收1 默认拒绝各内网段", "command": "go test ./services/shared/netguard/ -run TestCheckIP_DefaultPolicyBlocksInternalRanges", "result": "PASS", "evidence": "netguard_test.go:14" },
+    { "id": "V-002", "criterion": "验收2 IPv4-mapped 还原", "command": "同上（含 ::ffff:10.0.0.1/::ffff:127.0.0.1）", "result": "PASS", "evidence": "netguard_test.go:33-34 + netguard.go:106" },
+    { "id": "V-003", "criterion": "验收3 放开后仍拒元数据", "command": "go test ./services/shared/netguard/ -run TestCheckIP_AllowPrivateOpensLoopbackAndPrivateButNotMetadata", "result": "PASS", "evidence": "netguard_test.go:52" },
+    { "id": "V-004", "criterion": "验收4 白名单+后缀伪装", "command": "go test ./services/shared/netguard/ -run TestCheckURL_Allowlist", "result": "PASS", "evidence": "netguard_test.go:85-102" },
+    { "id": "V-005", "criterion": "验收5 重定向重校验+跳数上限", "command": "go test ./services/shared/netguard/ -run 'TestClient_RevalidatesRedirectTarget|TestClient_RedirectHopLimit'", "result": "PASS", "evidence": "netguard_test.go:146/164" },
+    { "id": "V-006", "criterion": "验收6 端到端拦截与放开", "command": "go test ./services/execution/internal/engine/ -run TestSubmit_SSRFGuardBlocksLoopbackUpstream", "result": "PASS", "evidence": "engine_test.go:497（0 命中 → AllowPrivate 成功 1 命中）" },
+    { "id": "V-007", "criterion": "验收7 协议限制", "command": "go test ./services/shared/netguard/ -run TestCheckURL", "result": "PASS", "evidence": "netguard_test.go:68-82（ftp:// file:// 拒绝）" },
+    { "id": "V-008", "criterion": "验收8 内部服务不破坏", "command": "execution 全量 gofmt/build/vet/test", "result": "PASS", "evidence": "main.go:147 内部例外 + 全量全绿" }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "✓", "evidence": "V-001~V-008" },
+    { "item": "按路径 add（禁 git add -A）", "result": "✓", "evidence": "commit 明细（git mv 按路径）" },
+    { "item": "只改点名范围（未越界）", "result": "✓", "evidence": "无代码改动，仅任务文档 + 规则同步" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "✓", "evidence": "acceptance.md 8/8 ✅" },
+    { "item": "GATE / 后端门禁全绿", "result": "✓", "evidence": "gofmt/build/vet/test 全绿" },
+    { "item": "台账同步（状态/PR 号）", "result": "✓", "evidence": "ledger.json + README" },
+    { "item": "迁移只增不改 / 号段合规（如涉）", "result": "✓", "evidence": "本片无迁移" }
+  ],
+  "retrospective": {
+    "good": "AC-010/AC-011 新结构首个实践；8 条验收标准与测试一一对应，全部可复核",
+    "improve": "端到端验证依赖单测（httptest 模拟内网服务），未起真实本地栈",
+    "followups": "配额限流（SEC-002）依赖 AUDIT-001 cost_amount 写入；OIDC/请求体脱敏为后续独立项"
+  }
+}

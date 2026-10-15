@@ -8,8 +8,8 @@
 
 | 字段 | 值 |
 |---|---|
-| 任务卡 | [TASK-SEC-001-ssrf-guard.md](TASK-SEC-001-ssrf-guard.md) |
-| 验收清单 | [TASK-SEC-001-acceptance.md](TASK-SEC-001-acceptance.md) |
+| 任务卡 | [task.md](task.md) |
+| 验收清单 | [acceptance.md](acceptance.md) |
 | 分支 | fix/ssrf-guard-2026-10-15 |
 | PR | #<待开>（合并 sha：<待填>） |
 | 开工 | 2026-10-15（本地） |
@@ -69,7 +69,7 @@
 | 先本地测试/验证再 commit | ✓ | V-001~V-008（netguard 11 单测 + engine 端到端 + 全量全绿后提交） |
 | 按路径 add（禁 `git add -A`） | ✓ / ✗ | commit 明细 |
 | 只改点名范围（未越界） | ✓ | 仅新增 .github/tasks/ 文档；无代码改动（实现已在 develop） |
-| 验收清单逐项勾对（AC-004/005） | ✓ | TASK-SEC-001-acceptance.md 8/8 ✅ |
+| 验收清单逐项勾对（AC-004/005） | ✓ | acceptance.md 8/8 ✅ |
 | GATE / 后端门禁全绿 | ✓ | gofmt/build/vet/test 全绿；无前端改动 |
 | 台账同步（状态/PR 号） | 待 PR 合并后 | README 行更新 |
 | 迁移只增不改 / 号段合规（如涉） | ✓ / ✗ | 迁移 diff |

@@ -1,6 +1,6 @@
 # TASK-SEC-001 验收清单
 
-> 对应任务卡：`TASK-SEC-001-ssrf-guard.md`（模型网关出站 SSRF 防护）
+> 对应任务卡：`task.md`（模型网关出站 SSRF 防护）
 > 类型：验收型（实现已在 develop：netguard 由 INFRA-004 抽至 shared/，引擎双路径已接入）
 > 判据四要素：判据 / 对象 / 时点 / 例外
 
