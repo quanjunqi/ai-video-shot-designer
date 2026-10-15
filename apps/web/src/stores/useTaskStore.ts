@@ -35,6 +35,7 @@ const TICK_STEP: Record<JobKind, number> = {
   video: 20,
   audio: 12.5,
   canvas_export: 12.5,
+  text: 12.5,
 };
 
 let seq = 0;

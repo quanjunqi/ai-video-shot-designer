@@ -472,10 +472,12 @@ export interface CostEstimate {
 /**
  * 费用预估：由目录 billing 计算，随张数/秒数变化。
  * 文本按 Token 计费无法在提交前预估 → 返回 undefined（不编造数字）。
+ * 计费配置缺失/非有限（TASK-FIX-005）→ 同样返回 undefined，由 UI 展示兜底文案。
  */
 export function estimateCost(schema: ControlSchema, values: Record<string, string>): CostEstimate | undefined {
   if (schema.pricing.kind === 'per-image') {
     const count = Math.max(1, Number.parseInt(values.count ?? '1', 10) || 1);
+    if (!Number.isFinite(schema.pricing.pointsPerImage)) return undefined;
     return {
       points: schema.pricing.pointsPerImage * count,
       detail: `${schema.pricing.pointsPerImage} 积分/张 × ${count} 张`,
@@ -486,6 +488,7 @@ export function estimateCost(schema: ControlSchema, values: Record<string, strin
       schema.limits.minDurationSeconds ?? 1,
       Number.parseInt(values.duration ?? '', 10) || (schema.limits.minDurationSeconds ?? 1),
     );
+    if (!Number.isFinite(schema.pricing.pointsPerSecondStart)) return undefined;
     return {
       points: schema.pricing.pointsPerSecondStart * seconds,
       detail: `${schema.pricing.pointsPerSecondStart} 积分/秒起 × ${seconds} 秒`,

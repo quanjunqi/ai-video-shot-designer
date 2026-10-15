@@ -37,7 +37,7 @@ export type EpisodeStatus =
 
 export type AssetKind = 'character' | 'prop' | 'scene' | 'other';
 export type AssetScope = 'episode' | 'global';
-export type JobKind = 'split' | 'interpret' | 'image' | 'video' | 'audio' | 'canvas_export';
+export type JobKind = 'split' | 'interpret' | 'image' | 'video' | 'audio' | 'canvas_export' | 'text';
 
 // ---- 源剧本版本（不可变源，4.1：上传原文作为不可变源版本）----
 export interface SourceVersion {
