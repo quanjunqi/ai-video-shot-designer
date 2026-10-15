@@ -1,3 +1,13 @@
+---
+taskId: TASK-SEC-001
+status: accepted
+priority: P0
+depends_on: TASK-INFRA-004
+criteria: 8
+criteriaPassed: 8
+pr: "#<待开>"
+---
+
 # TASK-SEC-001：模型网关出站 SSRF 防护
 
 > 按 `.github/TASK_TEMPLATE.md` 填写。阶段 1 三项 P0 加固的第 1 项。

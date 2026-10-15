@@ -1,15 +1,18 @@
 # 任务卡台账
 
-> 本目录存放**任务卡**（开工前填写，见 `.github/TASK_TEMPLATE.md`）与其**验收清单**。
-> 本文件是索引：新增任务卡后同步一行；**状态**与**验收清单**是 Owner 抽查的依据。
+> 本目录存放**任务卡**（开工前填写，见 `.github/TASK_TEMPLATE.md`）、其**验收清单**与**开发日志**。
+> 本文件是人读索引（每卡一行）；机器可读视图见 **`ledger.json`**（AC-011，审计 agent 消费，与本表同步维护）。
+> **状态**与**验收清单**是 Owner 抽查的依据。
 
 ## 约定
 
 | 项 | 约定 |
 |---|---|
-| 任务卡命名 | `<TASK-ID>-<简述>.md`（如 `TASK-SEC-001-ssrf-guard.md`） |
-| 验收清单命名 | `<TASK-ID>-acceptance.md`（与任务卡同目录；规则见 `.agents/skills/acceptance-checklist/SKILL.md` AC-008） |
-| 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡基本信息的 `**状态**：`，本表随之同步） |
+| 任务工作区 | **一个任务一个文件夹**：`.github/tasks/<TASK-ID>/`（新任务必用；存量平铺渐进迁移） |
+| 任务卡 | `.github/tasks/<TASK-ID>/task.md`（YAML front-matter：status/priority/depends_on；无任务卡时用 `<日期>-<简述>/`） |
+| 验收清单 | `.github/tasks/<TASK-ID>/acceptance.md`（规则见 `.agents/skills/acceptance-checklist/SKILL.md` AC-008） |
+| 开发日志 | `.github/tasks/<TASK-ID>/devlog.md` + `devlog.events.json`（AC-010/AC-011） |
+| 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡 front-matter，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
 ## 索引（40 张）
@@ -50,7 +53,7 @@
 | TASK-ROUTE-001 | 路由层表结构（逻辑模型 + 多渠道候选 + 租户策略） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-001-routing-schema.md](TASK-ROUTE-001-routing-schema.md) |
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |
-| TASK-SEC-001 | 模型网关出站 SSRF 防护 | — | — | — | [TASK-SEC-001-ssrf-guard.md](TASK-SEC-001-ssrf-guard.md) |
+| TASK-SEC-001 | 模型网关出站 SSRF 防护 | P0（阶段1 第1项） | 已验收（PR #<待开> 已合并；8/8 验收标准） | ✅ | [TASK-SEC-001/task.md](TASK-SEC-001/task.md) |
 | TASK-SEC-002 | 配额与限流（QPS 令牌桶 + 日/月成本上限） | — | — | — | [TASK-SEC-002-quota-rate-limit.md](TASK-SEC-002-quota-rate-limit.md) |
 | TASK-SEC-003 | auth_type 增加 `token`（无前缀 Authorization） | — | — | — | [TASK-SEC-003-auth-type-token.md](TASK-SEC-003-auth-type-token.md) |
 | TASK-SEC-004 | 鉴权改数据驱动（authHeader + authPrefix） | — | — | — | [TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md) |
@@ -63,8 +66,8 @@
 ## 现状（自动统计，供 Owner 看缺口）
 
 - 任务卡：**42** 张（含 1 张 PLAN）；写明 **优先级** 23 张、**状态** 20 张。
-- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001、**INFRA-005（T13 验收）、FIX-001/004/005**（共 20 张，代码/规则均已合并 develop）。
-- 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；另有 INFRA-003 / SEC-001 / SEC-002（AUDIT-001 实施）按排期文档顺序推进。
+- 已验收：MODEL-001/003/004/**005**、AUDIT-002、ROUTE-001/002/**003**、ASSET-001、SUPPLY-001、UI-001~004、PROC-001/002、**INFRA-005（T13 验收）、FIX-001/004/005、INFRA-001/004、SEC-001**（共 21 张，代码/规则均已合并 develop）。
+- 待开工（P0）：**AUTH-001（模型中心权限矩阵，T13 判据 5，排期第一批第 8 刀）**；另有 INFRA-003 / SEC-002（AUDIT-001 实施）按排期文档顺序推进。
 - 待开工（P1）：**IA-001（导航整改，预算迁入成本与用量，设计稿先行）**；CREATE-001~006 / OBS-001 / FIX-002 / FIX-003 / P2-001 按排期推进。
 - 排期唯一事实源：`docs/product/task-queue-plan-2026-10-15.md`（依赖链 + 批次 + 防重演约束）。
 - 验收清单：**10** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。

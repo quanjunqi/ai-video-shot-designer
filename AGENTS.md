@@ -83,17 +83,33 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - BFF 是前端唯一入口，禁止前端直连后端服务
 - **机制落地 = 同步本文件**：任何新规则/新机制（AC 条目、基建行为变更如迁移执行器、流程纪律）落地后，必须回写 AGENTS.md（本文件是换会话/换模型不遗忘的唯一入口）
 
+## 任务文档结构（一个任务一个文件夹；AC-008/AC-010/AC-011）
+
+```
+.github/tasks/
+  README.md              # 台账索引（人读）
+  ledger.json            # 台账机器可读视图（审计 agent 消费）
+  plans/                 # 排期 / 治理提案
+  <TASK-ID>/             # 单任务工作区
+    task.md              # 任务卡（YAML front-matter：status/priority/depends_on）
+    acceptance.md        # 验收清单
+    devlog.md            # 开发日志（人读）
+    devlog.events.json   # 结构化事件流（审计 agent 消费）
+```
+
+> 存量平铺文件渐进迁移；新任务一律用文件夹结构。审计 agent 读 `ledger.json` + `devlog.events.json`，不解析 md 表格。
+
 ## 每次开发的强制流程（换会话/换模型同样适用）
 
 ```
 需求 → 0. 判定任务类型：UI 任务 → 设计稿/原型 → Owner 评审通过
-      → 1. 建开发日志（templates/devlog.md → .github/tasks/<TASK-ID>-devlog.md，随开发同步记录）
-      → 2. 产验收清单（templates/acceptance-checklist.md → .github/tasks/<TASK-ID>-acceptance.md）
+      → 1. 建开发日志（templates/devlog.md → .github/tasks/<TASK-ID>/devlog.md + devlog.events.json，随开发同步记录）
+      → 2. 产验收清单（templates/acceptance-checklist.md → .github/tasks/<TASK-ID>/acceptance.md）
       → 3. 开发（按编码规范；日志同步记动作/决策/证据/阻塞）
       → 4. 自检勾对 → 5. GATE + 测试（结果写入日志）→ 6. PR 附勾对 + 日志链接
 ```
 
-> 完整规则见 `.agents/skills/acceptance-checklist/SKILL.md`（AC-001~010）。「未建日志 = 不得开工；未勾对 = 不得开 PR」。
+> 完整规则见 `.agents/skills/acceptance-checklist/SKILL.md`（AC-001~011）。「未建日志 = 不得开工；未勾对 = 不得开 PR」。
 
 ## 场景化 Skills（按需加载，不要全读；总览与编写规范见 `.agents/README.md`）
 
