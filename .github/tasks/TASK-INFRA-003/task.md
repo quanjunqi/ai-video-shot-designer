@@ -2,7 +2,7 @@
 taskId: TASK-INFRA-003
 status: accepted
 priority: P0（排期第一批第 7 刀）
-pr: "#<待开>"
+pr: "#201"
 criteria: 8
 criteriaPassed: 8
 depends_on: TASK-FIX-002（timeout 状态放开）

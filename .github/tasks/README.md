@@ -38,7 +38,7 @@
 | TASK-IA-001 | 模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板） | P1 | 待开工（排期第二批第 9 刀，设计稿先行） | 开工前产出 | [TASK-IA-001-ia-budget-relocation.md](TASK-IA-001-ia-budget-relocation.md) |
 | TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | P0（基建） | 已验收（d612122 已合并；Docker 8 类场景验证 2026-10-15） | ✅ | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | — | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
-| TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | P0（排期第一批第 7 刀） | 已验收（PR #<待开>；8/8 验收标准） | ✅ | [TASK-INFRA-003/task.md](TASK-INFRA-003/task.md) |
+| TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | P0（排期第一批第 7 刀） | 已验收（PR #201 已合并，e5c710ab；8/8 验收标准） | ✅ | [TASK-INFRA-003/task.md](TASK-INFRA-003/task.md) |
 | TASK-INFRA-004 | 把「渠道探测」抽成一份公共能力（B3a） | P1 | 已验收（PR #193 已合并；7/7 判据） | ✅ | [TASK-INFRA-004-probe-extraction.md](TASK-INFRA-004-probe-extraction.md) |
 | TASK-INFRA-005 | P0 全链路集成验收（T13，dev-plan §9） | P0（M5 验收） | 已验收（判据 1/2/3/4 ✅；判据 5 依赖 AUTH-001 已建卡 P0，待开工） | — | [TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md) |
 | TASK-MODEL-001 | T0 权威价格校准 | P0 | 已验收（PR #164 已合并） | — | [TASK-MODEL-001-price-calibration.md](TASK-MODEL-001-price-calibration.md) |

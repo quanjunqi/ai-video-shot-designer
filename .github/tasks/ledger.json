@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T17:40:00+08:00",
+  "updatedAt": "2026-10-15T17:55:00+08:00",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -160,7 +160,7 @@
       "title": "worker 可靠性（重试 / 死信 / 并发闸门）",
       "status": "已验收",
       "priority": "P0（排期第一批第 7 刀）",
-      "pr": null,
+      "pr": "#201",
       "file": "[TASK-INFRA-003/task.md](TASK-INFRA-003/task.md)"
     },
     {
