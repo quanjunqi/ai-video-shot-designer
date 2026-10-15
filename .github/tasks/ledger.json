@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-15T12:00:00+08:00",
+  "updatedAt": "2026-10-15T13:30:00+08:00",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -280,7 +280,7 @@
       "title": "模型网关出站 SSRF 防护",
       "status": "已验收",
       "priority": "P0（阶段1 第1项）",
-      "pr": null,
+      "pr": "#195",
       "file": "[TASK-SEC-001/task.md](TASK-SEC-001/task.md)"
     },
     {
