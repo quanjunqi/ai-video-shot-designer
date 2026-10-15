@@ -1,3 +1,13 @@
+---
+taskId: TASK-INFRA-003
+status: accepted
+priority: P0（排期第一批第 7 刀）
+pr: "#<待开>"
+criteria: 8
+criteriaPassed: 8
+depends_on: TASK-FIX-002（timeout 状态放开）
+---
+
 # TASK-INFRA-003：worker 可靠性（重试 / 死信 / 并发闸门）
 
 > 按 `.github/TASK_TEMPLATE.md` 填写。阶段 1 三项 P0 的第 2 项。
