@@ -1,0 +1,351 @@
+{
+  "schema": "ledger-v1",
+  "updatedAt": "2026-10-15T12:00:00+08:00",
+  "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
+  "tasks": [
+    {
+      "id": "PLAN-a-and-adr008-2026-10-10",
+      "title": "实施清单：设置导航收敛（方案 A）＋ 协议文档对齐（ADR-008）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[PLAN-a-and-adr008-2026-10-10.md](PLAN-a-and-adr008-2026-10-10.md)"
+    },
+    {
+      "id": "TASK-ASSET-001",
+      "title": "execution 产物落盘 MinIO（第一刀）",
+      "status": "已验收",
+      "priority": "P0（ROADMAP #3，明确\"建议提前做\"）",
+      "pr": null,
+      "file": "[TASK-ASSET-001-artifact-persist.md](TASK-ASSET-001-artifact-persist.md)"
+    },
+    {
+      "id": "TASK-AUDIT-001",
+      "title": "审计能力实施清单（④ 如何做好审计）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-AUDIT-001-audit-capability-plan.md](TASK-AUDIT-001-audit-capability-plan.md)"
+    },
+    {
+      "id": "TASK-AUDIT-002",
+      "title": "审计业务归因列（T1）",
+      "status": "已验收",
+      "priority": null,
+      "pr": "#165",
+      "file": "[TASK-AUDIT-002-attribution-columns.md](TASK-AUDIT-002-attribution-columns.md)"
+    },
+    {
+      "id": "TASK-AUTH-001",
+      "title": "模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍",
+      "status": "待开工",
+      "priority": "**P0**",
+      "pr": null,
+      "file": "[TASK-AUTH-001-model-center-permissions.md](TASK-AUTH-001-model-center-permissions.md)"
+    },
+    {
+      "id": "TASK-CREATE-001",
+      "title": "能力驱动的生成参数控件 schema",
+      "status": "unknown",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md)"
+    },
+    {
+      "id": "TASK-CREATE-002",
+      "title": "智能创作 Composer 布局与结果主舞台",
+      "status": "unknown",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md)"
+    },
+    {
+      "id": "TASK-CREATE-003",
+      "title": "结果元数据、参数复用与取消/重试",
+      "status": "unknown",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md)"
+    },
+    {
+      "id": "TASK-CREATE-004",
+      "title": "草稿持久化（按工作台分桶）",
+      "status": "unknown",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-CREATE-004-draft-persistence.md](TASK-CREATE-004-draft-persistence.md)"
+    },
+    {
+      "id": "TASK-CREATE-005",
+      "title": "风格库与镜头语言库接入提示词",
+      "status": "unknown",
+      "priority": "P2",
+      "pr": null,
+      "file": "[TASK-CREATE-005-style-lens-presets.md](TASK-CREATE-005-style-lens-presets.md)"
+    },
+    {
+      "id": "TASK-CREATE-006",
+      "title": "参数三级披露 + 字段说明 + 表单/JSON 双视图",
+      "status": "unknown",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-CREATE-006-param-tiers-and-json-view.md](TASK-CREATE-006-param-tiers-and-json-view.md)"
+    },
+    {
+      "id": "TASK-FIX-001",
+      "title": "修复 project_characters 缺失建表迁移与 020 重复主键缺陷",
+      "status": "已验收",
+      "priority": "P0（阻塞级）",
+      "pr": null,
+      "file": "[TASK-FIX-001-project-characters-migration.md](TASK-FIX-001-project-characters-migration.md)"
+    },
+    {
+      "id": "TASK-FIX-002",
+      "title": "状态模型三处不一致的约束修复",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-FIX-002-status-model-alignment.md](TASK-FIX-002-status-model-alignment.md)"
+    },
+    {
+      "id": "TASK-FIX-003",
+      "title": "协议模板补齐 `pollPath`（异步轮询路径）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-FIX-003-protocol-poll-path.md](TASK-FIX-003-protocol-poll-path.md)"
+    },
+    {
+      "id": "TASK-FIX-004",
+      "title": "任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T",
+      "status": "已验收",
+      "priority": "P0",
+      "pr": "#186",
+      "file": "[TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md)"
+    },
+    {
+      "id": "TASK-FIX-005",
+      "title": "创建页积分 NaN/undefined 兜底（T13 验收缺口 2）",
+      "status": "已验收",
+      "priority": "P1",
+      "pr": "#186",
+      "file": "[TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md)"
+    },
+    {
+      "id": "TASK-IA-001",
+      "title": "模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 202",
+      "status": "待开工",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-IA-001-ia-budget-relocation.md](TASK-IA-001-ia-budget-relocation.md)"
+    },
+    {
+      "id": "TASK-INFRA-001",
+      "title": "迁移执行器引入版本跟踪与校验和",
+      "status": "已验收",
+      "priority": "P0（基建）",
+      "pr": null,
+      "file": "[TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md)"
+    },
+    {
+      "id": "TASK-INFRA-002",
+      "title": "CI 按改动范围执行",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md)"
+    },
+    {
+      "id": "TASK-INFRA-003",
+      "title": "worker 可靠性（重试 / 死信 / 并发闸门）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-INFRA-003-worker-reliability.md](TASK-INFRA-003-worker-reliability.md)"
+    },
+    {
+      "id": "TASK-INFRA-004",
+      "title": "把「渠道探测」抽成一份公共能力（B3a）",
+      "status": "已验收",
+      "priority": "P1",
+      "pr": "#193",
+      "file": "[TASK-INFRA-004-probe-extraction.md](TASK-INFRA-004-probe-extraction.md)"
+    },
+    {
+      "id": "TASK-INFRA-005",
+      "title": "P0 全链路集成验收（T13，dev-plan §9）",
+      "status": "已验收",
+      "priority": "P0（M5 验收）",
+      "pr": null,
+      "file": "[TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md)"
+    },
+    {
+      "id": "TASK-MODEL-001",
+      "title": "T0 权威价格校准",
+      "status": "已验收",
+      "priority": "P0",
+      "pr": "#164",
+      "file": "[TASK-MODEL-001-price-calibration.md](TASK-MODEL-001-price-calibration.md)"
+    },
+    {
+      "id": "TASK-MODEL-003",
+      "title": "T2-1 运营报表聚合查询 API",
+      "status": "已验收",
+      "priority": "P0（A 轨 T2 第一刀）",
+      "pr": "#166",
+      "file": "[TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md)"
+    },
+    {
+      "id": "TASK-MODEL-004",
+      "title": "T2-2 成本看板页面 + 审计归因展示",
+      "status": "已验收",
+      "priority": "P0（A 轨 T2 第二刀）",
+      "pr": null,
+      "file": "[TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md)"
+    },
+    {
+      "id": "TASK-MODEL-005",
+      "title": "T3 成本预算落地（budget_rules + 预扣/结算状态机）",
+      "status": "已验收",
+      "priority": "P0（A 轨 M2）",
+      "pr": "#181",
+      "file": "[TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md)"
+    },
+    {
+      "id": "TASK-OBS-001",
+      "title": "任务中心展示「请求参数 / 进度 / 产物」",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-OBS-001-task-center-detail.md](TASK-OBS-001-task-center-detail.md)"
+    },
+    {
+      "id": "TASK-OBS-002",
+      "title": "T11 渠道健康面板 + 三类最小告警",
+      "status": "已验收",
+      "priority": "P0（A 轨 M4）",
+      "pr": "#183",
+      "file": "[TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md)"
+    },
+    {
+      "id": "TASK-P2-001",
+      "title": "Phase 2.1 — 统一 Executor 接口定义",
+      "status": "unknown",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-P2-001-executor-interface.md](TASK-P2-001-executor-interface.md)"
+    },
+    {
+      "id": "TASK-PROC-001",
+      "title": "规则流程治理：AC-009 UI 设计稿先行关卡 + 台账同步",
+      "status": "已验收",
+      "priority": "P1",
+      "pr": "#179",
+      "file": "[TASK-PROC-001-rule-governance.md](TASK-PROC-001-rule-governance.md)"
+    },
+    {
+      "id": "TASK-PROC-002",
+      "title": "开发日志机制落地（AC-010，审计可还原开发过程）",
+      "status": "已验收",
+      "priority": "P1",
+      "pr": "#192",
+      "file": "[TASK-PROC-002-devlog-mechanism.md](TASK-PROC-002-devlog-mechanism.md)"
+    },
+    {
+      "id": "TASK-ROUTE-001",
+      "title": "路由层表结构（逻辑模型 + 多渠道候选 + 租户策略）",
+      "status": "已验收",
+      "priority": null,
+      "pr": "#145",
+      "file": "[TASK-ROUTE-001-routing-schema.md](TASK-ROUTE-001-routing-schema.md)"
+    },
+    {
+      "id": "TASK-ROUTE-002",
+      "title": "逻辑模型与候选绑定 API（production 服务）",
+      "status": "已验收",
+      "priority": null,
+      "pr": "#145",
+      "file": "[TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md)"
+    },
+    {
+      "id": "TASK-ROUTE-003",
+      "title": "T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共",
+      "status": "已验收",
+      "priority": "P0（A 轨 M2）",
+      "pr": "#177",
+      "file": "[TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md)"
+    },
+    {
+      "id": "TASK-SEC-001",
+      "title": "模型网关出站 SSRF 防护",
+      "status": "已验收",
+      "priority": "P0（阶段1 第1项）",
+      "pr": null,
+      "file": "[TASK-SEC-001/task.md](TASK-SEC-001/task.md)"
+    },
+    {
+      "id": "TASK-SEC-002",
+      "title": "配额与限流（QPS 令牌桶 + 日/月成本上限）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-SEC-002-quota-rate-limit.md](TASK-SEC-002-quota-rate-limit.md)"
+    },
+    {
+      "id": "TASK-SEC-003",
+      "title": "auth_type 增加 `token`（无前缀 Authorization）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-SEC-003-auth-type-token.md](TASK-SEC-003-auth-type-token.md)"
+    },
+    {
+      "id": "TASK-SEC-004",
+      "title": "鉴权改数据驱动（authHeader + authPrefix）",
+      "status": "unknown",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-SEC-004-auth-header-prefix.md](TASK-SEC-004-auth-header-prefix.md)"
+    },
+    {
+      "id": "TASK-SUPPLY-001",
+      "title": "① 算力接入（设置中心）实施计划",
+      "status": "已验收",
+      "priority": null,
+      "pr": null,
+      "file": "[TASK-SUPPLY-001-supply-access-plan-2026-10-11.md](TASK-SUPPLY-001-supply-access-plan-2026-10-11.md)"
+    },
+    {
+      "id": "TASK-UI-001",
+      "title": "UI 组件与设计 token 清单（专业级 · 可成长）",
+      "status": "进行中",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-UI-001-component-inventory.md](TASK-UI-001-component-inventory.md)"
+    },
+    {
+      "id": "TASK-UI-002",
+      "title": "组件库展示页受众分离改版（产品/设计可用）",
+      "status": "进行中",
+      "priority": "P1",
+      "pr": null,
+      "file": "[TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md)"
+    },
+    {
+      "id": "TASK-UI-003",
+      "title": "收敛字号离散步长（建立小字号尺度 token + 加门禁）",
+      "status": "待验收",
+      "priority": "P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血）",
+      "pr": null,
+      "file": "[TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md)"
+    },
+    {
+      "id": "TASK-UI-004",
+      "title": "死代码口径修正 + 零引用组件裁剪",
+      "status": "待验收",
+      "priority": "P2",
+      "pr": null,
+      "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
+    }
+  ]
+}
