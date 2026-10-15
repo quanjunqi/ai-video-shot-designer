@@ -1,0 +1,79 @@
+# T13 全链路集成验收报告（TASK-INFRA-005）
+
+> 验收方式：真机走查（Owner 视角）+ API 行为验证 + 自动化断言存在性检查。
+> 验收环境：本地栈（workspace 18082 / production 18081 / execution 8085 / asset 18084 / web-bff 8080 / Vite 5174），develop 最新 `b202366`。
+> 验收日期：2026-10-15。
+
+---
+
+## 任务信息
+
+- 任务名称：T13 全链路集成验收（看成本→配预算→看健康→选模型→拿产物）
+- 关联需求/任务卡：TASK-INFRA-005（P0 完成判据）
+- 验收人（AI）：Doubao MainAgent（Owner 抽验见 §五）
+- 目标一句话：Owner 在模型中心完成「看成本 → 配预算 → 看渠道健康 → 按能力选模型 → 拿到产物地址」全链路，无需工程师介入查看任何一张报表。
+
+---
+
+## 一、P0 判据逐项勾对
+
+| # | 判据（任务卡 §4 原文） | 验收方式 | 结果 | 证据 |
+|---|---|---|---|---|
+| 1 | Owner 在模型中心完成「看成本→配预算→看健康→选模型→拿产物」全链路 | 真机走查（owner 角色） | ⚠️ **部分过**（拿产物步骤被缺口阻断） | 见下「链路逐站」 |
+| 2 | 无需工程师介入查看任何一张报表 | 走查中不 consult 代码 | ✅ 过 | 全链路逐站均以 UI 页面 + API 行为验证；代码阅读仅用于缺口定位，未参与链路判断 |
+| 3 | 4xx 不重试、熔断剔候选、超限拦截有自动化测试断言 | CI 全绿 + 断言存在性检查 | ✅ 过 | 见「判据 3 断言证据」 |
+| 4 | 异步任务 succeeded 后 `intent_payload.result` 有产物地址 | mock 上游验收 AS1-AS4 | ✅ 过（数据侧）／⚠️ UI 展示被缺口 1 阻断 | 50 条任务中 succeeded 任务 34 条带 `result.output.data.0.url`（cdn.pearapi.ai 图片地址）；T9（TASK-ASSET-001）已验收合并 |
+| 5 | 模型中心权限矩阵生效（三角色） | 角色切换走查 | ❌ **未验收** | 依赖 T10 未实现：TASK-AUDIT-001 明确「暂不含计费与多角色管理（Owner 已定）」；仓库无三角色权限矩阵实现 → 记录缺口 4 |
+
+### 判据 1 链路逐站（真机走查，5174 = develop 最新）
+
+| 站 | 页面 | 结果 | 证据 |
+|---|---|---|---|
+| ① 看成本 | `/models/costs` | ✅ | 今日成本 ¥0、近 3 日调用量 99、成功率 58.6%、P95 延迟、成本/调用趋势图（近 30 天）渲染正常 |
+| ② 配预算 | `/settings/preferences` | ✅ | 预算规则区渲染（空态文案正确）；API 验证：PUT 保存日预算 100 元 / 80% 告警 / `block` 动作 → 200 + rule 返回；GET 读取确认落库 |
+| ③ 看健康 | `/models/health` | ✅ | KPI 4 卡（调用单元 6 / 总调用量 70 / 成功率 74.3% / 冷却中 0）+ 告警开关开启 + 单元卡片三态徽标（openai 正常 100%） |
+| ④ 选模型 | `/create/image` | ✅ | 模型档位选择器可用（PearAPI GPT-Image 2 · pearapi）；文生图提示词 / 预设风格 / 画面比例 / 数量参数齐全；生成按钮可交互 |
+| ⑤ 拿产物 | `/tasks` | ❌ **阻断** | 页面崩溃 `Cannot read properties of undefined (reading 'icon')`（缺口 1）；API 侧 succeeded 任务 `result` 产物地址存在（判据 4 数据侧 ✅） |
+
+### 判据 3 断言证据（CI 全绿 + 断言存在性）
+
+| 断言 | 测试文件 | 断言内容 |
+|---|---|---|
+| 4xx 不重试 | `services/execution/internal/breaker/classify_test.go` | `TestClassifyTable31`：硬 4xx（400/401/403/404/422）→ `ClassHard4xx` 直返；429 归软 4xx 可重试（评审澄清点） |
+| 熔断剔候选 | `services/execution/internal/breaker/store_integration_test.go` | `FilterHealthy`：冷却中单元被剔除且不消耗尝试次数 |
+| 超限拦截 | `services/execution/internal/quota/quota_test.go` | `rate_limited` / `quota_exceeded` 拦截断言；未配置上限不拦截 |
+
+---
+
+## 二、验收发现的缺口清单（按任务卡 §6：不得顺手修，记录新任务卡）
+
+| # | 缺口 | 严重度 | 影响 | 处置 |
+|---|---|---|---|---|
+| 1 | `/tasks` 任务中心崩溃：`KIND_META` 缺 `kind="text"` 枚举 → `km.icon` 读 undefined | **P0** | 阻断判据 1「拿产物」与判据 4 UI 展示；任务中心整体不可用 | 新任务卡 TASK-FIX-004 |
+| 2 | `/create/image` 积分显示 `NaN 积分 / undefined 积分/张`：选中模型（PearAPI GPT-Image 2）在 model-catalog 缺 `pointsPerImage` 配置，前端无兜底 | P1 | 选模型页计费信息不可读，影响「按能力选模型」的计费判断 | 新任务卡 TASK-FIX-005 |
+| 3 | 模型中心内「模型广场 / 模型目录」为建设中占位（`/models/market` 提示建设中），「选模型」仅能经由创建页档位选择器达成 | P2 | 判据 1「选模型」体验不完整（非阻断：创建页可用） | 记录在案，属 dev-plan 后续项，不建卡 |
+| 4 | 判据 5 权限矩阵（三角色）依赖 T10，未实现（TASK-AUDIT-001 明确暂不含多角色管理） | P0（判据 5 未验收） | 权限矩阵判据无法验收 | 建议后续补 T10 权限矩阵任务卡后再验收判据 5 |
+
+---
+
+## 三、验收结论
+
+- **判据 2 / 3 / 4（数据侧）**：✅ 通过
+- **判据 1**：⚠️ 部分通过（看成本 / 配预算 / 看健康 / 选模型 4 站通过；拿产物站被缺口 1 阻断）
+- **判据 5**：❌ 未验收（依赖 T10 未实现）
+- **总评**：P0 链路 4/5 站可用；**缺口 1（任务中心崩溃）修复并重新走查通过后，判据 1/4 可闭合**；判据 5 待 T10 实现后补验。
+
+## 四、Owner 抽验指引
+
+1. 打开 `http://localhost:5174/models/costs` → 看成本
+2. `http://localhost:5174/settings/preferences` → 预算规则「新增预算」→ 保存后刷新可见规则
+3. `http://localhost:5174/models/health` → 看健康（KPI + 单元三态 + 告警开关）
+4. `http://localhost:5174/create/image` → 选模型档位 → 生成（mock 上游回产物）
+5. `http://localhost:5174/tasks` → **当前会崩溃**（缺口 1，TASK-FIX-004 修复后走查）
+
+## 五、门禁状态
+
+- execution：CI 覆盖率 57.6%（下限 55%）✅
+- web-bff：CI 覆盖率 74.6%（下限 71%）✅
+- 前端：GATE=0/0（T11 合并时验证）✅
+- 本次验收本身无代码改动，不涉及门禁回归
