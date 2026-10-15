@@ -47,7 +47,7 @@
 | TASK-MODEL-003 | T2-1 运营报表聚合查询 API | P0（A 轨 T2 第一刀） | 已验收（PR #166 已合并） | — | [TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md) |
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
 | TASK-MODEL-005 | T3 成本预算落地（budget_rules + 预扣/结算状态机） | P0（A 轨 M2） | 已验收（PR #181 已合并，314ec60） | ✅ | [TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md) |
-| TASK-MODEL-006 | 供给单元池真实化（底座收尾 · dev-plan T5+T6+T12） | **P0（底座收尾——业务开发的前置）** | 待开工（缺口已用真库量化；**数据部分待 Owner 口径**，见卡内「需 Owner 提供的信息」） | ✅ | [TASK-MODEL-006/task.md](TASK-MODEL-006/task.md) |
+| TASK-MODEL-006 | 供给单元池真实化（底座收尾 · dev-plan T5+T6+T12） | **P0（底座收尾——业务开发的前置）** | 进行中（数据/设计输入已齐；**第一刀「删 mock 渠道」受阻 B-003**：物理删除会连带删 56 条归档历史，已列三方案待 Owner 择一） | ✅ | [TASK-MODEL-006/task.md](TASK-MODEL-006/task.md) |
 | TASK-OBS-001 | 任务中心展示「请求参数 / 进度 / 产物」 | P1（排期 v2 §3.2 并行候选池） | 待验收（详情抽屉已交付；4 项证据不足如实列入未过项） | ✅ | [TASK-OBS-001/task.md](TASK-OBS-001/task.md) |
 | TASK-OBS-002 | T11 渠道健康面板 + 三类最小告警 | P0（A 轨 M4） | 已验收（PR #183 已合并，97df90e9） | ✅ | [TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md) |
 | TASK-P2-001 | Phase 2.1 — 统一 Executor 接口定义 | P1 | 待验收（✅ executor.go 接口 + api_connector 在位；运行时行为未验） | — | [TASK-P2-001-executor-interface.md](TASK-P2-001-executor-interface.md) |
@@ -76,7 +76,7 @@
 - 待验收（13）：**AUTH-001**（判据 6 Owner 真机三角色走查 = T13 唯一未闭合项，见 `docs/how-to/t13-walkthrough-guide.md`）、**PROC-003**（台账校验门禁 14/14）、**PROC-004**（存量台账真实化 8/8）、**OBS-001**（详情抽屉）、**SEC-003/004**、**P2-001**、**INFRA-002**、**CREATE-001~005**（后 9 张均为**代码已实现、待正式验收**，各自残留项见 TASK-PROC-004 devlog）。
 - 进行中（1）：**IA-001（设计稿 v1 待 Owner 评审，停在 AC-009 关卡）**。
 - ✅ **UI-001/UI-002 已按 v2 §3.3① 拆分闭合**：「交付段」判据机器验证通过（`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42）→ 记已验收；「维护段」（新增组件必须同步清单）已由 CI `ui:check` 步骤长期强制，**不再占用卡片状态**。⇒ **CREATE 系列的组件基座依赖已解除**。
-- 待开工（1）：**MODEL-006（供给单元池真实化 = 底座收尾）**——缺口已用真库量化（逻辑模型仅 2 个冒烟行 / 入池仅 3 行且 1 行 providerModel 为空 / 池原料仅覆盖 1 个渠道 / 能力声明 2-8）；**数据部分待 Owner 提供真实口径**。——把「一场走查闭合 4 条判据」从人工手点变成一条命令；前提（系统 Chrome 无头可用、栈可起、身份来自 localStorage）已实测核实。
+- 待开工（0）：———缺口已用真库量化（逻辑模型仅 2 个冒烟行 / 入池仅 3 行且 1 行 providerModel 为空 / 池原料仅覆盖 1 个渠道 / 能力声明 2-8）；**数据部分待 Owner 提供真实口径**。——把「一场走查闭合 4 条判据」从人工手点变成一条命令；前提（系统 Chrome 无头可用、栈可起、身份来自 localStorage）已实测核实。
 - **仍未填写状态（1）**：`PLAN-a-and-adr008-2026-10-10`（文档类，非任务，不适用）。
 - ✅ **CREATE-006 编号冲突已按 ADR 分片表裁定并正名（2026-10-15）**：平铺卡重编号为 **`TASK-CREATE-010`**（内容不变，记待验收）；**ADR 分片 6 = 后端 `capability.aspectRatios` 归位为独立待办**，列入 `plans/` 分片待办台账。
 - 🆕 **真实待办源**：**`plans/2026-10-15-adr-shard-backlog.md`**（ADR 分片 6~13，2026-10-15 核实发现台账"未排期卡"多为已实现，故改用分片表定待办范围）。

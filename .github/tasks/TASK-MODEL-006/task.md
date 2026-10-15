@@ -1,6 +1,6 @@
 ---
 taskId: TASK-MODEL-006
-status: 待开工
+status: 进行中
 priority: **P0（底座收尾——业务开发的前置）**
 pr: "#<待开>"
 criteria: 12

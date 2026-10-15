@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T00:45:00+0800",
+  "updatedAt": "2026-10-16T02:00:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -382,7 +382,7 @@
     {
       "id": "TASK-MODEL-006",
       "title": "供给单元池真实化（底座收尾 · dev-plan T5+T6+T12）",
-      "status": "待开工",
+      "status": "进行中",
       "priority": "**P0（底座收尾——业务开发的前置）**",
       "pr": null,
       "file": "[TASK-MODEL-006/task.md](TASK-MODEL-006/task.md)"

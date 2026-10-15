@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-16T01:45:00+08:00",
+  "updatedAt": "2026-10-16T02:00:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -59,6 +59,19 @@
       ],
       "decisionRef": "D-010",
       "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T02:00:00+08:00",
+      "phase": "开工核实（第一刀）",
+      "action": "删 mock 渠道前先查引用面，发现三个后果，暂停执行交 Owner 决策",
+      "evidence": [
+        "model_catalog_versions.id → model_catalog.id 外键 ON DELETE NO ACTION；16 行 mock 目录对应 56 条归档版本（该表共 77 条）",
+        "model_catalog_archive 是 BEFORE UPDATE 触发器（每次改目录写一条版本）",
+        "model_catalog 无指向 model_channels 的外键 ⇒ 16 行孤儿目录（grsai4/google4/jimeng3/minimax2/comfy2/openai1；14/16 provider_model 为空）",
+        "gateway_audit_logs 44 行引用 mock 渠道；011_audit_immutability.sql 规定身份列不可变（channel_id 属身份列）"
+      ],
+      "decisionRef": "D-012",
+      "blockRef": "B-003"
     }
   ],
   "decisions": [
@@ -183,6 +196,18 @@
       "choice": "两个可区分操作",
       "reason": "批量=改选中模型的覆盖；改类型默认=影响该类型下所有未覆盖模型。混为一谈会让用户『以为改了 3 个、实际改了整类型』",
       "timing": "设计"
+    },
+    {
+      "id": "D-012",
+      "topic": "「删 mock 渠道」怎么删",
+      "options": [
+        "物理删除（连带删 56 条归档）",
+        "软删除",
+        "分级删除（零引用物理删、有引用软删）"
+      ],
+      "choice": "暂停，交 Owner 择一",
+      "reason": "物理删除会不可逆地删掉 56 条归档历史，与 model_catalog_versions 的 append-only 定位冲突；且 44 条不可变审计会指向已删渠道。删除历史这种不可逆操作不该由我替 Owner 决定",
+      "timing": "开工核实"
     }
   ],
   "verifications": [
@@ -208,6 +233,13 @@
       "rootCause": "PearAPI 同步未提供 type/vendor/pricing/tags/endpoint_types（model_type 全为占位 'model'）",
       "solution": "需分类与富化：79 个名字判定 type/vendor、补能力（官方文档）、补价格（manual）",
       "lesson": "同步拿到『有名字』≠『能上架』；供给单元入池需要富化层，这是原 dev-plan 未显式列出的工作"
+    },
+    {
+      "id": "B-003",
+      "block": "「删 mock 渠道」不能照字面执行",
+      "rootCause": "①model_catalog_versions FK(NO ACTION) 挡住删除，绕开须删 56 条归档历史；②model_catalog 无 FK ⇒ 16 行孤儿目录；③44 条不可变审计引用 mock 渠道",
+      "solution": "暂不执行，把三方案交 Owner 择一（task.md 已列）",
+      "lesson": "『删数据』类指令必须先查引用面：字面执行会撞外键或删历史；软删除往往同样达成产品目标且可回退"
     }
   ],
   "disciplineSelfCheck": [
