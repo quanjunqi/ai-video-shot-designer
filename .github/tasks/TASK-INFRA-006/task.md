@@ -1,11 +1,11 @@
 ---
 taskId: TASK-INFRA-006
-status: 待开工
+status: 进行中
 priority: P0（T13 收官的使能项——4 条判据现在只能靠 Owner 手点）
 pr: "#<待开>"
 criteria: 8
 criteriaPassed: 0
-depends_on: TASK-PROC-003（台账校验门禁，已合并）+ 本地栈可跑
+depends_on: TASK-PROC-003（已合并）**+ ⚠️ 本地栈须按当前 develop 重建（B-001）**
 ---
 
 # TASK-INFRA-006：T13 走查自动化（headless Chrome + 三角色切换 + 五站截图）
