@@ -67,6 +67,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 
 ## 关键 gotchas
 
+- **开发日志是强制规则（AC-010）**：每张任务卡开工必须建 `.github/tasks/<TASK-ID>-devlog.md`，随开发同步记录动作/证据/决策/阻塞，PR 前完成；禁止交付前一次性补写。规则入口在本文件与 `.agents/skills/acceptance-checklist/SKILL.md`——换会话/换模型不失效
 - TypeScript 口径以 `apps/web/tsconfig.app.json` 为准（不是默认 tsconfig）。注意该文件目前 `strict: false`：类型安全靠 eslint（`no-explicit-any` 为 error）与审查兜底，别指望类型系统拦截
 - 测试不得依赖本地时区/系统时间（CI 跑 UTC）
 - 迁移文件只增不改，号段按服务认领
@@ -74,11 +75,23 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - 密钥只在 workspace 加密存储，禁止硬编码
 - BFF 是前端唯一入口，禁止前端直连后端服务
 
+## 每次开发的强制流程（换会话/换模型同样适用）
+
+```
+需求 → 0. 判定任务类型：UI 任务 → 设计稿/原型 → Owner 评审通过
+      → 1. 建开发日志（templates/devlog.md → .github/tasks/<TASK-ID>-devlog.md，随开发同步记录）
+      → 2. 产验收清单（templates/acceptance-checklist.md → .github/tasks/<TASK-ID>-acceptance.md）
+      → 3. 开发（按编码规范；日志同步记动作/决策/证据/阻塞）
+      → 4. 自检勾对 → 5. GATE + 测试（结果写入日志）→ 6. PR 附勾对 + 日志链接
+```
+
+> 完整规则见 `.agents/skills/acceptance-checklist/SKILL.md`（AC-001~010）。「未建日志 = 不得开工；未勾对 = 不得开 PR」。
+
 ## 场景化 Skills（按需加载，不要全读；总览与编写规范见 `.agents/README.md`）
 
 | 场景 | 加载 |
 |---|---|
-| 承接任何开发任务（开工前必读） | `.agents/skills/acceptance-checklist/SKILL.md` |
+| 承接任何开发任务（开工前必读；**先建开发日志 AC-010**） | `.agents/skills/acceptance-checklist/SKILL.md` |
 | 改前端代码 | **怎么写**：`.agents/skills/frontend-coding/SKILL.md`　**交付门禁**：`.agents/skills/frontend-quality/SKILL.md` |
 | 改后端 Go 代码 | **怎么写**：`.agents/skills/backend-coding/SKILL.md`　**分层/覆盖率棘轮**：`.agents/skills/backend-standards/SKILL.md` |
 | 并行开新 worktree | `.agents/skills/parallel-worktree/SKILL.md` |
