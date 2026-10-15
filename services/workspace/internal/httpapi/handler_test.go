@@ -33,6 +33,36 @@ type fakeStore struct {
 	channelsErr error
 	deleteChErr error
 	lastChannel string
+
+	budgetRules    []store.BudgetRule
+	budgetRulesErr error
+	upsertedRule   store.BudgetRule
+	deletedPeriod  string
+}
+
+func (s *fakeStore) ListBudgetRules(_ context.Context, workspaceID string) ([]store.BudgetRule, error) {
+	s.lastWorkspace = workspaceID
+	return s.budgetRules, s.budgetRulesErr
+}
+
+func (s *fakeStore) EffectiveBudgetRules(_ context.Context, workspaceID string) ([]store.BudgetRule, error) {
+	s.lastWorkspace = workspaceID
+	return s.budgetRules, s.budgetRulesErr
+}
+
+func (s *fakeStore) UpsertBudgetRule(_ context.Context, workspaceID string, r store.BudgetRule) (store.BudgetRule, error) {
+	s.lastWorkspace = workspaceID
+	// 与真实 store 一致：workspace 级规则落具体工作区，tenant 级落空串
+	if r.Scope == "workspace" {
+		r.WorkspaceID = workspaceID
+	}
+	s.upsertedRule = r
+	return r, nil
+}
+
+func (s *fakeStore) DeleteBudgetRule(_ context.Context, workspaceID, period string) error {
+	s.lastWorkspace, s.deletedPeriod = workspaceID, period
+	return s.budgetRulesErr
 }
 
 func (s *fakeStore) ListUserChannels(_ context.Context, workspaceID string) ([]store.UserChannel, error) {
@@ -345,5 +375,85 @@ func TestDeleteUserChannel(t *testing.T) {
 	h.ServeHTTP(response, workspaceRequest(http.MethodDelete, "/internal/v1/workspaces/ws_dev/channels/ch1"))
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("delete user channel failure: expected 503, got %d", response.Code)
+	}
+}
+
+func TestListBudgetRulesReturnsItemsAndMapsFailure(t *testing.T) {
+	fake := &fakeStore{budgetRules: []store.BudgetRule{{Scope: "workspace", Period: "day", LimitAmount: 500, Action: "block"}}}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/budget/rules"))
+	if response.Code != http.StatusOK {
+		t.Fatalf("list budget rules: expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+	if fake.lastWorkspace != "ws_dev" {
+		t.Fatalf("list budget rules must pass workspace, got %q", fake.lastWorkspace)
+	}
+	if !strings.Contains(response.Body.String(), `"limitAmount":500`) {
+		t.Fatalf("budget rules body missing limitAmount: %s", response.Body.String())
+	}
+
+	fake.budgetRulesErr = errors.New("database offline")
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodGet, "/internal/v1/workspaces/ws_dev/budget/rules"))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("list budget rules failure: expected 503, got %d", response.Code)
+	}
+}
+
+func TestPutBudgetRuleValidatesAndUpserts(t *testing.T) {
+	fake := &fakeStore{}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	// 合法写入
+	body := `{"scope":"workspace","period":"day","limitAmount":500,"action":"block","warnAt":0.8}`
+	r := httptest.NewRequest(http.MethodPut, "/internal/v1/workspaces/ws_dev/budget/rules", strings.NewReader(body))
+	r.Header.Set("Authorization", "Bearer test-token")
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, r)
+	if response.Code != http.StatusOK {
+		t.Fatalf("put budget rule: expected 200, got %d body=%s", response.Code, response.Body.String())
+	}
+	if fake.upsertedRule.WorkspaceID != "ws_dev" || fake.upsertedRule.Scope != "workspace" || fake.upsertedRule.Period != "day" {
+		t.Fatalf("upserted rule mismatch: %+v", fake.upsertedRule)
+	}
+
+	// 非法 limitAmount
+	badBody := `{"scope":"workspace","period":"day","limitAmount":0,"action":"block"}`
+	r = httptest.NewRequest(http.MethodPut, "/internal/v1/workspaces/ws_dev/budget/rules", strings.NewReader(badBody))
+	r.Header.Set("Authorization", "Bearer test-token")
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, r)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("put budget rule invalid limit: expected 400, got %d", response.Code)
+	}
+
+	// 非法 action
+	badAction := `{"scope":"workspace","period":"day","limitAmount":10,"action":"explode"}`
+	r = httptest.NewRequest(http.MethodPut, "/internal/v1/workspaces/ws_dev/budget/rules", strings.NewReader(badAction))
+	r.Header.Set("Authorization", "Bearer test-token")
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, r)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("put budget rule invalid action: expected 400, got %d", response.Code)
+	}
+}
+
+func TestDeleteBudgetRule(t *testing.T) {
+	fake := &fakeStore{}
+	h := Handler{Store: fake, Token: "test-token"}.Routes()
+
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodDelete, "/internal/v1/workspaces/ws_dev/budget/rules/day"))
+	if response.Code != http.StatusNoContent || fake.deletedPeriod != "day" {
+		t.Fatalf("delete budget rule: code=%d period=%q", response.Code, fake.deletedPeriod)
+	}
+
+	// 非法周期
+	response = httptest.NewRecorder()
+	h.ServeHTTP(response, workspaceRequest(http.MethodDelete, "/internal/v1/workspaces/ws_dev/budget/rules/week"))
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("delete budget rule invalid period: expected 400, got %d", response.Code)
 	}
 }

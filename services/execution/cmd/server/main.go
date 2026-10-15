@@ -11,6 +11,7 @@ import (
 	"shotdesigner/services/execution/internal/artifact"
 	"shotdesigner/services/execution/internal/audit"
 	"shotdesigner/services/execution/internal/breaker"
+	"shotdesigner/services/execution/internal/budget"
 	"shotdesigner/services/execution/internal/catalog"
 	"shotdesigner/services/execution/internal/creds"
 	"shotdesigner/services/execution/internal/httpapi"
@@ -88,6 +89,19 @@ func main() {
 	quotaLimiter := quota.New(quotaCfg, auditStore)
 	worker.Logger.Info("配额配置", "qps", quotaCfg.QPS, "burst", quotaCfg.Burst, "daily_cost_limit", quotaCfg.DailyCostLimit, "monthly_cost_limit", quotaCfg.MonthlyCostLimit)
 
+	// T3 预算（TASK-MODEL-005）：请求前校验 + 预扣/结算状态机。
+	// 规则来自 workspace（workspaceURL/token 未配置时预算关闭 —— fail-open 语义，
+	// 不拦截任何请求；配置后立即生效）。预算系统故障也 fail-open（放行 + 审计标记）。
+	var budgetChecker *budget.Checker
+	var budgetHolds budget.HoldsStore = &budget.Store{Pool: pool}
+	if workspaceURL != "" && workspaceToken != "" {
+		budgetClient := budget.NewWorkspaceClient(workspaceURL, workspaceToken)
+		budgetChecker = budget.NewChecker(budgetClient, auditStore, worker.Logger)
+		worker.Logger.Info("预算校验已启用", "rules_source", "workspace")
+	} else {
+		worker.Logger.Warn("预算校验【未启用】（需 EXECUTION_WORKSPACE_URL / WORKSPACE_INTERNAL_TOKEN）")
+	}
+
 	maxConcurrent := envInt("EXECUTION_MAX_CONCURRENT_JOBS", 8)
 	gate := job.NewSemaphore(maxConcurrent)
 	worker.Logger.Info("worker 并发上限", "cap", gate.Cap())
@@ -97,7 +111,7 @@ func main() {
 	breakerCfg := breaker.FromEnv(os.Getenv)
 	breakerStore := breaker.New(pool, breakerCfg, worker.Logger)
 	worker.Logger.Info("单元熔断配置", "enabled", breakerCfg.Enabled(), "allowed_fails", breakerCfg.AllowedFails, "cooldown", breakerCfg.Cooldown.String(), "health_check", breakerCfg.HealthCheck.String())
-	go worker.Run(store, catalogClient, credsClient, engineClient, gate, auditStore, breakerStore)
+	go worker.Run(store, catalogClient, credsClient, engineClient, gate, auditStore, breakerStore, budgetHolds)
 
 	// D6：审计保留期清理。**默认关闭**（天数未设置 = 0）—— 清理是破坏性操作，
 	// 在没有人类显式配置之前不启动，避免"部署一次就默默删掉历史审计"。
@@ -133,7 +147,7 @@ func main() {
 	// T0 价格校准台账：对账端点（POST /internal/v1/reconcile）写入 price_calibration_logs
 	reconcileStore := &reconcile.Store{Pool: pool}
 	metrics := observability.NewMetrics()
-	observed := observability.WithObservability(worker.Logger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore, Breaker: breakerStore}.Routes())
+	observed := observability.WithObservability(worker.Logger, metrics)(httpapi.Handler{Store: store, Token: token, Ready: pool.Ping, Catalog: catalogClient, Creds: credsClient, EngineClient: engineClient, AuditStore: auditStore, Quota: quotaLimiter, Probe: prober, Artifacts: artifactClient, ReconcileStore: reconcileStore, Breaker: breakerStore, Budget: budgetChecker, BudgetHolds: budgetHolds}.Routes())
 	server := &http.Server{Addr: addr, Handler: observed, ReadHeaderTimeout: 5 * time.Second}
 	worker.Logger.Info("execution service listening", "addr", addr)
 	if err := server.ListenAndServe(); err != nil {

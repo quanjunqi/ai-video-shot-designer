@@ -10,7 +10,7 @@
 - 组件 **42** 个 / 5081 行；死组件（零引用）**20** 个
 - 语义 token **69** 个；Tailwind 工具类映射 58 条；排版：字体 3 族 + prose 映射 36 条
 - 注记覆盖 **42/42**；展示页 demo 覆盖 **42/42**
-- 尺度实际用法：字号常用 xs(400)；离散步长 6 处（优先用尺度 token）
+- 尺度实际用法：字号常用 xs(409)；离散步长 6 处（优先用尺度 token）
 
 ## 按分类速查
 
@@ -256,7 +256,7 @@
 #### `input`
 
 - 文件：`apps/web/src/components/ui/input.tsx`（22 行）· 导出：`Input`
-- 引用：28 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`input-group.tsx` 等）
+- 引用：29 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`input-group.tsx` 等）
 - **何时用**：单行文本、数字或密码输入，配合 label 使用
 - **别用**：多行用 textarea；选项多用 select；前缀用 input-group
 - 反例：❌ 只有 placeholder 没有 label 与 htmlFor（FE-A11Y-002）；❌ 错误态不置 aria-invalid（UC-004）；❌ 自写输入框替代 input（UC-006）
@@ -396,7 +396,7 @@
 
 - 文件：`apps/web/src/components/ui/dialog.tsx`（144 行）· 导出：`Dialog`、`DialogClose`、`DialogContent`、`DialogDescription`、`DialogFooter`、`DialogHeader`、`DialogOverlay`、`DialogPortal`、`DialogTitle`、`DialogTrigger`
 - 底座：`@radix-ui/react-dialog`
-- 引用：26 处（`command.tsx`、`AddEpisodeDialog.tsx`、`CharacterStage.tsx` 等）
+- 引用：27 处（`command.tsx`、`AddEpisodeDialog.tsx`、`CharacterStage.tsx` 等）
 - **何时用**：需要用户聚焦完成的模态内容（表单、详情、选择器）
 - **别用**：只做二次确认用 alert-dialog；大表单用 sheet 或 drawer
 - 反例：❌ 用 dialog 做破坏性确认（应换 alert-dialog）（UC-006）；❌ 缺 DialogTitle 致 a11y 缺失（UC-005）；❌ 弹窗内容不滚动致底部按钮不可达（清单 2）

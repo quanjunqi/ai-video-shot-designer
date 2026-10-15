@@ -203,6 +203,59 @@ func (s *server) workspaceChannels(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, resp.Body)
 }
 
+// workspaceBudget forwards budget-rule CRUD to the workspace service, rewriting
+// /api/v1/workspace/budget[...] onto the internal
+// /internal/v1/workspaces/{workspace_id}/budget/rules[...] shape.
+// 路由：GET 列表 / PUT 增改 / DELETE /budget/rules/{period}（工作区级规则）。
+func (s *server) workspaceBudget(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/workspace/budget") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	if err := s.authorize(r.Context()); err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 256*1024+4096))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid body")
+		return
+	}
+	rel := strings.TrimPrefix(r.URL.Path, "/api/v1/workspace/budget")
+	upstreamPath := "/internal/v1/workspaces/" + s.devWorkspace + "/budget" + rel
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, s.workspaceURL+upstreamPath, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.workspaceToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	if value := r.Header.Get("Content-Type"); value != "" {
+		req.Header.Set("Content-Type", value)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace service unavailable")
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
 // workspaceCredentials forwards credential write/read/delete to the workspace
 // service, rewriting /api/v1/workspace/credentials[...] onto the internal
 // /internal/v1/workspaces/{workspace_id}/credentials[...] shape.
