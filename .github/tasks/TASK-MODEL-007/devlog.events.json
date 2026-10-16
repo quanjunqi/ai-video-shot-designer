@@ -1,0 +1,166 @@
+{
+  "taskId": "TASK-MODEL-007",
+  "updatedAt": "2026-10-16T22:54:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-16T22:54:00+08:00",
+      "phase": "开工/探查",
+      "action": "与 VOZEB-PRO 源码逐行对比确认差距：我方逻辑模型缺同名跨渠道自动合并；真库 model_catalog 18 行仅 3 行挂 logical_model_id",
+      "evidence": ["/Users/quanjunqi/student/ai-video/VOZEB-PRO/web/src/lib/model-routing-config.ts", "services/production/internal/catalog/logicalmodel.go", "docker exec postgres SELECT"],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-16T22:55:00+08:00",
+      "phase": "开工/探查",
+      "action": "立卡：建 .github/tasks/TASK-MODEL-007/ 四件套（task.md/devlog.md/devlog.events.json/acceptance.md）",
+      "evidence": [".github/tasks/TASK-MODEL-007/task.md"]
+    },
+    {
+      "ts": "2026-10-16T22:58:00+08:00",
+      "phase": "开发",
+      "action": "完成 reconcile.go 纯函数（normalizeProviderModel + PlanReconcile 分桶/复用/跳过/幂等）+ reconcile_test.go 首版",
+      "evidence": ["services/production/internal/catalog/reconcile.go", "services/production/internal/catalog/reconcile_test.go"],
+      "decisionRef": "D-004"
+    },
+    {
+      "ts": "2026-10-16T22:59:00+08:00",
+      "phase": "开发",
+      "action": "单测首跑：TestPlanReconcileAppendsSuffixOnConflict FAIL（期望 1 建组实际 0）——实证「id 冲突后缀」为不可达死分支：existing 含同名 kimi-k2-5 时走复用分支而非新建",
+      "evidence": ["go test ./internal/catalog/ -run TestPlanReconcileAppendsSuffixOnConflict 输出"],
+      "decisionRef": "D-004"
+    },
+    {
+      "ts": "2026-10-16T23:00:00+08:00",
+      "phase": "开发",
+      "action": "删除 allocateLogicalModelID 死分支；判据 5 收敛为「归并键即合法 id」；单测全绿",
+      "evidence": ["go test ./internal/catalog/ -run 'TestNormalizeProviderModel|TestPlanReconcile' → ok"]
+    },
+    {
+      "ts": "2026-10-16T23:05:00+08:00",
+      "phase": "开发",
+      "action": "完成 reconcile_postgres.go（单事务：读未归并行+现有分组 → 规划 → 建组 → 绑定，WHERE 再断言防并发）+ 集成测试 5 用例（合并/保留/幂等/工作区隔离/复用）",
+      "evidence": ["services/production/internal/catalog/reconcile_postgres.go", "services/production/internal/catalog/reconcile_postgres_integration_test.go"],
+      "decisionRef": "D-002"
+    },
+    {
+      "ts": "2026-10-16T23:10:00+08:00",
+      "phase": "开发",
+      "action": "LogicalModelStore 接口（catalog+httpapi）加 ReconcileLogicalModels；注册 POST /internal/v1/logical-models/reconcile；handler 测试 3 用例（200/viewer403/无store503）",
+      "evidence": ["services/production/internal/httpapi/handlers.go", "services/production/internal/httpapi/logicalmodel_handler.go", "services/production/internal/httpapi/logicalmodel_handler_test.go"]
+    },
+    {
+      "ts": "2026-10-16T23:15:00+08:00",
+      "phase": "验证",
+      "action": "production 全量门禁：build + test -race（9 包 ok）+ vet + gofmt（修 2 个测试文件后干净）+ check-file-size（0 超标）",
+      "evidence": ["go build ./... && go test ./... -race && go vet ./...", "scripts/check-file-size.sh exit 0"],
+      "decisionRef": ""
+    },
+    {
+      "ts": "2026-10-16T23:20:00+08:00",
+      "phase": "验证",
+      "action": "preflight 未全绿：workspace/web-bff/outbox-relay Test 失败判定为存量（git diff --name-only 证明本次改动仅 production；直接跑 workspace go test 实际 ok）+ 本地缺 golangci-lint/python3",
+      "evidence": ["bash scripts/preflight.sh", "git diff --name-only HEAD services/"],
+      "blockRef": ""
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "reconcile 定位",
+      "options": ["A. 自动建组并替 Owner 决策", "B. 仅归并同名、分组可编辑"],
+      "choice": "B",
+      "reason": "TASK-MODEL-006 拍板「逻辑模型=分组机制、Owner 自行创建、不替他造数据」；同名归并是无歧义机械劳动",
+      "timing": "开工"
+    },
+    {
+      "id": "D-002",
+      "topic": "触发方式",
+      "options": ["A. 读取时实时派生", "B. 显式 POST reconcile"],
+      "choice": "B",
+      "reason": "logical_models 是独立表+手工可编辑，实时派生会覆盖手工语义；显式 reconcile 幂等且可控",
+      "timing": "开工"
+    },
+    {
+      "id": "D-003",
+      "topic": "已有绑定处理",
+      "options": ["A. 自动换组", "B. 跳过不抢"],
+      "choice": "B",
+      "reason": "与既有 ErrModelBoundElsewhere（409 不静默抢占）语义一致",
+      "timing": "开工"
+    },
+    {
+      "id": "D-004",
+      "topic": "id 冲突后缀机制",
+      "options": ["A. allocate -2/-3 后缀", "B. 删除死分支"],
+      "choice": "B",
+      "reason": "分桶按键聚合 ⇒ 键唯一，「同键新建冲突」不可达；键撞既有分组 = 同名复用（判据 4）；单测首跑 FAIL 实证后删除",
+      "timing": "开发中"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据 8",
+      "command": "cd services/production && go build ./... && go test ./... -race && go vet ./...（带 PRODUCTION_TEST_DATABASE_URL）",
+      "result": "PASS（9 包 ok）",
+      "evidence": "本日志 23:15"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 8（BE-SIZE-001）",
+      "command": "bash scripts/check-file-size.sh",
+      "result": "PASS（0 超标；新文件 165/121/239/163 行）",
+      "evidence": "scripts/check-file-size.sh exit 0"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 8（gofmt）",
+      "command": "gofmt -l services/production/",
+      "result": "PASS（修复后无输出）",
+      "evidence": "本日志"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 1–6",
+      "command": "go test ./internal/catalog/ -run 'TestNormalizeProviderModel|TestPlanReconcile'",
+      "result": "PASS",
+      "evidence": "reconcile_test.go"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据 1/3/4/6",
+      "command": "go test ./internal/catalog/ -run TestPostgresReconcile -v（真库随机 schema）",
+      "result": "PASS 5/5",
+      "evidence": "reconcile_postgres_integration_test.go"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据 7",
+      "command": "go test ./internal/httpapi/ -run TestLogicalModelReconcile",
+      "result": "PASS 3/3",
+      "evidence": "logicalmodel_handler_test.go"
+    },
+    {
+      "id": "V-007",
+      "criterion": "判据 8（preflight）",
+      "command": "bash scripts/preflight.sh",
+      "result": "SKIP+原因：workspace/web-bff/outbox-relay Test 失败为存量（本次改动仅 production，git diff 实证）；本地缺 golangci-lint/python3",
+      "evidence": "本日志 23:20"
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "待填", "evidence": "V-001" },
+    { "item": "按路径 add（禁 git add -A）", "result": "待填", "evidence": "commit 明细" },
+    { "item": "只改点名范围（未越界）", "result": "待填", "evidence": "diff 清单" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "待填", "evidence": "acceptance.md" },
+    { "item": "GATE / 后端门禁全绿", "result": "待填", "evidence": "CI 结论" },
+    { "item": "台账同步（状态/PR 号）", "result": "待填", "evidence": "ledger.json / README" },
+    { "item": "迁移只增不改 / 号段合规（如涉）", "result": "待填", "evidence": "本卡无迁移" }
+  ],
+  "retrospective": {
+    "good": "",
+    "improve": "",
+    "followups": ""
+  }
+}

@@ -22,6 +22,8 @@ type LogicalModelStore interface {
 	ListCandidates(ctx context.Context, id string) ([]catalog.Candidate, error)
 	BindCandidates(ctx context.Context, id string, input catalog.BindCandidatesInput) ([]catalog.Candidate, error)
 	UnbindCandidate(ctx context.Context, id, modelID string) error
+	// ReconcileLogicalModels：自动归并（TASK-MODEL-007）。
+	ReconcileLogicalModels(ctx context.Context, workspaceID, actor string) (catalog.ReconcileResult, error)
 }
 
 // ---- 逻辑模型（ADR-003 §3.1：对外统一标识） ----
@@ -192,6 +194,26 @@ func (h Handler) unbindLogicalModelCandidate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// reconcileLogicalModels 自动归并当前工作区未绑定的入池模型（TASK-MODEL-007）：
+// 同名跨渠道合入同一逻辑模型分组并绑定候选；已有手工绑定不动；幂等可重跑。
+// 这是**辅助工具**：生成的逻辑模型仍可被 Owner 编辑/删除；入池决策仍走策展。
+func (h Handler) reconcileLogicalModels(w http.ResponseWriter, r *http.Request) {
+	workspace, actor, ok := h.identity(w, r)
+	if !ok {
+		return
+	}
+	if h.LogicalModelStore == nil {
+		writeError(w, http.StatusServiceUnavailable, "LOGICAL_MODEL_UNAVAILABLE", "logical models are unavailable")
+		return
+	}
+	result, err := h.LogicalModelStore.ReconcileLogicalModels(r.Context(), workspace, actor)
+	if err != nil {
+		unavailable(w, "reconcile logical models", "logical models could not be reconciled", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 // writeLogicalModelError 把 store 的领域错误映射为状态码。
