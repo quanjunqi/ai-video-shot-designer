@@ -2,7 +2,7 @@
 taskId: TASK-PROTOCOL-001
 status: 进行中
 priority: P1（底座收尾的自动化补刀——对齐 VOZEB requestTemplate 形态；等价可迁移子集回填）
-pr: "#<待开>"
+pr: "#211"
 criteria: 6
 criteriaPassed: 0
 depends_on: 不依赖任何 Owner 决策（纯工程切片；判别标准已由执行器语义实证）
