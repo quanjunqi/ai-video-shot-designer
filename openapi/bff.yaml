@@ -2660,17 +2660,17 @@ components:
             因此**声明端必须与调用端同源** —— 迁移 064 的教训：063 曾用 `first-frame` /
             `omni-reference` 等自造词，与调用端词表不同源，会让合法请求被能力过滤拒掉。
 
-            词表来源：**前端 `GenerationMode`**（`apps/web/src/config/create/control-schema.ts`），
-            此处固化以防再次分叉。新增模式须同时改这里 + 前端类型 + `model_catalog.capability.modes`。
-          enum:
-            - text-to-image
-            - image-to-image
-            - text-to-video
-            - image-to-video
-            - first-last-frame
-            - multi-reference
-            - audio-reference
-            - text-to-speech
+            词表来源：**前端 `GenerationMode`**（`apps/web/src/config/create/control-schema.ts`）：
+              text-to-image · image-to-image · text-to-video · image-to-video ·
+              first-last-frame · multi-reference · audio-reference · text-to-speech
+
+            ⚠️ **此处刻意【不加 enum】**：加 enum 会把无约束的 string 收窄 ⇒ 按本目录 §3.1
+            「收紧取值」属破坏性变更（oasdiff 判 `request-property-became-enum` = error），
+            而**前端本来就只发这套值** ⇒ 加 enum 约束的是**已经合规的一方**，是错的工具。
+            真正的漏洞在**声明端**（`model_catalog.capability.modes`）—— 由**数据守卫测试**
+            `TestPostgresCapabilityModesUseCallerVocabulary` 守（迁移 064 的教训：063 曾用
+            `first-frame`/`omni-reference` 等自造词，与调用端不同源，会让合法请求被能力过滤拒掉）。
+            **新增模式须同时改：前端 `GenerationMode` + 该测试的词表 + 数据。**
         input:
           type: object
           additionalProperties: true

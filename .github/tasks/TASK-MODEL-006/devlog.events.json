@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T10:00:00+08:00",
+  "updatedAt": "2026-10-17T11:30:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -228,6 +228,23 @@
         "验证：4/4 落在前端 GenerationMode 词表内",
         "并固化契约：openapi/bff.yaml 的 mode 此前写『具体取值以服务端为准，契约待补』——这正是我踩坑的根源；现加 8 值 enum（来源即前端 GenerationMode）并重生成 api-generated.ts（api:check rc=0、npm run gate rc=0）；注释写明新增模式须同时改契约+前端类型+capability.modes",
         "教训（第四次同族，但这次是数据而非理解）：前三次都是我的理解与系统实际不符；这一次是我造的数据与系统实际不符 —— modes 是连接调用端与声明端的契约值，我却当自由文本自编了一套词。凡『两端要对上的值』（词表/枚举/键名）都必须先找权威来源再填"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T11:30:00+08:00",
+      "phase": "词表守卫的三种尝试全部失败 + 撤回 mode enum（破坏性变更）",
+      "action": "尝试给『modes 词表同源』加自动化守卫，三种方案均不成立，如实记录；并撤回一度加上的 mode enum",
+      "evidence": [
+        "守卫方案①查活库：空转 —— 带 modes 的行来自人工策展（运行时数据）不是迁移播种；CI 跑在全新 schema+只应用迁移的库上 ⇒ 一行都没有 ⇒ 日志『检查了 0 个 mode 值』却 PASS = 假防线",
+        "守卫方案②扫全部迁移：报 004（mock 渠道种子，另一套短词表 t2v/i2v/multi_ref）与 063（本卡要修的）—— 已应用迁移改不了 ⇒ 无法修复的永久红",
+        "守卫方案③只扫 >=060：063 自己就在范围内 ⇒ 同样不可修",
+        "根本矛盾：数据在运行时由人工策展产生，而迁移只增不改 ⇒ CI 里没有能同时满足『非空转』与『可修复』的断言点；正确位置是策展路径的运行时校验（POST /internal/v1/catalog/curate 写入前校验 modes ⊆ 服务端词表，不合法即 422），属功能改动另立卡",
+        "三种尝试与根本矛盾已写进迁移 064 的文件尾注，避免后人重走",
+        "★两个自我纠正都由变异验证抓出：①的『空转』是日志『检查了 0 个』暴露的（只看 PASS 就会当成防线做完了）；②的正则漏了冒号（只写 ,? ）⇒ 只扫到 064 完全没扫 063 ⇒ 把 063 错值放回去做变异竟然还是绿的 ⇒ 才发现在空转",
+        "撤回 mode enum：我原想给无约束的 string 加 8 值 enum 来固化词表，CI 的 Contract Breaking Change 判红 error [request-property-became-enum] request property mode was restricted to a list of enum values —— 它是对的（openapi/README.md §3.1『收紧取值』属破坏性变更）；而且 enum 是错的工具：前端本来就只发那 8 个值 ⇒ 约束的是已合规的一方，真正漏洞在声明端 ⇒ 已撤掉 enum 保留说明",
+        "撤掉守卫后 production 全量测试恢复 0 FAIL；build+vet rc=0"
       ],
       "decisionRef": null,
       "blockRef": null
