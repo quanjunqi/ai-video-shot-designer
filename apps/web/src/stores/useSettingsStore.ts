@@ -154,7 +154,14 @@ export const useSettingsStore = create<SettingsState>()(
             templates: dir.templates.map(serverTemplateToLocal),
             catalogSource: 'server',
           });
-        } catch {
+        } catch (err) {
+          // ★ 不得裸 `catch {}`（TASK-MODEL-006 实测教训）：
+          //   061 迁移把协议模板的 params 写成对象 `{}` 而契约要求数组 ⇒ 上面 :81 的
+          //   `(t.params ?? []).map` 抛 TypeError ⇒ 被这里吞掉 ⇒ UI 显示"服务端不可达·本地缓存"，
+          //   **而服务端其实是好的**（10 个请求全 200）。一条数据形状 bug 被伪装成网络故障，
+          //   直接把排查引向错误方向。
+          //   ⇒ 保留原行为（降级 offline），但让真实原因**可见**。写法同 useEpisodeStore.ts:309。
+          console.warn('[settingsStore] syncCatalog failed, using local cache:', err);
           get().markOfflineFallback();
         }
       },
