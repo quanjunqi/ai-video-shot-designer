@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T04:00:00+08:00",
+  "updatedAt": "2026-10-17T08:00:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -192,6 +192,24 @@
         "教训二：catch {} 空捕获会把根因变成假象 —— 这类『吞掉异常』的写法在本仓应视为缺陷"
       ],
       "decisionRef": "D-020",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T08:00:00+08:00",
+      "phase": "判据 5 达成：能力档位数据（迁移 063）+ 契约固化",
+      "action": "施工前取实证发现判据字面与系统实际形态不一致，改按 capability JSONB 键填充；交付迁移 063 + 契约固化",
+      "evidence": [
+        "★施工前定向（本轮第三次实证救了我）：原计划按判据字面新建 aspect_ratios/duration_range/quality_options/reference_rule 四个列；实证发现前端 create/control-schema.ts 早已在消费这些键，只是它们在 model_catalog.capability(JSONB) 里 ⇒ 新建列会与前端已消费的 capability 分裂成两套",
+        "实测缺口：text 模型 capability 形态完整；image gpt-image-2 只有计数 {refImage:false, qualityTiers:2, aspectRatioCount:3} 无实际档位值；video doubao-seedance-2-5 是 {} 空",
+        "数据来源纪律：model-capabilities.md 原则『只报官方文档写了的；查不到写未找到官方依据，不填推测值』；特别核对 gpt-image-2 首轮判全域 403 留空，但该文件 §2 明确写着『首轮无依据 → 现已有官方级来源』⇒ 二次确认后才填",
+        "迁移 063：gpt-image-2 填比例 4 档/quality 4 档/参考图 16/n 1-10/任意尺寸规则；doubao-seedance-2-5 填比例 7 档/时长 4~30s/分辨率 3 档/模式 7 种/参考图 30·视频 10·音频 10",
+        "每个档位带 tiersSource（source/confidence/verifiedAt/evidenceFile）—— 沿用 061 observed_evidence 的做法：数据与证据放在一起",
+        "用 capability || '{...}' 合并而非整体覆盖 ⇒ 既有 billing 等键不被破坏；幂等",
+        "契约固化：openapi/bff.yaml 的 capability 定义写入键集合与 tiersSource（此前只有一句『契约待补』）；重新生成 api-generated.ts 后 api:check rc=0",
+        "验证：迁移 待应用 1 · 已应用(跳过) 44 ⇒ 只应用 063 无连带；SQL 统计有比例 2 行/有时长 1 行/有参考图上限 2 行/共 3 行；BFF 出口 GET /api/v1/catalog 返回真实档位且键名与前端消费的完全一致；npm run gate rc=0",
+        "教训（第三次同族）：判据的字面描述与系统实际形态可能不一致——判据说『档位字段存在』我读成『要新建列』，实际字段早已存在且前端已消费"
+      ],
+      "decisionRef": null,
       "blockRef": null
     }
   ],
