@@ -366,6 +366,146 @@ SPDX 坚持 `NOASSERTION` 是**一个值**而非字段缺席，正是为了让�
 **若成为长期强制规则**（如"新增能力字段必须走 assertions 表"），按本仓
 「机制落地 = 同步 AGENTS.md」回写 AGENTS.md —— **ADR 解释为什么，AGENTS.md 保证换会话不遗忘**，两者不重复。
 
+## 七之二、定稿方案（右尺寸）—— 取代 §七 的表结构，保留其全部不变量
+
+> Owner 2026-10-16 反馈：「我需要的是**专业的设计，不是简化导致后面反复维护**」。
+> 该反馈正确。**区分标准是：每个表/列都必须有「现在就在发生」的理由**，而不是"将来可能要"。
+> 本节给出定稿：**3 张表 + 1 个可空列**，逐项标注其**现在时**理由。
+
+### 0. 我上一版"简化到 1 张表"错在哪（诚实记录）
+
+我一度提议压成一张 `model_capability`（JSONB + 3 列来源）。**该方案会破坏已获得的信息**：
+
+| 被丢掉的信息 | 为什么它是**现在**的问题 |
+|---|---|
+| 逐字段来源 | 我的调研**本身就是逐字段分来源**的：Seedance 比例=火山引擎官方、Grok=第三方、Veo 参考图=搜索快照快照。**一个 JSONB + 一个 `source` 列无法表达** ⇒ 等于主动毁掉已到手的数据 |
+| 稳定身份 | 8 项别名映射是**现在**的问题（`ltx-digitalhuman` 零来源、`gpt-image-2.5` 非合法 ID、`seedream-5-0` 与 `-lite` 互为别名） |
+| 未知≠默认 | Grok 全系无官方源是**现在**的事实，必须能表达"这个值可信度低" |
+
+⇒ **降级为简化版不是省事，是把返工推迟。** 正确做法是**右尺寸**：保留全部不变量，砍掉推测性字段。
+
+### 1. 定稿结构（3 张表 + 1 个可空列）
+
+```sql
+-- 表 1：上游模型实体（身份的稳定锚点）
+upstream_models(
+  id             BIGSERIAL PRIMARY KEY,
+  canonical_slug TEXT NOT NULL UNIQUE,   -- 含快照号，不可变：doubao-seedance-2-5-260628
+  provider       TEXT NOT NULL,          -- volcengine | anthropic | xai | google | ...
+  family         TEXT NOT NULL,          -- doubao-seedance（营销族，可改名而不影响 id）
+  status         TEXT NOT NULL DEFAULT 'active'  -- active | legacy | eol（对齐 Bedrock 三态）
+);
+-- 现在时理由：别名映射需要 join 目标。用裸字符串做键 ⇒ channel_model_aliases.canonical_provider_model
+-- 退化为无外键软引用 ⇒ 改名/合并时静默孤儿化。OpenRouter 实测 317/462（69%）可路由名≠权威名。
+
+-- 表 2：别名（多对一；承载各渠道各自的 id）
+upstream_model_aliases(
+  alias            TEXT PRIMARY KEY,     -- 唯一 ⇒ O(1) 反查
+  upstream_model_id BIGINT NOT NULL REFERENCES upstream_models(id) ON DELETE RESTRICT,
+  alias_kind       TEXT NOT NULL,        -- vendor_snapshot|vendor_marketing|variant|latest_tracking|relay_id
+  channel_id       TEXT                  -- 非空 = 该渠道特有 id；空 = 通用别名
+);
+-- 现在时理由：8 项别名问题就是这张表的内容；且中转站 95 条 id 有 16 条是库里没有的
+-- ⇒ 接第二个渠道时只**新增别名行**，不新增能力行。ON DELETE RESTRICT：宁可删除失败，不静默丢人工值。
+
+-- 表 3：能力断言（逐字段 + 逐字段来源）
+model_capability_assertions(
+  id                BIGSERIAL PRIMARY KEY,
+  upstream_model_id BIGINT NOT NULL REFERENCES upstream_models(id) ON DELETE RESTRICT,
+  channel_id        TEXT,                -- ★ 可空：NULL=模型固有事实；非空=该渠道特有差异
+  field             TEXT NOT NULL,       -- aspect_ratios|duration_min_s|duration_max_s|
+                                         -- reference_image_max|reference_video_max|reference_audio_max|
+                                         -- generation_modes|quality_tiers|resolution_tiers
+  value             JSONB,               -- NULL = 显式「不知道」(NOASSERTION)
+  source_tier       TEXT NOT NULL,       -- 见 §2 枚举
+  source_uri        TEXT,                -- 依据 URL（逐值可追溯）
+  asserted_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  verified_at       TIMESTAMPTZ,         -- 何时核实（官方文档会变）
+  status            TEXT NOT NULL DEFAULT 'active'  -- active|superseded|deprecated
+);
+CREATE UNIQUE INDEX ON model_capability_assertions (upstream_model_id, COALESCE(channel_id,''), field)
+  WHERE status = 'active';               -- 每字段仅一条 active
+-- 现在时理由：调研数据逐字段分来源（见 §0）。历史以 superseded 行保留 ⇒ 改值不丢旧值。
+```
+
+**★ 那个 `channel_id` 可空列，是"右尺寸"的关键**：
+它让**渠道级差异一次性可表达**，而**现在全部为 NULL**（能力都是模型级事实）。
+将来某中转站确实只放通子集时，**加一行 channel-scoped 断言即可，不需要第二张表、不需要迁移**。
+
+解析顺序（与 §七一致，仅落点更清晰）：
+```
+有效能力 = channel 级断言(channel_id=本渠道) ?? 模型级断言(channel_id IS NULL) ?? NOASSERTION
+```
+
+### 2. `source_tier` 枚举（定稿）
+
+| 值 | 含义 | 你现在就有实例 |
+|---|---|---|
+| `manual_curated` | **你人工确认**（最高） | 8 项别名裁定后 |
+| `vendor_official` | 厂商官方文档 / 模型卡 | Seedance、Veo、MiniMax、Seedream、FLUX、GLM、wan2.7 |
+| `vendor_api_probe` | 调厂商自己的 `/models` 观测 | —— |
+| `relay_probe` | **我们实测调用成功**并回传参数 | 将来自愈闭环 |
+| `relay_declared` | 中转站广告/配置 | `model_type` / `supported_endpoint_types` |
+| `aggregator_third_party` | 聚合站 / 网关文档 | **Grok 全系**、OpenAI 经 SDK 类型文件 |
+| `community` | 博客 / issue | `ltx-digitalhuman` 的旁证 |
+
+**★ 我把"人工确认"做成最高 tier，而不是另加 `preference` 列** —— 这样"人的判断"与"值从哪来"**共用一个轴**，少一列且无歧义。
+
+### 3. 从 §七 砍掉的字段（逐项说明为何是推测性的）
+
+| 砍掉 | 原依据 | 为何砍 |
+|---|---|---|
+| `method`（CycloneDX technique） | 表达"怎么确定的" | **已被 `source_tier` 覆盖**（`relay_probe` = dynamic、`vendor_official` = manifest）⇒ 冗余 |
+| `confidence` 0–1 | CycloneDX | 调研自己结论：**"置信度是方法内部概念，不跨方法可比"**，0.8 与 0.7 **无客观依据** ⇒ 伪精确。`source_tier` 才是真信号 |
+| `expires_at` | 防第三方数据固化 | **`verified_at` + 查询侧的陈旧度策略等价**，且少一列要维护。陈旧规则：`relay_declared` 7 天 / `aggregator` 30 天 / `community` 90 天 |
+| `preference`（Wikidata rank） | 与 source 正交 | **`manual_curated` tier 已表达人的判断**（见 §2）⇒ 不需要第二轴 |
+| 独立的 `channel_model_discovered` 表 | 分离发现态与人工态 | **`channel_models` 已有 `model_type`/`endpoint_types` 列**，只是没采到值 ⇒ **修同步即可，不必新建表** |
+| 独立的 `channel_model_overrides` 表 | 防同步冲刷人工值 | **能力根本不经同步**（见 §4 不变量）⇒ 冲刷问题**结构上不存在**，不需要该表 |
+| `upstream_model_aliases.source`（auto/manual） | external-dns 所有权标记 | 并入 `alias_kind` + `manual_curated` tier；**同步只允许写 `alias_kind='relay_id'` 的行**（约束写在同步侧，不占列） |
+
+⇒ **砍掉 7 项，全部有"现在不需要"的理由，且都不是"以后再补"**（前 4 项是冗余/伪精确，后 3 项是结构上不需要）。
+
+### 4. 四条不变量（**这四条才是本设计的价值，不是表的数量**）
+
+| # | 不变量 | 违反的后果 | 依据 |
+|---|---|---|---|
+| **I1** | **能力不经同步** —— 同步只写路由事实（`model_type`/`endpoints`） | 一旦同步写能力，"人工值被冲刷"问题立刻出现，且必须自己实现三方合并（K8s 花了两代机制才解决） | K8s spec/status 分字段分授权 |
+| **I2** | **未知 = NOASSERTION，绝不落平台默认** | 把不知道的事实断言成真 ⇒ 付费生成下烧额度 + 失败 Job + 审计留下"明知不确定却声称支持"的记录 | SPDX：字段缺席 ≡ `NOASSERTION`；HF 曾自动推断造成静默错误后**改为不推断** |
+| **I3** | **来源可追溯**（每值知来源与核实时间） | Grok 全系的第三方值会被当成官方事实；无法回答"我们为什么认为它支持 21:9" | CycloneDX / SLSA（信任挂在来源上） |
+| **I4** | **稳定身份**（别名多对一，ON DELETE RESTRICT） | 改名/合并静默孤儿化；同模型经两渠道的矛盾声明无法判定"谈的是同一个东西" | SPDX 7.2；OpenRouter 69% 名字≠权威名 |
+
+### 5. 前端契约（避免"设计完了还得再改前端"）
+
+能力字段名**一次定死**，前端只读不猜：
+
+```jsonc
+{
+  "aspect_ratios":        ["16:9","4:3","1:1","3:4","9:16","21:9","adaptive"],
+  "duration":             { "min_s": 4, "max_s": 30, "enum_s": null },   // enum 优先于区间
+  "resolution_tiers":     ["480p","720p","1080p"],
+  "quality_tiers":        null,
+  "generation_modes":     ["t2v","first_frame","first_last_frame","omni_reference","video_edit","video_extend","with_audio"],
+  "reference_rules": {
+    "image_max": 30, "video_max": 10, "audio_max": 10, "mixed_max": null,
+    "constraints": "三场景互斥；不支持含真人人脸素材"
+  }
+}
+```
+
+**`generation_modes` 里显式含 `omni_reference`（全能参考）** —— 这正是你问的那个能力：
+`doubao-seedance-2-5` 为 `image_max:30 / video_max:10 / audio_max:10`；
+`minimax-h3` 为 `image_max:9 / video_max:3 / audio_max:3 / mixed_max:12`。
+
+### 6. 落地顺序（不变，但更短）
+
+| 序 | 事项 | 现在时理由 |
+|---|---|---|
+| 1 | 迁移：建 3 张表 | 见 §1 |
+| 2 | **修同步**：采 `model_type` / `supported_endpoint_types` / `display_name` | 中转站**已提供**而库里是占位值；顺手解决 79→95 滞后 |
+| 3 | **回填能力断言**：我调研的 23+ 条（逐字段标 `source_tier` + `source_uri`） | 数据现成 |
+| 4 | 回填别名：95 条 id → 实体（大部分自动，8 项人工裁定） | 见 §四 |
+| 5 | 前端按 §5 契约渲染表单 | —— |
+
 ## 八、非范围（本方案不做）
 
 - ❌ 不改 `channel_models` 的**同步机制本身**（ADR-004 D1/D2 不变量：只写供给池、绝不自动写目录）
