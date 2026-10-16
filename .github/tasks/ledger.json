@@ -458,6 +458,14 @@
       "priority": "P1（底座收尾的自动化补刀——服务 TASK-MODEL-006 判据 4「能力声明覆盖」）",
       "pr": "#212",
       "file": "[TASK-PROTOCOL-002/task.md](TASK-PROTOCOL-002/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-003",
+      "title": "协议模板生成器（OpenAPI 规范 → 协议定义，确定性生成）",
+      "status": "进行中",
+      "priority": "P1（协议层的自动化补刀——VOZEB 三件套之三「从上游文档确定性解析生成协议」）",
+      "pr": "#213",
+      "file": "[TASK-PROTOCOL-003/task.md](TASK-PROTOCOL-003/task.md)"
     }
   ]
 }
