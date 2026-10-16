@@ -357,6 +357,26 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Enabled:      true,
 			Version:      1,
 		},
+
+		// openai_responses（TASK-PROTOCOL-006）：OpenAI Responses API，同步返回（可 stream）。
+		// 生成：protocol-gen 官方 openapi.json v2.3.0 确定性输出 params（31 键）；
+		// 审查：capabilities=text-chat，param_mapping 官方语义 identity，未实测（observed_evidence 标注）。
+		{
+			ID:          "pt_builtin_openai_responses",
+			Label:       "OpenAI Responses API（text-chat）",
+			Desc:        "OpenAI 新一代 Responses API：POST /v1/responses 同步返回（可 stream）。协议定义由 protocol-gen 从 OpenAI 官方 openapi.json（v2.3.0）确定性生成。",
+			Type:        "text",
+			Method:      "POST",
+			RequestPath: "/v1/responses",
+			// params 为空：由 capabilities.param_mapping 装配（与 DB 行一致）。
+			Params:         []Param{},
+			ResponseParams: []Param{},
+			Async:          ProtocolAsync{Enabled: false},
+			Capabilities:   json.RawMessage(openaiResponsesCapabilities),
+			Builtin:        true,
+			Enabled:        true,
+			Version:        1,
+		},
 	}
 }
 

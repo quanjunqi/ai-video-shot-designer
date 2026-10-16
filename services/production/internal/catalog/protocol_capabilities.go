@@ -93,3 +93,32 @@ const openaiImageCapabilities = `{
     }
   }
 }`
+
+// openai_responses capabilities（TASK-PROTOCOL-006）：text-chat（Responses API 官方语义）。
+// 生成：protocol-gen 从 OpenAI 官方 openapi.json（v2.3.0）确定性输出 params（31 键）；
+// 审查：param_mapping 官方语义 identity 映射，未真实渠道实测（observed_evidence 标注）。
+const openaiResponsesCapabilities = `{
+  "text-chat": {
+    "request_path": "/v1/responses",
+    "method": "POST",
+    "required_params": ["model"],
+    "param_mapping": {
+      "model": "model",
+      "prompt": "prompt",
+      "instructions": "instructions",
+      "max_output_tokens": "max_output_tokens",
+      "temperature": "temperature",
+      "top_p": "top_p",
+      "stream": "stream",
+      "tools": "tools",
+      "tool_choice": "tool_choice",
+      "store": "store",
+      "metadata": "metadata",
+      "user": "user"
+    },
+    "response_extract": {
+      "text": "output_text",
+      "usage": "usage"
+    }
+  }
+}`

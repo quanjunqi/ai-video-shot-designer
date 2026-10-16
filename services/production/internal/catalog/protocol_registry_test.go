@@ -18,7 +18,8 @@ var builtinTemplateIDs = []string{
 	"pt_builtin_minimax_video",
 	"pt_builtin_openai",
 	"pt_builtin_openai_img",
-	"pt_builtin_openai_video", // TASK-PROTOCOL-005：注册表补 canonical 定义后，内置定义 = 9
+	"pt_builtin_openai_responses", // TASK-PROTOCOL-006：protocol-gen 实战新增（内置定义 = 10）
+	"pt_builtin_openai_video",     // TASK-PROTOCOL-005：注册表补 canonical 定义后，内置定义 = 9
 }
 
 func TestProtocolDefinitionsIntegrity(t *testing.T) {
@@ -282,6 +283,24 @@ func TestProtocolDefinitionsMatchMigrations(t *testing.T) {
 				`"reference_images[0].url":"metadata.content[0].image_url"},` +
 				`"required_params":["prompt"],` +
 				`"response_extract":{"status":"status","task_id":"task_id"}}}`,
+			version: 1,
+		},
+		{
+			// 068 播种（TASK-PROTOCOL-006）：OpenAI Responses API，protocol-gen 实战首战。
+			id:    "pt_builtin_openai_responses",
+			label: "OpenAI Responses API（text-chat）",
+			desc:  "OpenAI 新一代 Responses API：POST /v1/responses 同步返回（可 stream）。协议定义由 protocol-gen 从 OpenAI 官方 openapi.json（v2.3.0）确定性生成。",
+			typ:   "text", method: "POST", requestPath: "/v1/responses",
+			params:         `[]`,
+			responseParams: `[]`,
+			async:          `{}`,
+			capabilities: `{"text-chat":{"request_path":"/v1/responses","method":"POST",` +
+				`"required_params":["model"],` +
+				`"param_mapping":{"model":"model","prompt":"prompt","instructions":"instructions",` +
+				`"max_output_tokens":"max_output_tokens","temperature":"temperature","top_p":"top_p",` +
+				`"stream":"stream","tools":"tools","tool_choice":"tool_choice","store":"store",` +
+				`"metadata":"metadata","user":"user"},` +
+				`"response_extract":{"text":"output_text","usage":"usage"}}}`,
 			version: 1,
 		},
 	}

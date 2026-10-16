@@ -491,6 +491,16 @@
       "status": "待验收",
       "priority": "P0",
       "file": "[TASK-AUTH-002/task.md](TASK-AUTH-002/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-006",
+      "title": "接真实渠道实战——OpenAI Responses API 全流程首战（protocol-gen SOP 首个完整实战）",
+      "status": "待验收",
+      "priority": "P1（协议层治理收口）",
+      "pr": null,
+      "file": "[TASK-PROTOCOL-006/task.md](TASK-PROTOCOL-006/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 6
     }
   ]
 }
