@@ -240,7 +240,7 @@
       "title": "逻辑模型自动归并（同名跨渠道 → 同一分组）",
       "status": "进行中",
       "priority": "P1（底座收尾的自动化补刀——对齐 VOZEB synchronizeLogicalModelsWithChannels 的机械劳动自动化）",
-      "pr": "#<待开>",
+      "pr": "#210",
       "file": "[TASK-MODEL-007/task.md](TASK-MODEL-007/task.md)"
     },
     {

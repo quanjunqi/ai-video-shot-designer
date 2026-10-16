@@ -2,7 +2,7 @@
 taskId: TASK-MODEL-007
 status: 进行中
 priority: P1（底座收尾的自动化补刀——对齐 VOZEB synchronizeLogicalModelsWithChannels 的机械劳动自动化）
-pr: "#<待开>"
+pr: "#210"
 criteria: 8
 criteriaPassed: 0
 depends_on: 不依赖 TASK-MODEL-006 的 Owner 决策（功能独立，测试用自建数据；策展数据就绪后工具立即可用）
