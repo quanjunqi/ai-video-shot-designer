@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T16:30:00+0800",
+  "updatedAt": "2026-10-16T18:30:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -418,6 +418,14 @@
       "priority": "**P1（拆掉最大的 4 个 handler 文件）**",
       "pr": null,
       "file": "[TASK-PROC-007/task.md](TASK-PROC-007/task.md)"
+    },
+    {
+      "id": "TASK-PROC-008",
+      "title": "清零文件行数基线（engine.go 孤立注释 + 4 个测试文件拆分）",
+      "status": "待验收",
+      "priority": "**P1（清零基线 ⇒ BE-SIZE-001 全面阻断）**",
+      "pr": null,
+      "file": "[TASK-PROC-008/task.md](TASK-PROC-008/task.md)"
     }
   ]
 }

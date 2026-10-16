@@ -57,20 +57,26 @@ for lineno, raw in enumerate(bp.read_text(encoding='utf-8').splitlines(), 1):
         sys.exit(2)
     base[path] = int(value)
 
-# ── 扫描实测（fail-closed：一个都没扫到 ⇒ 2，空区间不得当通过）──
+# ── 扫描实测 ──
+# fail-closed 的**正确口径**：看「扫到了几个文件」，而不是「有几个违规」。
+#   ★ 为什么修正（TASK-PROC-008 实测踩到）：原实现在 `real` 与 `base` 双空时判 2，
+#     但「扫了 101 个文件、0 个违规、基线已清零」**正是目标成功态** ⇒ 达标即让门禁自锁。
+#     两者的区别：**没扫到文件 = 未验证（2）**；**扫到文件但零违规 = 通过（0）**。
 root = pathlib.Path(scan_root)
 if not root.is_dir():
     print(f"  ⚠️  无法检查：扫描目录不存在 {scan_root}")
     sys.exit(2)
 real = {}
+scanned = 0
 for f in sorted(root.rglob('*.go')):
     rel = f.relative_to(pathlib.Path(scan_root).parent).as_posix() if scan_root.endswith('services') else f.as_posix()
     lines = len(f.read_text(encoding='utf-8', errors='replace').splitlines())
     limit = limit_main if f.as_posix().endswith('cmd/server/main.go') else limit_go
+    scanned += 1
     if lines > limit:
         real[rel] = (lines, limit)
-if not real and not base:
-    print("  ⚠️  无法检查：既无实测超标、也无基线条目 —— 扫描区间可疑（**2 ≠ 通过**）")
+if scanned == 0:
+    print(f"  ⚠️  无法检查：在 {scan_root} 下未找到任何 .go 文件 —— 扫描区间为空（**2 ≠ 通过**）")
     sys.exit(2)
 
 # ── 更新模式 ──
@@ -156,10 +162,18 @@ self_test() {
   echo "  --- 正例 7：实测 < 基线 ⇒ 绿（提示收紧）---"
   printf 'services/ok.go 600\n' > "$tmp/base.txt"; expect 0 "低于基线 ⇒ 通过（可收紧）"
 
+  echo "  --- 正例 8：★目标成功态（扫到文件、0 违规、基线为空）⇒ 必须绿 ---"
+  # 这是 TASK-PROC-008 清零基线后踩到的真实状态：原实现在此判 2 ⇒ 达标即自锁。
+  mk ok.go 500; printf '# 基线已清零\n' > "$tmp/base.txt"; expect 0 "零违规 + 空基线 ⇒ 通过（不是「无法检查」）"
+
+  echo "  --- 反例 9：扫描区间为空（目录下无 .go）⇒ 仍必须 rc=2（fail-closed 未被削弱）---"
+  rm -rf "$tmp/services"; mkdir -p "$tmp/services/nogo"; : > "$tmp/services/nogo/readme.txt"
+  printf '# 空\n' > "$tmp/base.txt"; expect 2 "一个 .go 都没扫到 ⇒ 判 2"
+
   echo
   echo "  self-test：通过 $pass / 失败 $fail"
   [ "$fail" -eq 0 ] || { echo "  ❌ self-test 未通过 —— 门禁自身不可信"; return 1; }
-  echo "  ✅ self-test 通过（7 例：5 反例 + 2 正例）"
+  echo "  ✅ self-test 通过（9 例：6 反例 + 3 正例）"
 }
 
 case "${1:-}" in
