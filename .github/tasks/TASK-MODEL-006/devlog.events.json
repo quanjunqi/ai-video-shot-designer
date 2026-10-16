@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-16T22:30:00+08:00",
+  "updatedAt": "2026-10-17T00:30:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -102,6 +102,26 @@
         "栈可用：/api/v1/me 200，5 端口全在（postgres 容器被 Recreate 未造成影响）"
       ],
       "decisionRef": "D-010",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T00:30:00+08:00",
+      "phase": "T5：补视频模板 + 两次失误报告",
+      "action": "新增 PearAPI 视频协议模板（061）填补真实缺口；同时报告两个我自己的失误（未确认就执行 060、建议 A 前提被证伪）",
+      "evidence": [
+        "定向实测：唯一真实渠道 PearAPI（79 channel_models），另 6 渠道全为 0；有 capabilities 的只有 openai/openai_img 2 个，恰好只有这 2 个被真实使用（入池 1 与 2）；PearAPI 的 15 个视频模型没有任何可用模板 ⇒ 视频模态走不通",
+        "交付：pt_builtin_openai_video（061），能力 text-to-video + image-to-video，POST /v1/videos/generations + 轮询 /v1/videos/{id}",
+        "证据分级写进 observed_evidence（仓内首次使用该字段）：实测已注册 4 条路由 / 实测形状（提交响应 {task_id,status:queued}、无 webhook、15s 刷新、24h 清扫、无跨渠道重试）/ 实测约束（豆包插件只保留 metadata） / 未验证 3 项 + 闭合方式；doc_ref.verifiedAt 保持 NULL",
+        "★失误1：上一轮我明确说『060 未被应用』并问是否先 dry-run 确认，本轮跑 migrate 时忘了再次移出 060 ⇒ 执行器把 060+061 一起应用（迁移计划：待应用 2）。这是承诺了确认却没执行。",
+        "失误1 处置：立即实测影响面并与会前 dry-run 对照 —— 渠道 7→1、目录行 18→2、channel_models 79 不变、归档版本 77→21，全部一致；且顺带达成判据 2（入池行 providerModel 违反 0 行）与判据 3（gpt-image-2 语义违反行 0 行剩余）",
+        "★失误2：我建议『删除 6 个零引用模板』，执行前验证发现前提只对一半 —— DB 侧引用全为 0 且无外键，但代码/文档侧每个有 4~17 处引用（jimeng_video 17、minimax_video 14、minimax_text 12）",
+        "失误2 追查：protocol_registry.go 是 ADR-007 D1 的协议即代码注册表，定义全部 8 个内置模板，读取路径『DB 行优先，DB 缺失的 id 由注册表补齐』⇒ 删 DB 行是非操作且打断测试 ⇒ 建议 A 从根上错了，已撤回",
+        "测试契约更新：061 使带 pollPath/failValue 的模板集合由 2 变 3 ⇒ 两条真库集成测试期望值过期（TestPostgresProtocolTemplateAsyncPollPath / AsyncTerminalValues）。处置：更新期望集合并写明理由，逐字段断言不放松，wantEmptyAsync 继续把关其余 6 个仍为 {}",
+        "判据4 口径问题：现状 3/9，与引用数完全对应（在用 2 个 + 061 新建 1 个有 caps；其余 6 个是内置定义、渠道已删、无官方文档可依据）⇒ 建议改为『在用模板 100% 有 caps』（现 3/3），但需 Owner 决定",
+        "我写 061 时犯了 2 个 SQL 语法错误并当场修正：COMMENT ON 里并排字符串字面量（SQL 不拼接相邻字面量）；改 || 后才知道 COMMENT ON 只接受单个字面量",
+        "验证：production 全量测试（含真库集成）rc=0；061 事务内验证→回滚干净（模板数仍 8）→再由执行器应用"
+      ],
+      "decisionRef": "D-013",
       "blockRef": null
     }
   ],
@@ -296,6 +316,40 @@
       "choice": "app + platform",
       "reason": "asset(app) 依赖 minio(platform)，只给 app 会报 invalid compose project",
       "timing": "迁移"
+    },
+    {
+      "id": "D-013",
+      "topic": "6 个无 caps 模板怎么处置",
+      "options": [
+        "删除",
+        "保持现状",
+        "标记 disabled"
+      ],
+      "choice": "撤回『删除』，保持现状",
+      "reason": "它们是 protocol_registry.go 的内置协议定义；删 DB 行是非操作（注册表补齐）且打断 4~17 处代码/测试引用",
+      "timing": "T5"
+    },
+    {
+      "id": "D-014",
+      "topic": "视频模板的未验证项",
+      "options": [
+        "按推断填值不标注",
+        "如实标注 observed_evidence + verifiedAt=null"
+      ],
+      "choice": "如实标注",
+      "reason": "仓内铁律『不许瞎猜』；全部 8 个既有模板也都是 verifiedAt=null",
+      "timing": "T5"
+    },
+    {
+      "id": "D-015",
+      "topic": "两条集成测试期望值",
+      "options": [
+        "更新期望",
+        "改测试逻辑放宽"
+      ],
+      "choice": "更新期望并写明理由",
+      "reason": "集合合法增长；逐字段断言不放松 ⇒ 原意『只改了该改的』仍被守护",
+      "timing": "T5"
     }
   ],
   "verifications": [
