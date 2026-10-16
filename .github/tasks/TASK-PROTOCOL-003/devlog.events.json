@@ -1,0 +1,209 @@
+{
+  "taskId": "TASK-PROTOCOL-003",
+  "updatedAt": "2026-10-17T01:40:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T00:55:00+08:00",
+      "phase": "探查",
+      "action": "确认 MODEL-006 剩余判据依赖 Owner；选 VOZEB 三件套之三（自动协议生成）。探测上游：PearAPI/MiniMax 均 SPA 无静态 OpenAPI；GitHub raw openai/openai-openapi 可取 OpenAI 官方 OpenAPI 3.1（4.1MB）",
+      "evidence": [
+        "/tmp/openai_openapi.yaml",
+        "protocol_registry.go",
+        "SELECT protocol_templates WHERE id LIKE %openai%"
+      ],
+      "decisionRef": "D-001~D-006"
+    },
+    {
+      "ts": "2026-10-17T01:00:00+08:00",
+      "phase": "立卡",
+      "action": "建 TASK-PROTOCOL-003 四件套；新分支 feature/protocol-generator-2026-10-17；fixture 生成（BFS 裁剪 88 schema）",
+      "evidence": [
+        ".github/tasks/TASK-PROTOCOL-003/task.md",
+        "/tmp/openai_fixture.json"
+      ]
+    },
+    {
+      "ts": "2026-10-17T01:10:00+08:00",
+      "phase": "开发",
+      "action": "下载 OpenAI 官方 OpenAPI 3.1（openai/openai-openapi master，4.1MB）；BFS 裁剪目标端点子图（88 schema 140KB）生成 fixture（含 x-source 来源注释）",
+      "evidence": [
+        "internal/protocolgen/testdata/openai_fixture.json"
+      ]
+    },
+    {
+      "ts": "2026-10-17T01:20:00+08:00",
+      "phase": "开发",
+      "action": "写 protocolgen 包（parse/schema/generate + 10 单测）；修复 3 处确定性破坏（requestBody 未取 schema、BasePath 未生效、Go map 遍历随机 → 字母序排序）",
+      "evidence": [
+        "internal/protocolgen/*.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T01:30:00+08:00",
+      "phase": "验证",
+      "action": "断言通过：chat 14 手写键 ⊇ 官方字段、images 6 键全命中——官方 OpenAPI 独立验证注册表手写定义零臆测",
+      "evidence": [
+        "generate_test.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T01:35:00+08:00",
+      "phase": "开发",
+      "action": "写 CLI cmd/protocol-gen（-spec/-id/-label/-base-path/-path/-method）+ SOP docs/how-to/protocol-onboarding.md",
+      "evidence": [
+        "cmd/protocol-gen/main.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T01:40:00+08:00",
+      "phase": "门禁",
+      "action": "production build/test -race/vet/gofmt 全绿；file-size 0 超标；台账门禁通过（修复 README/ledger 标题一致）",
+      "evidence": [
+        "V-005"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "解析器依赖",
+      "options": [
+        "A. kin-openapi",
+        "B. 零依赖手写"
+      ],
+      "choice": "B",
+      "reason": "只需确定性结构提取；避免大依赖",
+      "timing": "探查"
+    },
+    {
+      "id": "D-002",
+      "topic": "$ref 解析",
+      "options": [
+        "A. 跨文件",
+        "B. 仅文件内，跨文件报错"
+      ],
+      "choice": "B",
+      "reason": "单文件是发布常态；跨文件报错不静默",
+      "timing": "探查"
+    },
+    {
+      "id": "D-003",
+      "topic": "allOf/oneOf/anyOf",
+      "options": [
+        "A. 全展开",
+        "B. allOf 合并 + oneOf 首含 properties 分支"
+      ],
+      "choice": "B",
+      "reason": "确定性：同输入同输出",
+      "timing": "探查"
+    },
+    {
+      "id": "D-004",
+      "topic": "basePath",
+      "options": [
+        "A. servers 提取",
+        "B. 调用方注入"
+      ],
+      "choice": "servers 优先，缺省注入",
+      "reason": "OpenAI 官方 paths 无 /v1 前缀",
+      "timing": "探查"
+    },
+    {
+      "id": "D-005",
+      "topic": "生成范围",
+      "options": [
+        "A. 全生成",
+        "B. 结构生成 + capabilities/param_mapping 留人审"
+      ],
+      "choice": "B",
+      "reason": "mode 语义需人审；param_mapping 需实测",
+      "timing": "探查"
+    },
+    {
+      "id": "D-006",
+      "topic": "response_extract",
+      "options": [
+        "A. 深层递归",
+        "B. 顶层+数组一层"
+      ],
+      "choice": "B",
+      "reason": "确定性 + 保守：不猜深层语义键",
+      "timing": "探查"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据 1",
+      "cmd": "go test ./internal/protocolgen/",
+      "result": "10 单测全绿；确定性修复 3 处"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 2",
+      "cmd": "fixture x-source",
+      "result": "来源注释已含"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 3/4",
+      "cmd": "Generate 断言",
+      "result": "chat 14 键 ⊇、images 6 键全命中"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 5",
+      "cmd": "结构 + ReviewNotes",
+      "result": "capabilities/param_mapping 不生成"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据 6",
+      "cmd": "production 门禁",
+      "result": "全绿"
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✅",
+      "evidence": "V-001~V-005"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✅",
+      "evidence": "提交时按路径 add"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✅",
+      "evidence": "protocolgen/ + cmd + docs + 台账"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✅",
+      "evidence": "acceptance.md 6/6"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✅",
+      "evidence": "V-005"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✅",
+      "evidence": "三方一致"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规",
+      "result": "✅",
+      "evidence": "本卡无迁移"
+    }
+  ],
+  "retrospective": {
+    "good": "",
+    "improve": "",
+    "followups": ""
+  }
+}
