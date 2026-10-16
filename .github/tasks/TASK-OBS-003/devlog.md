@@ -36,6 +36,25 @@
   唯一待定的是"耗时口径"（端到端 vs 单次上游调用），已列入验收判据 3 要求先定后写。
 - **决策**：D-001（先立卡再改码，纠正此前 motion token 一次未立卡的流程偏差）。
 
+### 2026-10-16 根因精化：不是"硬编码 0"，而是 Executor 层丢了 ElapsedMs
+
+前一轮我把根因写成「三个便捷封装硬编码 0」——**那不完整**。逐层查下去发现修复其实**大部分已做过**：
+
+| 层 | 事实 | 证据 |
+|---|---|---|
+| 引擎 | **已算好并写了** `ElapsedMs` | `engine.go:108-113` `withElapsed` 同时写 `Duration`(字符串) + `ElapsedMs`(int)；**4 个构造点全部调用它**（`engine.go:128/179/238/378`） |
+| 注释 | **该修复已被记录** | `engine.go:90-96` 与 `worker/audit.go:87-89` 都写着「原来硬编码 0 ⇒ 异步任务耗时永远是 0…引擎本来就测了 Duration，这里把它传下去」 |
+| worker | **已透传**（用量路径） | `worker.go:368/374` 传 `result.ElapsedMs`；`audit.go:72` `auditTerminalUsage(..., elapsedMs, ...)` 接收并透传 |
+| **Executor 层** | **❌ 唯独这里没搬** | **`api_connector.go:70-77`**：构造 `ExecutorResult` 时传了 `Status`/`Extracted`/`RawBody`/`HTTPStatus`，还**另算**了 `Duration: time.Since(submittedAt)`，**但没传 `out.ElapsedMs`** |
+
+**关键推论（有依据）**：V5b（用量落库）**通过** ⇒ V5 走的就是 `auditTerminalUsage` 这条**会透传 elapsedMs** 的路径
+⇒ 所以 0 **不是**来自"硬编码"，而是来自 **`result.ElapsedMs` 本身为 0** ⇒ 缺口就在 `api_connector.go` 这一次字段搬运上。
+
+**待核实（B-002）**：`ExecutorResult` 类型是否根本没有 `ElapsedMs` 字段？
+`grep -rn ElapsedMs internal/engine/` 只命中 `engine.go`（含 `RunResult.ElapsedMs`），**未命中 `ExecutorResult` 的定义**。
+若确实缺字段 ⇒ 修复 = 给 `ExecutorResult` 加字段 + 在 `api_connector.go:70` 赋值 + 让 worker 读它（**三处小改，不需要迁移**）。
+若只是未赋值 ⇒ 修复 = 一行。
+
 ## 决策记录 D
 
 | 编号 | 主题 | 选项 | 选择 | 理由 | 时机 |
@@ -48,14 +67,17 @@
 | 编号 | 对应判据 | 命令/方式 | 结果 | 证据位置 |
 |---|---|---|---|---|
 | V-001 | 缺陷存在性（判据 1 的前置） | `bash scripts/audit-verdicts.sh` | FAIL（复现成功：V5c ❌，19 通过 / 1 失败） | 本日志 立卡条目 |
-| V-002 | 根因定位 | grep + 逐层读码，见根因链 5 层 | PASS（定位到行号） | task.md「根因」表 |
+| V-002 | 根因定位（初版：硬编码 0） | grep + 逐层读码 | **PARTIAL —— 后被推翻** | 见下 |
+| V-003 | 根因精化（真正的缺口） | 逐层读码至 `api_connector.go:70-77` | PASS：Executor 层未搬 `out.ElapsedMs` | 本日志「根因精化」段 |
+| V-004 | 口径所需字段是否存在 | 读 `job.Job` 定义 | PASS：`CreatedAt`/`StartedAt`/`FinishedAt` 均在 ⇒ 不需要迁移 | 同上 |
 | — | （判据 1~8 待实现后逐条追加） | | | |
 
 ## 阻塞与解法 B
 
 | 编号 | 阻塞 | 根因 | 解法 | 复用教训 |
 |---|---|---|---|---|
-| B-001 | 耗时口径未定 | `job.Job` 是否带提交时刻尚未核实 | 实现前先核实；若需新增列则要迁移（会扩大范围） | 先定口径再写码，避免"用未知起点估算" |
+| B-001 | ~~耗时口径未定~~ **已解除** | `job.Job` 是否带提交时刻 | **已核实：带**。`job.Job` 有 `CreatedAt` / `StartedAt *` / `FinishedAt *`（`internal/job/store.go`）⇒ **端到端可算、不需要迁移**。口径定为**端到端**（依据：同步路径 `handlers_generate.go:270` 用 `time.Since(startTime)` 亦为端到端，两者须可比） | 先核实字段再定口径 |
+| B-002 | `ExecutorResult` 是否缺 `ElapsedMs` 字段 | `grep ElapsedMs internal/engine/` 只命中 `engine.go`，未命中 `ExecutorResult` 定义 | 实现时先确认类型定义；缺则加字段（3 处小改），有则一行赋值 | 逐层核实，不接受"看起来对" |
 
 ## 纪律自检
 
