@@ -48,6 +48,22 @@
 | capabilities | ❌ | mode 语义需业务判断（参考 061 枚举），生成器不猜 |
 | param_mapping | ❌ | 需真实渠道实测/官方文档核读后补（无依据不填） |
 
+## 一致性自检（TASK-PROTOCOL-004）
+
+协议定义来源不统一（注册表 Go 代码 ↔ DB 行 ↔ 能力键词表）会造成漂移——
+实测 2026-10-16：`pt_builtin_openai_video` 只在 DB、不在注册表（grep -c=0）。
+用 `internal/protocolaudit` 自动检出：
+
+```bash
+cd services/production && go test ./internal/protocolaudit/ -v
+```
+
+- 检查项：① id 集合（db-only = 漂移阻断项；registry-only = MergeTemplates 补齐态）
+  ② 能力键词表（键必须 ∈ 061 枚举；违规 = 阻断项）③ builtin 空能力提示（comfyui 例外）
+- 输入：注册表 id 集 + DB 行快照（`testdata/protocol_templates_snapshot.json` = 真库 2026-10-17 快照）
+- 门禁自证：快照单测断言已知漂移稳定检出（防回归）——接入新协议后**刷新快照并保持自证通过**
+- 修漂移：新增迁移把 DB 行与注册表对齐（builtin 模板需注册表有定义），号段按服务认领
+
 ## 注意事项
 
 - **跨文件 $ref 不支持**（报错不静默）：上游规范若拆分多文件，先合并成单文件再喂生成器。
