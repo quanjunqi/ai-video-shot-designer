@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T02:40:00+08:00",
+  "updatedAt": "2026-10-17T04:00:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -172,6 +172,26 @@
         "CurateInput 无 JSON 标签 ⇒ 用 Go 字段名（JSON 大小写不敏感）；handler 用 DisallowUnknownFields ⇒ 不能多字段"
       ],
       "decisionRef": "D-018",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T04:00:00+08:00",
+      "phase": "判据 8 真机勾对：先失败 → 定位到我的契约违反 → 修复 → 通过",
+      "action": "派子代理用无头 Chrome/CDP 真机断言判据 8；失败后独立核验并修复我自己引入的契约违反（迁移 062）；复验通过",
+      "evidence": [
+        "第一次实测：catalogSource === 'offline-fallback'，rc=1。不是前端没调 syncCatalog（AppShell.tsx:33 等共触发 5 次，10 个请求全部 HTTP 200），而是抛的异常被吞了",
+        "根因链：① 061 把 pt_builtin_openai_video 的 params/response_params 写成 '{}'::jsonb（对象），其余 8 个模板都是数组 ② 契约 openapi/bff.yaml:2935-2939 明确 type: array ⇒ 违反契约 ③ 前端 useSettingsStore.ts:81 的 (t.params ?? []).map —— {} 不是 nullish，?? [] 兜不住 ⇒ TypeError ④ 被 :157 裸 catch {} 吞掉 ⇒ markOfflineFallback() ⇒ UI 显示『服务端不可达』而服务端其实是好的",
+        "★反事实实验（决定性）：不改任何源码与数据，仅用 CDP Fetch.fulfillRequest 在响应途中把该行 {} 改成 []，其余字节不动 ⇒ 同一次运行里 syncCatalog() 立刻 offline-fallback → server、DOM 徽章变『目录已连接』⇒ 拦路石只有这一条畸形数据",
+        "我的独立核验（不只信子代理）：查真库确认 pt_builtin_openai_video 是 object/object，其余 8 个是 array/array",
+        "修复：新增迁移 062（061 已应用，按仓规『迁移只增不改』必须新增）；只 UPDATE 这一行这两个字段，WHERE 带 jsonb_typeof 判断 ⇒ 幂等；并给 params 列加 COMMENT 说明唯一合法类型是 array、空参数写 [] 不写 {}",
+        "应用前先核对『恰好只有 062 待应用』（吸取 060 那次教训）⇒ 待应用 1 · 已应用(跳过) 43，无连带应用；事务内先验证→回滚干净（类型仍 object）→再由执行器应用",
+        "第二次实测（rc=0）：catalogSource=server；目录非空 19（3 服务端+16 本地保留）；persist 轨迹一致 [server×5]；DOM 徽章 {connected:true,offline:false}",
+        "production 全量测试（含真库集成）rc=0",
+        "★由此暴露第三个缺陷（可观测性，本轮未修）：useSettingsStore.ts:157 的裸 catch {} 把真实异常吞了 ⇒ 任何原因失败都显示成『服务端不可达』；本次它把数据形状 bug 伪装成网络问题，直接延长了定位时间。建议至少 console.warn 带上 error",
+        "教训一：新数据必须逐字段对齐契约类型，『暂时不用参数』不是可以写错类型的理由（空参数应写 [] 不写 {}）",
+        "教训二：catch {} 空捕获会把根因变成假象 —— 这类『吞掉异常』的写法在本仓应视为缺陷"
+      ],
+      "decisionRef": "D-020",
       "blockRef": null
     }
   ],
@@ -445,6 +465,39 @@
       "choice": "都不做",
       "reason": "入池=管理员精选（Owner 定）且不需我造分组数据；留空=未定价而非 0（CurateInput 类型注释明确）",
       "timing": "T12"
+    },
+    {
+      "id": "D-020",
+      "topic": "修 061 还是新增迁移",
+      "options": [
+        "改 061",
+        "新增 062"
+      ],
+      "choice": "新增 062",
+      "reason": "仓规铁律『迁移只增不改』；061 已应用，改它会被校验和拒绝",
+      "timing": "判据 8 修复"
+    },
+    {
+      "id": "D-021",
+      "topic": "是否让前端容忍违约数据",
+      "options": [
+        "前端容忍",
+        "修数据"
+      ],
+      "choice": "修数据",
+      "reason": "契约明确 type: array，前端按契约消费是对的；让前端容忍违约数据是掩盖问题",
+      "timing": "判据 8 修复"
+    },
+    {
+      "id": "D-022",
+      "topic": "可观测性缺陷是否同修",
+      "options": [
+        "同修",
+        "另开"
+      ],
+      "choice": "另开（本轮已记录建议）",
+      "reason": "属前端改动（需过 npm run gate），与判据 8 修复解耦，适合下一次前端改动一并做",
+      "timing": "判据 8 修复"
     }
   ],
   "verifications": [

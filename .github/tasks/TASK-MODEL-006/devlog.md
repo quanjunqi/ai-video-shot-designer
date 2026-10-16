@@ -580,3 +580,82 @@ pt_builtin_openai_video  目录引用 0  有 caps ✓   ← 061 新建（等视�
 |---|---|---|---|
 | D-018 | 示范集选哪个视频模型 | `doubao-seedance-2-5-260628` | 能力最丰富（omni-reference）+ 会走到豆包插件路径（使 061 记录的 metadata 约束有被检验的场景） |
 | D-019 | 是否顺带入池/录价 | **都不做** | 入池 = 管理员精选（Owner 定）；留空=未定价而非 0（类型注释明确） |
+
+---
+
+### 2026-10-17 ✅ 判据 8 真机勾对：**先失败 → 定位到我自己引入的契约违反 → 修复 → 通过**
+
+**方法**：派子代理用无头 Chrome + CDP 真机断言（脚本 `apps/web/scripts/verify-catalog-source.mjs`，592 行，
+rc **0=通过 / 1=断言失败 / 2=无法验证**，带看门狗与逐次求值超时）。
+
+#### 第一次：**不通过**（实测 `catalogSource === 'offline-fallback'`，rc=1）
+
+**不是"前端没调 syncCatalog"** —— 它确实被自动调用（`AppShell.tsx:33` 等，本次触发 5 次，
+**10 个请求全部 HTTP 200**），而是**抛的异常被吞了**。
+
+**根因链（逐环有证据）**：
+1. `GET /api/v1/catalog` 里 `pt_builtin_openai_video` 的 `params` / `responseParams` 是 **JSON 对象 `{}`**
+   （其余 8 个模板都是**数组**）—— **我在 061 里写成 `'{}'::jsonb` 造成的**
+2. 契约 `openapi/bff.yaml:2935-2939` 明确 `params/responseParams: {type: array}`
+   ⇒ **这是违反契约的数据**
+3. 前端 `useSettingsStore.ts:81` 是 `(t.params ?? []).map(...)`；`{}` **不是 nullish** ⇒ `?? []` 兜不住
+   ⇒ 抛 `TypeError: (t.params ?? []).map is not a function`
+4. 该异常被同文件 `:157` 的**裸 `catch {}` 吞掉** ⇒ 走 `markOfflineFallback()`
+   ⇒ UI 显示"服务端不可达·本地缓存"—— **而服务端其实是好的**
+   ⇒ **一条畸形数据被静默转换成了"服务端不可达"，把排查引向错误方向**
+
+**★ 反事实实验（决定性）**：不改任何源码与数据，仅用 CDP `Fetch.fulfillRequest` 在响应途中把
+这一行的 `{}` 改成 `[]`，其余字节不动 ⇒ **同一次运行**里 `syncCatalog()` 立刻
+`offline-fallback → server`、DOM 徽章变「目录已连接」⇒ **拦路石只有这一条畸形数据**。
+
+**我的独立核验**（不只信子代理报告）：
+```
+pt_builtin_openai_video  | object | object    ← 我写的
+其余 8 个                 | array  | array
+```
+
+#### 修复：新增迁移 062（按"迁移只增不改"）
+
+061 已应用 ⇒ **必须新增迁移**修正，不能改它。全新库会先跑 061（写对象）再跑 062（改数组），最终态一致。
+```sql
+UPDATE protocol_templates SET params='[]'::jsonb, response_params='[]'::jsonb, updated_at=now()
+ WHERE id='pt_builtin_openai_video'
+   AND (jsonb_typeof(params)='object' OR jsonb_typeof(response_params)='object');
+```
+- **只 UPDATE 这一行、这两个字段**；`WHERE` 带类型判断 ⇒ **幂等**
+- 并给 `protocol_templates.params` 加了 `COMMENT`（说明唯一合法类型是 array，空参数写 `[]` 不写 `{}`）
+- 应用前**先核对"恰好只有 062 待应用"**（吸取 060 那次的教训）⇒ 结果 `待应用 1 · 已应用(跳过) 43`，
+  **无连带应用** ✓
+- 事务内先验证 → 回滚干净（类型仍 object）→ 再由执行器应用
+
+#### 第二次：**通过**（rc=0）
+```
+★ catalogSource（最终实测值）   : server
+✓ catalogSource === 'server' —— 实测 server
+✓ 目录非空 —— 实测 19（3 服务端 + 16 本地保留）
+✓ 应用实例也写出 server（persist 轨迹一致） —— ["server"×5]
+✓ DOM 渲染出「目录已连接」徽章 —— {"connected":true,"offline":false}
+```
+另：`production` 全量测试（**含真库集成**）rc=0 ✓
+
+#### ★ 由此暴露的**第三个缺陷（可观测性，尚未修）**
+
+`useSettingsStore.ts:157` 的**裸 `catch {}`** 把真实异常吞了 ⇒ 任何原因失败都显示成
+"服务端不可达·本地缓存"。**本次它把一个数据形状 bug 伪装成了网络问题**，直接延长了定位时间。
+**⇒ 建议**：至少 `console.warn` 带上 error（前端改动需过 `npm run gate`）。
+
+#### 教训（这条最值钱）
+
+**我写 061 时的心理是"这个模板暂时不用参数，先写 `{}` 占位"** —— 而契约要求 array，
+**空参数应写 `[]`**。一条"看起来无害"的占位值，经"前端 `?? []` 兜不住"+"裸 catch 吞掉"两跳，
+变成了**一个看起来像网络故障的假象**。
+**⇒ 教训一：新数据必须逐字段对齐契约类型，"暂时不用"不是可以写错类型的理由。**
+**⇒ 教训二：`catch {}` 空捕获会把根因变成假象 —— 这类"吞掉异常"的写法在本仓应视为缺陷。**
+
+#### 决策记录
+
+| 编号 | 主题 | 选择 | 理由 |
+|---|---|---|---|
+| D-020 | 修 061 还是新增迁移 | **新增 062** | 仓规铁律「迁移只增不改」；061 已应用，改它会被校验和拒绝 |
+| D-021 | 是否"前端容忍一下"就算了 | **不**，修数据 | 契约明确 `type: array` ⇒ 前端按契约消费是对的；让前端容忍违约数据是掩盖问题 |
+| D-022 | 可观测性缺陷是否同修 | **本轮未修，已记录建议** | 属前端改动（需过 `npm run gate`），且与判据 8 的修复解耦；留给下一次前端改动一并做 |
