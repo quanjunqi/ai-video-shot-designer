@@ -123,6 +123,23 @@ else
   sed 's/^/      /' "$TMP/ledger.out" | head -20
 fi
 
+# ---- 门 0c：后端文件行数棘轮（BE-SIZE-001 / BE-LAYER-002 · TASK-PROC-005）----
+# 判据：services/**/*.go ≤ 500 行、services/*/cmd/server/main.go ≤ 50 行；
+# 存量走 .github/file-size-baseline.txt（只减不增）。
+# 与 CI 的 Documentation Check 步骤调用**同一个脚本** —— 单一实现，避免"两套口径"。
+# 退出码 2 = 无法检查（缺 python3／基线缺失或格式错／扫不到 Go 文件）⇒ 判【未验证】，不等于通过。
+if bash "$ROOT/scripts/check-file-size.sh" >"$TMP/filesize.out" 2>&1; then
+  ok "文件行数棘轮（BE-SIZE-001 ≤500 行 / cmd main.go ≤50 行）"
+else
+  rc=$?
+  if [ "$rc" = "2" ]; then
+    bad "文件行数棘轮【未验证】（缺 python3／基线缺失或格式错）—— 不等于通过"
+  else
+    bad "文件行数棘轮（BE-SIZE-001 / BE-LAYER-002）"
+  fi
+  sed 's/^/      /' "$TMP/filesize.out" | head -20
+fi
+
 # ---- 选定要检查的服务与前端 ----
 FRONTEND=1
 declare -a TARGETS=()

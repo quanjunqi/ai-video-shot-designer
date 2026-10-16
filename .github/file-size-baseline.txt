@@ -1,0 +1,33 @@
+# 后端文件行数棘轮基线（BE-SIZE-001 / BE-LAYER-002 的存量豁免）
+#
+# 上限（脚本内写死，改上限请改脚本并同步本注释）：
+#   services/**/*.go 一律 ≤ 500 行          —— BE-SIZE-001
+#   services/*/cmd/server/main.go ≤ 50 行    —— BE-LAYER-002「cmd/ 只装配」的机器化
+#
+# 语义（棘轮 · 只减不增）：
+#   实测行数 > 本文件登记值  ⇒ **失败**（不得增长）
+#   实测行数 < 本文件登记值  ⇒ 通过，但**提示收紧**（把该值改成实测值）
+#   文件不在本文件里却超上限 ⇒ **失败**（新增违规）
+#   本文件里的条目已不再超上限 ⇒ 提示删除该行
+#
+# ★ 这是**存量豁免**，不是"允许"。修好一个文件就从这里删一行；
+#   清零后本文件应只剩注释（同 apps/web/ui-text-debt-baseline.json 的约定）。
+#   **修复后改回阻断**：本文件清空即代表该规则全面阻断。
+#
+# 为什么含 *_test.go：BE-SIZE-001 原文「单个文件 ≤ 500 行」无例外；
+#   且棘轮只约束**单文件增长**，**新增测试文件不受限**，不会抑制补测试。
+#
+# 实测日期：2026-10-16（TASK-PROC-005 立卡时全量扫描）
+# 格式：<相对仓库根路径> <实测行数>
+services/execution/internal/httpapi/handlers_generate.go 783
+services/web-bff/internal/httpserver/main_test.go 764
+services/web-bff/internal/httpserver/handlers.go 757
+services/execution/internal/engine/request_template_test.go 745
+services/production/internal/catalog/protocol_registry_test.go 659
+services/execution/internal/engine/engine_test.go 550
+services/execution/internal/engine/engine.go 526
+services/execution/internal/httpapi/handlers.go 525
+services/production/internal/httpapi/handlers.go 517
+services/execution/cmd/server/main.go 184
+services/production/cmd/server/main.go 94
+services/asset/cmd/server/main.go 73

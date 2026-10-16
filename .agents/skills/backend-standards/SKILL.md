@@ -28,9 +28,9 @@ go build ./... && go vet ./... && go test ./... -race
 | 编号 | 规则 | 检测方式 |
 |---|---|---|
 | BE-LAYER-001 | 依赖单向：`cmd → httpapi → usecase → domain ← store`；禁止 domain import httpapi/pgx/store | golangci-lint depguard |
-| BE-LAYER-002 | **cmd/ 只装配**：只读环境变量、依赖注入、启动 server。禁止业务逻辑、SQL、handler 实现堆在 cmd/ | 覆盖率棘轮（fail-closed） |
+| BE-LAYER-002 | **cmd/ 只装配**：只读环境变量、依赖注入、启动 server。禁止业务逻辑、SQL、handler 实现堆在 cmd/ | 覆盖率棘轮（fail-closed）+ **`cmd/server/main.go ≤ 50 行`**：`scripts/check-file-size.sh` |
 | BE-LAYER-003 | 业务代码必须收敛在 `internal/<pkg>`。**无 internal/ 的服务 = 结构违规**，覆盖率门禁直接告警，不做"薄服务例外" | check-coverage.sh |
-| BE-SIZE-001 | 单个文件 ≤ 500 行；超限按域拆分为同包多文件（handlers_<域>.go / <域>.go） | 人工 + PR 审查 |
+| BE-SIZE-001 | 单个文件 ≤ 500 行；超限按域拆分为同包多文件（handlers_<域>.go / <域>.go） | **`scripts/check-file-size.sh`**（CI 的 Documentation Check 步骤 + `scripts/preflight.sh` 门 0c **同一实现**） |
 | BE-ERR-001 | 错误码从共享源生成，禁止硬编码字符串/HTTP 状态码判断 | CI 生成同步检查 |
 | BE-SEC-001 | 审计日志同步写，禁止异步写审计、禁止日志输出密钥/PII | 代码审查 + gosec |
 
@@ -39,6 +39,17 @@ go build ./... && go vet ./... && go test ./... -race
 - `cmd/` 一律排除出覆盖率统计（装配层无业务可测，计入会无谓拉低）
 - **排除是无条件的**：凡服务没有 internal/（业务堆在 cmd/），覆盖率无法测量 → 门禁失败
 - 结构规范靠门禁强制，而不是靠"因为薄所以例外"
+
+## 文件行数棘轮口径（fail-closed · TASK-PROC-005）
+
+- 上限：`services/**/*.go` ≤ **500 行**（BE-SIZE-001）；`services/*/cmd/server/main.go` ≤ **50 行**（BE-LAYER-002）
+- 实现：**`scripts/check-file-size.sh`**（**单一实现**：CI 的 Documentation Check 步骤与 `scripts/preflight.sh` 门 0c 都调它）
+- 基线：`.github/file-size-baseline.txt`（**存量豁免，只减不增**；实测 > 基线登记值即失败，不在基线却超上限也失败）
+- 退出码：`0` 通过 / `1` 违规 / **`2` 无法检查（缺 python3／基线缺失或格式错／扫不到 Go 文件）—— 2 ≠ 通过**
+- 自检：`bash scripts/check-file-size.sh --self-test`（7 例：5 反例 + 2 正例，证明门禁真的会红）
+- **为什么含 `*_test.go`**：规则原文无例外；棘轮只约束**单文件增长**，**新增测试文件不受限**，不会抑制补测试
+- **为什么需要它**：这两条规则此前的检测方式是「人工 + PR 审查」⇒ 实测已漂移 12 处
+  （5 个 >500 行的 Go 文件 + 3 个 >50 行的 main.go）。**修好一个文件就从基线删一行；清空即代表全面阻断。**
 
 ## 文件组织（高内聚低耦合）
 

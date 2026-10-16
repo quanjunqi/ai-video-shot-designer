@@ -596,6 +596,23 @@ jobs:
           fi
           exit "$rc"
 
+      # 后端文件行数门禁 + 债务棘轮（BE-SIZE-001 / BE-LAYER-002）：机器化此前只有
+      # 「人工 + PR 审查」的两条规则（实测已漂移 12 处：5 个 >500 行的 Go 文件 +
+      # 3 个 >50 行的 cmd/server/main.go）。存量走 .github/file-size-baseline.txt（只减不增）。
+      # 退出码语义：0=通过；1=违规；2=**无法检查**（缺 python3／基线缺失／基线格式错／扫不到 Go 文件）
+      # —— 2 不等于通过，显式判红。本地同口径：scripts/preflight.sh 调用**同一个脚本**。
+      - name: Check file size ratchet (文件行数棘轮)
+        run: |
+          set +e
+          bash scripts/check-file-size.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::文件行数门禁【未验证】（缺 python3／基线缺失或格式错／扫不到 Go 文件）—— 未验证不等于通过"
+            exit 1
+          fi
+          exit "$rc"
+
   # 契约破坏性变更检测（PR 专用）
   # bff.yaml 是前后端字段级契约的唯一事实源。frontend job 的 `npm run api:check` 只保证
   # 「生成类型与契约同步」（契约内部自洽），回答不了「已有客户端会不会被改挂」——

@@ -15,7 +15,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡 front-matter，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（49 张）
+## 索引（50 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -56,6 +56,7 @@
 | TASK-PROC-002 | 开发日志机制落地（AC-010，审计可还原开发过程） | P1 | 已验收（PR #192 已合并） | ✅ | [TASK-PROC-002-devlog-mechanism.md](TASK-PROC-002-devlog-mechanism.md) |
 | TASK-PROC-003 | 台账一致性校验门禁（AC-008/010/011 结构化合规） | P1（治理；排期 §5.5「验收闭环」的机制化） | 待验收（验收 14/14；门禁正例+10 反例全过） | ✅ | [TASK-PROC-003/task.md](TASK-PROC-003/task.md) |
 | TASK-PROC-004 | 存量台账真实化（13 张 unknown 卡逐卡核实与状态回填） | P1（治理） | 待验收（核实 8/8；CREATE-006 编号裁定待 Owner 确认） | ✅ | [TASK-PROC-004/task.md](TASK-PROC-004/task.md) |
+| TASK-PROC-005 | 后端文件行数自动门禁 + 债务棘轮（BE-SIZE-001 / BE-LAYER-002） | **P0（规范已漂移，根因是无门禁）** | 进行中（实测 5 文件 + 3 main.go 超标；尚未改码） | ✅ | [TASK-PROC-005/task.md](TASK-PROC-005/task.md) |
 | TASK-ROUTE-001 | 路由层表结构（逻辑模型 + 多渠道候选 + 租户策略） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-001-routing-schema.md](TASK-ROUTE-001-routing-schema.md) |
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |
