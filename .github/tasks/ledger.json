@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T15:00:00+0800",
+  "updatedAt": "2026-10-16T16:30:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -410,6 +410,14 @@
       "priority": "**P1（关闭 BE-LAYER-002 的机器化）**",
       "pr": null,
       "file": "[TASK-PROC-006/task.md](TASK-PROC-006/task.md)"
+    },
+    {
+      "id": "TASK-PROC-007",
+      "title": "handlers 按域拆分（BE-SIZE-001 的四个 handler 文件）",
+      "status": "待验收",
+      "priority": "**P1（拆掉最大的 4 个 handler 文件）**",
+      "pr": null,
+      "file": "[TASK-PROC-007/task.md](TASK-PROC-007/task.md)"
     }
   ]
 }
