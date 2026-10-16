@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T02:00:00+08:00",
+  "updatedAt": "2026-10-17T02:40:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -154,6 +154,24 @@
         "这是本轮第二次避免『按过期或错误的理解施工』（第一次是判据 1 已被 Owner 作废但 task/acceptance 未同步）"
       ],
       "decisionRef": "D-017",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T02:40:00+08:00",
+      "phase": "✅ 策展链路端到端验证 + 视频示范单元落地",
+      "action": "走已实现的策展 API（不手写迁移）把视频模态首个真实供给单元策展进产品面，并逐段实测链路",
+      "evidence": [
+        "①供给池读：GET /api/v1/catalog/supply?channel_id=chan-muo4b9zo 经 BFF → HTTP 200，79 条",
+        "②策展写：POST /api/v1/catalog/curate 经 BFF → HTTP 200，返回 model{id:mod_pearapi_seedance25, type:video, protocolTemplateId:pt_builtin_openai_video, logicalModelId:'', priceSource:manual, version:1}",
+        "③目录读：GET /api/v1/catalog 经 BFF → HTTP 200，3 个模型（text+image+video 示范集齐）",
+        "④前端可满足性：读 useSettingsStore.syncCatalog() —— 成功即置 catalogSource:'server'，失败才 offline-fallback；而 getCatalog() 已验证返回 3 个模型",
+        "★关键成果：061 的新视频模板目录引用由 0 变 1 —— 真正被用上，不再是建了没人用",
+        "选 doubao-seedance-2-5-260628 的理由：能力最丰富（omni-reference）+ 会走到豆包/Seedance 插件路径，使 061 observed_evidence 里记录的 metadata.content[] 约束有被检验的场景",
+        "如实边界：未入池（LogicalModelID 留空，Owner 定入池=管理员精选且不需我造分组数据）；未录价（留空=未定价而非 0，类型注释明确；价格需 Owner 手动录入原价）",
+        "如实边界：判据 8 的 catalogSource==='server' 是浏览器端运行时状态，我只验证了可满足性（逻辑+接口两条都通），未做真机浏览器断言 ⇒ 该项仍待端到端勾对",
+        "CurateInput 无 JSON 标签 ⇒ 用 Go 字段名（JSON 大小写不敏感）；handler 用 DisallowUnknownFields ⇒ 不能多字段"
+      ],
+      "decisionRef": "D-018",
       "blockRef": null
     }
   ],
@@ -404,6 +422,29 @@
       "choice": "走策展 API/UI",
       "reason": "ADR-004 D1 规定产品面只由人工策展产生；CurateInput 刻意排除供给池字段以避免誊抄；Owner 定『入池 = 管理员精选，绝不自动全量挂』",
       "timing": "T12 定向"
+    },
+    {
+      "id": "D-018",
+      "topic": "示范集选哪个视频模型",
+      "options": [
+        "veo-3.1",
+        "hailuo-2.3",
+        "doubao-seedance-2-5-260628"
+      ],
+      "choice": "doubao-seedance-2-5-260628",
+      "reason": "能力最丰富（omni-reference）+ 会走到豆包/Seedance 插件路径 ⇒ 使 061 记录的 metadata.content[] 约束有被检验的场景",
+      "timing": "T12"
+    },
+    {
+      "id": "D-019",
+      "topic": "是否顺带入池/录价",
+      "options": [
+        "顺带做",
+        "都不做"
+      ],
+      "choice": "都不做",
+      "reason": "入池=管理员精选（Owner 定）且不需我造分组数据；留空=未定价而非 0（CurateInput 类型注释明确）",
+      "timing": "T12"
     }
   ],
   "verifications": [

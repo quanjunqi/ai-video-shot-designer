@@ -523,3 +523,60 @@ pt_builtin_openai_video  目录引用 0  有 caps ✓   ← 061 新建（等视�
 | 编号 | 主题 | 选择 | 理由 |
 |---|---|---|---|
 | D-017 | 79 行目录怎么产生 | **不手写迁移；走已实现的策展 API/UI** | ADR-004 D1：产品面只由人工策展产生；`CurateInput` 刻意排除供给池字段以避免誊抄；Owner 定「入池 = 管理员精选，绝不自动全量挂」 |
+
+---
+
+### 2026-10-17 ✅ 策展链路端到端验证通过 + 视频示范单元落地
+
+**动作**：按修正后的 T12 路径，**走已实现的策展 API**（不手写迁移），把视频模态的首个真实供给单元策展进产品面。
+
+**链路实测（每一段都有响应为证）**：
+
+| 段 | 调用 | 结果 |
+|---|---|---|
+| ① 供给池读 | `GET /api/v1/catalog/supply?channel_id=chan-muo4b9zo`（经 BFF） | **HTTP 200，79 条** |
+| ② 策展写 | `POST /api/v1/catalog/curate`（经 BFF） | **HTTP 200**，返回创建的模型 |
+| ③ 目录读 | `GET /api/v1/catalog`（经 BFF） | **HTTP 200，3 个模型** |
+| ④ 前端可满足性 | 读 `useSettingsStore.syncCatalog()` 逻辑 | 成功后置 `catalogSource: 'server'`；失败才 `offline-fallback` |
+
+**② 的请求与响应**（`CurateInput` 无 JSON 标签 ⇒ 用 Go 字段名；`DisallowUnknownFields` ⇒ 不能多字段）：
+```json
+{"ID":"mod_pearapi_seedance25","Family":"video","Name":"Seedance 2.5","Type":"video",
+ "ChannelID":"chan-muo4b9zo","ProviderModel":"doubao-seedance-2-5-260628",
+ "LogicalModelID":"","ProtocolTemplateID":"pt_builtin_openai_video","RoutePriority":10,"Note":"…"}
+```
+```json
+{"model":{"id":"mod_pearapi_seedance25","type":"video","protocolTemplateId":"pt_builtin_openai_video",
+          "logicalModelId":"","priceSource":"manual","version":1, …}}
+```
+
+**★ 关键成果：061 的新视频模板由「目录引用 0」变为「1」** —— 它**真正被用上了**，不再是"建了但没人用"：
+| 模板 | 目录引用 | has_caps |
+|---|---|---|
+| `pt_builtin_openai` | 1 | ✓ |
+| `pt_builtin_openai_img` | 1 | ✓ |
+| **`pt_builtin_openai_video`** | **0 → 1** | ✓ |
+
+**示范集齐（3 行 = 三种模态）**：
+| id | 类型 | provider_model | 模板 | 入池 |
+|---|---|---|---|---|
+| `mod_aaaaaaaaaaaaaaaaaaaa` | text | deepseek-v4-pro-0813 | pt_builtin_openai | accept-smoke-text |
+| `mod_aaaaaaaaaaaaaaaaaaab` | image | gpt-image-2 | pt_builtin_openai_img | accept-smoke-image |
+| **`mod_pearapi_seedance25`** | **video** | doubao-seedance-2-5-260628 | **pt_builtin_openai_video** | **（未入池）** |
+
+**★ 选择 Seedance 2.5 的理由**：它是能力最丰富的一个（omni-reference），且**会走到豆包/Seedance 插件**那条路
+—— 正是我在 061 的 `observed_evidence` 里记录的 `metadata.content[]` 约束所在 ⇒ 这条策展也让那份约束**有了被检验的场景**。
+
+**如实说明的边界**：
+- 我**没有**入池（`LogicalModelID` 留空）—— Owner 定「入池 = 管理员精选」，且「不需我创建分组数据」
+- 我**没有**录价（`costAmount`/`priceAmount` 留空）—— 类型注释明确「留空表示"未定价"，**不是 0**」；
+  价格需 Owner 手动录入原价（D-005 定「不去上游获取」）
+- 判据 8 的 `catalogSource === 'server'` 是**浏览器端运行时状态**，我只验证了它的**可满足性**
+  （逻辑 + 接口两条都通），**未做真机浏览器断言** ⇒ 该项**仍待端到端勾对**
+
+#### 决策记录
+
+| 编号 | 主题 | 选择 | 理由 |
+|---|---|---|---|
+| D-018 | 示范集选哪个视频模型 | `doubao-seedance-2-5-260628` | 能力最丰富（omni-reference）+ 会走到豆包插件路径（使 061 记录的 metadata 约束有被检验的场景） |
+| D-019 | 是否顺带入池/录价 | **都不做** | 入池 = 管理员精选（Owner 定）；留空=未定价而非 0（类型注释明确） |
