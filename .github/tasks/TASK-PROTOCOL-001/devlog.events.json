@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-PROTOCOL-001",
-  "updatedAt": "2026-10-17T00:00:00+08:00",
+  "updatedAt": "2026-10-17T00:15:00+08:00",
   "events": [
     {
       "ts": "2026-10-16T23:19:00+08:00",
@@ -55,6 +55,14 @@
       "action": "execution+production build/test -race/vet/gofmt 全绿；file-size 0 超标；台账登记 TASK-PROTOCOL-001（README+ledger 字段对齐 MODEL-007）→ check-task-ledger 通过",
       "evidence": [
         "V-003"
+      ]
+    },
+    {
+      "ts": "2026-10-17T00:10:00+08:00",
+      "phase": "PR",
+      "action": "通过 GitHub API（keychain token）创建 PR #211（base develop ← head feature/request-template-backfill-2026-10-17），body 含 6/6 验收勾对 + 8 协议可行性表",
+      "evidence": [
+        "https://github.com/quanjunqi/ai-video-shot-designer/pull/211"
       ]
     }
   ],
