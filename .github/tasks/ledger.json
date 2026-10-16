@@ -1,7 +1,4 @@
 {
-  "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T21:00:00+0800",
-  "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
       "id": "PLAN-a-and-adr008-2026-10-10",
@@ -42,6 +39,13 @@
       "priority": "**P0**",
       "pr": 203,
       "file": "[TASK-AUTH-001/task.md](TASK-AUTH-001/task.md)"
+    },
+    {
+      "id": "TASK-AUTH-002",
+      "title": "修复前端 dev 身份切换链路（fetchMe 回读角色，T13 走查判据 2 阻塞项）",
+      "status": "待验收",
+      "priority": "P0",
+      "file": "[TASK-AUTH-002/task.md](TASK-AUTH-002/task.md)"
     },
     {
       "id": "TASK-CREATE-001",
@@ -350,6 +354,66 @@
       "file": "[TASK-PROC-009/task.md](TASK-PROC-009/task.md)"
     },
     {
+      "id": "TASK-PROC-010",
+      "title": "协议一致性快照门禁接入 CI（快照新鲜度 + 结构校验）",
+      "status": "待验收",
+      "priority": "P1（协议层治理收口——把一致性检查固化为 CI 门禁）",
+      "pr": null,
+      "file": "[TASK-PROC-010/task.md](TASK-PROC-010/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 6
+    },
+    {
+      "id": "TASK-PROTOCOL-001",
+      "title": "requestTemplate 数据迁移（等价可迁移子集回填 + 判别标准固化）",
+      "status": "进行中",
+      "priority": "P1（底座收尾的自动化补刀——对齐 VOZEB requestTemplate 形态；等价子集 comfyui 已回填）",
+      "pr": "#211",
+      "file": "[TASK-PROTOCOL-001/task.md](TASK-PROTOCOL-001/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-002",
+      "title": "协议模板 capabilities 补齐（服务 MODEL-006 判据 4）",
+      "status": "进行中",
+      "priority": "P1（底座收尾的自动化补刀——服务 TASK-MODEL-006 判据 4「能力声明覆盖」）",
+      "pr": "#212",
+      "file": "[TASK-PROTOCOL-002/task.md](TASK-PROTOCOL-002/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-003",
+      "title": "协议模板生成器（OpenAPI 规范 → 协议定义，确定性生成）",
+      "status": "进行中",
+      "priority": "P1（协议层的自动化补刀——VOZEB 三件套之三「从上游文档确定性解析生成协议」）",
+      "pr": "#213",
+      "file": "[TASK-PROTOCOL-003/task.md](TASK-PROTOCOL-003/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-004",
+      "title": "协议定义三方一致性自检（注册表 ↔ DB ↔ 能力键词表）",
+      "status": "进行中",
+      "priority": "P1（协议层治理收口——把 openai_video 漂移升级为自动门禁）",
+      "pr": "#214",
+      "file": "[TASK-PROTOCOL-004/task.md](TASK-PROTOCOL-004/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-005",
+      "title": "注册表补 openai_video canonical 定义（修复漂移）",
+      "status": "进行中",
+      "priority": "P1（协议层治理收口——修复 TASK-PROTOCOL-004 检出的漂移）",
+      "pr": "#215",
+      "file": "[TASK-PROTOCOL-005/task.md](TASK-PROTOCOL-005/task.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-006",
+      "title": "接真实渠道实战——OpenAI Responses API 全流程首战（protocol-gen SOP 首个完整实战）",
+      "status": "待验收",
+      "priority": "P1（协议层治理收口）",
+      "pr": null,
+      "file": "[TASK-PROTOCOL-006/task.md](TASK-PROTOCOL-006/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 6
+    },
+    {
       "id": "TASK-ROUTE-001",
       "title": "路由层表结构（逻辑模型 + 多渠道候选 + 租户策略）",
       "status": "已验收",
@@ -444,63 +508,6 @@
       "priority": "P2",
       "pr": 176,
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
-    },
-    {
-      "id": "TASK-PROTOCOL-001",
-      "title": "requestTemplate 数据迁移（等价可迁移子集回填 + 判别标准固化）",
-      "status": "进行中",
-      "priority": "P1（底座收尾的自动化补刀——对齐 VOZEB requestTemplate 形态；等价子集 comfyui 已回填）",
-      "pr": "#211",
-      "file": "[TASK-PROTOCOL-001/task.md](TASK-PROTOCOL-001/task.md)"
-    },
-    {
-      "id": "TASK-PROTOCOL-002",
-      "title": "协议模板 capabilities 补齐（服务 MODEL-006 判据 4）",
-      "status": "进行中",
-      "priority": "P1（底座收尾的自动化补刀——服务 TASK-MODEL-006 判据 4「能力声明覆盖」）",
-      "pr": "#212",
-      "file": "[TASK-PROTOCOL-002/task.md](TASK-PROTOCOL-002/task.md)"
-    },
-    {
-      "id": "TASK-PROTOCOL-003",
-      "title": "协议模板生成器（OpenAPI 规范 → 协议定义，确定性生成）",
-      "status": "进行中",
-      "priority": "P1（协议层的自动化补刀——VOZEB 三件套之三「从上游文档确定性解析生成协议」）",
-      "pr": "#213",
-      "file": "[TASK-PROTOCOL-003/task.md](TASK-PROTOCOL-003/task.md)"
-    },
-    {
-      "id": "TASK-PROTOCOL-004",
-      "title": "协议定义三方一致性自检（注册表 ↔ DB ↔ 能力键词表）",
-      "status": "进行中",
-      "priority": "P1（协议层治理收口——把 openai_video 漂移升级为自动门禁）",
-      "pr": "#214",
-      "file": "[TASK-PROTOCOL-004/task.md](TASK-PROTOCOL-004/task.md)"
-    },
-    {
-      "id": "TASK-PROTOCOL-005",
-      "title": "注册表补 openai_video canonical 定义（修复漂移）",
-      "status": "进行中",
-      "priority": "P1（协议层治理收口——修复 TASK-PROTOCOL-004 检出的漂移）",
-      "pr": "#215",
-      "file": "[TASK-PROTOCOL-005/task.md](TASK-PROTOCOL-005/task.md)"
-    },
-    {
-      "id": "TASK-AUTH-002",
-      "title": "修复前端 dev 身份切换链路（fetchMe 回读角色，T13 走查判据 2 阻塞项）",
-      "status": "待验收",
-      "priority": "P0",
-      "file": "[TASK-AUTH-002/task.md](TASK-AUTH-002/task.md)"
-    },
-    {
-      "id": "TASK-PROTOCOL-006",
-      "title": "接真实渠道实战——OpenAI Responses API 全流程首战（protocol-gen SOP 首个完整实战）",
-      "status": "待验收",
-      "priority": "P1（协议层治理收口）",
-      "pr": null,
-      "file": "[TASK-PROTOCOL-006/task.md](TASK-PROTOCOL-006/task.md)",
-      "criteria": 6,
-      "criteriaPassed": 6
     }
   ]
 }

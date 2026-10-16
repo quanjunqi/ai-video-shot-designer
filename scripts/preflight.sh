@@ -164,6 +164,23 @@ else
   sed 's/^/      /' "$TMP/filesize.out" | head -20
 fi
 
+# ---- 门 0d：协议一致性快照（TASK-PROC-010）----
+# 判据：快照存在且 JSON 有效、结构完整、迁移号 == production migrations 最新号段
+# （协议迁移推进而快照不更新 ⇒ 一致性检查静默失效，本门禁直接红）。
+# 与 CI 的 Documentation Check 步骤调用**同一个脚本** —— 单一实现，避免"两套口径"。
+# 退出码 2 = 无法检查（缺 python3／快照或迁移目录缺失）⇒ 判【未验证】，不等于通过。
+if bash "$ROOT/.github/scripts/check-protocol-consistency.sh" >"$TMP/protocol.out" 2>&1; then
+  ok "协议一致性快照（结构 + 迁移号新鲜度）"
+else
+  rc=$?
+  if [ "$rc" = "2" ]; then
+    bad "协议一致性快照【未验证】（缺 python3／文件缺失）—— 不等于通过"
+  else
+    bad "协议一致性快照（结构损坏或迁移号过期）"
+  fi
+  sed 's/^/      /' "$TMP/protocol.out" | head -20
+fi
+
 # ---- 选定要检查的服务与前端 ----
 FRONTEND=1
 declare -a TARGETS=()
