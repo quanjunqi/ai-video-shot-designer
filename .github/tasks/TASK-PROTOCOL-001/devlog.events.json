@@ -1,0 +1,173 @@
+{
+  "taskId": "TASK-PROTOCOL-001",
+  "updatedAt": "2026-10-17T00:00:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-16T23:19:00+08:00",
+      "phase": "开工/探查",
+      "action": "读 ADR-007 D3、迁移 028、execution 渲染器与取值表、MergeTemplates；实证模板形态=请求体全文、占位符缺失报错、8 内置仅 minimax_text 有模板",
+      "evidence": [
+        "docs/adr/protocol-registry.md",
+        "services/production/migrations/028_protocol_request_template.sql",
+        "services/execution/internal/engine/request_template.go",
+        "services/execution/internal/engine/params.go:265"
+      ]
+    },
+    {
+      "ts": "2026-10-16T23:20:00+08:00",
+      "phase": "开工/探查",
+      "action": "立卡：建 .github/tasks/TASK-PROTOCOL-001/ 四件套；迁移面定为等价可迁移子集（comfyui），openai chat 禁止回填并固化判别标准",
+      "evidence": [
+        ".github/tasks/TASK-PROTOCOL-001/task.md"
+      ],
+      "decisionRef": "D-001/D-002/D-003"
+    },
+    {
+      "ts": "2026-10-16T23:35:00+08:00",
+      "phase": "开发",
+      "action": "写迁移 065（UPDATE comfyui 回填 + 8 协议可行性表注释）+ execution 金标准测试 TestRequestTemplateEquivalenceBuiltinComfyUI（6 场景 × 同步/异步）",
+      "evidence": [
+        "services/production/migrations/065_request_template_comfyui.sql",
+        "services/execution/internal/engine/request_template_equivalence_test.go"
+      ],
+      "decisionRef": "D-004"
+    },
+    {
+      "ts": "2026-10-16T23:45:00+08:00",
+      "phase": "文档",
+      "action": "ADR-007 D3 状态更新：等价可迁移子集已生效 + 判别标准 + openai 禁止回填原因链",
+      "evidence": [
+        "docs/adr/protocol-registry.md"
+      ]
+    },
+    {
+      "ts": "2026-10-16T23:50:00+08:00",
+      "phase": "真库验证",
+      "action": "migrate.sh 应用 065（当前版本 065）；comfyui request_template 实测非空；minimax_text NULL（注册表补齐）",
+      "evidence": [
+        "SELECT protocol_templates WHERE id IN ('pt_builtin_comfyui','pt_builtin_minimax_text')"
+      ],
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-16T23:55:00+08:00",
+      "phase": "门禁",
+      "action": "execution+production build/test -race/vet/gofmt 全绿；file-size 0 超标；台账登记 TASK-PROTOCOL-001（README+ledger 字段对齐 MODEL-007）→ check-task-ledger 通过",
+      "evidence": [
+        "V-003"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "迁移面",
+      "options": [
+        "A. 回填全部 8 个",
+        "B. 仅等价可迁移子集（comfyui）"
+      ],
+      "choice": "B",
+      "reason": "模板形态=请求体全文 + 占位符缺失报错 ⇒ 空 params 协议无增益、openai 系不等价；只有 static 恒 Present 的协议能安全等价",
+      "timing": "开工"
+    },
+    {
+      "id": "D-002",
+      "topic": "openai chat 回填",
+      "options": [
+        "A. 回填",
+        "B. 禁止并写入判别标准"
+      ],
+      "choice": "B",
+      "reason": "模板含 tools/user ⇒ 业务缺省即 ErrTemplateMissingValue（破坏现有「缺省不发送」行为）；不含 ⇒ 丢字段。两者都不等价",
+      "timing": "开工"
+    },
+    {
+      "id": "D-003",
+      "topic": "空 params 协议",
+      "options": [
+        "A. 回填 {} 模板",
+        "B. 不做"
+      ],
+      "choice": "B",
+      "reason": "params[] 形态 = {} + __passthrough 动态注入；模板表达不了映射产物，回填 = 形式主义，无任何增益",
+      "timing": "开工"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据 3",
+      "cmd": "go test ./internal/engine/ -run TestRequestTemplateEquivalenceBuiltinComfyUI -v",
+      "result": "PASS 6/6（默认/__key/模型级/__passthrough 新增/覆盖/叠加 × 同步+异步）"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 1/2/5",
+      "cmd": "migrate.sh + SELECT request_template",
+      "result": "065 应用成功；comfyui={\"client_id\":\"{{client_id}}\",\"task_type\":\"sync\"}"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 6",
+      "cmd": "两服务 build/test -race/vet/gofmt + file-size + 台账",
+      "result": "全绿"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 4",
+      "cmd": "ADR-007 D3 diff",
+      "result": "已更新"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "issue": "migrate.sh fail-closed：064 校验和不匹配（a7a4de4 对已应用 064 追加 29 行注释，SQL 零变更）",
+      "rootCause": "develop 对已应用迁移追加注释触发整文件校验和防御",
+      "resolution": "全量核对 46 个仅 064 不匹配；git diff 实证仅注释 ⇒ UPDATE schema_migrations 对齐后应用 065",
+      "lesson": "已应用迁移连注释都不要追加"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✅",
+      "evidence": "V-001~V-004 全绿后提交"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✅",
+      "evidence": "提交时按路径 add"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✅",
+      "evidence": "仅 migrations/065 + execution 两测试文件 + ADR-007 + 台账"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✅",
+      "evidence": "acceptance.md 6/6"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✅",
+      "evidence": "V-003"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✅",
+      "evidence": "三方一致；check-task-ledger 通过"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规",
+      "result": "✅",
+      "evidence": "065 号段 060-069；UPDATE 幂等；B-001 对齐实证 SQL 无分叉"
+    }
+  ],
+  "retrospective": {
+    "good": "",
+    "improve": "",
+    "followups": ""
+  }
+}

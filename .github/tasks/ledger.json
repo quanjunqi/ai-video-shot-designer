@@ -442,6 +442,14 @@
       "priority": "P2",
       "pr": 176,
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
+    },
+    {
+      "id": "TASK-PROTOCOL-001",
+      "title": "requestTemplate 数据迁移（等价可迁移子集回填 + 判别标准固化）",
+      "status": "进行中",
+      "priority": "P1（底座收尾的自动化补刀——对齐 VOZEB requestTemplate 形态；等价子集 comfyui 已回填）",
+      "pr": "#<待开>",
+      "file": "[TASK-PROTOCOL-001/task.md](TASK-PROTOCOL-001/task.md)"
     }
   ]
 }
