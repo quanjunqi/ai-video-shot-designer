@@ -2,7 +2,7 @@
 taskId: TASK-PROTOCOL-003
 status: 进行中
 priority: P1（协议层的自动化补刀——VOZEB 三件套之三「从上游文档确定性解析生成协议」）
-pr: "#<待开>"
+pr: "#213"
 criteria: 6
 criteriaPassed: 0
 depends_on: 不依赖 Owner 数据口径（输入 = OpenAI 官方 OpenAPI 3.1 公开规范）

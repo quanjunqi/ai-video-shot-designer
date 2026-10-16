@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-PROTOCOL-003",
-  "updatedAt": "2026-10-17T01:40:00+08:00",
+  "updatedAt": "2026-10-17T01:50:00+08:00",
   "events": [
     {
       "ts": "2026-10-17T00:55:00+08:00",
@@ -60,6 +60,14 @@
       "action": "production build/test -race/vet/gofmt 全绿；file-size 0 超标；台账门禁通过（修复 README/ledger 标题一致）",
       "evidence": [
         "V-005"
+      ]
+    },
+    {
+      "ts": "2026-10-17T01:50:00+08:00",
+      "phase": "PR",
+      "action": "创建 PR #213（base develop ← feature/protocol-generator-2026-10-17），body 含 6/6 勾对 + 6 决策 + 官方验证结果",
+      "evidence": [
+        "https://github.com/quanjunqi/ai-video-shot-designer/pull/213"
       ]
     }
   ],
