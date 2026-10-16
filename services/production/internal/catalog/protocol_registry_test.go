@@ -18,6 +18,7 @@ var builtinTemplateIDs = []string{
 	"pt_builtin_minimax_video",
 	"pt_builtin_openai",
 	"pt_builtin_openai_img",
+	"pt_builtin_openai_video", // TASK-PROTOCOL-005：注册表补 canonical 定义后，内置定义 = 9
 }
 
 func TestProtocolDefinitionsIntegrity(t *testing.T) {
@@ -258,6 +259,30 @@ func TestProtocolDefinitionsMatchMigrations(t *testing.T) {
 				`"aspect_ratio":"aspect_ratio","n":"n","response_format":"response_format"},` +
 				`"response_extract":{"image_url":"data.0.url","image_b64":"data.0.b64_json"}}}`,
 			version: 2,
+		},
+		{
+			// TASK-PROTOCOL-005：迁移 061 生成器产出 + 201 落 DB；注册表补 canonical 定义；
+			// 迁移 067 修 pollPath 占位符 {id}→{task_id}（执行器 ReplaceAll 硬约束）。→ v1。
+			id:    "pt_builtin_openai_video",
+			label: "OpenAI 兼容 · 视频生成（PearAPI/openai-video）",
+			desc:  "videos/generations 形态，异步轮询，响应取 task_id 跟踪任务。",
+			typ:   "video", method: "POST", requestPath: "/v1/videos/generations",
+			params:         `[]`,
+			responseParams: `[]`,
+			async: `{"enabled":true,"taskIdField":"id","statusField":"status","doneValue":"completed","failValue":"failed",` +
+				`"pollPath":"/v1/videos/{task_id}","timeoutMinutes":1440,"pollIntervalSeconds":15}`,
+			capabilities: `{"text-to-video":{"method":"POST","request_path":"/v1/videos/generations",` +
+				`"param_mapping":{"model":"model","prompt":"prompt","metadata.duration":"metadata.duration",` +
+				`"metadata.resolution":"metadata.resolution","metadata.generate_audio":"metadata.generate_audio"},` +
+				`"required_params":["prompt"],` +
+				`"response_extract":{"status":"status","task_id":"task_id"}},` +
+				`"image-to-video":{"method":"POST","request_path":"/v1/videos/generations",` +
+				`"param_mapping":{"model":"model","prompt":"prompt","metadata.duration":"metadata.duration",` +
+				`"metadata.resolution":"metadata.resolution","metadata.generate_audio":"metadata.generate_audio",` +
+				`"reference_images[0].url":"metadata.content[0].image_url"},` +
+				`"required_params":["prompt"],` +
+				`"response_extract":{"status":"status","task_id":"task_id"}}}`,
+			version: 1,
 		},
 	}
 

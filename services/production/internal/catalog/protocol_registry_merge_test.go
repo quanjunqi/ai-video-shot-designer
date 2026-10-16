@@ -34,9 +34,9 @@ func TestMergeTemplatesPrecedence(t *testing.T) {
 
 	merged := MergeTemplates(db)
 
-	// 8 个内置 + 1 个自定义 = 9（DB 缺的 1 个内置由注册表补齐）。
-	if len(merged) != 9 {
-		t.Fatalf("merged length = %d, want 9", len(merged))
+	// 9 个内置 + 1 个自定义 = 10（DB 缺的 1 个内置由注册表补齐）。
+	if len(merged) != 10 {
+		t.Fatalf("merged length = %d, want 10", len(merged))
 	}
 	byID := map[string]ProtocolTemplate{}
 	for _, tmpl := range merged {
