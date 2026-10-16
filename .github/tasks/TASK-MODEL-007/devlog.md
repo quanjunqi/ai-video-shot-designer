@@ -85,6 +85,6 @@
 
 ## 复盘（收尾时写）
 
-- **做得好的**：
-- **可改进的**：
-- **遗留/后续**：
+- **做得好的**：功能先纯函数后 store 的写法让「id 冲突后缀」死分支在单测首跑即暴露，未污染存储层；辅助工具定位严格贴合 Owner 在 MODEL-006 的「逻辑模型=分组机制、不替他造数据」拍板；并发防抢占用 UPDATE WHERE 再断言 + RowsAffected 计真实影响行。
+- **可改进的**：stash 误操作（想验证存量失败却把已暂存修改暂存走，untracked 新文件留下造成中间态）——以后验证存量失败直接看 `git diff --name-only` 即可，不必 stash；preflight 全仓跑太慢，后续可只跑受改服务的门禁 + 台账门禁。
+- **遗留/后续**：PR #<待开> 由 Owner 从 compare URL 发起（本机无 gh CLI）；`POST /internal/v1/logical-models/reconcile` 已注册，等 MODEL-006 策展数据就绪后即可真库验证；前端模型中心页（绑定面板 + 一键 reconcile 按钮）另议；requestTemplate 数据迁移（task 列表 #3）待开工。

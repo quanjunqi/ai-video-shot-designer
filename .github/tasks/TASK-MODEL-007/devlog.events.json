@@ -159,8 +159,8 @@
     { "item": "迁移只增不改 / 号段合规（如涉）", "result": "待填", "evidence": "本卡无迁移" }
   ],
   "retrospective": {
-    "good": "",
-    "improve": "",
-    "followups": ""
+    "good": "纯函数先行让死分支在单测首跑即暴露，未污染存储层；辅助工具定位贴合 Owner 拍板；并发防抢占用 UPDATE WHERE 再断言 + RowsAffected 计真实影响行",
+    "improve": "stash 误操作（验证存量失败应直接看 git diff --name-only）；preflight 全仓跑太慢，后续只跑受改服务门禁 + 台账门禁",
+    "followups": "PR 待 Owner 从 compare URL 发起；reconcile 待 MODEL-006 策展数据就绪后真库验证；前端一键 reconcile UI 另议；requestTemplate 迁移（#3）待开工"
   }
 }
