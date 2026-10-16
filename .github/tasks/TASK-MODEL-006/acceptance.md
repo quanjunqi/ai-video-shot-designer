@@ -21,7 +21,7 @@
 
 | # | 需求点 | 验收判据（可客观验证） | 四要素备注 | 自检结果 |
 |---|---|---|---|---|
-| 1 | 逻辑模型真实化（T12） | `SELECT id FROM logical_models` → 恰为 GATE-3 的 5 个命名；`accept-smoke-*` 不再存在 | 判据：5 个且无冒烟行；对象：production 库；时点：迁移后 | ☐ 未开始 |
+| 1 | ~~逻辑模型真实化（T12）~~ **⛔ 已作废** | **Owner 2026-10-16 作废**：「不需我创建分组数据，只需实现该功能」⇒ **改为**：逻辑模型功能**端到端可用 + 工作层接线**（创建/编辑/启停 + 候选绑定 + 工作层按分组选模型） | 判据：端到端跑通（**不造数据**）；依据：devlog D-004/D-007 | ☐ 未开始 |
 | 2 | 入池行 providerModel 必填（T6） | `SELECT count(*) FROM model_catalog WHERE logical_model_id IS NOT NULL AND (provider_model IS NULL OR provider_model='')` → **0** | 判据：计数为 0；对象：production 库；时点：数据回填后；例外：无 | ☐ 未开始 |
 | 3 | 语义违反行被处置 | 现存 `gpt-image-2`（空 providerModel 且入池）**被修正或移出池**，且有迁移记录 | 判据：该行不再违反；对象：该行；时点：迁移后 | ☐ 未开始 |
 | 4 | 能力声明覆盖（T5） | `SELECT count(*) FILTER (WHERE capabilities<>'{}'::jsonb)||'/'||count(*) FROM protocol_templates` → **8/8** | 判据：8/8；对象：production 库；时点：迁移后 | ☐ 未开始 |

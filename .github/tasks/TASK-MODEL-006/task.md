@@ -27,7 +27,7 @@ depends_on: —（供给侧数据；部分子项依赖 Owner 提供真实模型/
 
 | 缺口 | 实测 | 目标 | 对应 |
 |---|---|---|---|
-| 逻辑模型 | **2 个冒烟行**：`accept-smoke-text`、`accept-smoke-image` | GATE-3 的 **5 个**真实命名（lm-text-standard / lm-image-standard / lm-image-edit / lm-video-standard / lm-video-edit） | T6 |
+| 逻辑模型 | **2 个冒烟行**：`accept-smoke-text`、`accept-smoke-image` | ~~GATE-3 的 5 个真实命名~~ **⛔ 已作废（Owner 2026-10-16）** ⇒ 改为「**验证功能端到端可用 + 工作层接线**」，**不造分组数据** | T6 → 见 D-004/D-007 |
 | 供给单元入池 | `model_catalog` 18 行中**仅 3 行**挂 `logical_model_id` | 按能力精选入池（**入池 = 管理员精选，绝不自动全量挂**） | T6 |
 | **providerModel 必填（基座语义）** | **6/18 非空** ⇒ 12 行为空；且入池行 `gpt-image-2` 的 `provider_model` **为空**（**语义违反**） | 供给单元六属性②：providerModel **必填** | T6 |
 | 池原料渠道覆盖 | `channel_models` 79 条**全部来自 PearAPI 一个渠道** | 其余 6 渠道（ComfyUI/Google/Grsai/即梦/MiniMax/OpenAI）同步 | T12 |
@@ -36,6 +36,27 @@ depends_on: —（供给侧数据；部分子项依赖 Owner 提供真实模型/
 
 **根因链**：供给单元池没有真实数据 ⇒ 服务端目录撑不起业务流 ⇒ 前端 `useSettingsStore.catalogSource`
 停在初始值 **`'demo'`**（硬编码 `apps/web/src/config/models/model-catalog.ts`）⇒ **"壳子 + mock"**。
+
+## ⛔ 已作废的判据（Owner 决定，勿再实现）
+
+| 原判据 | 状态 | Owner 原话与依据 |
+|---|---|---|
+| 「逻辑模型恰为 GATE-3 的 **5 个**命名」 | **⛔ 作废** | 「逻辑模型不作为普遍机制…**他不需我创建分组数据**，只需**实现该功能**」（devlog 2026-10-16 01:30, D-004/D-007） |
+| 「`accept-smoke-*` 不再存在」 | **⛔ 随之作废** | 同上；且现有 2 行 `model_catalog` 仍引用它们，改名会牵动目录行 |
+| 「其余 6 渠道同步」（T12 的一部分） | **⛔ 作废** | 那 6 个渠道是 mock，Owner 已决定**物理删除**（见 060）⇒ 不存在"同步"它们 |
+
+**⇒ 逻辑模型该项的正确工作 = 验证功能端到端可用 + 工作层接线**（功能**已存在**：契约 CRUD + `SettingsLogicalModels.tsx` 591 行 + `logical_models` 表 + `model_catalog.logical_model_id`）。
+
+## ✅ 仍然有效的核心缺口（Owner 2026-10-16 实测确认）
+
+> 「PearAPI 同步只给了**裸名字**——`tags` 全空、`endpoint_types` 全 `[]`、`vendor` 全 `custom`、
+> `pricing` **0/79**、`model_type` 全为占位 `'model'` ⇒ **缺口不只是"缺数据"，还有分类与富化**。」
+
+⇒ 即：**79 个真实模型需要"分类 + 富化"后建目录行**，其中：
+- **分类**（text/image/video）⇒ 已产出 `model-classification.md`（按**输出模态**人工判定，非 relay 的占位值）
+- **能力档位** ⇒ 已产出 `model-capabilities.md`
+- **价格** ⇒ Owner 定：**不去上游取**，**手动录入原价 + 加价**（`037` 的 `cost_*`/`price_*` 分离 + `039` 的 `markup_ratio`）
+- **计费口径** ⇒ Owner 定：**图片按次 · 文字按 token · 视频按秒**（`per_call` / `per_mtok_*` / `per_second`）
 
 ## 范围（三个可独立 PR 的子项；建议按 T5 → T12 → T6 顺序）
 

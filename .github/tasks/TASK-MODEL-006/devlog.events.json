@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T00:30:00+08:00",
+  "updatedAt": "2026-10-17T01:30:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -122,6 +122,23 @@
         "验证：production 全量测试（含真库集成）rc=0；061 事务内验证→回滚干净（模板数仍 8）→再由执行器应用"
       ],
       "decisionRef": "D-013",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T01:30:00+08:00",
+      "phase": "发现并修正卡片内部不一致（防重复实现已作废判据）",
+      "action": "准备做 T12 时先核对判据 1，发现它已被 Owner 作废但 task/acceptance 未同步；已修正三处产物",
+      "evidence": [
+        "发现：task.md:30 与 acceptance.md:24 仍写『logical_models 恰为 GATE-3 的 5 个命名』，而 devlog:47 写着『推翻 dev-plan T6 的 5 个逻辑模型命名』、devlog:60 有 Owner 原话『他不需我创建分组数据，只需实现该功能』、devlog:65『本卡对该项改为验证端到端可用 + 工作层接线』",
+        "风险：我差点去造 5 个命名体系 —— 而 D-004 作废它的理由正是『按 A 做会产出一套无人使用的命名体系』",
+        "根因：devlog 跟着 Owner 答复更新了，task.md/acceptance.md 没同步",
+        "处置1：task.md 增『⛔ 已作废的判据（Owner 决定，勿再实现）』小节，逐条列作废项 + Owner 原话依据",
+        "处置2：acceptance.md 判据 1 改为『逻辑模型功能端到端可用 + 工作层接线』（不造数据）",
+        "处置3：task.md 写清仍然有效的核心缺口（Owner 实测原话：PearAPI 只给裸名字，tags 全空/endpoint_types 全 []/vendor 全 custom/pricing 0-of-79/model_type 全占位 model ⇒ 缺口是分类与富化）",
+        "顺带作废两项：『accept-smoke-* 不再存在』（现有 2 行 model_catalog 仍引用它们，改名牵动目录行）；『其余 6 渠道同步』（那 6 个是 mock 已被物理删除 ⇒ 不存在同步）",
+        "仍然有效的缺口数据已备：分类=model-classification.md、能力档位=model-capabilities.md、价格=Owner 定手动录入+加价、计费口径=图片按次/文字按 token/视频按秒"
+      ],
+      "decisionRef": "D-016",
       "blockRef": null
     }
   ],
@@ -350,6 +367,17 @@
       "choice": "更新期望并写明理由",
       "reason": "集合合法增长；逐字段断言不放松 ⇒ 原意『只改了该改的』仍被守护",
       "timing": "T5"
+    },
+    {
+      "id": "D-016",
+      "topic": "作废的判据怎么处置",
+      "options": [
+        "直接删掉",
+        "显式保留并标注作废 + Owner 原话"
+      ],
+      "choice": "显式保留并标注",
+      "reason": "删掉则后人无从判断『是漏写还是已作废』；显式标注可防重复实现（本次差点重复实现）",
+      "timing": "范围修正"
     }
   ],
   "verifications": [
