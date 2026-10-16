@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8">
+<title>底座能力 · 直观预览（真实数据）</title>
+<style>body{font:14px/1.6 -apple-system,"PingFang SC",sans-serif;margin:24px;color:#1a1a1a}
+h1{font-size:20px} .note{background:#f6f8fa;padding:12px;border-left:3px solid #0969da;margin:16px 0}
+table{border-collapse:collapse;width:100%} th,td{border:1px solid #d0d7de;padding:8px;vertical-align:top;font-size:13px}
+th{background:#f6f8fa;text-align:left} code{background:#f6f8fa;padding:1px 4px;border-radius:3px;font-size:12px}
+.t{padding:1px 6px;border-radius:3px;font-size:12px} .video{background:#ddf4ff} .image{background:#dafbe1} .text{background:#fff8c5}
+.cost{background:#fff5e6;font-weight:600} small{font-weight:400;color:#666}</style>
+<h1>底座能力 · 直观预览（真实数据，非示意）</h1>
+<div class="note"><b>这张表就是「底座能力做好之后，你的平台会知道什么」。</b><br>
+数据来源：中转站 <code>/v1/models</code> + <code>/api/pricing</code>（免鉴权，2026-10-16 实拉）
+＋ 各厂商官方文档（逐字段标注来源）。<br>
+若这张表符合你的预期 ⇒ 设计方向正确；若某列不对 ⇒ 在那一列上直接说要改什么。</div>
+<table><tr><th>模型</th><th>类型</th><th>画面比例</th><th>时长</th><th>清晰度</th><th>生成模式</th><th>参考能力</th><th>原价（中转站公布）</th><th>能力来源</th></tr>
+<tr><td><b>Seedance 2.5</b><br><code>doubao-seedance-2-5-260628</code></td>
+<td><span class="t video">video</span></td>
+<td>16:9<br>4:3<br>1:1<br>3:4<br>9:16<br>21:9<br>adaptive(默认)</td>
+<td>4~30 秒（或 -1 智能）</td>
+<td>480p / 720p(默认) / 1080p 10bit</td>
+<td>文生视频 · 首帧 · 首尾帧 · ★全能参考 · 视频编辑 · 视频延长 · 有声视频</td>
+<td>参考图 0–30 张 · 参考视频 0–10 · 参考音频 0–10</td>
+<td class="cost">按次 0.6 元/次<br><small>quota_type=1</small></td>
+<td>火山引擎官方</td></tr><tr><td><b>Veo 3.1</b><br><code>veo-3.1</code></td>
+<td><span class="t video">video</span></td>
+<td>9:16<br>16:9</td>
+<td>4 / 6 / 8 秒</td>
+<td>720p / 1080p / 4K</td>
+<td>文生视频 · 图生视频 · 首尾帧 · 参考图 · 视频延长 · 原生音频</td>
+<td>参考图 ≤3 张（三源互证）</td>
+<td class="cost">按次 1.25 元/次<br><small>quota_type=1</small></td>
+<td>Google 官方快照</td></tr><tr><td><b>gpt-image-2.5</b><br><code>gpt-image-2.5</code></td>
+<td><span class="t image">image</span></td>
+<td>任意 W×H（16 整除，比例 1:3~3:1）<br>1024x1024<br>1536x1024<br>1024x1536</td>
+<td>—</td>
+<td>1K / 2K / 4K（&gt;2560×1440 实验性）</td>
+<td>文生图 · 图像编辑 · 流式 partial 0–3</td>
+<td>参考图 ≤16 张</td>
+<td class="cost">按次 0.056 元/次<br><small>quota_type=1</small></td>
+<td>OpenAI 官方 SDK 类型文件</td></tr></table>
+<div class="note">🔎 <b>三个要点</b>：<br>
+① <b>「全能参考」确实存在</b>（Seedance 2.5：参考图 0–30 + 视频 0–10 + 音频 0–10）——你的判断是对的，数据早有；<br>
+② <b>原价不用手录</b>：中转站公布了 <code>model_price</code>/<code>model_ratio</code>，而你的 <code>price_source</code> 里本来就预留了 <code>'synced'</code>；<br>
+③ <b>能力须逐字段标来源</b>：同样是"比例"，Seedance 来自官方、gpt-image-2.5 来自 OpenAI 官方 SDK 类型文件——可信度不同。</div>
