@@ -461,6 +461,22 @@ jobs:
           fi
           exit "$rc"
 
+      # 协议一致性快照门禁（TASK-PROC-010）：快照存在且 JSON 有效、结构完整、
+      # 迁移号 == production migrations 最新号段。协议迁移推进而快照不更新 ⇒ CI 红。
+      # 与 scripts/preflight.sh 门 0d 调用**同一个脚本** —— 单一实现。
+      # 退出码 2 = 无法检查（缺 python3／文件缺失）⇒ 判【未验证】，不等于通过。
+      - name: Check protocol snapshot consistency (TASK-PROC-010)
+        run: |
+          set +e
+          bash .github/scripts/check-protocol-consistency.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::协议一致性快照【未验证】（缺 python3／文件缺失）—— 未验证不等于通过"
+            exit 1
+          fi
+          exit "$rc"
+
       # 关键文档与契约必须存在，防止被误删（新增文档时同步此处）
       - name: Check key docs and contract exist
         run: |

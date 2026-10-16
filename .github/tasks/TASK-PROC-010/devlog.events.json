@@ -1,0 +1,45 @@
+{
+  "taskId": "TASK-PROC-010",
+  "updatedAt": "2026-10-17T03:00:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T01:55:00+08:00",
+      "phase": "探查",
+      "action": "确认 #214 遗留项实质：go test 已自动覆盖审计，缺的是快照新鲜度门禁；CI Documentation Check 步骤结构 + preflight 门 0/0b/0c 结构确认",
+      "evidence": [
+        "services/production/internal/protocolaudit/audit_test.go",
+        ".github/workflows/ci.yml:415",
+        "scripts/preflight.sh:98"
+      ]
+    },
+    {
+      "ts": "2026-10-17T02:00:00+08:00",
+      "phase": "立卡",
+      "action": "建 TASK-PROC-010 四件套（task.md/acceptance.md/devlog.md/events.json）；判据 6 项",
+      "evidence": [
+        ".github/tasks/TASK-PROC-010/"
+      ],
+      "decisionRef": "D-001/D-002"
+    },
+    {
+      "ts": "2026-10-17T02:30:00+08:00",
+      "phase": "开发",
+      "action": "快照加 migration 字段；写 check-protocol-consistency.sh（结构+新鲜度门禁，退出码 0/1/2）；修复前导零 B-001；CI + preflight 门 0d 挂载",
+      "evidence": [
+        "services/production/internal/protocolaudit/testdata/protocol_templates_snapshot.json",
+        ".github/scripts/check-protocol-consistency.sh",
+        ".github/workflows/ci.yml:464",
+        "scripts/preflight.sh:167"
+      ]
+    },
+    {
+      "ts": "2026-10-17T02:50:00+08:00",
+      "phase": "验证",
+      "action": "正例 RC=0 + self-test RC=0（3 反例 3 正例）+ go test audit 通过；台账三方一致 criteria 6/6",
+      "evidence": [
+        "bash .github/scripts/check-protocol-consistency.sh",
+        "cd services/production && go test ./internal/protocolaudit/"
+      ]
+    }
+  ]
+}
