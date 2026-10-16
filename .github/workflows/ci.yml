@@ -435,16 +435,21 @@ jobs:
       - name: Check ADR directory exists
         run: test -d docs/adr
 
-      # 防止 `$var` 紧跟非 ASCII 字符：bash 会把多字节字符并入变量名，
-      # 在 set -u 下报 "unbound variable"。本仓库已因此踩坑两次
-      # （check-coverage.sh 与 detect-changes.sh），故固化为检查。
-      # 正确写法：${var} 或 ${var}：
+      # 两类 bash 引号陷阱（TASK-PROC-009 起由同一道门覆盖）：
+      #   A. `$var` 紧跟非 ASCII 字符：bash 会把多字节字符并入变量名，在 set -u 下报
+      #      "unbound variable"。本仓库已因此踩坑三次（check-coverage.sh、detect-changes.sh，
+      #      以及 TASK-PROC-009 里我自己新写的 check-coverage.sh 补丁）。正确写法：${var}。
+      #   B. **双引号字符串内的反引号**：那是命令替换，会被**真的执行**。
+      #      实测 check-coverage.sh 的提示里写了 `.agents/skills/…/SKILL.md` ⇒ 每次门禁未通过
+      #      都去执行那个 Markdown 路径（Permission denied）且提示残缺；
+      #      .husky/pre-push 的 `AGENTS.md` 同病（command not found，丢掉"规则在哪"的指引）。
+      #      检查时排除 heredoc 正文与已转义的反引号，避免误报。
       # ★ 规则只有一份实现：scripts/check-shell-vars.sh（预检的门 0 与 .husky/pre-commit 也用它）。
       #   此前这里是**另一份**实现（grep -P，且只扫 .github/scripts 与 deploy/），
       #   而 preflight 扫的是 scripts/ 与 .husky/ —— 两者互补，也就是说**都有盲区**。
       #   现在由脚本按"git 追踪的全部 shell 脚本"来算，谁都不用记目录。
       #   用 Python 而非 grep -P：后者在 macOS 上不可用，本地就复现不了 CI 的判定。
-      - name: Check shell scripts for \$var followed by non-ASCII
+      - name: Check shell scripts ($var + non-ASCII / backticks in double quotes)
         run: |
           set +e
           bash scripts/check-shell-vars.sh

@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T18:30:00+0800",
+  "updatedAt": "2026-10-16T21:00:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -426,6 +426,14 @@
       "priority": "**P1（清零基线 ⇒ BE-SIZE-001 全面阻断）**",
       "pr": null,
       "file": "[TASK-PROC-008/task.md](TASK-PROC-008/task.md)"
+    },
+    {
+      "id": "TASK-PROC-009",
+      "title": "覆盖率门禁的三处可信度缺陷（盲区 / shell bug / 本地复现不了 CI）",
+      "status": "待验收",
+      "priority": "**P1（门禁自身可信度）**",
+      "pr": null,
+      "file": "[TASK-PROC-009/task.md](TASK-PROC-009/task.md)"
     }
   ]
 }

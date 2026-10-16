@@ -34,7 +34,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   case "$branch" in
     develop|master)
       if [ "${ALLOW_PUSH_PROTECTED:-0}" != "1" ]; then
-        refuse "直接推送受保护分支 ${branch}（`AGENTS.md`「分支与提交」：改动须经 PR 合入）"
+        refuse "直接推送受保护分支 ${branch}（AGENTS.md「分支与提交」：改动须经 PR 合入）"
         hint "若确属人工发布流程，请显式：ALLOW_PUSH_PROTECTED=1 git push …"
       fi
       ;;

@@ -15,7 +15,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡 front-matter，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（53 张）
+## 索引（54 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -60,6 +60,7 @@
 | TASK-PROC-006 | cmd 装配收敛 —— 三服务 cmd/server/main.go 降到 ≤50 行 | **P1（关闭 BE-LAYER-002 的机器化）** | 待验收（三 main.go 184/94/73 → 38/37/37；基线 12→9；整链 20 通过/0 失败；判据 7 部分满足已说明） | ✅ | [TASK-PROC-006/task.md](TASK-PROC-006/task.md) |
 | TASK-PROC-007 | handlers 按域拆分（BE-SIZE-001 的四个 handler 文件） | **P1（拆掉最大的 4 个 handler 文件）** | 待验收（783/525/517/757 → 485/351/435/453；基线 12→5；整链 20/0；函数零丢失） | ✅ | [TASK-PROC-007/task.md](TASK-PROC-007/task.md) |
 | TASK-PROC-008 | 清零文件行数基线（engine.go 孤立注释 + 4 个测试文件拆分） | **P1（清零基线 ⇒ BE-SIZE-001 全面阻断）** | 待验收（**基线清零 0 条**；engine 526→417；4 测试文件全拆；self-test 9/9；整链 20/0；并修正门禁自身缺陷） | ✅ | [TASK-PROC-008/task.md](TASK-PROC-008/task.md) |
+| TASK-PROC-009 | 覆盖率门禁的三处可信度缺陷（盲区 / shell bug / 本地复现不了 CI） | **P1（门禁自身可信度）** | 待验收（三缺陷已修 + 又查出四个；门禁改 0/1/2 三态；6/7 达标 asset 判 2；含误报撤回） | ✅ | [TASK-PROC-009/task.md](TASK-PROC-009/task.md) |
 | TASK-ROUTE-001 | 路由层表结构（逻辑模型 + 多渠道候选 + 租户策略） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-001-routing-schema.md](TASK-ROUTE-001-routing-schema.md) |
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |

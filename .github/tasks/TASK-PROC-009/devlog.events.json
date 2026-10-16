@@ -1,0 +1,224 @@
+{
+  "taskId": "TASK-PROC-009",
+  "updatedAt": "2026-10-16T21:00:00+08:00",
+  "note": "本卡状态：进行中。三个缺陷均有实证；四件套在动码前齐全；尚未改码。",
+  "events": [
+    {
+      "ts": "2026-10-16T19:30:00+08:00",
+      "phase": "立卡前自查（查同类缺陷）",
+      "action": "据 TASK-PROC-008 的经验自查其余棘轮，在 check-coverage.sh 查出三个真缺陷并逐条实证",
+      "evidence": [
+        "缺陷1（盲区）：floor_of 找不到下限时 `跳过; return 0`，主循环 `done < $BASELINE` ⇒ 不在基线的服务根本不会被看到。实证：造 services/zzz-blindspot-proof/（有 Go 代码、无基线条目）跑 --all，输出里零提及",
+        "缺陷2（shell bug）：第100行 `echo \"...（见 `.agents/skills/...` ...）\"` 双引号内的反引号被当命令执行 ⇒ 实测 `.agents/skills/backend-standards/SKILL.md: Permission denied`",
+        "缺陷3（本地复现不了 CI）：CI 的 *_TEST_DATABASE_URL 指向 postgres:16 容器（ci.yml:151-184）；本机 5432 是 dev-local 的 shotdesigner-postgres-1、凭据不同 ⇒ 集成测试实测 FAIL（password authentication failed for user shotdesigner）⇒ 5 个服务假红：workspace 49.2/52、production 23.5/50、execution 42.8/55、asset 25.4/80、outbox-relay 28.8/60",
+        "缺陷3 的关键补充：本机已有容器 ci-repro-pg（postgres:16-alpine、shotdesigner/shotdesigner/postgres、监听 15432、CI 凭据实测可连）却没有任何脚本使用它"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-16T19:30:00+08:00",
+      "phase": "自我纠正",
+      "action": "撤回我一度报出的『5 个服务覆盖率回退』结论",
+      "evidence": [
+        "三条独立证据证伪：①与 CI 等价的环境变量重跑结果相同；②直接跑单个集成测试得 password authentication failed；③本机 5432 容器与 CI 的 postgres:16 并非同一个",
+        "结论：那是本地库凭据不匹配的测量假象，不是真回归",
+        "教训：报『回归』之前必须先排除自己的测量装置"
+      ],
+      "decisionRef": null,
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-16T21:00:00+08:00",
+      "phase": "实现 + 验证",
+      "action": "修三个原定缺陷；过程中又查出四个（含两个我自己写的）并全部修掉",
+      "evidence": [
+        "缺陷1修复：改扫实际服务目录（find 找 Go 文件）；目录在而基线无下限 ⇒ 失败并指名；反向查陈旧条目。反例：造 zzz-proc009-proof ⇒ ❌ 指名『基线中无下限配置』",
+        "缺陷2修复：去掉反引号；并把这一类扩展进 check-shell-vars.sh（heredoc 状态机 + 只看未转义反引号）",
+        "缺陷3修复：①未预设 *_TEST_DATABASE_URL 时自动指向 ci-repro-pg:15432 并探测可达性，不可达判 2；②测试未通过 ⇒ 判 2（不再报覆盖率回退）",
+        "★缺陷4（我自己的）：measure 在 $(...) 子 shell 里跑 ⇒ 赋的 MEASURE_REASON 传不回父 shell ⇒ 真实原因恒显示『无覆盖数据』。修：改用文件传递原因",
+        "★缺陷5（我自己的）：跳过感知第一版用 go test ./...（不带 -v）⇒ Go 不打印 --- SKIP ⇒ asset 的 12 个跳过被漏掉，差点误判成覆盖率回退。修：命令改为与 CI 完全一致（ci.yml:273 带 -v）",
+        "★缺陷6（环境）：compile: version go1.26.0 does not match go tool version go1.25.7。根因：6/7 个 go.mod 要求 go1.26.0（shared 是 1.23），本机 go 是 1.25.7，GOTOOLCHAIN=auto 自动下载切换，清缓存后混用。处置：显式 GOTOOLCHAIN=go1.26.0 后一致；门禁信息行打印工具链版本",
+        "★缺陷7（真命中）：.husky/pre-push:37 的 refuse \"…（`AGENTS.md`…）\" ⇒ 实测 bash: AGENTS.md: command not found，且拒绝提示丢掉『规则在哪』的指引。已修",
+        "★我第 8 次犯错（被现有门禁当场抓到）：新脚本里写 MEASURE_REASON=\"测试未通过（详见 $log）\"，$log 紧跟全角括号 ⇒ unbound variable；check-shell-vars.sh 立刻报 83:$log rc=1。该脚本注释写着『本仓库已因此踩坑两次』——我成了第三次。已修 ${log}",
+        "门禁最终判定：6/7 达标（execution 56.8/55、outbox-relay 64.4/60、production 53.3/50、shared 93.2/86、web-bff 74.5/71、workspace 71.5/52）；asset 33.8%<80% 但 12 个跳过 ⇒ 判 2（不可比）⇒ rc=2",
+        "asset 差额来源：S3 集成测试需 ASSET_TEST_S3_*（CI 走 repo secrets，本地没有）⇒ 不是真回退",
+        "反例自证三条：无基线条目服务→指名；CI_REPRO_PG_PORT=15999→rc=2 且给起库命令；未通过路径 Permission denied 计数 0/0/0"
+      ],
+      "decisionRef": "D-002",
+      "blockRef": "B-002"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "缺基线条目怎么处置",
+      "options": [
+        "继续静默跳过",
+        "判失败并指名"
+      ],
+      "choice": "判失败并指名",
+      "reason": "同 ci-triage 禁令『未验证 ≠ 通过』；否则新增服务可带 0% 覆盖率上线",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "本地用哪个库",
+      "options": [
+        "继续用 5432",
+        "用 ci-repro-pg:15432",
+        "不可用即判 2"
+      ],
+      "choice": "用 ci-repro-pg:15432 + 不可用即判 2",
+      "reason": "本机已有 CI 等价库却没人用；且库不可用时必须判 2，不得静默用错误的库跑出假绿",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-003",
+      "topic": "低于下限时如何判",
+      "options": [
+        "一律判 1（回退）",
+        "有跳过则判 2"
+      ],
+      "choice": "有跳过则判 2，无跳过才判 1",
+      "reason": "t.Skip（缺库/对象存储凭据）⇒ 本地覆盖率与 CI 不同口径，差额可能是跳过造成的，不能据此判回退；只有『测全了仍低』才是真回退",
+      "timing": "实现"
+    },
+    {
+      "id": "D-004",
+      "topic": "B 类坑是否纳入门禁",
+      "options": [
+        "只修不防",
+        "扩展 check-shell-vars.sh"
+      ],
+      "choice": "扩展门禁",
+      "reason": "全仓仅 2 处、其中 1 处是真 bug（pre-push），且这类坑本仓已多次踩到；扩展后可防复发（已用 heredoc 状态机避免误报）",
+      "timing": "实现"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "缺陷 1 实证",
+      "command": "造无基线条目服务跑 --all",
+      "result": "PASS（缺陷成立）：输出中零提及",
+      "evidence": "task.md"
+    },
+    {
+      "id": "V-002",
+      "criterion": "缺陷 2 实证",
+      "command": "跑未通过路径",
+      "result": "PASS（缺陷成立）：Permission denied",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-003",
+      "criterion": "缺陷 3 实证",
+      "command": "单集成测试 + 容器对比",
+      "result": "PASS（缺陷成立）：auth 失败；ci-repro-pg 凭据与 CI 一致且可连",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 1/2 盲区修复",
+      "command": "造无基线条目服务跑 --all",
+      "result": "PASS：指名『基线中无下限配置』",
+      "evidence": "/tmp/covA.out"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据 3 反引号修复",
+      "command": "三次未通过路径 grep",
+      "result": "PASS：Permission denied 计数 0/0/0",
+      "evidence": "covA/covB/cov10"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据 4 同类坑纳入门禁",
+      "command": "扩展后全仓扫描",
+      "result": "PASS：抓到 .husky/pre-push:37 真 bug；无误报",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-007",
+      "criterion": "判据 5 CI 等价库",
+      "command": "--all 信息行",
+      "result": "PASS：测试库 127.0.0.1:15432",
+      "evidence": "cov10.out"
+    },
+    {
+      "id": "V-008",
+      "criterion": "判据 6 库不可用判 2",
+      "command": "CI_REPRO_PG_PORT=15999",
+      "result": "PASS：rc=2 且提示起库命令",
+      "evidence": "/tmp/covB.out"
+    },
+    {
+      "id": "V-009",
+      "criterion": "判据 7 复现 CI 判定",
+      "command": "--all（统一工具链）",
+      "result": "PASS：6/7 达标；asset 判 2（12 跳过）而非假报回退",
+      "evidence": "/tmp/cov10.out"
+    },
+    {
+      "id": "V-010",
+      "criterion": "过程中新查出的 4 个缺陷",
+      "command": "见 devlog",
+      "result": "均已修",
+      "evidence": "devlog"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "我一度误报『覆盖率回退』",
+      "rootCause": "未先排除测量装置（本地库凭据 ≠ CI）",
+      "solution": "三条独立证据交叉验证后撤回",
+      "lesson": "报回归前先证同口径"
+    },
+    {
+      "id": "B-002",
+      "block": "我自己的实现引入了 2 个新缺陷（子 shell 丢变量 / 漏 -v）",
+      "rootCause": "①没意识到 $(...) 是子 shell；②没对照 CI 的实际命令就写了统计逻辑",
+      "solution": "原因改用文件传递；命令改为与 ci.yml:273 完全一致",
+      "lesson": "写统计/判据逻辑前，先对照【CI 实际怎么跑】——本地口径不一致是这轮反复出现的同一族错误"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "开工即建 devlog（AC-010）",
+      "result": "✓ 本卡做到",
+      "evidence": "devlog + 台账门"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 7 条"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "立卡前核实前提（§5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001/V-002/V-003 三条实证"
+    },
+    {
+      "item": "误报被自行撤回",
+      "result": "✓",
+      "evidence": "B-001"
+    },
+    {
+      "item": "尚未改码",
+      "result": "✓",
+      "evidence": "仅四件套文档"
+    }
+  ],
+  "retrospective": {
+    "good": "①三个原定缺陷都做了反例自证（造服务/改端口/grep 计数），不是只说『改好了』；②发现 B 类坑全仓还有一处真 bug（pre-push）并顺手修掉；③扩展门禁时用 heredoc 状态机 + 只认未转义反引号，避免误报（我第一版就误报了自己，当场修正）；④又一次自行撤回了『覆盖率回退』的误报",
+    "improve": "①我这轮写出的两个缺陷（子 shell 丢变量、漏 -v）都源于同一个毛病：**没先对照 CI 的实际跑法**——而这正是本卡要修的那类问题，说明我还在这个坑里；②边界/统计逻辑应先写一个最小可验证样例再展开",
+    "followups": "①asset 的 S3 集成测试本地跑不了（需 repo secrets）⇒ 可考虑给一个本地 MinIO 的等价配置（本机已有 minio 容器）；②本机 go 1.25.7 与 6/7 个 go.mod 要求的 1.26.0 不一致 ⇒ 建议在 README/AGENTS 里写明 GOTOOLCHAIN 要求，避免他人重踩；③建议把『排查 CI 口径差异』做成一页 checklist"
+  }
+}
