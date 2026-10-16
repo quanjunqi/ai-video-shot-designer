@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T01:30:00+08:00",
+  "updatedAt": "2026-10-17T02:00:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -139,6 +139,21 @@
         "仍然有效的缺口数据已备：分类=model-classification.md、能力档位=model-capabilities.md、价格=Owner 定手动录入+加价、计费口径=图片按次/文字按 token/视频按秒"
       ],
       "decisionRef": "D-016",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T02:00:00+08:00",
+      "phase": "T12 施工前定向：撤回『手写 79 行迁移』的做法",
+      "action": "施工前取实证核对建行方式，发现架构早已把产品面限定为『人工策展产生』，且策展已全栈实现 ⇒ 撤回原计划",
+      "evidence": [
+        "ADR-004 D1 三层分离（034_channel_models.sql 头部原文）：channel_models 不被任何前端或执行路径读取；同步只写本表；只有经人工策展写入 model_catalog 后模型才可能对外可见",
+        "策展已全栈实现：production GET /internal/v1/catalog/supply + POST /internal/v1/catalog/curate；前端 CurationPanel.tsx + curation.ts；BFF 契约已暴露 /api/v1/catalog*",
+        "CurateInput 注释：凡来自供给池的字段都不在这里 —— 由 Curate 从供给池行读取，避免人工誊抄出错；Curate：只有走到这里模型才可能对外可见",
+        "⇒ 手写 79 条 INSERT 同时违反：ADR-004 策展设计 / Owner『入池 = 管理员精选，绝不自动全量挂』/ CurateInput 刻意排除供给池字段以避免誊抄的意图",
+        "修正后的交付物：①验证策展链路端到端可用（判据 8/9 正路）②把富化数据整理成人工策展可用的参考形态 ③策展一个最小示范集（1 text + 1 image + 1 video）让 061 新视频模板真正被走到",
+        "这是本轮第二次避免『按过期或错误的理解施工』（第一次是判据 1 已被 Owner 作废但 task/acceptance 未同步）"
+      ],
+      "decisionRef": "D-017",
       "blockRef": null
     }
   ],
@@ -378,6 +393,17 @@
       "choice": "显式保留并标注",
       "reason": "删掉则后人无从判断『是漏写还是已作废』；显式标注可防重复实现（本次差点重复实现）",
       "timing": "范围修正"
+    },
+    {
+      "id": "D-017",
+      "topic": "79 行目录怎么产生",
+      "options": [
+        "手写 79 条 INSERT 迁移",
+        "走已实现的策展 API/UI"
+      ],
+      "choice": "走策展 API/UI",
+      "reason": "ADR-004 D1 规定产品面只由人工策展产生；CurateInput 刻意排除供给池字段以避免誊抄；Owner 定『入池 = 管理员精选，绝不自动全量挂』",
+      "timing": "T12 定向"
     }
   ],
   "verifications": [
