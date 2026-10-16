@@ -15,7 +15,7 @@
 | 状态取值 | `待开工` / `进行中` / `待验收` / `已验收` / `已关闭`（写在任务卡 front-matter，本表随之同步） |
 | 与 PR 的关系 | PR body 必填「🎯 验收勾对」小节（AC-005），勾对明细在验收清单文件里 |
 
-## 索引（48 张）
+## 索引（49 张）
 
 | 任务 ID | 标题 | 优先级 | 状态 | 验收清单 | 文件 |
 |---|---|---|---|---|---|
@@ -50,6 +50,7 @@
 | TASK-MODEL-006 | 供给单元池真实化（底座收尾 · dev-plan T5+T6+T12） | **P0（底座收尾——业务开发的前置）** | 进行中（数据/设计输入已齐；**第一刀「删 mock 渠道」受阻 B-003**：物理删除会连带删 56 条归档历史，已列三方案待 Owner 择一） | ✅ | [TASK-MODEL-006/task.md](TASK-MODEL-006/task.md) |
 | TASK-OBS-001 | 任务中心展示「请求参数 / 进度 / 产物」 | P1（排期 v2 §3.2 并行候选池） | 待验收（详情抽屉已交付；4 项证据不足如实列入未过项） | ✅ | [TASK-OBS-001/task.md](TASK-OBS-001/task.md) |
 | TASK-OBS-002 | T11 渠道健康面板 + 三类最小告警 | P0（A 轨 M4） | 已验收（PR #183 已合并，97df90e9） | ✅ | [TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md) |
+| TASK-OBS-003 | 异步任务耗时落库（V5c） | **P1（可观测性对最贵路径失明）** | 进行中（根因已定位到行号，尚未改码） | ✅ | [TASK-OBS-003/task.md](TASK-OBS-003/task.md) |
 | TASK-P2-001 | Phase 2.1 — 统一 Executor 接口定义 | P1 | 待验收（✅ executor.go 接口 + api_connector 在位；运行时行为未验） | — | [TASK-P2-001-executor-interface.md](TASK-P2-001-executor-interface.md) |
 | TASK-PROC-001 | 规则流程治理：AC-009 UI 设计稿先行关卡 + 台账同步 | P1 | 已验收（PR #179 已合并） | — | [TASK-PROC-001-rule-governance.md](TASK-PROC-001-rule-governance.md) |
 | TASK-PROC-002 | 开发日志机制落地（AC-010，审计可还原开发过程） | P1 | 已验收（PR #192 已合并） | ✅ | [TASK-PROC-002-devlog-mechanism.md](TASK-PROC-002-devlog-mechanism.md) |

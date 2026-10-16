@@ -1,0 +1,61 @@
+{
+  "taskId": "TASK-OBS-003",
+  "updatedAt": "2026-10-16T12:00:00+08:00",
+  "note": "本卡当前状态：进行中。已完成根因定位（行号级），尚未改动任何代码。",
+  "events": [
+    {
+      "ts": "2026-10-16T12:00:00+08:00",
+      "phase": "立卡/根因定位",
+      "action": "跑仓库自带验收套件发现 V5c 失败，逐层定位到行号级根因，先立卡再准备改码",
+      "evidence": [
+        "scripts/audit-verdicts.sh 实测输出 ❌ V5c 耗时仍为 0 ⇒ 异步任务会被排除在耗时分布之外；结论：通过 19 项 / 失败 1 项",
+        "latency_ms 全仓库只有一个同步写点：internal/httpapi/handlers_generate.go:270",
+        "异步终态写入点支持该字段：internal/audit/store.go:116 UpdateResultByJobID(..., latencyMs, ...) → :128 latency_ms = $5",
+        "中间层本来透传：internal/worker/audit.go:78 auditTerminalT(..., latencyMs int, ...) → :92 传给 store",
+        "但三个便捷封装硬编码 0：internal/worker/audit.go 的 auditTerminal / auditTerminalWithStatus",
+        "聚合刻意排除 0：internal/audit/query.go:236「0 表示没有测量到而不是瞬时完成…百分位同样用 latency_ms > 0 排除零」"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": "B-001"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "是否先立卡再改码",
+      "options": ["直接改", "先立卡"],
+      "choice": "先立卡",
+      "reason": "上一次（动效 token）未事先立卡，属 AC-010 流程偏差；本次纠正",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "异步耗时口径",
+      "options": ["端到端（提交→终态）", "单次上游调用"],
+      "choice": "待定，实现前必选并写进注释",
+      "reason": "V5c 措辞是「排除在耗时分布之外」⇒ 指向端到端；但需先确认 job.Job 有无可用起始时刻，若无则需迁移（会扩大范围）",
+      "timing": "待实现"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "缺陷存在性（判据 1 的前置）", "command": "bash scripts/audit-verdicts.sh", "result": "FAIL（复现成功：V5c ❌，19 通过 / 1 失败）", "evidence": "devlog 立卡条目" },
+    { "id": "V-002", "criterion": "根因定位", "command": "grep + 逐层读码（5 层，带行号）", "result": "PASS", "evidence": "task.md 根因表" }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "耗时口径未定",
+      "rootCause": "job.Job 是否带提交时刻尚未核实",
+      "solution": "实现前先核实；若需新增列则要迁移（会扩大范围）",
+      "lesson": "先定口径再写码，避免用未知起点估算耗时"
+    }
+  ],
+  "disciplineSelfCheck": [
+    { "item": "开工前建日志（AC-010）", "result": "✓", "evidence": "devlog.md" },
+    { "item": "开工前产出验收清单（AC-008）", "result": "✓", "evidence": "acceptance.md 8 条判据" },
+    { "item": "任务卡带 front-matter（AC-011）", "result": "✓", "evidence": "status/priority/depends_on/criteria" },
+    { "item": "立卡前核实前提（排期 v2 §5 第 8 条）", "result": "✓", "evidence": "V-001/V-002" },
+    { "item": "尚未改码", "result": "✓", "evidence": "本卡只有四件套文档" }
+  ],
+  "retrospective": null
+}
