@@ -480,7 +480,7 @@
       "title": "注册表补 openai_video canonical 定义（修复漂移）",
       "status": "进行中",
       "priority": "P1（协议层治理收口——修复 TASK-PROTOCOL-004 检出的漂移）",
-      "pr": "#<待开>",
+      "pr": "#215",
       "file": "[TASK-PROTOCOL-005/task.md](TASK-PROTOCOL-005/task.md)"
     }
   ]

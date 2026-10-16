@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-PROTOCOL-005",
-  "updatedAt": "2026-10-17T03:50:00+08:00",
+  "updatedAt": "2026-10-17T04:00:00+08:00",
   "events": [
     {
       "ts": "2026-10-17T03:05:00+08:00",
@@ -64,6 +64,14 @@
       "action": "11 包 -race + vet + gofmt + file-size + 台账全绿",
       "evidence": [
         "V-006/V-007"
+      ]
+    },
+    {
+      "ts": "2026-10-17T04:00:00+08:00",
+      "phase": "PR",
+      "action": "创建 PR #215（base develop ← feature/openai-video-registry-2026-10-17），body 含 6/6 勾对 + 轮询 bug 说明",
+      "evidence": [
+        "https://github.com/quanjunqi/ai-video-shot-designer/pull/215"
       ]
     }
   ],

@@ -2,7 +2,7 @@
 taskId: TASK-PROTOCOL-005
 status: 进行中
 priority: P1（协议层治理收口——修复 TASK-PROTOCOL-004 检出的漂移）
-pr: "#<待开>"
+pr: "#215"
 criteria: 6
 criteriaPassed: 0
 depends_on: TASK-PROTOCOL-004（其快照自证检出 openai_video 漂移；本卡修复）
