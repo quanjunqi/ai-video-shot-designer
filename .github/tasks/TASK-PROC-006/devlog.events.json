@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-PROC-006",
-  "updatedAt": "2026-10-16T15:00:00+08:00",
+  "updatedAt": "2026-10-17T06:00:00+08:00",
   "note": "本卡状态：进行中。已完成范围界定与违规性质判定，尚未改码。",
   "events": [
     {
@@ -32,6 +32,24 @@
         "三处细微行为差异（均不可外部观测）已如实记录：错误路径显式 pool.Close（原依赖 os.Exit 跳过 defer）；ctx 创建早于校验；停止日志仍在 main 内（刻意保持文案一致）"
       ],
       "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T06:00:00+08:00",
+      "phase": "🔴 纠正：装配搬家搬错地方（internal/app → cmd/server/app.go）",
+      "action": "PR #205 的 CI 在 asset 覆盖率棘轮失败；定位为我把装配搬进被计数的 internal/app；改搬到同包 cmd/server/app.go",
+      "evidence": [
+        "CI 失败步骤：Backend Build & Test (asset) 的 Coverage floor (ratchet)；Test 与 Integration tests must not skip 都是 success ⇒ 不是跳过问题，是真低于下限",
+        "CI 各包覆盖率：cmd/server 0.0%（被排除）；internal/app 15.8%（我新建，被计入）；internal/asset 81.7%；internal/httpapi 82.2% ⇒ 总 72.3% < 80%",
+        "覆盖率脚本注释里早有同一场景：『实测 cmd/server 恒为 0%，曾把 asset 整服务 82% 拉到 69%』—— 我把它从 82% 又拉到 72.3%",
+        "根因：我对 BE-LAYER-002 的理解越界。规则原文是『cmd/ 只装配：只读环境变量、依赖注入、启动 server』与『main.go ≤50 行：只留 main()…装配校验收敛在构造函数』—— 只要求 main.go 短，没要求装配搬出 cmd/",
+        "正解：cmd/server/app.go（同包、另一个文件）；我错搬到 internal/app/（另一个包，且被覆盖率计入）",
+        "修复后验证：internal/app 已不在统计里（统计语句 260→222）；CI 口径 asset = (97+85)/(118+104) = 182/222 = 82.0% ≥ 80%",
+        "三服务 build/vet/gofmt/test 全部通过；行数门禁通过（cmd/server/app.go 146/150/301 行）",
+        "★教训：两条规则同时存在时，『满足其一』不等于『理解其一』—— 为满足 main.go ≤50 行而搬走装配，却没同时检查搬到哪里会触发另一条规则（覆盖率排除只认 /cmd/ 路径）",
+        "★正面例子：本地因 S3 集成测试跳过（33.8%）根本看不出问题，只有 CI 跑全了才暴露 —— 本地不可比、CI 把关"
+      ],
+      "decisionRef": null,
       "blockRef": null
     }
   ],

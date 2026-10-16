@@ -8,7 +8,7 @@
 // 行为不变：环境变量名、默认值（endpoint=minio:9000 / bucket=assets /
 // addr=0.0.0.0:8084 / max=100MiB）、启动顺序（含 MakeBucket 的"存在即容忍"语义）、
 // 日志文案、os.Exit 语义逐条照搬。
-package app
+package main
 
 import (
 	"context"

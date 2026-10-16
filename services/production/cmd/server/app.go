@@ -6,7 +6,7 @@
 // 故只做**搬移**，不删任何装配与校验。
 //
 // 行为不变：环境变量名、默认值（addr=127.0.0.1:8081）、日志文案、os.Exit 语义逐条照搬。
-package app
+package main
 
 import (
 	"context"

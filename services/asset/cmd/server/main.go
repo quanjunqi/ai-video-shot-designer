@@ -6,25 +6,24 @@ import (
 	"os"
 	"time"
 
-	"shotdesigner/services/asset/internal/app"
 	"shotdesigner/shared/observability"
 )
 
 // main 只做装配（BE-LAYER-002）：读 env → 构造 → 启动。
 //
 // 收敛位置（TASK-PROC-006）：依赖构造与**装配校验**（含 minio 建桶的"存在即容忍"语义）
-// → internal/app.New（本文件因此 ≤50 行）；业务全在 internal/<pkg>。
+// → internal/New（本文件因此 ≤50 行）；业务全在 internal/<pkg>。
 //
 // 行为不变：环境变量名、默认值、启动顺序、日志文案、os.Exit 语义逐条照搬；
-// 失败日志仍由 app.New 按原文案打出，本文件只负责退出。
+// 失败日志仍由 New 按原文案打出，本文件只负责退出。
 func main() {
 	logger := observability.NewJSONLogger("asset")
-	cfg := app.ConfigFromEnv()
+	cfg := ConfigFromEnv()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	a, err := app.New(ctx, logger, cfg)
+	a, err := New(ctx, logger, cfg)
 	if err != nil {
 		os.Exit(1)
 	}

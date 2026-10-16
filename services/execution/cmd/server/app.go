@@ -10,7 +10,7 @@
 //
 // 行为不变是硬要求（验收判据 5/8）：环境变量名、默认值、启动顺序、
 // 日志文案、os.Exit 语义全部逐条照搬。改文案会让运维既有的告警与检索失效。
-package app
+package main
 
 import (
 	"context"
