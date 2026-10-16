@@ -105,8 +105,22 @@ type RunResult struct {
 // withElapsed 把本次调用的耗时【一次】写进两种形式：给人看的字符串 + 给审计用的毫秒。
 // 4 个 RunResult 构造点原来各自重复 `time.Since(start).Round(time.Millisecond).String()`，
 // 只写字符串 ⇒ 时间信息在格式化那一刻就丢了。
+//
+// ★ 为什么不能直接 Round 到 0（TASK-OBS-003 / V5c 实测根因）：
+//
+//	`audit/query.go` 规定 `latency_ms = 0` 的语义是【没有测量到】——聚合统计一律用
+//	`latency_ms > 0` 排除零。而 `Round(time.Millisecond)` 会把 <0.5ms 的【已测到】耗时
+//	抹成 0 ⇒ 与"没测到"混为一谈。
+//	本地实测（scripts/stub-upstream.py，20 次采样）：往返中位数 0.351ms，17/20 低于 0.5ms
+//	⇒ 经本地桩的调用**必然**被抹成 0，异步任务因此恒被排除在耗时分布之外（V5c）。
+//	处置：耗时为正值但不足 1ms 时向上取整到 1ms —— 保住"测到了"这一事实，
+//	且不误导为"瞬时完成"（1ms 已是本字段的表示精度下限）。
 func (r RunResult) withElapsed(start time.Time) RunResult {
-	d := time.Since(start).Round(time.Millisecond)
+	elapsed := time.Since(start)
+	d := elapsed.Round(time.Millisecond)
+	if d == 0 && elapsed > 0 {
+		d = time.Millisecond
+	}
 	r.Duration = d.String()
 	r.ElapsedMs = int(d.Milliseconds())
 	return r

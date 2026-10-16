@@ -1,10 +1,10 @@
 ---
 taskId: TASK-OBS-003
-status: 进行中
+status: 待验收
 priority: **P1（可观测性对最贵路径失明）**
 pr: "#<待开>"
 criteria: 8
-criteriaPassed: 0
+criteriaPassed: 6
 depends_on: —（独立）
 ---
 

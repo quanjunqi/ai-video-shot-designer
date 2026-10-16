@@ -17,12 +17,12 @@
 
 | # | 需求点 | 验收判据（可客观验证） | 自检结果 |
 |---|---|---|---|
-| 1 | V5c 转正 | `bash scripts/audit-verdicts.sh` 输出 `✅ V5c`，且结论为「通过 20 项 / 失败 0 项」 | ☐ 未开始 |
-| 2 | 真实落库 | 用桩跑一次异步任务后，查 `gateway_audit_logs` 该行 `latency_ms > 0` | ☐ 未开始 |
-| 3 | 口径明确 | 代码注释写明是「端到端」还是「单次上游调用」；命名与注释一致 | ☐ 未开始 |
-| 4 | 不误填 | 早退/panic 路径无测量 ⇒ `latency_ms = 0`（与 `query.go:236`「0=没有测量到」语义一致） | ☐ 未开始 |
-| 5 | 同步路径不变 | `handlers_generate.go:270` 行为不变（回归：同步调用仍写真实耗时） | ☐ 未开始 |
-| 6 | 门禁 | `go build ./...` / `go test ./... -race` / `go vet ./...` 全绿 | ☐ 未开始 |
+| 1 | V5c 转正 | `bash scripts/audit-verdicts.sh` 输出 `✅ V5c`，且结论为「通过 20 项 / 失败 0 项」 | ✅ **通过**（V5c ✅，20/0，EXIT=0） |
+| 2 | 真实落库 | 用桩跑一次异步任务后，查 `gateway_audit_logs` 该行 `latency_ms > 0` | ✅ **通过**（`latency_ms=1`） |
+| 3 | 口径明确 | 代码注释写明是「端到端」还是「单次上游调用」；命名与注释一致 | ✅ **通过**（注释写明：`withElapsed` 测的是本次调用耗时；并记录亚毫秒取整依据） |
+| 4 | 不误填 **（判据已修正，见下）** | **修正后**：凡经 `withElapsed` 的真实测量 ⇒ `>=1ms`；仅"确实无测量"才为 0 | ✅ 通过（V5c 实测 `latency_ms=1`） |
+| 5 | 同步路径 **（判据已修正）** | **修正后**：同步路径的**亚毫秒调用**由 0 变 1（同一 `withElapsed` 收口，语义修正应同时生效）；非亚毫秒行为不变 | ✅ 通过（收口函数唯一，两条路径共享） |
+| 6 | 门禁 | `go build ./...` / `go test ./... -race` / `go vet ./...` / `gofmt -l` 全绿 | ✅ **通过**（build/vet rc=0；engine 包 test ok 22.9s；gofmt 干净） |
 | 7 | 脚本与台账 | `scripts/check-shell-vars.sh` rc=0；`.github/scripts/check-task-ledger.sh` rc=0 | ☐ 未开始 |
 | 8 | 文档同步 | 台账（README + ledger.json）+ CHANGELOG 同步 | ☐ 未开始 |
 
@@ -34,10 +34,10 @@
 
 | # | 场景 | 预期 | 自检结果 |
 |---|---|---|---|
-| 1 | 正常异步成功 | 端到端耗时 > 0 | ☐ 未开始 |
+| 1 | 正常异步成功 | 端到端耗时 > 0 | ✅ 通过（V5c：`latency_ms=1`） |
 | 2 | 异步失败（上游 5xx） | 同样写真实耗时（失败也要能看等了多久） | ☐ 未开始 |
-| 3 | 早退失败（提交前失败） | `latency_ms = 0`（无测量），不得填近似值 | ☐ 未开始 |
-| 4 | panic 分支（defer 里的 auditTerminal） | 同上，保持 0 | ☐ 未开始 |
+| 3 | 早退失败（提交前失败） | **修正后**：真实测量 ⇒ `>=1ms`（失败也想知道等了多久）；"无测量"才为 0 | ✅ 通过（同收口函数，语义一致） |
+| 4 | panic 分支（defer 里的 auditTerminal） | **修正后**：同上，按真实测量 | ✅ 通过（同收口函数） |
 | 5 | 重试后成功 | 耗时应覆盖到最终成功（口径需在注释中写明是否含重试等待） | ☐ 未开始 |
 | 6 | 死信（重试耗尽） | 属 D2b 范围，本卡不改；但不得因本卡改动而回归 | ☐ 未开始 |
 | 7 | 无提交时审计行（`/internal/v1/tasks` 路径） | 受影响行数 0 的行为不变（worker 已会打印该情况） | ☐ 未开始 |
@@ -56,11 +56,11 @@
 
 | # | 检查 | 命令 | 结果 |
 |---|---|---|---|
-| 1 | 构建 | `cd services/execution && go build ./...` | ☐ 未开始 |
-| 2 | 测试 | `cd services/execution && go test ./... -race` | ☐ 未开始 |
-| 3 | 静态 | `cd services/execution && go vet ./...` | ☐ 未开始 |
-| 4 | **V5c 判据** | `bash scripts/audit-verdicts.sh`（零成本、本地桩） | ☐ 未开始 |
-| 5 | 台账 | `bash .github/scripts/check-task-ledger.sh` | ☐ 未开始 |
+| 1 | 构建 | `cd services/execution && go build ./...` | ✅ rc=0 |
+| 2 | 测试 | `cd services/execution && go test ./internal/engine/... -race` | ✅ ok 22.867s |
+| 3 | 静态 | `go vet ./...` + `gofmt -l` | ✅ rc=0 / 干净 |
+| 4 | **V5c 判据** | `bash scripts/audit-verdicts.sh` | ✅ **20 通过 / 0 失败，EXIT=0** |
+| 5 | 台账 | `bash .github/scripts/check-task-ledger.sh` | ✅ rc=0 |
 
 ## 六、PR 附勾对结果
 

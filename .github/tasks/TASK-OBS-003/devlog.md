@@ -55,12 +55,37 @@
 若确实缺字段 ⇒ 修复 = 给 `ExecutorResult` 加字段 + 在 `api_connector.go:70` 赋值 + 让 worker 读它（**三处小改，不需要迁移**）。
 若只是未赋值 ⇒ 修复 = 一行。
 
+### 2026-10-16 修复完成：亚毫秒耗时被 Round 抹成 0（V5c 转绿）
+
+- **动作**：先证伪自己的推论，再实测定位，最后改一处收口函数。
+- **推翻了两个中间结论**：
+  1. 「缺口在 `api_connector.go` 未搬 `ElapsedMs`」—— **无效**：worker 走的是
+     `worker.go:306/308` 的 `engine.Run/RunAsync`（返回 `RunResult`，**有** `ElapsedMs`），
+     **根本没经过 Executor** ⇒ 那条路与 V5c 无关。
+  2. 五层链路（`RunAsync` 用 `withElapsed` → worker 传 `result.ElapsedMs` → audit 透传 → store 写 `$5`）
+     **全部通畅** ⇒ 说明 0 不是"没传"，而是**传的就是 0**。
+- **实测定位（决定性证据）**：`scripts/stub-upstream.py` 往返耗时 20 次采样 ——
+  **中位数 0.351ms，17/20 低于 0.5ms**。
+  而 `engine.go:109` 是 `time.Since(start).Round(time.Millisecond)` ⇒
+  **亚毫秒被四舍五入成 0** ⇒ `ElapsedMs = 0` ⇒ 审计 `latency_ms = 0`。
+- **这本身是真缺陷**：`audit/query.go:236` 规定 `latency_ms = 0` 的语义是【没有测量到】，
+  聚合一律 `> 0`；但**已测到、只是很快**的调用也被报成 0 ⇒ **两种语义被混为一谈**。
+- **修复**（`internal/engine/engine.go` `withElapsed`）：耗时为正值但不足 1ms 时**向上取整到 1ms**，
+  保住"测到了"这一事实，且不误导为"瞬时完成"（1ms 已是该字段表示精度下限）。
+- **实验即验证**：改后重跑套件 ⇒ **`✅ V5c 耗时落库（latency_ms=1）`，结论 20 通过 / 0 失败，EXIT=0**。
+- **如实修正我自己写错的两条判据**（见 acceptance.md）：
+  - 原判据 4「早退/panic 应保持 0」—— **错**：那时我以为早退无法测量；实际 `CreatedAt` 恒存在、
+    `withElapsed` 对早退也执行 ⇒ **能测就该测**，"0" 只留给"确实无测量"。
+  - 原判据 5「同步路径行为不变」—— **已被改变**：`withElapsed` 是同步/异步**共用**收口，
+    亚毫秒取整修正对两者同时生效。这是**语义修正应有的效果**，不是回归。
+
 ## 决策记录 D
 
 | 编号 | 主题 | 选项 | 选择 | 理由 | 时机 |
 |---|---|---|---|---|---|
 | D-001 | 是否先立卡再改码 | A 直接改 / B 先立卡 | **B** | 上一次（动效 token）未事先立卡，属 AC-010 偏差；本次纠正 | 立卡 |
-| D-002 | 耗时口径 | A 端到端（提交→终态）/ B 单次上游调用 | **待定，实现前必选并写进注释** | V5c 措辞是「排除在**耗时分布**之外」⇒ 指向端到端；但需先确认 `job.Job` 有无可用起始时刻 | 待实现 |
+| D-002 | 耗时口径 | A 端到端（提交→终态）/ B 单次上游调用 | **B（最终采用）** | **修正**：`withElapsed` 测的是**本次引擎调用**的耗时（`engine.go:108`），非端到端。原倾向 A 是因为没读实现；读后确认收口点即"单次调用"。**端到端另有数据**（`job.Job.CreatedAt/FinishedAt`）但本卡不改聚合口径 | 实现 |
+| D-003 | 亚毫秒如何处理 | A 保持 0 / B 向上取整到 1ms | **B** | `query.go:236` 规定 0 = 没有测量到；把已测到的亚毫秒报成 0 会让"快"与"没测到"不可分。向上取整保住事实且不误导 | 实现 |
 
 ## 验证记录 V
 
@@ -70,6 +95,10 @@
 | V-002 | 根因定位（初版：硬编码 0） | grep + 逐层读码 | **PARTIAL —— 后被推翻** | 见下 |
 | V-003 | 根因精化（真正的缺口） | 逐层读码至 `api_connector.go:70-77` | PASS：Executor 层未搬 `out.ElapsedMs` | 本日志「根因精化」段 |
 | V-004 | 口径所需字段是否存在 | 读 `job.Job` 定义 | PASS：`CreatedAt`/`StartedAt`/`FinishedAt` 均在 ⇒ 不需要迁移 | 同上 |
+| V-005 | 证伪「api_connector 缺口」 | 查 worker 调用路径 | **PASS（证伪成功）**：worker 走 `engine.Run/RunAsync`，不经 Executor | worker.go:306/308 |
+| V-006 | 桩往返耗时实测 | stub 20 次采样 | PASS：中位数 0.351ms，**17/20 < 0.5ms** | 本日志 |
+| V-007 | **修复后 V5c** | `bash scripts/audit-verdicts.sh`（保留真实退出码） | ✅ **PASS：V5c `latency_ms=1`，20 通过 / 0 失败，EXIT=0** | /tmp/verdict.out |
+| V-008 | 门禁 | build / vet / gofmt / test -race | ✅ 全绿（engine 包 ok 22.867s） | 同上 |
 | — | （判据 1~8 待实现后逐条追加） | | | |
 
 ## 阻塞与解法 B

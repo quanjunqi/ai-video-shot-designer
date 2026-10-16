@@ -1,6 +1,6 @@
 {
   "schema": "ledger-v1",
-  "updatedAt": "2026-10-16T12:00:00+0800",
+  "updatedAt": "2026-10-16T13:00:00+0800",
   "note": "台账机器可读视图（AC-011）。人读主版本见 README.md，两处同步维护；审计 agent 以此统计状态/缺口，不解析 md 表格。",
   "tasks": [
     {
@@ -390,7 +390,7 @@
     {
       "id": "TASK-OBS-003",
       "title": "异步任务耗时落库（V5c）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "**P1（可观测性对最贵路径失明）**",
       "pr": null,
       "file": "[TASK-OBS-003/task.md](TASK-OBS-003/task.md)"
