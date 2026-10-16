@@ -2,7 +2,7 @@
 taskId: TASK-PROTOCOL-002
 status: 进行中
 priority: P1（底座收尾的自动化补刀——服务 TASK-MODEL-006 判据 4「能力声明覆盖」）
-pr: "#<待开>"
+pr: "#212"
 criteria: 6
 criteriaPassed: 0
 depends_on: 不依赖任何 Owner 数据口径（能力键沿用 061 枚举；param_mapping 无实测依据不写）

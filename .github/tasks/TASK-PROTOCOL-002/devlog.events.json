@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-PROTOCOL-002",
-  "updatedAt": "2026-10-17T00:40:00+08:00",
+  "updatedAt": "2026-10-17T00:50:00+08:00",
   "events": [
     {
       "ts": "2026-10-17T00:15:00+08:00",
@@ -44,6 +44,14 @@
       "action": "supported_modes 动态聚合（handlers_catalog.go:114-117）；bff.yaml 无硬编码枚举；新键 ∈ 061 枚举 ⇒ 契约兼容",
       "evidence": [
         "openapi/bff.yaml:3231"
+      ]
+    },
+    {
+      "ts": "2026-10-17T00:50:00+08:00",
+      "phase": "PR",
+      "action": "通过 GitHub API（keychain token）创建 PR #212（base develop ← head feature/protocol-capabilities-backfill-2026-10-17），body 含 6/6 验收勾对 + 3 设计决策 + 判据 4 口径 8/9 待 Owner 确认",
+      "evidence": [
+        "https://github.com/quanjunqi/ai-video-shot-designer/pull/212"
       ]
     }
   ],
