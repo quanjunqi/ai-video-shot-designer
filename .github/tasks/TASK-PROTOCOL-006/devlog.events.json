@@ -1,0 +1,39 @@
+{
+  "taskId": "TASK-PROTOCOL-006",
+  "updatedAt": "2026-10-17T04:00:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T03:10:00+08:00",
+      "phase": "探查",
+      "action": "确定实战对象 OpenAI Responses API；官方 openapi.json 4.8MB 下载（sha256 留档）；CreateResponse allOf 无 required",
+      "evidence": [
+        "/tmp/openai_oas.json",
+        "openai/openai-openapi@main"
+      ]
+    },
+    {
+      "ts": "2026-10-17T03:20:00+08:00",
+      "phase": "生成审查",
+      "action": "protocol-gen 生成 31 params + response_extract；修复 path 拼接匹配（/v1/responses）；审查 type=text capabilities=text-chat async=false",
+      "evidence": [
+        "services/production/cmd/protocol-gen/main.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T03:40:00+08:00",
+      "phase": "落库",
+      "action": "迁移 068 落库成功（doc_ref jsonb 修复 B-001）；registry+常量+测试 9→10；真库 production 执行（ADOPT_UNTIL=067 + 068）",
+      "evidence": [
+        "services/production/migrations/068_openai_responses_template.sql"
+      ]
+    },
+    {
+      "ts": "2026-10-17T04:00:00+08:00",
+      "phase": "回归",
+      "action": "快照重拍 10 行；audit 通过；门禁 ✓；execution mapping 冒烟 ✓；production 全量 build/vet/test -race ✓",
+      "evidence": [
+        "internal/protocolaudit/testdata/protocol_templates_snapshot.json"
+      ]
+    }
+  ]
+}

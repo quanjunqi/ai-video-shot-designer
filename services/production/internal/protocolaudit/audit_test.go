@@ -21,6 +21,7 @@ var registryIDs = []string{
 	"pt_builtin_comfyui", "pt_builtin_grsai", "pt_builtin_jimeng_image", "pt_builtin_jimeng_video",
 	"pt_builtin_minimax_text", "pt_builtin_minimax_video", "pt_builtin_openai", "pt_builtin_openai_img",
 	// TASK-PROTOCOL-005：注册表已补 canonical 定义（此前只在 DB——漂移已修复）。
+	"pt_builtin_openai_responses", // TASK-PROTOCOL-006：protocol-gen 实战新增
 	"pt_builtin_openai_video",
 }
 
@@ -89,7 +90,7 @@ func TestAuditRegistryOnly(t *testing.T) {
 }
 
 // TestAuditSnapshotRealDB：真库快照（2026-10-17）——已知漂移自证门禁。
-// 断言：快照 9 行；db-only = [pt_builtin_openai_video]（已知漂移，防回归）；无能力键违规。
+// 断言：快照 10 行（TASK-PROTOCOL-006 新增 openai_responses）；无 db-only 漂移；无能力键违规。
 func TestAuditSnapshotRealDB(t *testing.T) {
 	b, err := os.ReadFile(filepath.Join("testdata", "protocol_templates_snapshot.json"))
 	if err != nil {
@@ -101,16 +102,16 @@ func TestAuditSnapshotRealDB(t *testing.T) {
 	if err := json.Unmarshal(b, &snap); err != nil {
 		t.Fatalf("解析快照: %v", err)
 	}
-	if len(snap.Templates) != 9 {
-		t.Fatalf("快照应为 9 个模板，got %d", len(snap.Templates))
+	if len(snap.Templates) != 10 {
+		t.Fatalf("快照应为 10 个模板（TASK-PROTOCOL-006 含 openai_responses），got %d", len(snap.Templates))
 	}
 	rep := Audit(registryIDs, snap.Templates, allowedCapKeys, emptyCapOK)
 	// TASK-PROTOCOL-005：注册表已补 openai_video canonical 定义 → 漂移归零（db-only 为空）。
 	if len(rep.DBOnly) != 0 {
 		t.Fatalf("快照不应有漂移（openai_video 已入注册表）: %v", rep.DBOnly)
 	}
-	if len(rep.Both) != 9 {
-		t.Fatalf("双侧一致应为 9 个（含 openai_video）: %v", rep.Both)
+	if len(rep.Both) != 10 {
+		t.Fatalf("双侧一致应为 10 个（含 openai_responses）: %v", rep.Both)
 	}
 	if len(rep.CapabilityViolations) != 0 {
 		t.Fatalf("快照不应有能力键违规: %+v", rep.CapabilityViolations)
