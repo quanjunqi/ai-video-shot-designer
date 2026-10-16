@@ -1719,8 +1719,24 @@ export interface components {
             modelId: string;
             /** @enum {string} */
             modality?: "text" | "image" | "video" | "audio";
-            /** @description 业务模式名（如文生图/图生图等），取值必须命中协议模板 `capabilities` 声明的 mode；
-             *     具体取值以服务端为准，契约待补。
+            /** @description 业务模式名。**取值词表于 TASK-MODEL-006 / 迁移 064 固化**（此前只写"契约待补"）。
+             *
+             *     ★ 这套词表是**调用端与服务端的共同口径**：请求里的 `mode` 会被拿去与模型
+             *     `capability.modes`（以及协议模板 `capabilities` 的键）比对，**不命中则候选被剔除**。
+             *     因此**声明端必须与调用端同源** —— 迁移 064 的教训：063 曾用 `first-frame` /
+             *     `omni-reference` 等自造词，与调用端词表不同源，会让合法请求被能力过滤拒掉。
+             *
+             *     词表来源：**前端 `GenerationMode`**（`apps/web/src/config/create/control-schema.ts`）：
+             *       text-to-image · image-to-image · text-to-video · image-to-video ·
+             *       first-last-frame · multi-reference · audio-reference · text-to-speech
+             *
+             *     ⚠️ **此处刻意【不加 enum】**：加 enum 会把无约束的 string 收窄 ⇒ 按本目录 §3.1
+             *     「收紧取值」属破坏性变更（oasdiff 判 `request-property-became-enum` = error），
+             *     而**前端本来就只发这套值** ⇒ 加 enum 约束的是**已经合规的一方**，是错的工具。
+             *     真正的漏洞在**声明端**（`model_catalog.capability.modes`）—— 由**数据守卫测试**
+             *     `TestPostgresCapabilityModesUseCallerVocabulary` 守（迁移 064 的教训：063 曾用
+             *     `first-frame`/`omni-reference` 等自造词，与调用端不同源，会让合法请求被能力过滤拒掉）。
+             *     **新增模式须同时改：前端 `GenerationMode` + 该测试的词表 + 数据。**
              *      */
             mode?: string;
             /** @description 业务输入（prompt、reference_images 等）；字段以服务端为准，契约待补。 */

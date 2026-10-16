@@ -155,8 +155,22 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	// ★ 这里曾漏改：P3-1 只改了同一个文件里另一处形状相似但文案不同的循环，
 	//   断言 count==1 通过了，却让**真正服务 /v1/generate 的这一处**留在旧行为上。
 	//   是"用逻辑模型 id 发一次真实请求"把它暴露出来的。
-	candidates, resolveErr := catalog.Resolve(dir, in.ModelID)
+	// TASK-MODEL-006 判据 6：把请求的 mode 传下去 —— 候选**显式声明**了 capability.modes
+	// 且不含它则被剔除；未声明的候选保留（未声明 ≠ 不支持，见 catalog.ResolveFor）。
+	candidates, resolveErr := catalog.ResolveFor(dir, in.ModelID, in.Mode)
 	if resolveErr != nil {
+		// 两种失败的语义不同，必须分开报：
+		//   - 模型找不到 ⇒ 404 MODEL_NOT_FOUND（文案与改动前逐字一致）
+		//   - 模型在、但没有候选支持该 mode ⇒ 422（message 与审计 reason 都带请求的 mode）。
+		//     code 复用契约已列出的本端点 422 码 INVALID_GENERATE，**刻意不新增 code**：
+		//     Error.code 的 enum 会被 openapi-typescript 生成为 TS 联合类型
+		//     （apps/web/src/types/api-generated.ts），新增 code 必须同步改契约 + 重生成前端类型，
+		//     超出本卡范围（需要独立可判别 code 时另开卡）。
+		if errors.Is(resolveErr, catalog.ErrNoCandidateForMode) {
+			writeAudit("failed", nil, resolveErr.Error(), "", "")
+			writeError(w, 422, "INVALID_GENERATE", resolveErr.Error())
+			return
+		}
 		writeAudit("failed", nil, "model not found in directory", "", "")
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
 		return
@@ -198,15 +212,14 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "TEMPLATE_NOT_FOUND", "protocol template not found")
 		return
 	}
-	// Capability validation: parse model capability and check mode support
-	var cap struct {
-		RefImage       bool     `json:"refImage"`
-		SupportedModes []string `json:"supportedModes"`
-		Modalities     []string `json:"modalities"`
-	}
-	if len(model.Capability) > 0 {
-		_ = json.Unmarshal(model.Capability, &cap)
-	}
+	// 这里原来解析了一个 {refImage, supportedModes, modalities} 局部 struct，三个字段**从未被使用**
+	// （TASK-MODEL-006 判据 6 一并清除）。其中 SupportedModes 是**结构性死字段**：`supportedModes`
+	// 是"协议模板 capabilities 的键"推导出的**模板层**派生值（见 capabilities 端点响应与 production
+	// handlers_catalog.go），**不在模型的 capability 里** ⇒ 拿 model.Capability 反序列化它永远是零值。
+	// 这不是"键名拼错"，是**读错了层**（模型的键是 modes）。刻意**不**改成"就地读 modes 校验"：
+	// 过滤已收口在 catalog.ResolveFor（三处调用方共用一份实现与同一套"未声明 ≠ 不支持"口径），
+	// 在 handler 里再写一份必然分叉（本项目有"两条路径口径分叉"的事故史，见上方 ★ 注释）。
+	// 模板层能力校验（mode 命中协议模板 capabilities 声明的 mode）是另一个数据源，不在本卡范围。
 	// Image-to-image requires reference image support
 	if in.Mode == "image-to-image" || in.Mode == "image-to-video" {
 		hasRef := false

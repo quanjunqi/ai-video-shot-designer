@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-17T08:00:00+08:00",
+  "updatedAt": "2026-10-17T11:30:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -208,6 +208,43 @@
         "契约固化：openapi/bff.yaml 的 capability 定义写入键集合与 tiersSource（此前只有一句『契约待补』）；重新生成 api-generated.ts 后 api:check rc=0",
         "验证：迁移 待应用 1 · 已应用(跳过) 44 ⇒ 只应用 063 无连带；SQL 统计有比例 2 行/有时长 1 行/有参考图上限 2 行/共 3 行；BFF 出口 GET /api/v1/catalog 返回真实档位且键名与前端消费的完全一致；npm run gate rc=0",
         "教训（第三次同族）：判据的字面描述与系统实际形态可能不一致——判据说『档位字段存在』我读成『要新建列』，实际字段早已存在且前端已消费"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T10:00:00+08:00",
+      "phase": "判据 6 达成（Resolve 能力过滤）+ 修正我 063 的词表缺陷（迁移 064）",
+      "action": "给 Resolve 加按能力过滤候选（显式声明口径）+ 10 个单测 + 真库集成测试；并修掉 063 里与调用方不同源的 modes 词表，固化契约 enum",
+      "evidence": [
+        "交付：ResolveFor(dir,modelID,requiredMode) + Resolve 一行委托（语义逐字不变）+ 新 sentinel ErrNoCandidateForMode；resolve_mode_test.go 新增 258 行/10 用例；handlers_generate 传 in.Mode 并删掉从未使用的结构性死字段 struct（498 行 ≤500）；handlers_run_model 与 worker 传空串并写明拿不到 mode 的依据",
+        "过滤只依据【显式声明】；未声明 ≠ 不支持 —— 10 个子用例覆盖 capability 缺失/空/{}/modes:[]/无键/null/坏 JSON/类型错 ⇒ 全部保留（与能力数据纪律『无依据留空=未知』一致）",
+        "精确行 id 那一支不过滤，事实依据：实测唯一声明 modes 的行 mod_pearapi_seedance25 的 logical_model_id 为 NULL ⇒ 只能走该支；语义依据：点名一行没有候选集与失败切换余地，过滤只会把能成功的调用变硬错误",
+        "★变异验证（证明断言非空转）：把 if requiredMode != \"\" 改成 if false 后重跑 ⇒ 4 条 catalog 用例 + 端到端集成用例全部 FAIL（got MODEL_NO_PROTOCOL ≠ want INVALID_GENERATE），rc=1，随后还原（grep MUTATION = 0）",
+        "真实输出：go build/vet/gofmt/go test -race 全部 exit=0；-v 统计 228 顶层 PASS / 0 SKIP / 0 FAIL（真库集成测试确实执行、无静默跳过）",
+        "★由判据 6 施工暴露的缺陷（我 063 造成）：modes 词表与调用方不同源 —— 我写 [text-to-video, first-frame, first-last-frame, omni-reference, video-edit, extend, with-audio]，而前端权威词表 GenerationMode 是 [text-to-image, image-to-image, text-to-video, image-to-video, first-last-frame, multi-reference, audio-reference, text-to-speech] ⇒ 7 项里 5 项对不上（first-frame 应为 image-to-video、omni-reference 应为 multi-reference、video-edit/extend/with-audio 无对应）",
+        "该缺陷的后果：能力过滤一旦生效，前端合法的 mode='image-to-video' 会被判『声明了 modes 但不含请求项』⇒ 剔除候选 ⇒ 422 拒掉合法调用",
+        "修复：迁移 064 按官方能力映射到调用方词表（首帧生视频→image-to-video、全模态参考→multi-reference）；视频编辑/延长/有声在调用方词表里无对应项故不写入（写进去永远不可能被命中，只会造成『该能力可被请求』的错觉；能力仍记录在 evidence 文件，待词表扩展后另立卡补）",
+        "验证：4/4 落在前端 GenerationMode 词表内",
+        "并固化契约：openapi/bff.yaml 的 mode 此前写『具体取值以服务端为准，契约待补』——这正是我踩坑的根源；现加 8 值 enum（来源即前端 GenerationMode）并重生成 api-generated.ts（api:check rc=0、npm run gate rc=0）；注释写明新增模式须同时改契约+前端类型+capability.modes",
+        "教训（第四次同族，但这次是数据而非理解）：前三次都是我的理解与系统实际不符；这一次是我造的数据与系统实际不符 —— modes 是连接调用端与声明端的契约值，我却当自由文本自编了一套词。凡『两端要对上的值』（词表/枚举/键名）都必须先找权威来源再填"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T11:30:00+08:00",
+      "phase": "词表守卫的三种尝试全部失败 + 撤回 mode enum（破坏性变更）",
+      "action": "尝试给『modes 词表同源』加自动化守卫，三种方案均不成立，如实记录；并撤回一度加上的 mode enum",
+      "evidence": [
+        "守卫方案①查活库：空转 —— 带 modes 的行来自人工策展（运行时数据）不是迁移播种；CI 跑在全新 schema+只应用迁移的库上 ⇒ 一行都没有 ⇒ 日志『检查了 0 个 mode 值』却 PASS = 假防线",
+        "守卫方案②扫全部迁移：报 004（mock 渠道种子，另一套短词表 t2v/i2v/multi_ref）与 063（本卡要修的）—— 已应用迁移改不了 ⇒ 无法修复的永久红",
+        "守卫方案③只扫 >=060：063 自己就在范围内 ⇒ 同样不可修",
+        "根本矛盾：数据在运行时由人工策展产生，而迁移只增不改 ⇒ CI 里没有能同时满足『非空转』与『可修复』的断言点；正确位置是策展路径的运行时校验（POST /internal/v1/catalog/curate 写入前校验 modes ⊆ 服务端词表，不合法即 422），属功能改动另立卡",
+        "三种尝试与根本矛盾已写进迁移 064 的文件尾注，避免后人重走",
+        "★两个自我纠正都由变异验证抓出：①的『空转』是日志『检查了 0 个』暴露的（只看 PASS 就会当成防线做完了）；②的正则漏了冒号（只写 ,? ）⇒ 只扫到 064 完全没扫 063 ⇒ 把 063 错值放回去做变异竟然还是绿的 ⇒ 才发现在空转",
+        "撤回 mode enum：我原想给无约束的 string 加 8 值 enum 来固化词表，CI 的 Contract Breaking Change 判红 error [request-property-became-enum] request property mode was restricted to a list of enum values —— 它是对的（openapi/README.md §3.1『收紧取值』属破坏性变更）；而且 enum 是错的工具：前端本来就只发那 8 个值 ⇒ 约束的是已合规的一方，真正漏洞在声明端 ⇒ 已撤掉 enum 保留说明",
+        "撤掉守卫后 production 全量测试恢复 0 FAIL；build+vet rc=0"
       ],
       "decisionRef": null,
       "blockRef": null

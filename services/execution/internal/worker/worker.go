@@ -161,7 +161,18 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		return
 	}
 	// ADR-003 的候选解析：具体行 id 优先，否则按逻辑模型 id 取候选（priority 小者优先）。
-	candidates, resolveErr := catalog.Resolve(dir, payload.ModelID)
+	// 能力过滤传空 mode ⇒ **不过滤**，依据（实测，非猜测）：
+	//   - 模型执行载荷 jobPayload（本文件）只有 modelId/runtime/result，**没有 mode 字段**；
+	//     /v1/generate 的异步写入口也只写 {"modelId","runtime","metadata"}（见 handlers_generate.go
+	//     异步分支的 payloadBytes），存量历史行更没有 ⇒ worker 这里根本拿不到"请求的模式"，
+	//     拿不到依据就不做断言。
+	//     （通用任务端点 /internal/v1/tasks 的载荷虽由调用方原样提供，但 jobPayload 不解析 mode 键，
+	//     所以同样拿不到；要用上它得先给模型执行载荷的 schema 加字段。）
+	//   ⚠ 已知不一致（本卡范围外，如实记录）：异步提交时 handlers_generate **带 mode 过滤**挑预派发
+	//     候选（并据此算 __request_path），而这里不过滤 ⇒ 若某逻辑模型的首选候选声明了 modes 且不含
+	//     该 mode，提交端与 worker 端可能选中不同候选。当前数据下不可达（两个逻辑模型各只有一个候选
+	//     且都未声明 modes），但多候选 + 声明 modes 落地后需要给载荷补 mode 键。
+	candidates, resolveErr := catalog.ResolveFor(dir, payload.ModelID, "")
 	if resolveErr != nil {
 		// 文案与改动前**逐字一致**：存量排障文档与断言依赖它。
 		// 具体原因（既非行 id 也无启用候选）由 Resolve 的错误类型承载，另有单测覆盖。
