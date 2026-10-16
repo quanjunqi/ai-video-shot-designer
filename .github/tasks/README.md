@@ -48,6 +48,7 @@
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
 | TASK-MODEL-005 | T3 成本预算落地（budget_rules + 预扣/结算状态机） | P0（A 轨 M2） | 已验收（PR #181 已合并，314ec60） | ✅ | [TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md) |
 | TASK-MODEL-006 | 供给单元池真实化（底座收尾 · dev-plan T5+T6+T12） | **P0（底座收尾——业务开发的前置）** | 进行中（数据/设计输入已齐；**第一刀「删 mock 渠道」受阻 B-003**：物理删除会连带删 56 条归档历史，已列三方案待 Owner 择一） | ✅ | [TASK-MODEL-006/task.md](TASK-MODEL-006/task.md) |
+| TASK-MODEL-007 | 逻辑模型自动归并（同名跨渠道 → 同一分组） | P1（底座收尾的自动化补刀——对齐 VOZEB synchronizeLogicalModelsWithChannels 的机械劳动自动化） | 进行中（PR #210 已开，待 CI + Owner 合并） | ✅ | [TASK-MODEL-007/task.md](TASK-MODEL-007/task.md) |
 | TASK-OBS-001 | 任务中心展示「请求参数 / 进度 / 产物」 | P1（排期 v2 §3.2 并行候选池） | 待验收（详情抽屉已交付；4 项证据不足如实列入未过项） | ✅ | [TASK-OBS-001/task.md](TASK-OBS-001/task.md) |
 | TASK-OBS-002 | T11 渠道健康面板 + 三类最小告警 | P0（A 轨 M4） | 已验收（PR #183 已合并，97df90e9） | ✅ | [TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md) |
 | TASK-OBS-003 | 异步任务耗时落库（V5c） | **P1（可观测性对最贵路径失明）** | 待验收（V5c 已转绿：20 通过 / 0 失败，EXIT=0；判据 1/2/3/6 通过，4/5 已如实修正） | ✅ | [TASK-OBS-003/task.md](TASK-OBS-003/task.md) |
@@ -86,7 +87,12 @@
 - **仍未填写状态（1）**：`PLAN-a-and-adr008-2026-10-10`（文档类，非任务，不适用）。
 - ✅ **CREATE-006 编号冲突已按 ADR 分片表裁定并正名（2026-10-15）**：平铺卡重编号为 **`TASK-CREATE-010`**（内容不变，记待验收）；**ADR 分片 6 = 后端 `capability.aspectRatios` 归位为独立待办**，列入 `plans/` 分片待办台账。
 - 🆕 **真实待办源**：**`plans/2026-10-15-adr-shard-backlog.md`**（ADR 分片 6~13，2026-10-15 核实发现台账"未排期卡"多为已实现，故改用分片表定待办范围）。
-- 排期唯一事实源：**`docs/product/task-queue-plan-v2-2026-10-15.md`**（依赖链 + 冲突面 + 波次/并行池 + 验收时间盒 + 防重演约束）。v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
+- 排期唯一事实源：**`docs/product/task-queue-plan-v3-2026-10-17.md`**（**§2 全景视图：所有线在一张表上** + 波次 + 人工动作单列 + 完成度 + 阻塞登记 + 防重演约束）。
+  v2（`task-queue-plan-v2-2026-10-15.md`）与 v1（`task-queue-plan-2026-10-15.md`）已被取代，保留为历史证据。
+  > **v3 的根本修正**：v2 只登记波次，而**底座线（MODEL-006）与工程线（PROC-005~009）都在波次之外** ⇒
+  > Owner 在排期上看不到它们，产生「一直在动，但不知道在动什么」。v3 §2 全景视图 + §8 约束 9「隐形线禁令」
+  > 就是为消除这个盲区：**任何消耗 ≥ 1 个工作日的工作，必须出现在 §2 的某一行**。
+  > v3 另登记 **B-001（栈比代码旧 → 走查前必须重建）** 与 **B-002（前端 Vite 只绑 IPv6，须用 `localhost:5173`）**。
 - **⚠️ 存量卡大面积"已实现未闭环"已核实并回填（2026-10-15）**：13 张原 `unknown` 卡逐卡核实，结果为 2 张已验收 + 10 张转为待验收 + 1 张编号冲突暂停。**排期不应再把这些卡读作"待开发"**，见 v2 §1.4。
 - **待人工动作（v2 §3.1 第 0 波）**：① 合并①→⑥ 六个 PR ② **一场走查闭合 4 条判据**（AUTH-001 判据 6 + INFRA-005 判据 1/4/5）③ **IA-001 设计稿评审**（设计稿 §7 五项勾选表）⑤ 开工 INFRA-006（T13 走查自动化）④ **确认 CREATE-006 编号裁定**（TASK-PROC-004）。
 - 验收清单：**26** 个（约定每卡一个；缺口 = 「验收清单」列为 `—` 的行；**未开工的卡在开工前产出**）。

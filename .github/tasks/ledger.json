@@ -84,6 +84,14 @@
       "file": "[TASK-CREATE-005-style-lens-presets.md](TASK-CREATE-005-style-lens-presets.md)"
     },
     {
+      "id": "TASK-CREATE-006",
+      "title": "`capability.aspectRatios` 显式声明（ADR 分片 6 · D3-B）",
+      "status": "待验收",
+      "priority": "P1（ADR 分片 6；分片台账 Priority 1）",
+      "pr": null,
+      "file": "[TASK-CREATE-006/task.md](TASK-CREATE-006/task.md)"
+    },
+    {
       "id": "TASK-CREATE-010",
       "title": "参数三级披露 + 字段说明 + 表单/JSON 双视图（原误标 CREATE-006，已正名）",
       "status": "待验收",
@@ -180,6 +188,14 @@
       "file": "[TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md)"
     },
     {
+      "id": "TASK-INFRA-006",
+      "title": "T13 走查自动化（headless Chrome + 三角色切换 + 五站截图）",
+      "status": "进行中",
+      "priority": "P0（T13 收官的使能项）——**阻塞于栈新鲜度 B-001**",
+      "pr": null,
+      "file": "[TASK-INFRA-006/task.md](TASK-INFRA-006/task.md)"
+    },
+    {
       "id": "TASK-MODEL-001",
       "title": "T0 权威价格校准",
       "status": "已验收",
@@ -212,6 +228,22 @@
       "file": "[TASK-MODEL-005-budget-rules.md](TASK-MODEL-005-budget-rules.md)"
     },
     {
+      "id": "TASK-MODEL-006",
+      "title": "供给单元池真实化（底座收尾 · dev-plan T5+T6+T12）",
+      "status": "进行中",
+      "priority": "**P0（底座收尾——业务开发的前置）**",
+      "pr": null,
+      "file": "[TASK-MODEL-006/task.md](TASK-MODEL-006/task.md)"
+    },
+    {
+      "id": "TASK-MODEL-007",
+      "title": "逻辑模型自动归并（同名跨渠道 → 同一分组）",
+      "status": "进行中",
+      "priority": "P1（底座收尾的自动化补刀——对齐 VOZEB synchronizeLogicalModelsWithChannels 的机械劳动自动化）",
+      "pr": "#210",
+      "file": "[TASK-MODEL-007/task.md](TASK-MODEL-007/task.md)"
+    },
+    {
       "id": "TASK-OBS-001",
       "title": "任务中心展示「请求参数 / 进度 / 产物」",
       "status": "待验收",
@@ -226,6 +258,14 @@
       "priority": "P0（A 轨 M4）",
       "pr": "#183",
       "file": "[TASK-OBS-002-channel-health-panel.md](TASK-OBS-002-channel-health-panel.md)"
+    },
+    {
+      "id": "TASK-OBS-003",
+      "title": "异步任务耗时落库（V5c）",
+      "status": "待验收",
+      "priority": "**P1（可观测性对最贵路径失明）**",
+      "pr": null,
+      "file": "[TASK-OBS-003/task.md](TASK-OBS-003/task.md)"
     },
     {
       "id": "TASK-P2-001",
@@ -250,6 +290,62 @@
       "priority": "P1",
       "pr": "#192",
       "file": "[TASK-PROC-002-devlog-mechanism.md](TASK-PROC-002-devlog-mechanism.md)"
+    },
+    {
+      "id": "TASK-PROC-003",
+      "title": "台账一致性校验门禁（AC-008/010/011 结构化合规）",
+      "status": "待验收",
+      "priority": "P1（治理；排期 §5.5「验收闭环」的机制化）",
+      "pr": null,
+      "file": "[TASK-PROC-003/task.md](TASK-PROC-003/task.md)"
+    },
+    {
+      "id": "TASK-PROC-004",
+      "title": "存量台账真实化（13 张 unknown 卡逐卡核实与状态回填）",
+      "status": "待验收",
+      "priority": "P1（治理；排期 v2 §1.4 补正的执行）",
+      "pr": null,
+      "file": "[TASK-PROC-004/task.md](TASK-PROC-004/task.md)"
+    },
+    {
+      "id": "TASK-PROC-005",
+      "title": "后端文件行数自动门禁 + 债务棘轮（BE-SIZE-001 / BE-LAYER-002）",
+      "status": "进行中",
+      "priority": "**P0（规范已漂移，根因是无门禁）**",
+      "pr": null,
+      "file": "[TASK-PROC-005/task.md](TASK-PROC-005/task.md)"
+    },
+    {
+      "id": "TASK-PROC-006",
+      "title": "cmd 装配收敛 —— 三服务 cmd/server/main.go 降到 ≤50 行",
+      "status": "待验收",
+      "priority": "**P1（关闭 BE-LAYER-002 的机器化）**",
+      "pr": null,
+      "file": "[TASK-PROC-006/task.md](TASK-PROC-006/task.md)"
+    },
+    {
+      "id": "TASK-PROC-007",
+      "title": "handlers 按域拆分（BE-SIZE-001 的四个 handler 文件）",
+      "status": "待验收",
+      "priority": "**P1（拆掉最大的 4 个 handler 文件）**",
+      "pr": null,
+      "file": "[TASK-PROC-007/task.md](TASK-PROC-007/task.md)"
+    },
+    {
+      "id": "TASK-PROC-008",
+      "title": "清零文件行数基线（engine.go 孤立注释 + 4 个测试文件拆分）",
+      "status": "待验收",
+      "priority": "**P1（清零基线 ⇒ BE-SIZE-001 全面阻断）**",
+      "pr": null,
+      "file": "[TASK-PROC-008/task.md](TASK-PROC-008/task.md)"
+    },
+    {
+      "id": "TASK-PROC-009",
+      "title": "覆盖率门禁的三处可信度缺陷（盲区 / shell bug / 本地复现不了 CI）",
+      "status": "待验收",
+      "priority": "**P1（门禁自身可信度）**",
+      "pr": null,
+      "file": "[TASK-PROC-009/task.md](TASK-PROC-009/task.md)"
     },
     {
       "id": "TASK-ROUTE-001",
@@ -346,94 +442,6 @@
       "priority": "P2",
       "pr": 176,
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
-    },
-    {
-      "id": "TASK-PROC-003",
-      "title": "台账一致性校验门禁（AC-008/010/011 结构化合规）",
-      "status": "待验收",
-      "priority": "P1（治理；排期 §5.5「验收闭环」的机制化）",
-      "pr": null,
-      "file": "[TASK-PROC-003/task.md](TASK-PROC-003/task.md)"
-    },
-    {
-      "id": "TASK-PROC-004",
-      "title": "存量台账真实化（13 张 unknown 卡逐卡核实与状态回填）",
-      "status": "待验收",
-      "priority": "P1（治理；排期 v2 §1.4 补正的执行）",
-      "pr": null,
-      "file": "[TASK-PROC-004/task.md](TASK-PROC-004/task.md)"
-    },
-    {
-      "id": "TASK-INFRA-006",
-      "title": "T13 走查自动化（headless Chrome + 三角色切换 + 五站截图）",
-      "status": "进行中",
-      "priority": "P0（T13 收官的使能项）——**阻塞于栈新鲜度 B-001**",
-      "pr": null,
-      "file": "[TASK-INFRA-006/task.md](TASK-INFRA-006/task.md)"
-    },
-    {
-      "id": "TASK-CREATE-006",
-      "title": "`capability.aspectRatios` 显式声明（ADR 分片 6 · D3-B）",
-      "status": "待验收",
-      "priority": "P1（ADR 分片 6；分片台账 Priority 1）",
-      "pr": null,
-      "file": "[TASK-CREATE-006/task.md](TASK-CREATE-006/task.md)"
-    },
-    {
-      "id": "TASK-MODEL-006",
-      "title": "供给单元池真实化（底座收尾 · dev-plan T5+T6+T12）",
-      "status": "进行中",
-      "priority": "**P0（底座收尾——业务开发的前置）**",
-      "pr": null,
-      "file": "[TASK-MODEL-006/task.md](TASK-MODEL-006/task.md)"
-    },
-    {
-      "id": "TASK-OBS-003",
-      "title": "异步任务耗时落库（V5c）",
-      "status": "待验收",
-      "priority": "**P1（可观测性对最贵路径失明）**",
-      "pr": null,
-      "file": "[TASK-OBS-003/task.md](TASK-OBS-003/task.md)"
-    },
-    {
-      "id": "TASK-PROC-005",
-      "title": "后端文件行数自动门禁 + 债务棘轮（BE-SIZE-001 / BE-LAYER-002）",
-      "status": "进行中",
-      "priority": "**P0（规范已漂移，根因是无门禁）**",
-      "pr": null,
-      "file": "[TASK-PROC-005/task.md](TASK-PROC-005/task.md)"
-    },
-    {
-      "id": "TASK-PROC-006",
-      "title": "cmd 装配收敛 —— 三服务 cmd/server/main.go 降到 ≤50 行",
-      "status": "待验收",
-      "priority": "**P1（关闭 BE-LAYER-002 的机器化）**",
-      "pr": null,
-      "file": "[TASK-PROC-006/task.md](TASK-PROC-006/task.md)"
-    },
-    {
-      "id": "TASK-PROC-007",
-      "title": "handlers 按域拆分（BE-SIZE-001 的四个 handler 文件）",
-      "status": "待验收",
-      "priority": "**P1（拆掉最大的 4 个 handler 文件）**",
-      "pr": null,
-      "file": "[TASK-PROC-007/task.md](TASK-PROC-007/task.md)"
-    },
-    {
-      "id": "TASK-PROC-008",
-      "title": "清零文件行数基线（engine.go 孤立注释 + 4 个测试文件拆分）",
-      "status": "待验收",
-      "priority": "**P1（清零基线 ⇒ BE-SIZE-001 全面阻断）**",
-      "pr": null,
-      "file": "[TASK-PROC-008/task.md](TASK-PROC-008/task.md)"
-    },
-    {
-      "id": "TASK-PROC-009",
-      "title": "覆盖率门禁的三处可信度缺陷（盲区 / shell bug / 本地复现不了 CI）",
-      "status": "待验收",
-      "priority": "**P1（门禁自身可信度）**",
-      "pr": null,
-      "file": "[TASK-PROC-009/task.md](TASK-PROC-009/task.md)"
     }
   ]
 }

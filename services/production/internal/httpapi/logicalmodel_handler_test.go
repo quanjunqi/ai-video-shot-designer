@@ -13,31 +13,36 @@ import (
 )
 
 type fakeLogicalModelStore struct {
-	models           []catalog.LogicalModel
-	model            catalog.LogicalModel
-	candidates       []catalog.Candidate
-	err              error
-	createErr        error
-	getErr           error
-	listErr          error
-	bindErr          error
-	updateErr        error
-	unbindErr        error
-	gotCreateActor   string
-	gotCreate        catalog.LogicalModelCreate
-	gotPatchID       string
-	gotPatch         catalog.LogicalModelPatch
-	gotBindID        string
-	gotBind          catalog.BindCandidatesInput
-	gotUnbindID      string
-	gotUnbindModelID string
-	gotListStatus    string
-	gotListType      string
-	gotCandidatesID  string
-	createCalls      int
-	updateCalls      int
-	bindCalls        int
-	unbindCalls      int
+	models            []catalog.LogicalModel
+	model             catalog.LogicalModel
+	candidates        []catalog.Candidate
+	err               error
+	createErr         error
+	getErr            error
+	listErr           error
+	bindErr           error
+	updateErr         error
+	unbindErr         error
+	gotCreateActor    string
+	gotCreate         catalog.LogicalModelCreate
+	gotPatchID        string
+	gotPatch          catalog.LogicalModelPatch
+	gotBindID         string
+	gotBind           catalog.BindCandidatesInput
+	gotUnbindID       string
+	gotUnbindModelID  string
+	gotListStatus     string
+	gotListType       string
+	gotCandidatesID   string
+	createCalls       int
+	updateCalls       int
+	bindCalls         int
+	unbindCalls       int
+	reconcileCalls    int
+	reconcileErr      error
+	reconcileResult   catalog.ReconcileResult
+	gotReconcileWS    string
+	gotReconcileActor string
 }
 
 func (s *fakeLogicalModelStore) ListLogicalModels(_ context.Context, status, modelType string) ([]catalog.LogicalModel, error) {
@@ -85,6 +90,15 @@ func (s *fakeLogicalModelStore) UnbindCandidate(_ context.Context, id, modelID s
 	s.unbindCalls++
 	s.gotUnbindID, s.gotUnbindModelID = id, modelID
 	return s.unbindErr
+}
+
+func (s *fakeLogicalModelStore) ReconcileLogicalModels(_ context.Context, workspaceID, actor string) (catalog.ReconcileResult, error) {
+	s.reconcileCalls++
+	s.gotReconcileWS, s.gotReconcileActor = workspaceID, actor
+	if s.reconcileErr != nil {
+		return catalog.ReconcileResult{}, s.reconcileErr
+	}
+	return s.reconcileResult, nil
 }
 
 func TestLogicalModelListFilters(t *testing.T) {
@@ -373,4 +387,60 @@ func logicalModelRequest(method, path, body string) *http.Request {
 	req.Header.Set("X-Actor-Id", "usr_1")
 	req.Header.Set("X-Actor-Role", "owner")
 	return req
+}
+
+// ---- TASK-MODEL-007：reconcile 自动归并 ----
+
+// 判据 7a：admin 调用返回 200 + 统计；workspace/actor 透传 store。
+func TestLogicalModelReconcileReturnsStats(t *testing.T) {
+	store := &fakeLogicalModelStore{reconcileResult: catalog.ReconcileResult{Created: 2, Bound: 3, Skipped: 1}}
+	h := Handler{Token: "secret", LogicalModelStore: store}
+
+	rec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(rec, logicalModelRequest(http.MethodPost, "/internal/v1/logical-models/reconcile", ""))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var got struct {
+		Created int `json:"created"`
+		Bound   int `json:"bound"`
+		Skipped int `json:"skipped"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("invalid response JSON: %v", err)
+	}
+	if got.Created != 2 || got.Bound != 3 || got.Skipped != 1 {
+		t.Fatalf("unexpected stats: %+v", got)
+	}
+	if store.reconcileCalls != 1 || store.gotReconcileWS != "ws_1" || store.gotReconcileActor != "usr_1" {
+		t.Fatalf("workspace/actor not forwarded: ws=%q actor=%q calls=%d",
+			store.gotReconcileWS, store.gotReconcileActor, store.reconcileCalls)
+	}
+}
+
+// 判据 7b：viewer 无权触发归并（写操作需 admin，权限矩阵）。
+func TestLogicalModelReconcileViewerForbidden(t *testing.T) {
+	store := &fakeLogicalModelStore{}
+	h := Handler{Token: "secret", LogicalModelStore: store}
+
+	req := logicalModelRequest(http.MethodPost, "/internal/v1/logical-models/reconcile", "")
+	req.Header.Set("X-Actor-Role", "viewer")
+	rec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for viewer, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if store.reconcileCalls != 0 {
+		t.Fatalf("viewer must not reach the store, calls=%d", store.reconcileCalls)
+	}
+}
+
+// 判据 7c：无 store 装配 → 503（不误报成功）。
+func TestLogicalModelReconcileUnavailableWithoutStore(t *testing.T) {
+	h := Handler{Token: "secret"}
+	rec := httptest.NewRecorder()
+	h.Routes().ServeHTTP(rec, logicalModelRequest(http.MethodPost, "/internal/v1/logical-models/reconcile", ""))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 without store, got %d body=%s", rec.Code, rec.Body.String())
+	}
 }

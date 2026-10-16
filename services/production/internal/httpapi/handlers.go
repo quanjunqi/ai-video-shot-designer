@@ -179,6 +179,8 @@ func (h Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /internal/v1/logical-models/{id}/candidates", h.listLogicalModelCandidates)
 	mux.HandleFunc("POST /internal/v1/logical-models/{id}/candidates", h.bindLogicalModelCandidates)
 	mux.HandleFunc("DELETE /internal/v1/logical-models/{id}/candidates/{modelId}", h.unbindLogicalModelCandidate)
+	// TASK-MODEL-007：自动归并（同名跨渠道 → 同一分组；辅助工具，幂等可重跑）
+	mux.HandleFunc("POST /internal/v1/logical-models/reconcile", h.reconcileLogicalModels)
 	// TASK-AUTH-001：角色校验中间件包在最外层（探活放行、其余按矩阵裁定，先鉴权再进超时层）
 	return h.authz(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)

@@ -224,4 +224,7 @@ type LogicalModelStore interface {
 	ListCandidates(context.Context, string) ([]Candidate, error)
 	BindCandidates(context.Context, string, BindCandidatesInput) ([]Candidate, error)
 	UnbindCandidate(context.Context, string, string) error
+	// ReconcileLogicalModels：自动归并（TASK-MODEL-007）——对给定工作区未归并的
+	// 入池模型按同名自动建组并绑定候选。返回新建分组数 / 绑定行数 / 跳过行数。
+	ReconcileLogicalModels(context.Context, string, string) (ReconcileResult, error)
 }
