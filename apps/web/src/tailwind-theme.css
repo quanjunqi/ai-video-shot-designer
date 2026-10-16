@@ -72,6 +72,22 @@
   --shadow-spread: 0px;
   --shadow-opacity: 0.02;
   --shadow-color: #000000;
+
+  /* 动效：过渡时长与缓动曲线 —— 唯一事实源。
+   * 为什么必须沉淀成变量（而不是在组件里写 duration-200）：
+   *   1) 规范页 §06「动效」按 --animate-* / --duration-* / --ease-* 前缀自动收录，
+   *      写了变量这节才会渲染；此前它显示「暂无统一动效 token」；
+   *   2) 规则库 §3.5 曾同时写「200-400ms」与「Awwwards 基准 150-250ms」两档，
+   *      没有唯一值 ⇒ 每个页面各自取数 ⇒ 全站动效不一致。此处冻结为 4 档，冲突以此为准。
+   * 取值口径：常规过渡取 Awwwards 基准 150-250ms；超出 --duration-slow 需在 PR 说明理由。 */
+  --duration-instant: 80ms;   /* 按下/抬起等即时反馈（非过渡，允许低于基准下限） */
+  --duration-fast: 150ms;     /* hover / focus / 状态切换（最常用，默认选它） */
+  --duration-base: 200ms;     /* 面板展开、抽屉进退场、toast */
+  --duration-slow: 250ms;     /* 大区域布局变化（基准上限） */
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);    /* 默认：快速启动、平缓收尾 */
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);    /* 进入：减速 */
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);  /* 离开：加速 */
   --shadow-2xs: 0px 2px 12px 0px hsl(0 0% 0% / 0.01);
   --shadow-xs: 0px 2px 12px 0px hsl(0 0% 0% / 0.01);
   --shadow-sm:
@@ -187,6 +203,15 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* 动效 token 注册（与 :root 同名同值，与上面的 --shadow-* 写法一致） */
+  --duration-instant: var(--duration-instant);
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+  --ease-standard: var(--ease-standard);
+  --ease-decelerate: var(--ease-decelerate);
+  --ease-accelerate: var(--ease-accelerate);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);

@@ -11,8 +11,8 @@
 |---|---|
 | 组件文件 | 42 个 / 5081 行 |
 | 死组件（零引用） | 20 个 |
-| 语义 token（:root/.dark） | 69 个 |
-| Tailwind 工具类映射（@theme inline） | 58 条 |
+| 语义 token（:root/.dark） | 76 个 |
+| Tailwind 工具类映射（@theme inline） | 65 条 |
 | 字体族 / prose 映射（typography.css） | 3 / 36 |
 | 语义注记覆盖 | 42/42 |
 | 展示页 demo 覆盖 | 42/42 |
@@ -104,6 +104,18 @@
 | `--shadow-xl` | `0px 2px 12px 0px hsl(0 0% 0% / 0.02), 0px 8px 10px -1px hsl(0 0% 0% / 0.02)` | — | `--shadow-xl` |
 | `--shadow-2xl` | `0px 2px 12px 0px hsl(0 0% 0% / 0.05)` | — | `--shadow-2xl` |
 
+### 动效（7）
+
+| token | 浅色 | 深色 | Tailwind 工具类 |
+|---|---|---|---|
+| `--duration-instant` | `80ms` | — | `--duration-instant` |
+| `--duration-fast` | `150ms` | — | `--duration-fast` |
+| `--duration-base` | `200ms` | — | `--duration-base` |
+| `--duration-slow` | `250ms` | — | `--duration-slow` |
+| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | — | `--ease-standard` |
+| `--ease-decelerate` | `cubic-bezier(0, 0, 0, 1)` | — | `--ease-decelerate` |
+| `--ease-accelerate` | `cubic-bezier(0.3, 0, 1, 1)` | — | `--ease-accelerate` |
+
 ### 间距 / 尺寸（1）
 
 | token | 浅色 | 深色 | Tailwind 工具类 |
@@ -162,6 +174,13 @@
 | `--radius-md` | `calc(var(--radius) - 2px)` | 圆角 | `rounded-md` |
 | `--radius-lg` | `var(--radius)` | 圆角 | `rounded-lg` |
 | `--radius-xl` | `calc(var(--radius) + 4px)` | 圆角 | `rounded-xl` |
+| `--duration-instant` | `var(--duration-instant)` | 其他 | `—` |
+| `--duration-fast` | `var(--duration-fast)` | 其他 | `—` |
+| `--duration-base` | `var(--duration-base)` | 其他 | `—` |
+| `--duration-slow` | `var(--duration-slow)` | 其他 | `—` |
+| `--ease-standard` | `var(--ease-standard)` | 其他 | `—` |
+| `--ease-decelerate` | `var(--ease-decelerate)` | 其他 | `—` |
+| `--ease-accelerate` | `var(--ease-accelerate)` | 其他 | `—` |
 | `--shadow-2xs` | `var(--shadow-2xs)` | 阴影 | `shadow-2xs` |
 | `--shadow-xs` | `var(--shadow-xs)` | 阴影 | `shadow-xs` |
 | `--shadow-sm` | `var(--shadow-sm)` | 阴影 | `shadow-sm` |

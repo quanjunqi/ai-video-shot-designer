@@ -31,7 +31,7 @@ export const UI_CATALOG: UiCatalog = {
     "components": 42,
     "lines": 5081,
     "dead": 20,
-    "tokens": 69,
+    "tokens": 76,
     "withNotes": 42,
     "withDemo": 42
   },
@@ -3070,6 +3070,69 @@ export const UI_CATALOG: UiCatalog = {
       "utilities": []
     },
     {
+      "name": "--duration-instant",
+      "light": "80ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-instant"
+      ]
+    },
+    {
+      "name": "--duration-fast",
+      "light": "150ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-fast"
+      ]
+    },
+    {
+      "name": "--duration-base",
+      "light": "200ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-base"
+      ]
+    },
+    {
+      "name": "--duration-slow",
+      "light": "250ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-slow"
+      ]
+    },
+    {
+      "name": "--ease-standard",
+      "light": "cubic-bezier(0.2, 0, 0, 1)",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--ease-standard"
+      ]
+    },
+    {
+      "name": "--ease-decelerate",
+      "light": "cubic-bezier(0, 0, 0, 1)",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--ease-decelerate"
+      ]
+    },
+    {
+      "name": "--ease-accelerate",
+      "light": "cubic-bezier(0.3, 0, 1, 1)",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--ease-accelerate"
+      ]
+    },
+    {
       "name": "--shadow-2xs",
       "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.01)",
       "dark": null,
@@ -3389,6 +3452,41 @@ export const UI_CATALOG: UiCatalog = {
       "name": "--radius-xl",
       "value": "calc(var(--radius) + 4px)",
       "group": "圆角"
+    },
+    {
+      "name": "--duration-instant",
+      "value": "var(--duration-instant)",
+      "group": "其他"
+    },
+    {
+      "name": "--duration-fast",
+      "value": "var(--duration-fast)",
+      "group": "其他"
+    },
+    {
+      "name": "--duration-base",
+      "value": "var(--duration-base)",
+      "group": "其他"
+    },
+    {
+      "name": "--duration-slow",
+      "value": "var(--duration-slow)",
+      "group": "其他"
+    },
+    {
+      "name": "--ease-standard",
+      "value": "var(--ease-standard)",
+      "group": "其他"
+    },
+    {
+      "name": "--ease-decelerate",
+      "value": "var(--ease-decelerate)",
+      "group": "其他"
+    },
+    {
+      "name": "--ease-accelerate",
+      "value": "var(--ease-accelerate)",
+      "group": "其他"
     },
     {
       "name": "--shadow-2xs",
@@ -3883,5 +3981,5 @@ export const UI_CATALOG: UiCatalog = {
       }
     ]
   },
-  "themeUtilityCount": 58
+  "themeUtilityCount": 65
 };
