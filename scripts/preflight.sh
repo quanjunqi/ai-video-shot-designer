@@ -52,6 +52,30 @@ fi
 # （放在顶部会被后续输出淹没，也不代表"这次真的用上了"）
 ENV_FILE_FALLBACK=0
 if [ "$ENV_FILE" != "$ROOT/.env.local" ]; then ENV_FILE_FALLBACK=1; fi
+
+# ★ 把 ENV_FILE **加载进环境**（TASK-MODEL-006 实测补上）。
+#
+# 为什么需要：本脚本此前只从 ENV_FILE 里**单独读 DSN 那一个变量**，其余测试前置条件
+# （如 asset 的 `ASSET_TEST_S3_ENDPOINT/ACCESS_KEY/SECRET_KEY`）**从来没被加载** ⇒
+# 本地那些集成测试永远 SKIP ⇒ 覆盖率永远偏低 ⇒ **只有 CI 才能发现真问题**。
+# 实测代价：我的一次改动在本地看是 33.8%（以为只是"跳过"），到 CI 才暴露成 72.3% < 80% 的真回退。
+#
+# 这也正是 AGENTS.md 文档的用法（`set -a && . ./.env.local && set +a`）——
+# 与 CI 在 workflow `env:` 里提供变量**同口径**。
+#
+# 安全性：`set -a` 只影响后续 source 的内容；source 失败不静默吞掉（明确 warn 并继续，
+# 因为缺变量只会导致"未验证"，不会导致假绿 —— 各服务的 DSN 门控仍会如实报告）。
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090  # 路径运行时决定
+  if . "$ENV_FILE" 2>/dev/null; then
+    say "      （已加载 ${ENV_FILE} 到环境 —— 与 CI 的 env: 同口径）"
+  else
+    warn "加载 ${ENV_FILE} 失败 ⇒ 依赖它的集成测试可能被跳过（会如实报为"未验证"）"
+  fi
+  set +a
+fi
+
 SERVICES=(workspace production execution asset web-bff outbox-relay)
 
 TMP="$(mktemp -d)"
