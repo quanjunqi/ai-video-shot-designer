@@ -1,7 +1,7 @@
 {
  "source": "production.protocol_templates 真库快照",
- "fetched_at": "2026-10-17T00:00:00+08:00",
- "note": "TASK-PROTOCOL-004 一致性自检输入。当前 9 个模板：8 个有能力声明（061+#212 补齐），pt_builtin_openai_video 只在 DB 不在注册表（已知漂移，本快照用于门禁自证）。",
+ "fetched_at": "2026-10-17T03:40:00+08:00",
+ "note": "TASK-PROTOCOL-005 修复后快照。9 个模板全在注册表（openai_video canonical 定义已补）；pollPath 已由迁移 067 修正为 {task_id}；能力键均在 061 枚举（comfyui 例外）。",
  "templates": [
   {
    "id": "pt_builtin_comfyui",
@@ -582,7 +582,7 @@
    "type": "video",
    "async": {
     "enabled": true,
-    "pollPath": "/v1/videos/{id}",
+    "pollPath": "/v1/videos/{task_id}",
     "doneValue": "completed",
     "failValue": "failed",
     "statusField": "status",

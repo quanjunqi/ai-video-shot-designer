@@ -20,6 +20,8 @@ var emptyCapOK = map[string]bool{"pt_builtin_comfyui": true}
 var registryIDs = []string{
 	"pt_builtin_comfyui", "pt_builtin_grsai", "pt_builtin_jimeng_image", "pt_builtin_jimeng_video",
 	"pt_builtin_minimax_text", "pt_builtin_minimax_video", "pt_builtin_openai", "pt_builtin_openai_img",
+	// TASK-PROTOCOL-005：注册表已补 canonical 定义（此前只在 DB——漂移已修复）。
+	"pt_builtin_openai_video",
 }
 
 func row(id string, caps map[string]any) Row {
@@ -31,10 +33,10 @@ func row(id string, caps map[string]any) Row {
 func TestAuditDetectsDBOnlyDrift(t *testing.T) {
 	rows := []Row{
 		row("pt_builtin_openai", map[string]any{"text-chat": map[string]any{}}),
-		row("pt_builtin_openai_video", map[string]any{"text-to-video": map[string]any{}}),
+		row("pt_builtin_ghost", map[string]any{"text-to-video": map[string]any{}}),
 	}
 	rep := Audit(registryIDs, rows, allowedCapKeys, emptyCapOK)
-	if !reflect.DeepEqual(rep.DBOnly, []string{"pt_builtin_openai_video"}) {
+	if !reflect.DeepEqual(rep.DBOnly, []string{"pt_builtin_ghost"}) {
 		t.Fatalf("db-only 检出失败: %v", rep.DBOnly)
 	}
 }
@@ -103,8 +105,12 @@ func TestAuditSnapshotRealDB(t *testing.T) {
 		t.Fatalf("快照应为 9 个模板，got %d", len(snap.Templates))
 	}
 	rep := Audit(registryIDs, snap.Templates, allowedCapKeys, emptyCapOK)
-	if !reflect.DeepEqual(rep.DBOnly, []string{"pt_builtin_openai_video"}) {
-		t.Fatalf("快照漂移检出失败（已知漂移应稳定检出）: %v", rep.DBOnly)
+	// TASK-PROTOCOL-005：注册表已补 openai_video canonical 定义 → 漂移归零（db-only 为空）。
+	if len(rep.DBOnly) != 0 {
+		t.Fatalf("快照不应有漂移（openai_video 已入注册表）: %v", rep.DBOnly)
+	}
+	if len(rep.Both) != 9 {
+		t.Fatalf("双侧一致应为 9 个（含 openai_video）: %v", rep.Both)
 	}
 	if len(rep.CapabilityViolations) != 0 {
 		t.Fatalf("快照不应有能力键违规: %+v", rep.CapabilityViolations)
