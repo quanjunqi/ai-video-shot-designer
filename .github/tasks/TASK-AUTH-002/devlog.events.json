@@ -1,0 +1,49 @@
+{
+  "taskId": "TASK-AUTH-002",
+  "updatedAt": "2026-10-17T15:35:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T14:30:00+08:00",
+      "phase": "开工/探查",
+      "action": "立卡并固化根因：前端 fetchMe 无身份头，BFF 回退 devActor 恒 owner，导航过滤永不生效",
+      "evidence": [
+        "curl /api/v1/me 三身份实测",
+        "apps/web/src/stores/useAuthStore.ts",
+        "services/web-bff/internal/httpserver/guards.go"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-17T15:35:00+08:00",
+      "phase": "验证",
+      "action": "fetchMe 带 X-Actor-Id 修复完成；gate 0 错；走查脚本三角色断言全过",
+      "evidence": [
+        "npm run gate",
+        "t13-walkthrough.mjs EXIT=0"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "修复点归属",
+      "options": [
+        "前端 fetchMe 带头",
+        "BFF 改身份解析",
+        "导航契约改过滤"
+      ],
+      "choice": "前端 fetchMe 带头",
+      "reason": "BFF 侧矩阵已被 curl 实证正确，缺的只是前端透传 dev 身份；改 BFF 或契约属越界"
+    },
+    {
+      "id": "D-002",
+      "topic": "身份头来源",
+      "options": [
+        "store.actorId",
+        "localStorage['mdp-dev-actor']"
+      ],
+      "choice": "localStorage['mdp-dev-actor']",
+      "reason": "与 devActorInitial() 同一契约，且启动时序上 store 尚未 hydrate，读 localStorage 更稳"
+    }
+  ]
+}

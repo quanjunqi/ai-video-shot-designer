@@ -1,10 +1,10 @@
 ---
 taskId: TASK-INFRA-006
-status: 进行中
-priority: P0（T13 收官的使能项——4 条判据现在只能靠 Owner 手点）
+status: 待验收
+priority: P0（T13 收官的使能项）
 pr: "#<待开>"
-criteria: 8
-criteriaPassed: 0
+criteria: 10
+criteriaPassed: 10
 depends_on: TASK-PROC-003（已合并）**+ ⚠️ 本地栈须按当前 develop 重建（B-001）**
 ---
 

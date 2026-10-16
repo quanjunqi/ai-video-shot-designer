@@ -31,6 +31,32 @@
       ],
       "decisionRef": null,
       "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-17T15:20:00+08:00",
+      "phase": "开发",
+      "action": "开发 t13-walkthrough.mjs（CDP 驱动，零新依赖）",
+      "evidence": [
+        ".github/scripts/t13-walkthrough.mjs"
+      ]
+    },
+    {
+      "ts": "2026-10-17T15:40:00+08:00",
+      "phase": "验证",
+      "action": "正例 EXIT=0 10/10 断言过；反例停栈 EXIT=2",
+      "evidence": [
+        "/tmp/t13d.txt",
+        "/tmp/t13_neg.txt"
+      ]
+    },
+    {
+      "ts": "2026-10-17T15:50:00+08:00",
+      "phase": "开工/探查",
+      "action": "实测发现 dev 身份切换链路失效并立卡 TASK-AUTH-002",
+      "evidence": [
+        "TASK-AUTH-002/task.md"
+      ],
+      "decisionRef": "D-005"
     }
   ],
   "decisions": [

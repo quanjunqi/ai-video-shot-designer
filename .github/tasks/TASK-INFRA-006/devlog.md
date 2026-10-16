@@ -100,3 +100,22 @@
 3. 二者都不可用时 → **退出 2（未验证）**，而不是继续跑出一堆假失败。
 
 ⇒ 该断言已加入验收判据（见 [acceptance.md](acceptance.md) 判据 11）。
+
+## 2026-10-17（B-001 解除后完成开发）
+
+### A（动作）
+- A-010 开发 `.github/scripts/t13-walkthrough.mjs`：系统 Chrome + CDP（Node 22 原生 WebSocket，零新依赖）
+- A-011 三角色身份注入：`localStorage['mdp-dev-actor']` + reload（`devActorInitial()` 同一契约）
+- A-012 断言实现：三角色导航（`visibleModelCenterNav` 契约）/ 五站链路 / /tasks 详情抽屉（`button[title="查看详情"]`）/ 产物区块
+- A-013 **实测发现 AUTH-002**：注入身份后导航不按角色过滤 → 根因 fetchMe 无身份头、BFF 回退 devActor 恒 owner → 立卡修复
+
+### E（证据）
+- 正例：`node .github/scripts/t13-walkthrough.mjs` → EXIT=0 · 10/10 断言过（2026-10-17）
+- 反例（停 Vite 5173 后）：EXIT=2 · reason=stack_unavailable
+- 截图：`$TMPDIR/t13-walkthrough/<role|owner>/*.png`（三角色导航 / costs / health / create / tasks / tasks-detail）
+- 台账：check-task-ledger.sh ✅ 通过
+
+### D（决策）
+- D-003 身份等待信号用「reload 完成 + 2s 缓冲」而非 innerText 匹配 actorId（TopBar 显示 role 不是 actorId）
+- D-004 /create/image 断言文案用真实页头「图片创作」；详情按钮用 `button[title="查看详情"]`（Eye 图标无文字）
+- D-005 走查发现的 AUTH-002 缺陷按纪律建新卡修，不在本卡顺手改业务代码
