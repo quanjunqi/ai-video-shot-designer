@@ -25,6 +25,7 @@
 | TASK-AUDIT-002 | 审计业务归因列（T1） | — | 已验收（PR #165 已合并） | — | [TASK-AUDIT-002-attribution-columns.md](TASK-AUDIT-002-attribution-columns.md) |
 | TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 待验收（PR #203 已合并 fbffb64；判据 1/2/4/5 ✅、判据 3 ✅△、判据 6 ⏳ 待 Owner 真机走查） | ✅ | [TASK-AUTH-001/task.md](TASK-AUTH-001/task.md) |
 | TASK-AUTH-002 | 修复前端 dev 身份切换链路（fetchMe 回读角色，T13 走查判据 2 阻塞项） | P0 | 待验收（走查脚本三角色断言端到端通过；gate 0 错） | ✅ | [TASK-AUTH-002/task.md](TASK-AUTH-002/task.md) |
+| TASK-PROC-010 | 协议一致性快照门禁接入 CI（快照新鲜度 + 结构校验） | P1（协议层治理收口——把一致性检查固化为 CI 门禁） | 待验收（脚本 self-test 3 反例+3 正例全过；CI Documentation Check + preflight 门 0d 已挂载；快照加 migration 字段） | ✅ | [TASK-PROC-010/task.md](TASK-PROC-010/task.md) |
 | TASK-CREATE-001 | 能力驱动的生成参数控件 schema | P1 | 待验收（✅ 代码侧已实现；L3 未做，无交付记录） | — | [TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md) |
 | TASK-CREATE-002 | 智能创作 Composer 布局与结果主舞台 | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md) |
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |

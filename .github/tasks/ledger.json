@@ -491,6 +491,16 @@
       "status": "待验收",
       "priority": "P0",
       "file": "[TASK-AUTH-002/task.md](TASK-AUTH-002/task.md)"
+    },
+    {
+      "id": "TASK-PROC-010",
+      "title": "协议一致性快照门禁接入 CI（快照新鲜度 + 结构校验）",
+      "status": "待验收",
+      "priority": "P1（协议层治理收口——把一致性检查固化为 CI 门禁）",
+      "pr": null,
+      "file": "[TASK-PROC-010/task.md](TASK-PROC-010/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 6
     }
   ]
 }

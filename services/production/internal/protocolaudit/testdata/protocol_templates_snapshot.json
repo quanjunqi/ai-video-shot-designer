@@ -1,642 +1,643 @@
 {
- "source": "production.protocol_templates 真库快照",
- "fetched_at": "2026-10-17T03:40:00+08:00",
- "note": "TASK-PROTOCOL-005 修复后快照。9 个模板全在注册表（openai_video canonical 定义已补）；pollPath 已由迁移 067 修正为 {task_id}；能力键均在 061 枚举（comfyui 例外）。",
- "templates": [
-  {
-   "id": "pt_builtin_comfyui",
-   "type": "image",
-   "async": {},
-   "label": "ComfyUI 本地工作流（端口直连）",
-   "method": "POST",
-   "params": [
+  "source": "production.protocol_templates 真库快照",
+  "fetched_at": "2026-10-17T03:40:00+08:00",
+  "note": "TASK-PROTOCOL-005 修复后快照。9 个模板全在注册表（openai_video canonical 定义已补）；pollPath 已由迁移 067 修正为 {task_id}；能力键均在 061 枚举（comfyui 例外）。",
+  "templates": [
     {
-     "key": "client_id",
-     "value": "漫剧工坊"
+      "id": "pt_builtin_comfyui",
+      "type": "image",
+      "async": {},
+      "label": "ComfyUI 本地工作流（端口直连）",
+      "method": "POST",
+      "params": [
+        {
+          "key": "client_id",
+          "value": "漫剧工坊"
+        }
+      ],
+      "builtin": true,
+      "enabled": true,
+      "version": 1,
+      "capabilities": {},
+      "request_path": "/prompt",
+      "response_params": [
+        {
+          "key": "prompt_id",
+          "type": "string",
+          "value": "工作流执行 ID（轮询 /history）"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_grsai",
+      "type": "all",
+      "async": {},
+      "label": "聚合网关转发（OpenAI 兼容）",
+      "method": "POST",
+      "params": [
+        {
+          "key": "",
+          "value": ""
+        }
+      ],
+      "builtin": true,
+      "enabled": true,
+      "version": 2,
+      "capabilities": {
+        "text-chat": {
+          "method": "POST",
+          "request_path": "/v1/chat/completions",
+          "required_params": [
+            "messages"
+          ],
+          "response_extract": {
+            "text": "choices.0.message.content",
+            "usage": "usage"
+          }
+        }
+      },
+      "request_path": "/v1/chat/completions",
+      "response_params": [
+        {
+          "key": "choices.0.message.content",
+          "type": "string",
+          "value": "文本正文"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_jimeng_image",
+      "type": "image",
+      "async": {
+        "enabled": true,
+        "doneValue": "",
+        "failValue": "",
+        "statusField": "",
+        "taskIdField": ""
+      },
+      "label": "即梦图片",
+      "method": "POST",
+      "params": [],
+      "builtin": true,
+      "enabled": true,
+      "version": 2,
+      "capabilities": {
+        "text-to-image": {
+          "method": "POST",
+          "request_path": "/v1/images/generations",
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "image_b64": "data.0.b64_json",
+            "image_url": "data.0.url"
+          }
+        },
+        "image-to-image": {
+          "method": "POST",
+          "request_path": "/v1/images/generations",
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "image_b64": "data.0.b64_json",
+            "image_url": "data.0.url"
+          }
+        }
+      },
+      "request_path": "/v1/images/generations",
+      "response_params": [
+        {
+          "key": "data.0.url",
+          "type": "string",
+          "value": "图片地址"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_jimeng_video",
+      "type": "video",
+      "async": {
+        "enabled": true,
+        "pollPath": "/v1/video/generations/{task_id}",
+        "doneValue": "SUCCESS",
+        "failValue": "FAILED",
+        "statusField": "status",
+        "taskIdField": "task_id"
+      },
+      "label": "即梦视频（异步任务）",
+      "method": "POST",
+      "params": [],
+      "builtin": true,
+      "enabled": true,
+      "version": 3,
+      "capabilities": {
+        "text-to-video": {
+          "method": "POST",
+          "request_path": "/v1/videos/generations",
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "video": "data.0.url",
+            "status": "status",
+            "task_id": "task_id"
+          }
+        },
+        "image-to-video": {
+          "method": "POST",
+          "request_path": "/v1/videos/generations",
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "video": "data.0.url",
+            "status": "status",
+            "task_id": "task_id"
+          }
+        }
+      },
+      "request_path": "/v1/videos/generations",
+      "response_params": [
+        {
+          "key": "task_id",
+          "type": "string",
+          "value": "任务 ID（轮询查询进度）"
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "value": "任务状态（轮询判断完成/失败）"
+        },
+        {
+          "key": "data.0.url",
+          "type": "string",
+          "value": "视频地址"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_minimax_text",
+      "type": "text",
+      "async": {},
+      "label": "MiniMax 文本",
+      "method": "POST",
+      "params": [
+        {
+          "key": "stream",
+          "value": "false"
+        }
+      ],
+      "builtin": true,
+      "enabled": true,
+      "version": 1,
+      "capabilities": {
+        "text-chat": {
+          "method": "POST",
+          "request_path": "/v1/text/chatcompletion_v2",
+          "required_params": [
+            "messages"
+          ],
+          "response_extract": {
+            "text": "choices.0.message.content",
+            "usage": "usage"
+          }
+        }
+      },
+      "request_path": "/v1/text/chatcompletion_v2",
+      "response_params": [
+        {
+          "key": "choices.0.message.content",
+          "type": "string",
+          "value": "文本正文"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_minimax_video",
+      "type": "video",
+      "async": {
+        "enabled": true,
+        "pollPath": "/v1/query/video_generation?task_id={task_id}",
+        "doneValue": "completed,Success",
+        "failValue": "failed,Fail",
+        "statusField": "status",
+        "taskIdField": "task_id"
+      },
+      "label": "MiniMax 视频（异步任务）",
+      "method": "POST",
+      "params": [],
+      "builtin": true,
+      "enabled": true,
+      "version": 3,
+      "capabilities": {
+        "text-to-video": {
+          "method": "POST",
+          "request_path": "/v1/video_generation",
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "status": "status",
+            "file_id": "file_id",
+            "task_id": "task_id"
+          }
+        },
+        "image-to-video": {
+          "method": "POST",
+          "request_path": "/v1/video_generation",
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "status": "status",
+            "file_id": "file_id",
+            "task_id": "task_id"
+          }
+        }
+      },
+      "request_path": "/v1/video_generation",
+      "response_params": [
+        {
+          "key": "task_id",
+          "type": "string",
+          "value": "任务 ID（轮询查询进度）"
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "value": "任务状态（轮询判断完成/失败）"
+        },
+        {
+          "key": "file_id",
+          "type": "string",
+          "value": "成品文件 ID"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_openai",
+      "type": "text",
+      "async": {},
+      "label": "OpenAI 兼容 Chat（Chat Completions）",
+      "method": "POST",
+      "params": [
+        {
+          "key": "model",
+          "desc": "对话模型 ID（执行器注入模型标识 providerModel）",
+          "role": "model",
+          "type": "string",
+          "value": "",
+          "required": true
+        },
+        {
+          "key": "messages",
+          "desc": "对话消息数组，按时间顺序排列（执行器按会话/剧本构造）",
+          "role": "runtime",
+          "type": "array",
+          "value": "",
+          "required": true
+        },
+        {
+          "key": "temperature",
+          "desc": "采样温度，>= 0 <= 2，默认 1",
+          "role": "static",
+          "type": "number",
+          "value": "0.7"
+        },
+        {
+          "key": "top_p",
+          "desc": "核采样，>= 0 <= 1，默认 1",
+          "role": "static",
+          "type": "number",
+          "value": "1"
+        },
+        {
+          "key": "max_tokens",
+          "desc": "最大输出 token 数，>= 1",
+          "role": "static",
+          "type": "number",
+          "value": "1024"
+        },
+        {
+          "key": "n",
+          "desc": "生成候选数，>= 1，默认 1",
+          "role": "static",
+          "type": "number",
+          "value": "1"
+        },
+        {
+          "key": "stream",
+          "desc": "是否 SSE 流式返回，默认 false",
+          "role": "static",
+          "type": "bool",
+          "value": "false"
+        },
+        {
+          "key": "presence_penalty",
+          "desc": "话题新鲜度惩罚，>= -2 <= 2，默认 0",
+          "role": "static",
+          "type": "number",
+          "value": "0"
+        },
+        {
+          "key": "frequency_penalty",
+          "desc": "频率惩罚，>= -2 <= 2，默认 0",
+          "role": "static",
+          "type": "number",
+          "value": "0"
+        },
+        {
+          "key": "stop",
+          "desc": "停止序列数组（JSON 字符串）",
+          "role": "static",
+          "type": "array",
+          "value": "[\"\\n\"]"
+        },
+        {
+          "key": "tools",
+          "desc": "Function Calling 工具列表（OpenAI 格式，平台按需注入）",
+          "role": "runtime",
+          "type": "array",
+          "value": ""
+        },
+        {
+          "key": "tool_choice",
+          "desc": "工具选择策略：auto / none / 指定函数",
+          "role": "static",
+          "type": "string",
+          "value": "auto"
+        },
+        {
+          "key": "response_format",
+          "desc": "强制输出格式（JSON 字符串）",
+          "role": "static",
+          "type": "object",
+          "value": "{\"type\":\"json_object\"}"
+        },
+        {
+          "key": "user",
+          "desc": "终端用户标识，用于审计与风控",
+          "role": "runtime",
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "builtin": true,
+      "enabled": true,
+      "version": 12,
+      "capabilities": {
+        "text-chat": {
+          "method": "POST",
+          "request_path": "/v1/chat/completions",
+          "param_mapping": {
+            "top_p": "top_p",
+            "stream": "stream",
+            "messages": "messages",
+            "max_tokens": "max_tokens",
+            "temperature": "temperature",
+            "presence_penalty": "presence_penalty",
+            "frequency_penalty": "frequency_penalty"
+          },
+          "required_params": [
+            "messages"
+          ],
+          "response_extract": {
+            "text": "choices.0.message.content",
+            "usage": "usage"
+          }
+        }
+      },
+      "request_path": "/v1/chat/completions",
+      "response_params": [
+        {
+          "key": "choices.0.message.content",
+          "type": "string",
+          "value": "文本正文（无工具调用时）"
+        },
+        {
+          "key": "choices.0.message.tool_calls",
+          "type": "array",
+          "value": "工具调用列表（函数名/参数）"
+        },
+        {
+          "key": "choices.0.finish_reason",
+          "type": "string",
+          "value": "结束原因（stop / tool_calls / length）"
+        },
+        {
+          "key": "usage.prompt_tokens",
+          "type": "number",
+          "value": "输入 Token 数"
+        },
+        {
+          "key": "usage.completion_tokens",
+          "type": "number",
+          "value": "输出 Token 数"
+        },
+        {
+          "key": "usage.total_tokens",
+          "type": "number",
+          "value": "总 Token 数"
+        },
+        {
+          "key": "id",
+          "type": "string",
+          "value": "会话 ID"
+        },
+        {
+          "key": "model",
+          "type": "string",
+          "value": "实际使用的模型"
+        },
+        {
+          "key": "created",
+          "type": "number",
+          "value": "生成时间戳"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_openai_img",
+      "type": "image",
+      "async": {
+        "enabled": true,
+        "pollPath": "/v1/images/tasks/{task_id}",
+        "doneValue": "completed",
+        "failValue": "failed",
+        "statusField": "status",
+        "taskIdField": "id"
+      },
+      "label": "OpenAI 兼容图片（Images API）",
+      "method": "POST",
+      "params": [
+        {
+          "key": "model",
+          "desc": "图片生成模型 ID（执行器注入 providerModel）",
+          "role": "model",
+          "type": "string",
+          "required": true
+        },
+        {
+          "key": "prompt",
+          "desc": "图片描述（执行器按业务构造）",
+          "role": "runtime",
+          "type": "string",
+          "required": true
+        },
+        {
+          "key": "n",
+          "desc": "生成张数",
+          "role": "static",
+          "type": "number",
+          "value": "1"
+        },
+        {
+          "key": "size",
+          "desc": "图片尺寸",
+          "role": "static",
+          "type": "string",
+          "value": "1024x1024"
+        },
+        {
+          "key": "quality",
+          "desc": "质量档（standard/hd）",
+          "role": "static",
+          "type": "string",
+          "value": "standard"
+        },
+        {
+          "key": "response_format",
+          "desc": "返回格式（url/b64_json）",
+          "role": "static",
+          "type": "string",
+          "value": "url"
+        }
+      ],
+      "builtin": true,
+      "enabled": true,
+      "version": 4,
+      "capabilities": {
+        "text-to-image": {
+          "method": "POST",
+          "request_path": "/v1/images/generations",
+          "param_mapping": {
+            "n": "n",
+            "seed": "seed",
+            "prompt": "prompt",
+            "aspect_ratio": "aspect_ratio",
+            "negative_prompt": "negative_prompt",
+            "response_format": "response_format"
+          },
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "image_b64": "data.0.b64_json",
+            "image_url": "data.0.url"
+          }
+        },
+        "image-to-image": {
+          "method": "POST",
+          "request_path": "/v1/images/edits",
+          "param_mapping": {
+            "n": "n",
+            "prompt": "prompt",
+            "strength": "strength",
+            "aspect_ratio": "aspect_ratio",
+            "response_format": "response_format",
+            "reference_images[0].url": "image"
+          },
+          "required_params": [
+            "prompt",
+            "image"
+          ],
+          "response_extract": {
+            "image_b64": "data.0.b64_json",
+            "image_url": "data.0.url"
+          }
+        }
+      },
+      "request_path": "/v1/images/generations",
+      "response_params": [
+        {
+          "key": "output.image_urls.0",
+          "type": "string",
+          "value": "图片地址"
+        },
+        {
+          "key": "output.data.0.url",
+          "type": "string",
+          "value": "图片地址(备选1)"
+        },
+        {
+          "key": "data.0.url",
+          "type": "string",
+          "value": "图片地址(备选2)"
+        }
+      ]
+    },
+    {
+      "id": "pt_builtin_openai_video",
+      "type": "video",
+      "async": {
+        "enabled": true,
+        "pollPath": "/v1/videos/{task_id}",
+        "doneValue": "completed",
+        "failValue": "failed",
+        "statusField": "status",
+        "taskIdField": "id",
+        "timeoutMinutes": 1440,
+        "pollIntervalSeconds": 15
+      },
+      "label": "OpenAI 兼容 · 视频生成（PearAPI/openai-video）",
+      "method": "POST",
+      "params": [],
+      "builtin": true,
+      "enabled": true,
+      "version": 1,
+      "capabilities": {
+        "text-to-video": {
+          "method": "POST",
+          "request_path": "/v1/videos/generations",
+          "param_mapping": {
+            "model": "model",
+            "prompt": "prompt",
+            "metadata.duration": "metadata.duration",
+            "metadata.resolution": "metadata.resolution",
+            "metadata.generate_audio": "metadata.generate_audio"
+          },
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "status": "status",
+            "task_id": "task_id"
+          }
+        },
+        "image-to-video": {
+          "method": "POST",
+          "request_path": "/v1/videos/generations",
+          "param_mapping": {
+            "model": "model",
+            "prompt": "prompt",
+            "metadata.duration": "metadata.duration",
+            "metadata.resolution": "metadata.resolution",
+            "metadata.generate_audio": "metadata.generate_audio",
+            "reference_images[0].url": "metadata.content[0].image_url"
+          },
+          "required_params": [
+            "prompt"
+          ],
+          "response_extract": {
+            "status": "status",
+            "task_id": "task_id"
+          }
+        }
+      },
+      "request_path": "/v1/videos/generations",
+      "response_params": []
     }
-   ],
-   "builtin": true,
-   "enabled": true,
-   "version": 1,
-   "capabilities": {},
-   "request_path": "/prompt",
-   "response_params": [
-    {
-     "key": "prompt_id",
-     "type": "string",
-     "value": "工作流执行 ID（轮询 /history）"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_grsai",
-   "type": "all",
-   "async": {},
-   "label": "聚合网关转发（OpenAI 兼容）",
-   "method": "POST",
-   "params": [
-    {
-     "key": "",
-     "value": ""
-    }
-   ],
-   "builtin": true,
-   "enabled": true,
-   "version": 2,
-   "capabilities": {
-    "text-chat": {
-     "method": "POST",
-     "request_path": "/v1/chat/completions",
-     "required_params": [
-      "messages"
-     ],
-     "response_extract": {
-      "text": "choices.0.message.content",
-      "usage": "usage"
-     }
-    }
-   },
-   "request_path": "/v1/chat/completions",
-   "response_params": [
-    {
-     "key": "choices.0.message.content",
-     "type": "string",
-     "value": "文本正文"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_jimeng_image",
-   "type": "image",
-   "async": {
-    "enabled": true,
-    "doneValue": "",
-    "failValue": "",
-    "statusField": "",
-    "taskIdField": ""
-   },
-   "label": "即梦图片",
-   "method": "POST",
-   "params": [],
-   "builtin": true,
-   "enabled": true,
-   "version": 2,
-   "capabilities": {
-    "text-to-image": {
-     "method": "POST",
-     "request_path": "/v1/images/generations",
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "image_b64": "data.0.b64_json",
-      "image_url": "data.0.url"
-     }
-    },
-    "image-to-image": {
-     "method": "POST",
-     "request_path": "/v1/images/generations",
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "image_b64": "data.0.b64_json",
-      "image_url": "data.0.url"
-     }
-    }
-   },
-   "request_path": "/v1/images/generations",
-   "response_params": [
-    {
-     "key": "data.0.url",
-     "type": "string",
-     "value": "图片地址"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_jimeng_video",
-   "type": "video",
-   "async": {
-    "enabled": true,
-    "pollPath": "/v1/video/generations/{task_id}",
-    "doneValue": "SUCCESS",
-    "failValue": "FAILED",
-    "statusField": "status",
-    "taskIdField": "task_id"
-   },
-   "label": "即梦视频（异步任务）",
-   "method": "POST",
-   "params": [],
-   "builtin": true,
-   "enabled": true,
-   "version": 3,
-   "capabilities": {
-    "text-to-video": {
-     "method": "POST",
-     "request_path": "/v1/videos/generations",
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "video": "data.0.url",
-      "status": "status",
-      "task_id": "task_id"
-     }
-    },
-    "image-to-video": {
-     "method": "POST",
-     "request_path": "/v1/videos/generations",
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "video": "data.0.url",
-      "status": "status",
-      "task_id": "task_id"
-     }
-    }
-   },
-   "request_path": "/v1/videos/generations",
-   "response_params": [
-    {
-     "key": "task_id",
-     "type": "string",
-     "value": "任务 ID（轮询查询进度）"
-    },
-    {
-     "key": "status",
-     "type": "string",
-     "value": "任务状态（轮询判断完成/失败）"
-    },
-    {
-     "key": "data.0.url",
-     "type": "string",
-     "value": "视频地址"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_minimax_text",
-   "type": "text",
-   "async": {},
-   "label": "MiniMax 文本",
-   "method": "POST",
-   "params": [
-    {
-     "key": "stream",
-     "value": "false"
-    }
-   ],
-   "builtin": true,
-   "enabled": true,
-   "version": 1,
-   "capabilities": {
-    "text-chat": {
-     "method": "POST",
-     "request_path": "/v1/text/chatcompletion_v2",
-     "required_params": [
-      "messages"
-     ],
-     "response_extract": {
-      "text": "choices.0.message.content",
-      "usage": "usage"
-     }
-    }
-   },
-   "request_path": "/v1/text/chatcompletion_v2",
-   "response_params": [
-    {
-     "key": "choices.0.message.content",
-     "type": "string",
-     "value": "文本正文"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_minimax_video",
-   "type": "video",
-   "async": {
-    "enabled": true,
-    "pollPath": "/v1/query/video_generation?task_id={task_id}",
-    "doneValue": "completed,Success",
-    "failValue": "failed,Fail",
-    "statusField": "status",
-    "taskIdField": "task_id"
-   },
-   "label": "MiniMax 视频（异步任务）",
-   "method": "POST",
-   "params": [],
-   "builtin": true,
-   "enabled": true,
-   "version": 3,
-   "capabilities": {
-    "text-to-video": {
-     "method": "POST",
-     "request_path": "/v1/video_generation",
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "status": "status",
-      "file_id": "file_id",
-      "task_id": "task_id"
-     }
-    },
-    "image-to-video": {
-     "method": "POST",
-     "request_path": "/v1/video_generation",
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "status": "status",
-      "file_id": "file_id",
-      "task_id": "task_id"
-     }
-    }
-   },
-   "request_path": "/v1/video_generation",
-   "response_params": [
-    {
-     "key": "task_id",
-     "type": "string",
-     "value": "任务 ID（轮询查询进度）"
-    },
-    {
-     "key": "status",
-     "type": "string",
-     "value": "任务状态（轮询判断完成/失败）"
-    },
-    {
-     "key": "file_id",
-     "type": "string",
-     "value": "成品文件 ID"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_openai",
-   "type": "text",
-   "async": {},
-   "label": "OpenAI 兼容 Chat（Chat Completions）",
-   "method": "POST",
-   "params": [
-    {
-     "key": "model",
-     "desc": "对话模型 ID（执行器注入模型标识 providerModel）",
-     "role": "model",
-     "type": "string",
-     "value": "",
-     "required": true
-    },
-    {
-     "key": "messages",
-     "desc": "对话消息数组，按时间顺序排列（执行器按会话/剧本构造）",
-     "role": "runtime",
-     "type": "array",
-     "value": "",
-     "required": true
-    },
-    {
-     "key": "temperature",
-     "desc": "采样温度，>= 0 <= 2，默认 1",
-     "role": "static",
-     "type": "number",
-     "value": "0.7"
-    },
-    {
-     "key": "top_p",
-     "desc": "核采样，>= 0 <= 1，默认 1",
-     "role": "static",
-     "type": "number",
-     "value": "1"
-    },
-    {
-     "key": "max_tokens",
-     "desc": "最大输出 token 数，>= 1",
-     "role": "static",
-     "type": "number",
-     "value": "1024"
-    },
-    {
-     "key": "n",
-     "desc": "生成候选数，>= 1，默认 1",
-     "role": "static",
-     "type": "number",
-     "value": "1"
-    },
-    {
-     "key": "stream",
-     "desc": "是否 SSE 流式返回，默认 false",
-     "role": "static",
-     "type": "bool",
-     "value": "false"
-    },
-    {
-     "key": "presence_penalty",
-     "desc": "话题新鲜度惩罚，>= -2 <= 2，默认 0",
-     "role": "static",
-     "type": "number",
-     "value": "0"
-    },
-    {
-     "key": "frequency_penalty",
-     "desc": "频率惩罚，>= -2 <= 2，默认 0",
-     "role": "static",
-     "type": "number",
-     "value": "0"
-    },
-    {
-     "key": "stop",
-     "desc": "停止序列数组（JSON 字符串）",
-     "role": "static",
-     "type": "array",
-     "value": "[\"\\n\"]"
-    },
-    {
-     "key": "tools",
-     "desc": "Function Calling 工具列表（OpenAI 格式，平台按需注入）",
-     "role": "runtime",
-     "type": "array",
-     "value": ""
-    },
-    {
-     "key": "tool_choice",
-     "desc": "工具选择策略：auto / none / 指定函数",
-     "role": "static",
-     "type": "string",
-     "value": "auto"
-    },
-    {
-     "key": "response_format",
-     "desc": "强制输出格式（JSON 字符串）",
-     "role": "static",
-     "type": "object",
-     "value": "{\"type\":\"json_object\"}"
-    },
-    {
-     "key": "user",
-     "desc": "终端用户标识，用于审计与风控",
-     "role": "runtime",
-     "type": "string",
-     "value": ""
-    }
-   ],
-   "builtin": true,
-   "enabled": true,
-   "version": 12,
-   "capabilities": {
-    "text-chat": {
-     "method": "POST",
-     "request_path": "/v1/chat/completions",
-     "param_mapping": {
-      "top_p": "top_p",
-      "stream": "stream",
-      "messages": "messages",
-      "max_tokens": "max_tokens",
-      "temperature": "temperature",
-      "presence_penalty": "presence_penalty",
-      "frequency_penalty": "frequency_penalty"
-     },
-     "required_params": [
-      "messages"
-     ],
-     "response_extract": {
-      "text": "choices.0.message.content",
-      "usage": "usage"
-     }
-    }
-   },
-   "request_path": "/v1/chat/completions",
-   "response_params": [
-    {
-     "key": "choices.0.message.content",
-     "type": "string",
-     "value": "文本正文（无工具调用时）"
-    },
-    {
-     "key": "choices.0.message.tool_calls",
-     "type": "array",
-     "value": "工具调用列表（函数名/参数）"
-    },
-    {
-     "key": "choices.0.finish_reason",
-     "type": "string",
-     "value": "结束原因（stop / tool_calls / length）"
-    },
-    {
-     "key": "usage.prompt_tokens",
-     "type": "number",
-     "value": "输入 Token 数"
-    },
-    {
-     "key": "usage.completion_tokens",
-     "type": "number",
-     "value": "输出 Token 数"
-    },
-    {
-     "key": "usage.total_tokens",
-     "type": "number",
-     "value": "总 Token 数"
-    },
-    {
-     "key": "id",
-     "type": "string",
-     "value": "会话 ID"
-    },
-    {
-     "key": "model",
-     "type": "string",
-     "value": "实际使用的模型"
-    },
-    {
-     "key": "created",
-     "type": "number",
-     "value": "生成时间戳"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_openai_img",
-   "type": "image",
-   "async": {
-    "enabled": true,
-    "pollPath": "/v1/images/tasks/{task_id}",
-    "doneValue": "completed",
-    "failValue": "failed",
-    "statusField": "status",
-    "taskIdField": "id"
-   },
-   "label": "OpenAI 兼容图片（Images API）",
-   "method": "POST",
-   "params": [
-    {
-     "key": "model",
-     "desc": "图片生成模型 ID（执行器注入 providerModel）",
-     "role": "model",
-     "type": "string",
-     "required": true
-    },
-    {
-     "key": "prompt",
-     "desc": "图片描述（执行器按业务构造）",
-     "role": "runtime",
-     "type": "string",
-     "required": true
-    },
-    {
-     "key": "n",
-     "desc": "生成张数",
-     "role": "static",
-     "type": "number",
-     "value": "1"
-    },
-    {
-     "key": "size",
-     "desc": "图片尺寸",
-     "role": "static",
-     "type": "string",
-     "value": "1024x1024"
-    },
-    {
-     "key": "quality",
-     "desc": "质量档（standard/hd）",
-     "role": "static",
-     "type": "string",
-     "value": "standard"
-    },
-    {
-     "key": "response_format",
-     "desc": "返回格式（url/b64_json）",
-     "role": "static",
-     "type": "string",
-     "value": "url"
-    }
-   ],
-   "builtin": true,
-   "enabled": true,
-   "version": 4,
-   "capabilities": {
-    "text-to-image": {
-     "method": "POST",
-     "request_path": "/v1/images/generations",
-     "param_mapping": {
-      "n": "n",
-      "seed": "seed",
-      "prompt": "prompt",
-      "aspect_ratio": "aspect_ratio",
-      "negative_prompt": "negative_prompt",
-      "response_format": "response_format"
-     },
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "image_b64": "data.0.b64_json",
-      "image_url": "data.0.url"
-     }
-    },
-    "image-to-image": {
-     "method": "POST",
-     "request_path": "/v1/images/edits",
-     "param_mapping": {
-      "n": "n",
-      "prompt": "prompt",
-      "strength": "strength",
-      "aspect_ratio": "aspect_ratio",
-      "response_format": "response_format",
-      "reference_images[0].url": "image"
-     },
-     "required_params": [
-      "prompt",
-      "image"
-     ],
-     "response_extract": {
-      "image_b64": "data.0.b64_json",
-      "image_url": "data.0.url"
-     }
-    }
-   },
-   "request_path": "/v1/images/generations",
-   "response_params": [
-    {
-     "key": "output.image_urls.0",
-     "type": "string",
-     "value": "图片地址"
-    },
-    {
-     "key": "output.data.0.url",
-     "type": "string",
-     "value": "图片地址(备选1)"
-    },
-    {
-     "key": "data.0.url",
-     "type": "string",
-     "value": "图片地址(备选2)"
-    }
-   ]
-  },
-  {
-   "id": "pt_builtin_openai_video",
-   "type": "video",
-   "async": {
-    "enabled": true,
-    "pollPath": "/v1/videos/{task_id}",
-    "doneValue": "completed",
-    "failValue": "failed",
-    "statusField": "status",
-    "taskIdField": "id",
-    "timeoutMinutes": 1440,
-    "pollIntervalSeconds": 15
-   },
-   "label": "OpenAI 兼容 · 视频生成（PearAPI/openai-video）",
-   "method": "POST",
-   "params": [],
-   "builtin": true,
-   "enabled": true,
-   "version": 1,
-   "capabilities": {
-    "text-to-video": {
-     "method": "POST",
-     "request_path": "/v1/videos/generations",
-     "param_mapping": {
-      "model": "model",
-      "prompt": "prompt",
-      "metadata.duration": "metadata.duration",
-      "metadata.resolution": "metadata.resolution",
-      "metadata.generate_audio": "metadata.generate_audio"
-     },
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "status": "status",
-      "task_id": "task_id"
-     }
-    },
-    "image-to-video": {
-     "method": "POST",
-     "request_path": "/v1/videos/generations",
-     "param_mapping": {
-      "model": "model",
-      "prompt": "prompt",
-      "metadata.duration": "metadata.duration",
-      "metadata.resolution": "metadata.resolution",
-      "metadata.generate_audio": "metadata.generate_audio",
-      "reference_images[0].url": "metadata.content[0].image_url"
-     },
-     "required_params": [
-      "prompt"
-     ],
-     "response_extract": {
-      "status": "status",
-      "task_id": "task_id"
-     }
-    }
-   },
-   "request_path": "/v1/videos/generations",
-   "response_params": []
-  }
- ]
+  ],
+  "migration": "067"
 }
