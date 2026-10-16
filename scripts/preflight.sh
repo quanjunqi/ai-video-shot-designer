@@ -216,7 +216,22 @@ for svc in "${TARGETS[@]}"; do
   #   最近一次就发生在这里：补丁没生效、集成测试是红的，而本脚本报"✅ 通过"、
   #   于是失败代码被提交推送。
   # ⇒ 这道门让那条沉默变成【响亮的失败或响亮的声明】。
-  dsn_var="$(printf '%s' "$svc" | tr 'a-z-' 'A-Z_')_TEST_DATABASE_URL"
+  # ★ 从【测试文件里实际用的变量名】反查，而不是靠服务名推导。
+  #
+  # 为什么（TASK-MODEL-006 实测踩到）：原实现是
+  #     dsn_var="$(printf '%s' "$svc" | tr 'a-z-' 'A-Z_')_TEST_DATABASE_URL"
+  # 服务名 **outbox-relay 带连字符** ⇒ 推导成 `OUTBOX_RELAY_TEST_DATABASE_URL`，
+  # 而测试与 CI（ci.yml:184）用的是 **`OUTBOX_TEST_DATABASE_URL`**（没有 `_RELAY`）
+  # ⇒ 推不出来 ⇒ `gated=0` ⇒ 门禁以为"该服务没有真库集成测试"
+  #   ⇒ 既不提示"未提供 DSN"，也不跳过覆盖率棘轮 ⇒ outbox 的 28.8% 被报成"覆盖率回退"（假红），
+  #   而同一份代码在 CI 等价库下是 64.4%（≥60 下限，通过）。
+  # ⇒ 改为反查：谁在测试里真的引用 `*_TEST_DATABASE_URL`，就用那个名字。
+  #   这样服务再改名/再加连字符都不会重踩（与 check-shell-vars.sh 的"按 git 追踪清单算，谁都不用记目录"同一思路）。
+  dsn_var="$(grep -rhoE '[A-Z][A-Z0-9_]*_TEST_DATABASE_URL' "$dir" --include='*_test.go' 2>/dev/null | sort -u | head -1)"
+  if [ -z "$dsn_var" ]; then
+    # 回退：该服务确实没有 DSN 门控测试时，仍给一个规范名用于提示文案
+    dsn_var="$(printf '%s' "$svc" | tr 'a-z-' 'A-Z_')_TEST_DATABASE_URL"
+  fi
   dsn="${!dsn_var:-}"
   if [ -z "$dsn" ] && [ -f "$ENV_FILE" ]; then
     dsn="$(grep -E "^${dsn_var}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')"
@@ -233,8 +248,27 @@ for svc in "${TARGETS[@]}"; do
   if [ -n "$dsn" ]; then export "$dsn_var=$dsn"; fi
   if ( cd "$dir" && go test ./... -race -v -coverprofile="$prof" ) >"$TMP/$svc.test.out" 2>&1; then
     if [ -n "$dsn" ] && [ "$gated" = "1" ] && grep -q -- '--- SKIP' "$TMP/$svc.test.out"; then
-      bad "$svc 集成测试被跳过（已提供 $dsn_var 却出现 SKIP ⇒ 有测试但没执行）"
-      grep -- '--- SKIP' "$TMP/$svc.test.out" | head -8 | sed 's/^/      /'
+      # ★ 按【跳过的真实原因】分类，而不是一律判失败（TASK-MODEL-006 实测踩到）：
+      #   原实现只看"提供了 DSN 却出现 SKIP"就判 bad，但 asset 的跳过原因是缺
+      #   `ASSET_TEST_S3_ENDPOINT/ACCESS_KEY/SECRET_KEY`（对象存储凭据，CI 走 repo secrets），
+      #   **与 DSN 无关** ⇒ 诊断文案误导，且本地【注定】永远失败。
+      #   两者必须分开（同"测试库不可达 vs 测试失败"那条原则）：
+      #     · 跳过原因指向**本服务的 DSN 变量** ⇒ bad（你说库能用，结果没用上）
+      #     · 跳过原因指向**其它前置条件** ⇒ 未验证（本地环境不具备，不是代码问题）
+      skip_reasons="$(grep -- '--- SKIP' "$TMP/$svc.test.out" | head -8)"
+      if printf '%s' "$skip_reasons" | grep -qiE 'TEST_DATABASE_URL|database'; then
+        bad "$svc 集成测试被跳过（已提供 $dsn_var 却出现 SKIP ⇒ 库没被真的用上）"
+        printf '%s\n' "$skip_reasons" | sed 's/^/      /'
+      else
+        warn "$svc 集成测试被跳过，原因是【其它前置条件】而非 $dsn_var ⇒ 本地未验证（不是代码失败）"
+        printf '%s\n' "$skip_reasons" | head -4 | sed 's/^/      /'
+        NOTVERIFIED+=("$svc 集成测试（跳过原因非 DSN；见上）")
+      fi
+      # ★ 跳过了 ⇒ 覆盖的不是完整代码面 ⇒ 覆盖率数字与 CI **不可比**，
+      #   不得据此报"覆盖率回退"（那是假红）。与"测试库不可达"同一条原则：
+      #   **"测不出来"与"测出来但太低"是两件事**。
+      warn "$svc ⇒ 覆盖率棘轮本轮跳过：有测试被跳过，数字与 CI 不可比（棘轮本身仍由 CI 把关）"
+      RATCHET_SKIP=1
     else
       ok "Test（-race${dsn:+，含真库集成}）"
     fi
@@ -258,6 +292,12 @@ for svc in "${TARGETS[@]}"; do
     warn "该服务有 DSN 门控的集成测试，但【未提供 ${dsn_var}】⇒ 它们被跳过、本地未验证"
     warn "  ⇒ 覆盖率也会低于 CI（CI 自 ci.md §7 起总是提供测试库）"
     NOTVERIFIED+=("$svc 集成测试（无 ${dsn_var}）")
+    # ★ 这一行此前**漏了**：只说"覆盖率会低于 CI"，却仍让棘轮照跑 ⇒ 必然报"覆盖率回退"（假红）。
+    #   实测踩到（TASK-MODEL-006）：OUTBOX_TEST_DATABASE_URL 不在 .env.local 里
+    #   ⇒ 7 个测试 SKIP ⇒ outbox-relay 28.8% 被报成"回退"，
+    #   而**同一份代码在 CI 等价库下是 64.4%（≥60 下限，通过）**。
+    #   与"测试库不可达"分支（上方 RATCHET_SKIP=1）对齐。
+    RATCHET_SKIP=1
   elif [ "$gated" = "0" ]; then
     warn "该服务【没有】DSN 门控的集成测试 ⇒ 覆盖率门禁对它不含真库路径"
   fi
