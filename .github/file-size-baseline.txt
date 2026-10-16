@@ -19,7 +19,6 @@
 #
 # 实测日期：2026-10-16（TASK-PROC-005 立卡全量扫描；TASK-PROC-006 起随修复逐条收紧）
 # 格式：<相对仓库根路径> <实测行数>
-services/execution/internal/httpapi/handlers_generate.go 783
 services/web-bff/internal/httpserver/main_test.go 764
 services/web-bff/internal/httpserver/handlers.go 757
 services/execution/internal/engine/request_template_test.go 745
