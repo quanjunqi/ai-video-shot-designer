@@ -27,12 +27,28 @@ func TestNoRawModelIDLookupLoops(t *testing.T) {
 }
 
 // 反向保证：解析器必须真的被调用，否则上面那条会被"删掉调用"绕过。
+// TASK-MODEL-006 判据 6 起解析器有两个入口：Resolve（不传 mode）与 ResolveFor（带能力过滤）；
+// 两者都算"用了 Resolve"。
 func TestHandlersUseCatalogResolve(t *testing.T) {
 	b, err := os.ReadFile("handlers_generate.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := strings.Count(string(b), "catalog.Resolve("); n < 1 {
-		t.Fatalf("handler.go 必须调用 catalog.Resolve（实际 %d 次）", n)
+	src := string(b)
+	if n := strings.Count(src, "catalog.Resolve(") + strings.Count(src, "catalog.ResolveFor("); n < 1 {
+		t.Fatalf("handler.go 必须调用 catalog.Resolve/ResolveFor（实际 %d 次）", n)
+	}
+}
+
+// 接线不变量（TASK-MODEL-006 判据 6 新增）：能力过滤**只有把请求的 mode 真传进去**才生效。
+// 若只调 ResolveFor 却传空串（或漏传），过滤形同虚设而**单测依然全绿** ——
+// 这与 P3-1「解析器有测试、接线没测试」是同一类盲区，所以在这里把接线本身钉住。
+func TestGenerateHandlerThreadsRequestModeIntoResolve(t *testing.T) {
+	b, err := os.ReadFile("handlers_generate.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "catalog.ResolveFor(dir, in.ModelID, in.Mode)") {
+		t.Fatal("/v1/generate 必须把请求的 mode 传给 catalog.ResolveFor（否则能力过滤形同虚设）")
 	}
 }

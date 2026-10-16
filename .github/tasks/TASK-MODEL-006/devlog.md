@@ -721,3 +721,69 @@ capability.modes / refImage / billing
 **"判据的字面描述"与"系统的实际形态"可能不一致。**
 判据说"档位字段存在" ⇒ 我读成"要新建列"；实际字段（JSONB 键）**早已存在且前端已消费**。
 **⇒ 与前两次（判据 1 已作废、79 行迁移违 ADR-004）同族：施工前必须先取实证核对前提。**
+
+---
+
+### 2026-10-17 判据 6 达成：`Resolve` 按能力过滤候选 + **由此暴露我 063 的词表缺陷**
+
+#### 交付
+
+| 文件 | 改动 |
+|---|---|
+| `internal/catalog/resolve.go` | 新增 `ResolveFor(dir, modelID, requiredMode)`；`Resolve` 改为**一行委托**（语义与引入前逐字一致）；新增 sentinel `ErrNoCandidateForMode`（与 `ErrModelNotResolved` **语义分开**） |
+| `internal/catalog/resolve_mode_test.go` | **新增 258 行 / 10 个用例** |
+| `internal/httpapi/handlers_generate.go` | 传 `in.Mode`；**删掉那个"结构性死字段"struct**（三个字段从未被使用）；498 行（≤500） |
+| `internal/httpapi/handlers_run_model.go` / `internal/worker/worker.go` | 传 `""` + **写明为什么拿不到 mode** |
+| `handlers_generate_integration_test.go` / `routing_wiring_test.go` | 真库集成测试 + 接线不变量（原计数会因改名而红，已改） |
+
+#### 四条设计判断（都写了依据）
+
+1. **签名用显式形参而非 options 结构** —— 逼每个调用点在**编译期**面对"我有没有 mode"，拿不到就必须显式写 `""` 并给理由。
+2. **过滤只依据"显式声明"；未声明 ≠ 不支持** —— 与能力数据纪律一致（无依据留空＝未知）。
+   测试里 **10 个子用例**覆盖 capability 缺失/空/`{}`/`modes:[]`/无键/`null`/坏 JSON/类型错 ⇒ **全部保留**。
+3. **"精确行 id"那一支不过滤** —— 语义：调用方**点名**这一行，没有候选集也没有失败切换余地，
+   过滤只能把能成功的调用变成硬错误。**事实依据**：实测唯一声明了 `modes` 的行
+   `mod_pearapi_seedance25` 的 `logical_model_id` 为 **NULL** ⇒ 它**只能走这一支**。
+4. **HTTP 层复用既有码 `INVALID_GENERATE`（422）而不新增** —— `Error.code` 的 enum 会被
+   openapi-typescript 生成为 TS 联合类型，新增 code 必须改契约 + 重生成前端类型（属另一条线）。
+
+**★ 变异验证（证明断言非空转）**：把 `if requiredMode != ""` 改成 `if false` 后重跑 ⇒
+4 条 catalog 用例 + 端到端集成用例**全部 FAIL**（`got MODEL_NO_PROTOCOL ≠ want INVALID_GENERATE`），
+退出码 1；随后还原（`grep -c MUTATION` = 0）。
+
+**真实输出**：`go build` / `vet` / `gofmt` / `go test ./... -race` **全部 exit=0**；
+`-v` 统计 **228 顶层 PASS / 0 SKIP / 0 FAIL**（真库集成测试确实执行、无静默跳过）。
+
+#### 🔴 由此暴露的缺陷：**我 063 写的 `modes` 词表与调用方不同源**（已修，迁移 064）
+
+子代理在"不确定项"里诚实标注了一条风险：**无法证明调用方传的 mode 落在 DB 那 7 项里**。
+**我核查后发现它是真的，而且责任在我**：
+
+| 我在 063 写的 | 前端权威词表（`GenerationMode`） | |
+|---|---|---|
+| `text-to-video` | `text-to-video` | ✅ |
+| `first-last-frame` | `first-last-frame` | ✅ |
+| `first-frame` | **`image-to-video`** | ❌ |
+| `omni-reference` | **`multi-reference`** | ❌ |
+| `video-edit` / `extend` / `with-audio` | 无对应 | ❌ |
+
+**⇒ 7 项里 5 项对不上** ⇒ 能力过滤一旦生效，前端合法的 `image-to-video` 会被判"不支持"而 **422 拒掉**。
+
+**修法（064）**：按**官方能力**映射到**调用方词表**，而不是照抄或丢弃：
+- 官方「首帧生视频」→ `image-to-video`；「全模态参考」→ `multi-reference`
+- 「视频编辑 / 延长 / 有声」在调用方词表里**没有对应项** ⇒ **不写入**
+  （写进去**永远不可能被命中**，只会给人"该能力可被请求"的错觉；能力仍记录在 evidence 文件里，
+  待前端词表扩展后另立卡补）
+
+**验证**：`4/4` 落在前端 `GenerationMode` 词表内。
+
+**并固化契约**（`openapi/bff.yaml` 的 `mode`）：此前写着「具体取值以服务端为准，**契约待补**」
+—— **这正是让我踩坑的根源**。现加上 **8 值 enum**（来源即前端 `GenerationMode`），
+并重生成 `api-generated.ts`（`api:check` rc=0、`npm run gate` rc=0）。
+注释里写明：**新增模式须同时改契约 + 前端类型 + `model_catalog.capability.modes`**。
+
+#### 教训（第四次同族，但这次是**数据**而非理解）
+
+前三次都是"我的理解与系统实际不符"；**这一次是我造的**数据**与系统实际不符**：
+`modes` 是**连接调用端与声明端的契约值**，我却当成自由文本自己编了一套词。
+**⇒ 凡是"两端要对上的值"（词表、枚举、键名），都必须先找到权威来源再填，不能自造。**

@@ -89,7 +89,11 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// ADR-003 的候选解析（与 worker 同一实现，避免两条路径口径分叉）。
-	candidates, resolveErr := catalog.Resolve(dir, in.ModelID)
+	// 能力过滤传空 mode ⇒ **不过滤**：本端点（/v1/run，单模型冒烟测试）的请求体只有
+	// {modelId, runtime}，且用 DisallowUnknownFields 解码（见上方 in 的声明）——
+	// 这条路径**没有"请求的模式"这个输入**，硬加一个字段会让现存调用方全部 400（未知字段），
+	// 也会改掉 /v1/run 的请求契约。拿不到依据就不做断言（同"未声明 ≠ 不支持"）。
+	candidates, resolveErr := catalog.ResolveFor(dir, in.ModelID, "")
 	if resolveErr != nil {
 		// 文案与改动前逐字一致（错误码 MODEL_NOT_FOUND 与消息都保持稳定）
 		writeError(w, 404, "MODEL_NOT_FOUND", "model not found in directory")
