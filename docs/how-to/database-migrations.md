@@ -30,8 +30,11 @@
 
 ```bash
 # 推荐方式：走带版本跟踪与校验和的执行器
+# ★ 必须同时启用 app 与 platform 两个 profile：
+#   asset 服务（profile app）依赖 minio（profile platform），
+#   只给 --profile app 会报 `service "asset" depends on undefined service "minio": invalid compose project`。
 docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml \
-  --profile app up production-migrate
+  --profile app --profile platform up production-migrate
 
 # 手工执行单个迁移（仅排障时；不会写入 schema_migrations，
 # 可能导致跟踪记录与实际不一致——排障完立即用执行器对齐）

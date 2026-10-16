@@ -44,6 +44,12 @@ export interface TextCapability {
 export interface ImageCapability {
   refImage: boolean; // 支持参考图生图
   aspectRatioCount: number; // 比例数量
+  /**
+   * ADR 分片 6（D3-B）：目录**显式声明**支持的画面比例（如 ['16:9','1:1']）。
+   * 声明后前端走 `source='declared'`，取值与声明逐字一致；未声明则退回 `aspectRatioCount` 推断。
+   * 为什么需要它：只声明"数量"时前端只能拿通用表前 N 项去猜，**可能给出该模型不支持的比例**。
+   */
+  aspectRatios?: string[];
   qualityTiers: number; // 清晰度档位
   billing: { perImage: number }; // 积分/张
 }
@@ -55,6 +61,8 @@ export interface VideoCapability {
   maxRefImages: number;
   maxRefAudios: number;
   qualityTiers: number; // 清晰度档位
+  /** ADR 分片 6（D3-B）：同 ImageCapability.aspectRatios —— 显式声明则走 declared，未声明退回推断 */
+  aspectRatios?: string[];
   billing: { perSecondStart: number }; // 积分/秒起
 }
 
@@ -281,7 +289,7 @@ export const MODEL_CATALOG: CatalogModel[] = [
   // ===== 视频（sort = 起步单价低到高）=====
   { id: 'minimax-h3', channelId: 'minimax', family: 'MiniMax H3', name: 'MiniMax H3', providerModel: 'MiniMax H3', requestPath: '', method: 'POST', params: [], type: 'video', status: 'enabled', sort: 1,
     note: 'MiniMax 官方 H3：需同时提供 1 张参考图和 1 条参考音频，单次视频时长 1-15 秒。',
-    capability: { modes: ['i2v', 'multi_ref', 'audio_ref'], minDurationSeconds: 1, maxDurationSeconds: 15, maxRefImages: 1, maxRefAudios: 1, qualityTiers: 2, billing: { perSecondStart: 0.5 } } },
+    capability: { modes: ['i2v', 'multi_ref', 'audio_ref'], minDurationSeconds: 1, maxDurationSeconds: 15, maxRefImages: 1, maxRefAudios: 1, qualityTiers: 2, aspectRatios: ['16:9', '9:16'], billing: { perSecondStart: 0.5 } } },
   { id: 'minimax-h3-grsai', channelId: 'grsai', family: 'MiniMax H3', name: 'MiniMax H3（特价版）', providerModel: 'MiniMax H3（特价版）', requestPath: '', method: 'POST', params: [], type: 'video', status: 'enabled', sort: 2,
     note: 'Grsai 平台 MiniMax H3 视频模型，支持文生视频、图生视频、首尾帧、图片和音频参考，不支持视频参考。',
     capability: { modes: ['t2v', 'i2v', 'first_last_frame', 'multi_ref'], minDurationSeconds: 1, maxDurationSeconds: 15, maxRefImages: 1, maxRefAudios: 0, qualityTiers: 3, billing: { perSecondStart: 1 } } },

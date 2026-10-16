@@ -1,0 +1,194 @@
+{
+  "taskId": "TASK-OBS-003",
+  "updatedAt": "2026-10-16T13:00:00+08:00",
+  "note": "本卡当前状态：进行中。已完成根因定位（行号级），尚未改动任何代码。",
+  "events": [
+    {
+      "ts": "2026-10-16T12:00:00+08:00",
+      "phase": "立卡/根因定位",
+      "action": "跑仓库自带验收套件发现 V5c 失败，逐层定位到行号级根因，先立卡再准备改码",
+      "evidence": [
+        "scripts/audit-verdicts.sh 实测输出 ❌ V5c 耗时仍为 0 ⇒ 异步任务会被排除在耗时分布之外；结论：通过 19 项 / 失败 1 项",
+        "latency_ms 全仓库只有一个同步写点：internal/httpapi/handlers_generate.go:270",
+        "异步终态写入点支持该字段：internal/audit/store.go:116 UpdateResultByJobID(..., latencyMs, ...) → :128 latency_ms = $5",
+        "中间层本来透传：internal/worker/audit.go:78 auditTerminalT(..., latencyMs int, ...) → :92 传给 store",
+        "但三个便捷封装硬编码 0：internal/worker/audit.go 的 auditTerminal / auditTerminalWithStatus",
+        "聚合刻意排除 0：internal/audit/query.go:236「0 表示没有测量到而不是瞬时完成…百分位同样用 latency_ms > 0 排除零」"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-16T12:30:00+08:00",
+      "phase": "根因精化（推翻初版）",
+      "action": "继续逐层查证，发现初版根因（硬编码 0）不完整：修复大部分已做过，真正缺口在 Executor 层字段搬运",
+      "evidence": [
+        "引擎已算好：engine.go:108-113 withElapsed 同时写 Duration+ElapsedMs；4 个构造点全部调用（engine.go:128/179/238/378）",
+        "该修复已被注释记录：engine.go:90-96 与 worker/audit.go:87-89 都写明「原来硬编码 0…引擎本来就测了 Duration，这里把它传下去」",
+        "worker 已透传：worker.go:368/374 传 result.ElapsedMs；audit.go:72 auditTerminalUsage 接收并透传",
+        "★ 真正缺口：api_connector.go:70-77 构造 ExecutorResult 时传了 Status/Extracted/RawBody/HTTPStatus 并另算 Duration，但【没传 out.ElapsedMs】",
+        "关键推论有依据：V5b（用量落库）通过 ⇒ V5 走的就是 auditTerminalUsage 这条会透传 elapsedMs 的路径 ⇒ 0 来自 result.ElapsedMs 本身",
+        "口径所需字段已核实存在：job.Job 有 CreatedAt/StartedAt/FinishedAt（internal/job/store.go）⇒ 端到端可算、不需迁移"
+      ],
+      "decisionRef": null,
+      "blockRef": "B-002"
+    },
+    {
+      "ts": "2026-10-16T13:00:00+08:00",
+      "phase": "修复 + 验证",
+      "action": "证伪中间推论后实测定位到 Round 抹零，改 withElapsed 一处收口函数，V5c 转绿",
+      "evidence": [
+        "证伪：worker 走 worker.go:306/308 的 engine.Run/RunAsync（返回 RunResult，有 ElapsedMs），不经 Executor ⇒ 上一轮『api_connector 缺口』无效",
+        "五层链路全通（RunAsync 用 withElapsed → worker 传 result.ElapsedMs → audit 透传 → store 写 $5）⇒ 0 不是没传，是传的就是 0",
+        "决定性实测：stub-upstream.py 往返 20 次采样，中位数 0.351ms，17/20 低于 0.5ms",
+        "engine.go:109 time.Since(start).Round(time.Millisecond) ⇒ 亚毫秒四舍五入成 0 ⇒ ElapsedMs=0 ⇒ latency_ms=0",
+        "修复：为正但不足 1ms 时向上取整到 1ms（保住已测到的事实，不误导为瞬时）",
+        "验证：✅ V5c 耗时落库（latency_ms=1）；结论 20 通过 / 0 失败；EXIT=0（保留真实退出码，未用管道）",
+        "如实修正自己写错的判据 4/5：早退能测就该测；同步路径亚毫秒行为同被修正（语义修正应有之效，非回归）"
+      ],
+      "decisionRef": "D-003",
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "是否先立卡再改码",
+      "options": [
+        "直接改",
+        "先立卡"
+      ],
+      "choice": "先立卡",
+      "reason": "上一次（动效 token）未事先立卡，属 AC-010 流程偏差；本次纠正",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "异步耗时口径",
+      "options": [
+        "端到端（提交→终态）",
+        "单次上游调用"
+      ],
+      "choice": "B（最终采用：单次引擎调用）",
+      "reason": "修正：withElapsed 测的是本次引擎调用耗时（engine.go:108），非端到端。原倾向 A 是因为没读实现；读后确认收口点即单次调用。端到端另有数据（job.Job.CreatedAt/FinishedAt）但本卡不改聚合口径",
+      "timing": "待实现"
+    },
+    {
+      "id": "D-003",
+      "topic": "亚毫秒如何处理",
+      "options": [
+        "保持 0",
+        "向上取整到 1ms"
+      ],
+      "choice": "向上取整到 1ms",
+      "reason": "query.go:236 规定 0 = 没有测量到；把已测到的亚毫秒报成 0 会让『快』与『没测到』不可分。向上取整保住事实且不误导",
+      "timing": "实现"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "缺陷存在性（判据 1 的前置）",
+      "command": "bash scripts/audit-verdicts.sh",
+      "result": "FAIL（复现成功：V5c ❌，19 通过 / 1 失败）",
+      "evidence": "devlog 立卡条目"
+    },
+    {
+      "id": "V-002",
+      "criterion": "根因定位",
+      "command": "grep + 逐层读码（5 层，带行号）",
+      "result": "PARTIAL —— 后被 V-003 推翻（真正的缺口在 Executor 层，不是硬编码）",
+      "evidence": "task.md 根因表"
+    },
+    {
+      "id": "V-003",
+      "criterion": "根因精化（真正的缺口）",
+      "command": "逐层读码至 api_connector.go:70-77",
+      "result": "PASS：Executor 层未搬 out.ElapsedMs",
+      "evidence": "devlog 根因精化段"
+    },
+    {
+      "id": "V-004",
+      "criterion": "口径所需字段是否存在",
+      "command": "读 job.Job 定义（internal/job/store.go）",
+      "result": "PASS：CreatedAt/StartedAt/FinishedAt 均在 ⇒ 不需要迁移",
+      "evidence": "同上"
+    },
+    {
+      "id": "V-005",
+      "criterion": "证伪「api_connector 缺口」",
+      "command": "查 worker 调用路径",
+      "result": "PASS（证伪成功）",
+      "evidence": "worker.go:306/308 走 engine.Run/RunAsync，不经 Executor"
+    },
+    {
+      "id": "V-006",
+      "criterion": "桩往返耗时实测",
+      "command": "stub-upstream.py 20 次采样",
+      "result": "PASS：中位数 0.351ms，17/20 < 0.5ms",
+      "evidence": "devlog 修复段"
+    },
+    {
+      "id": "V-007",
+      "criterion": "修复后 V5c",
+      "command": "bash scripts/audit-verdicts.sh（保留真实退出码）",
+      "result": "PASS：V5c latency_ms=1，20 通过 / 0 失败，EXIT=0",
+      "evidence": "/tmp/verdict.out"
+    },
+    {
+      "id": "V-008",
+      "criterion": "门禁",
+      "command": "build / vet / gofmt / test -race",
+      "result": "PASS 全绿（engine 包 ok 22.867s）",
+      "evidence": "同上"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "耗时口径未定（已解除）",
+      "rootCause": "job.Job 是否带提交时刻尚未核实",
+      "solution": "已核实 job.Job 有 CreatedAt/StartedAt/FinishedAt ⇒ 端到端可算、不需迁移；口径依据同步路径同为准端到端",
+      "lesson": "先定口径再写码，避免用未知起点估算耗时"
+    },
+    {
+      "id": "B-002",
+      "block": "ExecutorResult 是否缺 ElapsedMs（已排除：与 V5c 无关）",
+      "rootCause": "grep ElapsedMs internal/engine/ 只命中 engine.go，未命中 ExecutorResult 定义",
+      "solution": "已证伪：worker 不经 Executor；真正原因是 Round 抹零，已修复",
+      "lesson": "逐层核实，不接受看起来对"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "开工前建日志（AC-010）",
+      "result": "✓",
+      "evidence": "devlog.md"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 8 条判据"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "立卡前核实前提（排期 v2 §5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001/V-002"
+    },
+    {
+      "item": "尚未改码",
+      "result": "✓",
+      "evidence": "本卡只有四件套文档"
+    }
+  ],
+  "retrospective": {
+    "good": "①判据来自仓库自带套件（非印象），且最终用真实退出码验证（未用管道掩盖）；②连续证伪自己的两个中间结论（硬编码 0 / api_connector 缺口），第三次才命中 Round 抹零；③如实修正自己写错的判据 4/5，不把错判据留成『已通过』",
+    "improve": "中间结论两次下得太早（读到三层、五层就收），说明『证据追到路径级』这件事我仍需要刻意执行；若一开始就实测桩往返耗时，可少走两轮",
+    "followups": "端到端耗时（job.CreatedAt→FinishedAt）目前未落库到 latency_ms；是否另立字段/口径，待定"
+  }
+}

@@ -1,0 +1,254 @@
+{
+  "taskId": "TASK-OBS-001",
+  "updatedAt": "2026-10-15T23:22:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-15T23:10:00+08:00",
+      "phase": "开工/探查",
+      "action": "核实原卡三个缺口是否仍成立；定位数据侧/契约侧/前端侧的现状与可复用先例",
+      "evidence": [
+        "缺口1已修复：services/execution/migrations/010_job_result_payload.sql；store.go:220-225 注释「绝不覆盖 intent_payload」；:320-322 normalizeLegacyResult 兼容历史行",
+        "缺口2已修复：services/execution/internal/artifact/client.go 在位（TASK-ASSET-001 已验收）",
+        "缺口3仍成立：store.go 仅 :225/:233 写 progress，无轮询期回写 → 维持非范围",
+        "前端未接：apps/web/src/pages/Tasks.tsx 仅 66 行，无详情视图",
+        "数据与契约已就绪：openapi/bff.yaml:2554/2561（intent_payload/result_payload）；BFF server.go:67；前端 api.getTask 已存在（lib/api/client.ts:267）但无人调用",
+        "已有先例：features/genworkbench/CreateWorkbench.tsx:1000-1083 同类右侧抽屉；共享纯函数 features/genworkbench/result-utils.ts"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-15T23:11:00+08:00",
+      "phase": "迁移任务卡",
+      "action": "平铺卡 TASK-OBS-001-task-center-detail.md 迁入 .github/tasks/TASK-OBS-001/（task.md + devlog.md + devlog.events.json + acceptance.md）；README 与 ledger 的 file 字段改指新路径",
+      "evidence": [
+        ".github/tasks/TASK-OBS-001/",
+        ".github/tasks/README.md",
+        ".github/tasks/ledger.json"
+      ],
+      "decisionRef": "D-003",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:18:00+08:00",
+      "phase": "开发",
+      "action": "新增 apps/web/src/features/tasks/{TaskDetailSheet.tsx(184行), task-meta.ts(60行), task-detail-utils.ts(36行)}；Tasks.tsx 每行加「详情」按钮（stopPropagation 保行点击）+ 元数据改 import 共享模块",
+      "evidence": [
+        "apps/web/src/features/tasks/TaskDetailSheet.tsx",
+        "apps/web/src/features/tasks/task-meta.ts",
+        "apps/web/src/features/tasks/task-detail-utils.ts",
+        "apps/web/src/pages/Tasks.tsx"
+      ],
+      "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:22:00+08:00",
+      "phase": "验证",
+      "action": "父 agent 独立复跑门禁（不采信 subagent 自述）：gate / npm test / ui:check / ui:generate",
+      "evidence": [
+        "npm run gate → 0 error 0 warning",
+        "npm test → vitest 3 文件 50 用例通过（node --test 21 文件先行通过）",
+        "npm run ui:check → 42 组件 / 69 token / 20 死组件 / 42 注记 / 42 demo",
+        "三清单已同步：ui-catalog.ts + .agents/skills/frontend-coding/ui-components.md + docs/reference/ui-components.md"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:23:00+08:00",
+      "phase": "过程纠正",
+      "action": "委派失败两次的处置：首个 subagent 长时间零产出→催办后中断；其遗留两个 helper 经审阅质量合格保留复用；第二个完成实现与 ui:generate 后中断（当时在补组件测试）⇒ 组件级单测未补齐，如实列入未过项",
+      "evidence": [
+        ".github/tasks/TASK-OBS-001/devlog.md（未过项表 4 项）"
+      ],
+      "decisionRef": null,
+      "blockRef": "B-002"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "原卡缺口 1/2 是否仍需处理",
+      "options": [
+        "按原卡执行迁移与产物落盘",
+        "确认已修复、不再处理"
+      ],
+      "choice": "确认已修复、不再处理",
+      "reason": "实测 010_job_result_payload.sql 与 artifact/client.go 均已在 develop；重复做会产生空转迁移（违反迁移只增不改精神）",
+      "timing": "探查"
+    },
+    {
+      "id": "D-002",
+      "topic": "缺口 3（异步进度回写）是否纳入本卡",
+      "options": [
+        "纳入",
+        "维持非范围"
+      ],
+      "choice": "维持非范围",
+      "reason": "原卡已写明可单独切片；本卡聚焦展示层，混入 execution 轮询改动会跨服务放大改动面",
+      "timing": "探查"
+    },
+    {
+      "id": "D-003",
+      "topic": "任务类型判定（AC-009 是否适用）",
+      "options": [
+        "视为 UI 任务，先出设计稿评审",
+        "视为既有模式推广，直接开发"
+      ],
+      "choice": "视为既有模式推广，直接开发",
+      "reason": "AC-009 阈值为新建页面/大改布局/视觉系统变更，三者均不满足；且 CreateWorkbench.tsx:1000-1083 已有同类抽屉先例 + result-utils.ts 共享纯函数。判定依据写入 task.md 附录与本日志，供 Owner 复核",
+      "timing": "探查"
+    },
+    {
+      "id": "D-004",
+      "topic": "新组件放置位置",
+      "options": [
+        "内联进 Tasks.tsx",
+        "放共享 features/tasks/"
+      ],
+      "choice": "放共享 features/tasks/",
+      "reason": "任务详情是共享语义（CreateWorkbench 后续可收敛）；放共享位置避免第三份 DetailRow 复制",
+      "timing": "设计"
+    },
+    {
+      "id": "D-005",
+      "topic": "是否顺带重构 CreateWorkbench 复用新组件",
+      "options": [
+        "一起重构",
+        "不动，记遗留"
+      ],
+      "choice": "不动，记遗留",
+      "reason": "属无关功能且体量大（1149 行），混入会放大回归面",
+      "timing": "设计"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据9 门禁",
+      "command": "cd apps/web && npm run gate",
+      "result": "PASS",
+      "evidence": "0 error / 0 warning；未命中反模式"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据9 测试",
+      "command": "cd apps/web && npm test",
+      "result": "PASS",
+      "evidence": "vitest 3 文件 50 用例；node --test 21 文件先行通过"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据9 清单同步",
+      "command": "cd apps/web && npm run ui:check",
+      "result": "PASS",
+      "evidence": "42 组件 / 69 token / 20 死组件 / 42 注记 / 42 demo"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据6 取单任务详情",
+      "command": "代码审查 TaskDetailSheet.tsx",
+      "result": "PASS",
+      "evidence": "打开时调 api.getTask(id)，非列表快照"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据1 不抢占行点击",
+      "command": "代码审查 stopPropagation",
+      "result": "PASS(静态)",
+      "evidence": "未经浏览器实测 → 未过项1"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据2/3/4/5 展示内容",
+      "command": "代码审查",
+      "result": "PASS(静态)",
+      "evidence": "复用 parseTaskPayload/extractResultUrl/parameterRows"
+    },
+    {
+      "id": "V-007",
+      "criterion": "判据8 未知 kind/status 不崩",
+      "command": "代码审查 task-meta.ts",
+      "result": "PASS",
+      "evidence": "hasOwnProperty 判存在 + FALLBACK"
+    },
+    {
+      "id": "V-008",
+      "criterion": "判据7 三态",
+      "command": "代码审查",
+      "result": "部分PASS",
+      "evidence": "三态实现齐备但缺组件级单测 → 未过项2"
+    },
+    {
+      "id": "V-009",
+      "criterion": "L3 浏览器验证",
+      "command": "人工走查",
+      "result": "未执行",
+      "evidence": "本环境无浏览器工具 → 未过项"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "原卡两个「关键缺口」已不存在",
+      "rootCause": "卡片写于 2026-10-14，其后 TASK-ASSET-001 等已消解前提，但卡片未回填",
+      "solution": "开工先核实三条缺口，把「已修复」写进 task.md 范围修正表",
+      "lesson": "同 IA-001 B-002：任务卡会过时；开工第一步永远是核实前提"
+    },
+    {
+      "id": "B-002",
+      "block": "子 agent 委派连续两次未完整收尾",
+      "rootCause": "提示词给了过宽的探索空间（要求先加载 2 个 skill + 读 4 个文件），子 agent 长时间停在阅读阶段，未优先产出文件",
+      "solution": "父 agent 中断并接手收尾；保留其质量合格的遗留 helper；独立复跑门禁而非采信自述",
+      "lesson": "委派实现类任务必须限定阅读清单 + 强制『先写文件再跑门禁』；且父 agent 必须独立复验，不采信 subagent 自述结论"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✓",
+      "evidence": "V-001~V-003 由父 agent 独立复跑"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✓",
+      "evidence": "commit 前 git diff --cached --name-only 核对"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✓",
+      "evidence": "features/tasks 3 文件 + Tasks.tsx + 三清单 + 本卡文档/台账"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✓",
+      "evidence": "acceptance.md + 未过项 4 项如实列出"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✓",
+      "evidence": "gate 0/0；npm test 绿；ui:check 绿；本卡无 Go 改动"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✓",
+      "evidence": "README 行 + ledger file/status"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规（如涉）",
+      "result": "✓",
+      "evidence": "本刀无迁移"
+    },
+    {
+      "item": "设计稿先行（AC-009）",
+      "result": "✓",
+      "evidence": "判定为非 AC-009 任务，依据见 task.md 附录 + D-003"
+    }
+  ],
+  "retrospective": {
+    "good": "复用而非重写（解析走 result-utils、元数据抽共享避免第三份复制）；父 agent 独立复跑门禁不采信自述；被中断 subagent 的遗留 helper 经审阅后保留复用；4 项证据不足如实列为未过项",
+    "improve": "子 agent 委派失败两次，根因是提示词探索空间过宽；组件级单测被打断后未补齐，属交付不完整（已如实记录）",
+    "followups": "①补 TaskDetailSheet.test.tsx（三态+空 payload+非字符串值）；②CreateWorkbench 同类抽屉可后续收敛到本共享组件（D-005 显式推迟）；③缺口 3 异步进度回写待单独切片"
+  }
+}

@@ -73,7 +73,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - **开发日志是强制规则（AC-010）**：每张任务卡开工必须建 `.github/tasks/<TASK-ID>-devlog.md`，随开发同步记录动作/证据/决策/阻塞，PR 前完成；禁止交付前一次性补写。规则入口在本文件与 `.agents/skills/acceptance-checklist/SKILL.md`——换会话/换模型不失效
 - **迁移执行器**：`deploy/local/migrate.sh`（`schema_migrations` 版本+校验和跟踪，每文件只执行一次，重复 `compose up` 安全）；既有库无跟踪记录 → **fail-closed 拒绝**，需 `MIGRATE_ADOPT=1`（或加 `MIGRATE_ADOPT_UNTIL=<version>`）显式采纳（只登记不执行 SQL）
 - **审计纪律**：`gateway_audit_logs` 必须**同步写**（禁异步）、密钥打码 `<REDACTED>`、禁止绕过 execution 网关直调上游（见 `.agents/skills/audit-ledger/SKILL.md`）
-- **后端红线**：覆盖率棘轮 fail-closed（无 internal/ 即失败）、契约先行（错误码/状态枚举由契约定义）、金额禁 float64、错误码禁硬编码（见 `.agents/skills/backend-standards/SKILL.md`）
+- **后端红线**：覆盖率棘轮 fail-closed（无 internal/ 即失败；退出码 0/1/2，**2 = 无法判定 ≠ 通过**；扫描实际服务目录，新增服务未登记下限即失败；本地用 CI 等价库 `ci-repro-pg:15432`，见 `.agents/skills/backend-standards/SKILL.md`）、契约先行（错误码/状态枚举由契约定义）、金额禁 float64、错误码禁硬编码（见 `.agents/skills/backend-standards/SKILL.md`）
 - **前端红线**：CRUD 三态（loading/error/empty）必过、删除需确认弹窗、禁内联样式（动态值除外）（见 `.agents/skills/frontend-quality/SKILL.md`）
 - TypeScript 口径以 `apps/web/tsconfig.app.json` 为准（不是默认 tsconfig）。注意该文件目前 `strict: false`：类型安全靠 eslint（`no-explicit-any` 为 error）与审查兜底，别指望类型系统拦截
 - 测试不得依赖本地时区/系统时间（CI 跑 UTC）
@@ -81,6 +81,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - 所有 AI 模型调用必须经 execution 网关，写 `gateway_audit_logs`
 - 密钥只在 workspace 加密存储，禁止硬编码
 - BFF 是前端唯一入口，禁止前端直连后端服务
+- **台账一致性门禁（AC-008/010/011）**：`.github/scripts/check-task-ledger.sh` 校验 `README.md`（人读）× `ledger.json`（机读）× 任务卡 front-matter **三方一致**：状态词表只认中文五值（`待开工/进行中/待验收/已验收/已关闭`，`unknown`＝未填写、README 记 `—`）、顺序无关、数量与 ID 集合双向相等、标题逐字相等、`file` 链接可达、任务目录四件套齐全。退出码 `0` 通过 / `1` 违规 / **`2`＝无法检查（缺 python3 等）——2 不等于通过**。CI 挂在 `Documentation Check` job 的**步骤级**（不新增 job，避免必需检查漏报卡死 PR）、本地在 `scripts/preflight.sh` 门 0b，**同一个脚本单一实现**。**改台账（README/ledger.json/任务卡 front-matter）必跑**；`--self-test` 跑 10 条反例自检证明门禁真的会红
 - **机制落地 = 同步本文件**：任何新规则/新机制（AC 条目、基建行为变更如迁移执行器、流程纪律）落地后，必须回写 AGENTS.md（本文件是换会话/换模型不遗忘的唯一入口）
 
 ## 任务文档结构（一个任务一个文件夹；AC-008/AC-010/AC-011）

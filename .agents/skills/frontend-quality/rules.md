@@ -172,7 +172,14 @@
 - [ ] 加载动画有设计感（不是简单的转圈）
 - [ ] 状态切换有过渡（淡入/淡出、滑动、缩放）
 - [ ] 悬停反馈明确（hover 状态变化）
-- [ ] 动画时长合理（200-400ms，不拖沓不突兀）；过渡时长/缓动统一（Awwwards 基准 150-250ms）——两档取齐后**同一页面内必须统一**
+- [ ] **过渡时长只能取 4 档 token**（`apps/web/src/tailwind-theme.css` 是唯一事实源，本处不再写死毫秒数）：
+      `--duration-instant`(80ms) 按下/抬起等即时反馈 ·
+      `--duration-fast`(150ms) hover/focus/状态切换（**最常用，默认选它**）·
+      `--duration-base`(200ms) 面板展开/抽屉进退场/toast ·
+      `--duration-slow`(250ms) 大区域布局变化。
+      **禁止**在组件里写 `duration-200` 等裸数字或 `[200ms]` 任意值；**超过 `--duration-slow` 需在 PR 说明理由**
+- [ ] **缓动曲线只能取 3 档 token**：`--ease-standard`(默认) / `--ease-decelerate`(进入) / `--ease-accelerate`(离开)；禁止裸 `ease-in-out` 等非 token 写法
+- [ ] **必须尊重 `prefers-reduced-motion`**：位移动画在减少动效偏好下退化为无位移的淡入淡出（不再是「如适用」）
 - [ ] 是否避免廉价抖动
 - [ ] 尊重 `prefers-reduced-motion`（如适用）
 - [ ] **loading / 加载态必须有明确文案与图标**

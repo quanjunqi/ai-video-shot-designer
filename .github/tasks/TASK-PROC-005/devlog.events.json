@@ -1,0 +1,42 @@
+{
+  "taskId": "TASK-PROC-005",
+  "updatedAt": "2026-10-16T13:30:00+08:00",
+  "note": "本卡状态：进行中。已完成实测与根因定位，尚未改码。",
+  "events": [
+    {
+      "ts": "2026-10-16T13:30:00+08:00",
+      "phase": "立卡/实测定位",
+      "action": "Owner 怀疑代码已脱离规范；不猜，用规范自带阈值全量实测，定位到根因是规则的检测方式为人工",
+      "evidence": [
+        "BE-SIZE-001（单文件≤500行）：101 个 Go 文件中 5 个超标 —— 783 / 757 / 525 / 517 / 512 行",
+        "cmd/server/main.go ≤50 行：6 个服务中 3 个超标 —— execution 184 / production 94 / asset 73",
+        "BE-LAYER-003（有无 internal/）：6/6 合规",
+        "根因：规范自述 BE-SIZE-001 检测方式=『人工 + PR 审查』；main.go 行数无自动检测 ⇒ 无门禁 ⇒ 必然漂移",
+        "对照：前端有 quality-gate.mjs V-00x 自动检测 + ui-text-debt-baseline.json 棘轮 ⇒ 前端未漂；后端覆盖率有 coverage-baseline.txt 棘轮 ⇒ 那条线也未漂",
+        "已加载 skill：backend-standards（阈值来源）、ci-triage（CI 不变量：禁 job 级 if、必需检查必上报、fail-closed）"
+      ],
+      "decisionRef": "D-002",
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    { "id": "D-001", "topic": "是否连带修 5+3 个超标文件", "options": ["一起修", "只止新增"], "choice": "只止新增", "reason": "同前端 V-003b 处置：先阻断新增才止得住；混在一起会让本卡变成大重构、门禁价值被淹没", "timing": "立卡" },
+    { "id": "D-002", "topic": "棘轮怎么实现", "options": ["新发明", "照抄本仓已有两种模式"], "choice": "照抄", "reason": "quality-gate.mjs V-003b（逐文件计数 vs 基线）+ coverage-baseline.txt（文本格式带注释）；照抄保证语义与仓内一致、便于他人理解", "timing": "立卡" },
+    { "id": "D-003", "topic": "CI 如何接入", "options": ["新增 job", "步骤级挂已有 job"], "choice": "步骤级", "reason": "ci-triage 不变量：必需检查必须每次上报；新增 job 有漏报风险", "timing": "立卡" },
+    { "id": "D-004", "topic": "退出码约定", "options": ["0/1", "0/1/2"], "choice": "0/1/2", "reason": "照抄 check-task-ledger.sh：2 = 无法检查，2 ≠ 通过（fail-closed）", "timing": "立卡" }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "摸清超标集合（判据 10 的前置）", "command": "find + wc -l 全量扫描 services/", "result": "PASS：5 个超标文件 + 3 个 main.go 超标", "evidence": "task.md「来源」表" },
+    { "id": "V-002", "criterion": "BE-LAYER-003 复核", "command": "ls services/*/internal", "result": "PASS：6/6 合规", "evidence": "task.md" }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    { "item": "开工前建日志（AC-010）", "result": "✓", "evidence": "devlog.md" },
+    { "item": "开工前产出验收清单（AC-008）", "result": "✓", "evidence": "acceptance.md 11 条判据" },
+    { "item": "任务卡带 front-matter（AC-011）", "result": "✓", "evidence": "status/priority/depends_on/criteria" },
+    { "item": "立卡前核实前提（§5 第 8 条）", "result": "✓", "evidence": "V-001/V-002 全量实测，非抽样" },
+    { "item": "已加载相关 skill", "result": "✓", "evidence": "backend-standards + ci-triage" },
+    { "item": "尚未改码", "result": "✓", "evidence": "仅四件套文档" }
+  ],
+  "retrospective": null
+}

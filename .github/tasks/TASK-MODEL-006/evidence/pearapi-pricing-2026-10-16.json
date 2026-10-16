@@ -1,0 +1,2109 @@
+{
+ "fetched_at": "2026-10-16",
+ "source": "https://api.pearapi.ai/api/pricing",
+ "pricing": [
+  {
+   "model_name": "boogu-image-0.1",
+   "description": "Apache-2.0 open-source unified generation+editing family (10B): Base/Turbo/Edit variants, strong bilingual capability, runs on a single RTX 4090, near-closed-source editing.",
+   "tags": "图片",
+   "vendor_id": 265142443,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.1,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "claude-fable-5",
+   "description": "Claude-fable-5 is a publicly available, high-performance large language model developed by Anthropic. It features extended context, multimodal understanding, complex reasoning, and enterprise-level knowledge capabilities, along with strict security protections",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 1.5,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-fable-5-1",
+   "description": "Claude Fable 5.1 is the flagship AI model released by Anthropic in September 2026, designed for long-term proxy programming, multi-step research, and complex knowledge tasks. While its performance significantly exceeds the previous Fable 5, it reduces the usage cost of typical workloads by approximately 25%.",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 1.5,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.025,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-haiku-4-5-20251001",
+   "description": "Claude Haiku 4.5 is the fastest and most cost-effective model, offering comparable performance to Sonnet 4 in coding, computer usage, and proxy tasks",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.15,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-haiku-5-5",
+   "description": "Claude Haiku 5.5 is Anthropic's lightweight, cost-effective model for high-throughput coding and agent tasks.",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 100000,
+     "input_price": 0.13,
+     "output_price": 0.65,
+     "cache_read_price": 0.013,
+     "cache_creation_price": 0.1625
+    },
+    {
+     "up_to": null,
+     "input_price": 0.65,
+     "output_price": 3.25,
+     "cache_read_price": 0.065,
+     "cache_creation_price": 0.8125
+    }
+   ]
+  },
+  {
+   "model_name": "claude-opus-4-6",
+   "description": "Claude-Opus-4-6 is currently Anthropic’s most powerful tool for handling long-term complex tasks independently, particularly suitable for developers working on large projects, building Agents, or in scenarios requiring high quality and autonomy.",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.75,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-opus-4-7",
+   "description": "Claude-Opus-4-7 is currently Anthropic's most powerful tool for handling long-term complex tasks independently, making it particularly suitable for developers working on large projects, building agents, or in scenarios requiring high quality and autonomy.",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.75,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-opus-4-8",
+   "description": "Claude-Opus-5 is currently Anthropic's most powerful tool for handling long-term complex tasks independently, particularly suitable for developers working on large projects and building agents, or in scenarios requiring high quality and autonomy standards",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.75,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-opus-5",
+   "description": "Claude-Opus-4-8 is currently Anthropic’s most powerful tool for handling long-term complex tasks independently, making it particularly suitable for developers working on large projects, building agents, or in scenarios requiring high quality and autonomy standards",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.75,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-opus-5-5",
+   "description": "Claude Opus 5.5 is Anthropic's next-generation flagship model released in September 2026, designed for long-running agentic coding and knowledge work. It achieves Fable 5.1-level performance on most tasks while reducing operating costs by about 40% compared with Opus 5.",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.6,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.05,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-sonnet-4-6",
+   "description": "Claude Sonnet 4.6 provides advanced intelligence on a large scale, designed specifically for coding, agents, and enterprise workflows",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.45,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-sonnet-5",
+   "description": "Claude Sonnet 5 defaults to a 1 million token context window (1 million tokens is both the default and maximum value; no smaller context variants exist), 128k maximum output tokens, adaptive thinking, and the same tools and platform features as Claude Sonnet 4.6. The only exception is the Priority Tier feature, which is not supported in Claude Sonnet 5",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.3,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "claude-sonnet-5-5",
+   "description": "Claude Sonnet 5.5 is the second model in the Claude 5.5 family, released by Anthropic in September 2026. Positioned as a \"smarter, more efficient\" Sonnet for everyday office work and software development, it significantly outperforms its predecessor in coding and knowledge work while substantially reducing the cost per task.",
+   "tags": "文本,多模态",
+   "vendor_id": 2391361458,
+   "quota_type": 0,
+   "model_ratio": 0.8,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "cosyvoice3",
+   "description": "A new-generation multilingual TTS powered by large language models, delivering enhanced content consistency, voice similarity, and prosody naturalness.",
+   "tags": "音频",
+   "vendor_id": 301577613,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.012,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-audio"
+   ]
+  },
+  {
+   "model_name": "deepseek-v3.2",
+   "description": "Integrate thinking capabilities directly into tool calling, balancing reasoning, agent execution, and dual-mode usage for both thinking and non-thinking scenarios.",
+   "tags": "文本",
+   "vendor_id": 3164229063,
+   "quota_type": 0,
+   "model_ratio": 1.2,
+   "model_price": 0,
+   "completion_ratio": 1.5,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "deepseek-v4-flash-0731",
+   "description": "DeepSeek-V4-Flash-0731 is a high-efficiency MoE model in the DeepSeek V4 series, with 284B total parameters and 13B activated parameters, supporting a 1M context, balancing performance, speed, and cost across reasoning, agent, and general tasks.",
+   "tags": "文本,多模态",
+   "vendor_id": 3164229063,
+   "quota_type": 0,
+   "model_ratio": 0.4,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.02
+  },
+  {
+   "model_name": "deepseek-v4-pro-0813",
+   "description": "DeepSeek-V4-Pro is the latest high-performance open-source large model released by DeepSeek. It features top-tier reasoning and Agent capabilities, supports ultra-long context lengths, is compatible with domestic HiSilicon chips, and offers excellent cost-effectiveness",
+   "tags": "文本,多模态",
+   "vendor_id": 3164229063,
+   "quota_type": 0,
+   "model_ratio": 1.8,
+   "model_price": 0,
+   "completion_ratio": 3,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.033333333333
+  },
+  {
+   "model_name": "deepseek-v4.1-flash",
+   "description": "DeepSeek-V4.1-Flash is the smallest model in the new architecture series released by DeepSeek on September 10, 2026. It uses a 552B-parameter MoE and a brand-new Causal-Encoder-Decoder structure, features native multimodal visual understanding, and achieves performance surpassing V4 Pro at a lower cost.",
+   "tags": "文本,多模态",
+   "vendor_id": 3164229063,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "特价福利",
+    "限免"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "doubao-seedance-2-0-260128",
+   "description": "doubao-seedance-2-0-260128 is Seedance 2.0, a new-generation professional multimodal video generation model launched by ByteDance's Doubao large model team. It supports mixed input across four modalities—text, image, audio, and video—and can generate high-quality multi-shot videos up to 15 seconds long with native audio-video synchronization.",
+   "tags": "视频",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.32,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "按次",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "doubao-seedance-2-0-fast-260128",
+   "description": "doubao-seedance-2-0-fast-260128 is the accelerated version of Seedance 2.0 for video generation. It inherits the standard version's multimodal input and audio-video synchronization capabilities, but with faster generation speed and lower cost, it focuses on rapid creative iteration and batch production scenarios at 480p/720p resolutions.",
+   "tags": "视频",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.31,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "doubao-seedance-2-0-mini-260615",
+   "description": "doubao-seedance-2-0-mini-260615 is the most cost-effective lightweight model in the Seedance 2.0 series. Its generation cost is about 50% lower than the standard version, with a maximum resolution of 720P. It is suitable for high-frequency, large-scale batch production scenarios such as e-commerce assets and short videos.",
+   "tags": "视频",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.4,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "doubao-seedance-2-5-260628",
+   "description": "doubao-seedance-2-5-260628 is the standard version of Seedance 2.5, significantly extending the per-call video generation duration from 15 seconds to 30 seconds, and supporting multi-asset reference input of up to 30 images, 10 videos, and 10 audio clips, designed for professional industrial-grade creative scenarios such as brand advertising and film and television content.",
+   "tags": "视频",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.6,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "按次",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "doubao-seedream-4-0-250828",
+   "description": "ByteDance Seedream 4.0 (Sep 2025): unified generate+edit architecture that \"thinks before drawing\" — knowledge-driven generation, complex reasoning, multi-image subject consistency.",
+   "tags": "图片",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.09,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "doubao-seedream-4-5-251128",
+   "description": "ByteDance Seedream 4.5: more precise edit instruction understanding — fine-grained local add/remove, in-image text translation and 3D-render style transfer, stable under complex constraints.",
+   "tags": "图片",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.1125,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "doubao-seedream-5-0-260128",
+   "description": "ByteDance Seedream 5.0 (Feb 2026): \"understand first, then draw\" deep-thinking generation with real-time web search assistance, unified generate+edit architecture.",
+   "tags": "图片",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.099,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "doubao-seedream-5-0-pro-260628",
+   "description": "ByteDance flagship Seedream 5.0 Pro (Jun 2026): beyond generation, built for design — pixel-level interactive editing, multi-layer separation, dense infographics, multilingual text.",
+   "tags": "图片",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.135,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "firered-image-edit1.1",
+   "description": "Xiaohongshu open-source FireRed-Image-Edit 1.1 (Mar 2026): significantly better ID consistency, multi-element fusion and portrait makeup editing; open-source editing SOTA.",
+   "tags": "图片",
+   "vendor_id": 3247120851,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.1,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "flux2-klein-9b",
+   "description": "BFL open-source FLUX.2 [klein] 9B (Jan 2026): the fastest in the FLUX.2 family — unified generation & editing in under 0.5s with multi-reference input, built for rapid iteration.",
+   "tags": "图片",
+   "vendor_id": 1917989178,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.007,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "gemini-2.5-flash",
+   "description": "Gemini 2.5 Flash is an artificial intelligence model provided by google-vertex. It allows you to control whether it thinks",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.114,
+   "model_price": 0,
+   "completion_ratio": 8.333333333333,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-2.5-pro",
+   "description": "Aichat_description: Gemini 2.5 Pro is Google's latest AI model and the most advanced version to date, excelling in coding and complex prompts. Through \"Deep Thinking,\" it can reason before responding, enhancing performance and accuracy. The model performs exceptionally in multiple benchmarks and ranks first on the LMArena leaderboard in both reasoning and code generation categories. It supports multimodal inputs including text, images, audio, video, and code.",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 200000,
+     "input_price": 1.875,
+     "output_price": 15,
+     "cache_read_price": 0.1875,
+     "cache_creation_price": 0
+    },
+    {
+     "up_to": null,
+     "input_price": 3.75,
+     "output_price": 22.5,
+     "cache_read_price": 0.375,
+     "cache_creation_price": 0
+    }
+   ]
+  },
+  {
+   "model_name": "gemini-3-flash-preview",
+   "description": "Gemini 3 Flash Preview 是一款为**速度与效率**而生的预览版模型，它融合了 Gemini 3 Pro 级别的推理能力与 Flash 系列的低延迟、低成本优势，专为智能体工作流、多轮对话和编程辅助等场景设计。",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.19,
+   "model_price": 0,
+   "completion_ratio": 6,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-3-pro-preview",
+   "description": "Gemini 3 Pro Preview 是 Google 于 2025 年 11 月 18 日发布的前沿多模态推理模型，作为 Gemini 3 时代的首款旗舰产品，它具备顶尖的推理与多模态理解能力，在 LMArena 上以 1501 Elo 分数登顶，并拥有 100 万 token 的上下文窗口。",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.285,
+   "model_price": 0,
+   "completion_ratio": 6.017543859649,
+   "enable_groups": [
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-3.1-pro-preview",
+   "description": "Gemini 3.1 Pro Preview 是 Google 于 2026 年 2 月 19 日发布的前沿推理模型，作为 Gemini 3 系列的最新迭代，它专为处理复杂任务而设计，在推理能力上实现大幅提升（ARC-AGI-2 得分 77.1%，推理性能是 Gemini 3 Pro 的两倍以上），并针对软件工程和智能体工作流进行了优化，具备 100 万 token 的超长上下文窗口和原生多模态理解能力。",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 200000,
+     "input_price": 3,
+     "output_price": 18,
+     "cache_read_price": 0.3,
+     "cache_creation_price": 0
+    },
+    {
+     "up_to": null,
+     "input_price": 6,
+     "output_price": 27,
+     "cache_read_price": 0.6,
+     "cache_creation_price": 0
+    }
+   ]
+  },
+  {
+   "model_name": "gemini-3.5-flash",
+   "description": "Gemini 3.5 Flash has been officially released (GA), offering stable performance and suitable for large-scale use in production environments. As our most intelligent Flash model, it provides sustained leading performance across agent execution, coding, and long-term tasks at scale.",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.57,
+   "model_price": 0,
+   "completion_ratio": 6,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-3.6-flash",
+   "description": "Gemini 3.6 Flash continues to deliver cutting-edge model-level intelligence performance. Optimized, it can handle real tasks at a faster speed and with lower costs. Designed specifically for the AI agent era, it excels in code generation, agent execution, and spatial reasoning. This model is particularly effective in handling complex coding cycles and rapid iteration cycles of agents.",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.285,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-3.7-flash",
+   "description": "Aichat_description: Gemini-3.7-Flash is the flagship model released in August 2026, specifically designed for coding and AI agent tasks, offering significant performance improvements in software engineering and knowledge work areas",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.285,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-3.8-flash",
+   "description": "The Gemini 3.8 Flash is the 'most intelligent main model to date' released by Google on September 2, 2026. It approaches flagship performance at a very low cost in software engineering and AI agent tasks, and improves the quality of complex tasks by adding more reasoning steps. However, this also results in an actual Per Call usage-based cost increase of approximately 40%",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.285,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价",
+    "经济"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gemini-4-argon",
+   "description": "Gemini 4 Argon is Google's next-generation frontier AI model released in October 2026, designed to handle complex, long-horizon tasks in areas such as software engineering, enterprise knowledge work, and cybersecurity, with deep reasoning and native multimodal capabilities.",
+   "tags": "文本,多模态",
+   "vendor_id": 3032164056,
+   "quota_type": 0,
+   "model_ratio": 0.76,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价",
+    "经济"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.05
+  },
+  {
+   "model_name": "gemini-omni",
+   "description": "Gemini Omni no-watermark text/image-to-video, fixed 720p and about 10 seconds, per call",
+   "tags": "视频",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 1.4,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "glm-4-flash-250414",
+   "description": "A free and open lightweight general-purpose model, emphasizing practical capabilities such as real-time response, multitasking, long context, and web retrieval.",
+   "tags": "文本",
+   "vendor_id": 1217543673,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "glm-5.1",
+   "description": "GLM-5.1 is a flagship open-source model released by Zhipu AI on April 8, 2026. With its breakthrough capabilities in long-horizon tasks, it can perform continuous and autonomous work for over 8 hours Per Call, just like human engineers. It completes the entire closed-loop process from planning, execution to iterative optimization, and delivers engineering-level results. In the SWE-Bench Pro benchmark that closely mimics real software development, it sets a new global best performance record, allowing domestic and open-source models to surpass top closed-source models such as Claude Opus 4.6 for the first time.",
+   "tags": "文本",
+   "vendor_id": 1217543673,
+   "quota_type": 0,
+   "model_ratio": 1.6,
+   "model_price": 0,
+   "completion_ratio": 3.5,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.25
+  },
+  {
+   "model_name": "glm-5.2",
+   "description": "GLM-5.2 is Zhipu Z.ai's flagship model for long-horizon tasks, offering a stable 1M context and enhanced long-horizon coding, complex reasoning, tool calling, and agentic workflows, with different thinking intensities to balance performance and latency.",
+   "tags": "文本",
+   "vendor_id": 1217543673,
+   "quota_type": 0,
+   "model_ratio": 1.6,
+   "model_price": 0,
+   "completion_ratio": 3.5,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.25
+  },
+  {
+   "model_name": "glm-5.3",
+   "description": "GLM-5.3 is the flagship open-source large model released by Zhipu AI on August 14, 2026. Leveraging extreme post-training techniques, it boosts coding capability by 50% while using exactly the same base model as GLM-5.2, ranks first among open-source models on multiple public benchmarks, and unexpectedly exhibits cybersecurity capabilities approaching those of professional tools.",
+   "tags": "文本",
+   "vendor_id": 1217543673,
+   "quota_type": 0,
+   "model_ratio": 1.6,
+   "model_price": 0,
+   "completion_ratio": 3.5,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.25
+  },
+  {
+   "model_name": "glm-5.3-flash",
+   "description": "GLM-5.3-Flash is the first natively multimodal model open-sourced by Zhipu AI on August 26, 2026. With performance benchmarked against top closed-source models (AA Comprehensive Intelligence Index score of 57, on par with Claude Opus 4.8) and an extremely low price (just 1/40 of Claude Opus 4.8), it makes frontier AI capabilities accessible to everyone. In addition, all of its online traffic is successfully handled by 100,000 domestically produced chips, marking a key step forward in the large-scale commercialization of domestic computing power.",
+   "tags": "文本,多模态",
+   "vendor_id": 1217543673,
+   "quota_type": 0,
+   "model_ratio": 0.2,
+   "model_price": 0,
+   "completion_ratio": 3.5,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2875
+  },
+  {
+   "model_name": "glm-5.3-flashx",
+   "description": "GLM-5.3-FlashX is a high-speed large model officially launched by Zhipu AI on September 18, 2026. Positioned as the \"accelerated version\" of GLM-5.3-Flash, it maintains equivalent capabilities while boosting inference speed to up to 200 tokens/s, approximately 5 times that of the standard Flash version.",
+   "tags": "文本",
+   "vendor_id": 1217543673,
+   "quota_type": 0,
+   "model_ratio": 0.4,
+   "model_price": 0,
+   "completion_ratio": 3.5,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2875
+  },
+  {
+   "model_name": "gpt-5.5",
+   "description": "GPT-5.5 is the previous-generation flagship model, featuring powerful reasoning and multimodal capabilities",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "input_price": 1.5,
+     "output_price": 9,
+     "cache_read_price": 0.15,
+     "cache_creation_price": 1.875
+    },
+    {
+     "up_to": null,
+     "input_price": 3,
+     "output_price": 13.5,
+     "cache_read_price": 0.3,
+     "cache_creation_price": 3.75
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-5.6-luna",
+   "description": "GPT-5.6 Luna is the flagship base model of the GPT-5.6 series, corresponding to the original GPT-5 version without a suffix baseline",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "input_price": 0.1,
+     "output_price": 0.6,
+     "cache_read_price": 0.01,
+     "cache_creation_price": 0.125
+    },
+    {
+     "up_to": null,
+     "input_price": 0.2,
+     "output_price": 0.9,
+     "cache_read_price": 0.02,
+     "cache_creation_price": 0.25
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-5.6-sol",
+   "description": "GPT-5.6 Sol is the flagship base model of the GPT-5.6 series, corresponding to the original GPT-5 version without a suffix baseline",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "input_price": 1.5,
+     "output_price": 9,
+     "cache_read_price": 0.15,
+     "cache_creation_price": 1.875
+    },
+    {
+     "up_to": null,
+     "input_price": 3,
+     "output_price": 13.5,
+     "cache_read_price": 0.3,
+     "cache_creation_price": 3.75
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-5.6-terra",
+   "description": "GPT-5.6 Terra is a balanced variant of the GPT-5.6 series, striking a balance between cost and capability",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "input_price": 0.6,
+     "output_price": 3.6,
+     "cache_read_price": 0.06,
+     "cache_creation_price": 0.75
+    },
+    {
+     "up_to": null,
+     "input_price": 1.2,
+     "output_price": 5.4,
+     "cache_read_price": 0.12,
+     "cache_creation_price": 1.5
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-6-astra",
+   "description": "GPT-6 Astra is the next-generation flagship model released by OpenAI on September 3, 2026, described as the most capable model to date. It delivers generational breakthroughs in computer operations, programming, cybersecurity, and scientific research. As it reaches a critical-level cybersecurity capability threshold, the president of OpenAI has called it a possible marker of the beginning of the AGI era.",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "input_price": 3,
+     "output_price": 15,
+     "cache_read_price": 0.3,
+     "cache_creation_price": 3.75
+    },
+    {
+     "up_to": null,
+     "input_price": 6,
+     "output_price": 22.5,
+     "cache_read_price": 0.6,
+     "cache_creation_price": 7.5
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-6-luna",
+   "description": "GPT-6 Luna is a cost-effective model released by OpenAI in September 2026, designed for high-frequency, large-scale, and cost-sensitive tasks, providing powerful coding and agent capabilities at an extremely low price ($0.10 per million Tokens for input).",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0.05,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "gpt-6-sol",
+   "description": "GPT-6 Sol is a high-performance model released by OpenAI in September 2026, positioned as the workhorse for complex coding and Agent workflows, delivering intelligence close to the flagship GPT-6 Astra at a cost far below that of competing products.",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "call_price": 0,
+     "input_price": 0.6,
+     "output_price": 3,
+     "cache_read_price": 0.06,
+     "cache_creation_price": 0
+    },
+    {
+     "up_to": null,
+     "call_price": 0,
+     "input_price": 1.2,
+     "output_price": 4.5,
+     "cache_read_price": 0.12,
+     "cache_creation_price": 0
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-6.1-sol",
+   "description": "GPT-6.1 Sol is a reasoning model released by OpenAI on September 29, 2026, designed to deliver performance close to the flagship GPT-6 Astra for complex coding, computer use, and professional workloads at a significantly lower cost (standard pricing is about one-fifth of Astra's).",
+   "tags": "文本,多模态",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "优质",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "price_tiers": [
+    {
+     "up_to": 272000,
+     "call_price": 0,
+     "input_price": 0.6,
+     "output_price": 3,
+     "cache_read_price": 0.06,
+     "cache_creation_price": 0
+    },
+    {
+     "up_to": null,
+     "call_price": 0,
+     "input_price": 1.2,
+     "output_price": 4.5,
+     "cache_read_price": 0.12,
+     "cache_creation_price": 0
+    }
+   ]
+  },
+  {
+   "model_name": "gpt-image-2",
+   "description": "OpenAI GPT-Image 2 (Apr 2026): major gains in text rendering, multilingual support and visual reasoning; unified generation & editing with flexible sizes.",
+   "tags": "图片",
+   "vendor_id": 3079380706,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.072,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "gpt-image-2.5",
+   "description": "OpenAI's latest GPT-Image 2.5 (Sep 2026): sharper details, 50% lower latency, new xhigh/max quality tiers and arbitrary resolutions, better subject preservation & transparency.",
+   "tags": "图片",
+   "vendor_id": 3079380706,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.056,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "GPT-OSS-120B",
+   "description": "GPT OSS 120B is an artificial intelligence model provided by vultr",
+   "tags": "文本",
+   "vendor_id": 3079380706,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "grok-imagine-image-2.0",
+   "description": "xAI Imagine Image 2.0 (Aug 2026): high-fidelity photography, design and illustration with first-class editing — magic-wand region edits, multi-reference generation and typography-grade text.",
+   "tags": "图片",
+   "vendor_id": 3979043808,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.05,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "grok-imagine-video-1.5",
+   "description": "Grok Imagine Video 1.5: Video generation model that supports only a single reference image, 720P, 5-15 seconds",
+   "tags": "视频",
+   "vendor_id": 3979043808,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.9,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "hailuo-2.3",
+   "description": "MiniMax Hailuo 2.3 video generation model. Requires a first-frame image; submit 6 or 10 seconds only (non-standard durations are auto-downgraded by upstream). Fixed 768P, billed at ¥0.06 per second.",
+   "tags": "视频",
+   "vendor_id": 1525491447,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.06,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "happyhorse-1.0",
+   "description": "HappyHorse 1.0 supports text-to-video, first-frame image-to-video, reference-image generation, and video editing. Supports 5-15 seconds at ¥0.44 per second.",
+   "tags": "视频",
+   "vendor_id": 301577613,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.56,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "hunyuan-mt-7b",
+   "description": "Lightweight translation model designed for multilingual translation scenarios, supporting 33 languages and covering some Chinese minority languages.",
+   "tags": "文本",
+   "vendor_id": 820633257,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "hy-mt2-1.8b",
+   "description": "Hy-MT2 is a series of \"fast thinking\" multilingual translation models designed for complex real-world scenarios",
+   "tags": "文本",
+   "vendor_id": 820633257,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "hy3",
+   "description": "Hy3 is Tencent Hunyuan's fast-slow thinking fused MoE model with 295B total / 21B activated parameters, supporting 256K context, focused on reasoning, code generation and practical agentic workflows",
+   "tags": "文本,多模态",
+   "vendor_id": 820633257,
+   "quota_type": 0,
+   "model_ratio": 0.25,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.25
+  },
+  {
+   "model_name": "hy4-preview",
+   "description": "The Hy4 Preview is a flagship-level large model preview released and open-sourced by Tencent Hunyuan on August 28, 2026. With a total parameter of 770B, 49B activated parameters, and a context window of 1M, it adopts the MoE architecture to achieve a 'generational leap' in productivity scenarios such as programming, office work, and scientific research, and ranks among the top open-source models in multiple benchmark tests. What is even more noteworthy is that it has begun to participate in its own automatic optimization, forming a closed loop of 'recursive self-improvement'.",
+   "tags": "文本,多模态",
+   "vendor_id": 820633257,
+   "quota_type": 0,
+   "model_ratio": 1.5,
+   "model_price": 0,
+   "completion_ratio": 3,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.05
+  },
+  {
+   "model_name": "image-layered",
+   "description": "Image layering model (SeeThrough): turns 1 input image into a layered PSD file (zipped), ready for Photoshop editing; no prompt required.",
+   "tags": "图片",
+   "vendor_id": 2758837156,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.3,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "indextts-2",
+   "description": "Zero-shot text-to-speech system, featuring emotional expression, precise duration control, and more natural speech rhythm.",
+   "tags": "音频",
+   "vendor_id": 702126580,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.012,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-audio"
+   ]
+  },
+  {
+   "model_name": "kimi-k2.5",
+   "description": "Native multimodal open-source agent model, integrating vision and language understanding, supporting instant mode, deep thinking mode, and agent workflows.",
+   "tags": "文本,多模态",
+   "vendor_id": 1851298727,
+   "quota_type": 0,
+   "model_ratio": 3,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.166666666667
+  },
+  {
+   "model_name": "kimi-k2.6",
+   "description": "Kimi K2.6 is Kimi's latest and most intelligent model. It offers enhanced and more stable long-term code writing capabilities, with significantly improved instruction following and self-correction abilities. It supports text, image, and video input, as well as thinking and non-thinking modes, and dialogue and agent tasks",
+   "tags": "文本,多模态",
+   "vendor_id": 1851298727,
+   "quota_type": 0,
+   "model_ratio": 1.625,
+   "model_price": 0,
+   "completion_ratio": 4.153846153846,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.169230769231
+  },
+  {
+   "model_name": "kimi-k2.7-code",
+   "description": "Kimi K2.7 Code is Kimi's most intelligent Coding model to date. It follows instructions more reliably in long contexts and achieves programming tasks with higher success rates. It supports text, image, and video inputs and only operates in thinking mode for dialogue and Agent tasks",
+   "tags": "文本,多模态",
+   "vendor_id": 1851298727,
+   "quota_type": 0,
+   "model_ratio": 1.625,
+   "model_price": 0,
+   "completion_ratio": 4.153846153846,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2
+  },
+  {
+   "model_name": "kimi-k3",
+   "description": "Kimi K3 is Kimi’s most powerful flagship model to date, featuring 2.8 trillion parameters. It is built on the KDA hybrid linear attention mechanism (Kimi Delta Attention) and Attention Residuals techniques, natively supports visual understanding, and has a context window of 1 million tokens. It is the world’s first open-source 3 trillion-scale model, designed for advanced intelligent scenarios such as long-range programming, knowledge work, and reasoning.",
+   "tags": "文本,多模态",
+   "vendor_id": 1851298727,
+   "quota_type": 0,
+   "model_ratio": 5,
+   "model_price": 0,
+   "completion_ratio": 5,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "ling-3.0-flash-fin",
+   "description": "Ling-3.0-flash-Fin is a financial enhanced machine learning model built upon Ling-3.0-flash, with a total parameter count of 124 billion and approximately 5.1 billion active parameters. This model is designed for real-world investment workflows and is optimized for complex multi-step tasks as well as long-term planning and execution. With a relatively small number of active parameters, it maintains strong reasoning, programming, and mathematical capabilities while delivering competitive financial performance.",
+   "tags": "文本",
+   "vendor_id": 2758837156,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "ltx-digitalhuman",
+   "description": "LTX digital human: generates lip-sync talking-head video from an image and audio. Set duration=0 to auto-detect audio length (rounded up).",
+   "tags": "视频",
+   "vendor_id": 2869014186,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.04,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "mimo-v2.5",
+   "description": "MiMo-V2.5, a native full-modal model that supports text, image, video, and audio understanding with robust agent capabilities",
+   "tags": "文本,多模态",
+   "vendor_id": 3871206238,
+   "quota_type": 0,
+   "model_ratio": 0.25,
+   "model_price": 0,
+   "completion_ratio": 2,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1
+  },
+  {
+   "model_name": "mimo-v2.5-pro",
+   "description": "MiMo-V2.5-Pro, designed for complex task scenarios, deeply optimized for Agent and Coding applications, ranks first among global open-source models on GDPVal-AA and ClawEval rankings",
+   "tags": "文本,多模态",
+   "vendor_id": 3871206238,
+   "quota_type": 0,
+   "model_ratio": 0.6,
+   "model_price": 0,
+   "completion_ratio": 2,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.008333333333
+  },
+  {
+   "model_name": "mimo-v2.6-flash",
+   "description": "MiMo-V2.6-Flash is a lightweight version designed for high-frequency calls and large-scale task scenarios. It is an MoE model with approximately 309 billion total parameters and approximately 15 billion activated parameters, significantly reducing operating costs while maintaining full-modal capabilities and a 1 million token context. Despite its smaller size, Flash is not far behind Pro on multiple Agent benchmarks. For example, it scores 67.9 on DeepSWE v1.1, only 4 points lower than Pro's 71.9, while costing about one-third of Pro's price.",
+   "tags": "文本,多模态",
+   "vendor_id": 3871206238,
+   "quota_type": 0,
+   "model_ratio": 0.2,
+   "model_price": 0,
+   "completion_ratio": 2,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.02
+  },
+  {
+   "model_name": "mimo-v2.6-pro",
+   "description": "MiMo-V2.6-Pro is the flagship model in the series. It is a sparse MoE model with approximately 1.02 trillion total parameters and approximately 42 billion activated parameters. On the Artificial Analysis Intelligence Index, the Pro version ranks first among open-source models worldwide with a score of 46, surpassing models such as Kimi K3 and Qwen3.8 Max, and on some Agent tasks it even trades wins with closed-source frontier models such as Claude Opus 5 and GPT-5.6 Sol. It has strong 3D spatial reasoning, computer operation, and research assistance capabilities, and has helped researchers shorten the new material R&D cycle from about one month to 2-3 days.",
+   "tags": "文本,多模态",
+   "vendor_id": 3871206238,
+   "quota_type": 0,
+   "model_ratio": 0.6,
+   "model_price": 0,
+   "completion_ratio": 2,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.008333333333
+  },
+  {
+   "model_name": "minimax-h3",
+   "description": "MiniMax H3 supports 768P/2K, text-to-video and image/audio references. Supports 5-15 seconds; billed per second (768P ¥0.2/s, 2K ¥0.29/s).",
+   "tags": "视频",
+   "vendor_id": 1525491447,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.1,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认",
+    "按次",
+    "特价"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "minimax-m2.5",
+   "description": "A model designed for real-world production environments, delivering high throughput and low latency with a focus on cost-effectiveness for coding, reasoning, and agent tasks.",
+   "tags": "文本,多模态",
+   "vendor_id": 1525491447,
+   "quota_type": 0,
+   "model_ratio": 2,
+   "model_price": 0,
+   "completion_ratio": 2.5,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "minimax-m2.7",
+   "description": "A model designed for real-world production environments, delivering high throughput and low latency with a focus on cost-effectiveness for coding, reasoning, and agent tasks.",
+   "tags": "文本,多模态",
+   "vendor_id": 1525491447,
+   "quota_type": 0,
+   "model_ratio": 0.525,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2,
+   "create_cache_ratio": 1.252380952381
+  },
+  {
+   "model_name": "minimax-m2.7-highspeed",
+   "description": "MiniMax-M2.7-highspeed is a high-performance Reasoning-based MoE model from MiniMax, with approximately 230B parameters and about 10B activated. It focuses on programming, reasoning, and multi-Agent collaboration, featuring strong instruction adherence and a low hallucination rate.",
+   "tags": "文本",
+   "vendor_id": 1525491447,
+   "quota_type": 0,
+   "model_ratio": 1.05,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 0.62619047619
+  },
+  {
+   "model_name": "minimax-m3",
+   "description": "The latest MiniMAX model is designed for high throughput and low latency in real production environments, highlighting the cost-effectiveness of code, inference, and proxy tasks.",
+   "tags": "文本,多模态",
+   "vendor_id": 1525491447,
+   "quota_type": 0,
+   "model_ratio": 0.525,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "默认",
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2
+  },
+  {
+   "model_name": "mistral-7b-instruct-v0.2",
+   "description": "Mistral-7B-Instruct-v0.2 Large Language Model (LLM) is a fine-tuned version of Mistral-7B-v0.2 with instructions",
+   "tags": "文本",
+   "vendor_id": 1833880246,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "muse-spark-1.3",
+   "description": "Muse Spark 1.3 is a reasoning model from Meta designed for long-horizon agents and coding tasks. It supports an ultra-long context of 1 million tokens and multimodal inputs including text, images, and video. Compared with the previous generation, it reduces tool calls by about 20% and token usage by about 25%.",
+   "tags": "文本,多模态",
+   "vendor_id": 3622966325,
+   "quota_type": 0,
+   "model_ratio": 0.4,
+   "model_price": 0,
+   "completion_ratio": 3.4,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.12
+  },
+  {
+   "model_name": "nano-banana",
+   "description": "Google Gemini 2.5 Flash Image: lightweight, fast image generation & editing with conversational multi-turn editing and strong character consistency at low cost.",
+   "tags": "图片",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.08,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "nano-banana-2",
+   "description": "Google Gemini 3.1 Flash Image (Feb 2026): high-fidelity generation and conversational editing at a mainstream price, stronger subject consistency, 512px–4K output.",
+   "tags": "图片",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.1,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "nano-banana-2-lite",
+   "description": "The efficiency specialist of Google's image family (Jun 2026): ultra-low latency and lowest cost for rapid ideation and high-velocity pipelines, multimodal input.",
+   "tags": "图片",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.06,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "nano-banana-2.1",
+   "description": "Google's next-gen image model (Oct 2026): better quality and realism across 1K/2K/4K, more precise mask-based editing, improved subject consistency, ~half the price.",
+   "tags": "图片",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.08,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "nano-banana-pro",
+   "description": "Google flagship Gemini 3 Pro Image: reasoning-powered generation with built-in 1K/2K/4K and upscaling, outstanding text rendering and infographics/annotation for complex design.",
+   "tags": "图片",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.14,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai",
+    "gemini"
+   ]
+  },
+  {
+   "model_name": "qwen3-tts",
+   "description": "Supports streaming speech synthesis, multiple languages and dialects, voice cloning, and natural language control over timbre and expressiveness.",
+   "tags": "音频",
+   "vendor_id": 301577613,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.006,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-audio"
+   ]
+  },
+  {
+   "model_name": "qwen3.5-plus",
+   "description": "Managed native multimodal agent model with built-in support for ultra-long context, integrated tools, and strong text and visual comprehension capabilities.",
+   "tags": "文本,多模态",
+   "vendor_id": 301577613,
+   "quota_type": 0,
+   "model_ratio": 1,
+   "model_price": 0,
+   "completion_ratio": 3,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.1,
+   "create_cache_ratio": 1.2
+  },
+  {
+   "model_name": "qwen3.7-max",
+   "description": "Qwen3.7-Max is the flagship model of the Qwen3.7 series, supporting 1M context with strong reasoning, coding and agentic capabilities for complex long-horizon tasks",
+   "tags": "文本,多模态",
+   "vendor_id": 301577613,
+   "quota_type": 0,
+   "model_ratio": 3,
+   "model_price": 0,
+   "completion_ratio": 3,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "qwen3.7-plus",
+   "description": "In the Aichat_description, the Aichat3.7 series offers a cost-effective Plus model that comprehensively enhances visual-language capabilities on top of its strong text abilities, while maintaining full AI capabilities in coding, tool usage, and productivity workflows. Its key feature is multimodal interactive hybrid AI capability, enabling it to perceive real-world scenarios, read screens and operate GUIs, generate code based on visual references, and provide end-to-end navigation for mobile applications.",
+   "tags": "文本,多模态",
+   "vendor_id": 301577613,
+   "quota_type": 0,
+   "model_ratio": 2,
+   "model_price": 0,
+   "completion_ratio": 4,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.05
+  },
+  {
+   "model_name": "qwen3.8-flash",
+   "description": "Qwen3.8-Flash is a new multimodal MoE model released and open-sourced by Alibaba YanxiQianwen on August 26, 2026. Its core advantage lies in achieving top-tier performance at a very low cost, marking the first public presentation of the next-generation Qwen4 architecture.",
+   "tags": "文本,多模态",
+   "vendor_id": 301577613,
+   "quota_type": 0,
+   "model_ratio": 0.2,
+   "model_price": 0,
+   "completion_ratio": 3.375,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "qwen3.8-max",
+   "description": "Qwen3.8-Max is the latest flagship MoE model in the Qwen series with ~2.4T total / 95B activated parameters, supporting 1M context and multimodal input with major advances in coding, office and long-horizon agentic tasks",
+   "tags": "文本,多模态",
+   "vendor_id": 301577613,
+   "quota_type": 0,
+   "model_ratio": 3,
+   "model_price": 0,
+   "completion_ratio": 3,
+   "enable_groups": [
+    "特价福利"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ],
+   "cache_ratio": 0.2,
+   "create_cache_ratio": 1.25
+  },
+  {
+   "model_name": "real-esrgan",
+   "description": "Classic real-world super-resolution model: enhances detail and removes compression noise/artifacts — ideal for restoring and upscaling old or low-res images.",
+   "tags": "图片",
+   "vendor_id": 2758837156,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.015,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "rmbg-2.0",
+   "description": "BRIA RMBG-2.0 matting model: send one image and get a high-precision transparent-background PNG. Billed per call.",
+   "tags": "图片",
+   "vendor_id": 1771363722,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.02,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "seedance-1.0-pro",
+   "description": "Seedance 1.0 Pro 10s video generation model with text-to-video and single reference image support",
+   "tags": "视频",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 1.52,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "seedance-1.5-pro",
+   "description": "Seedance 1.5 Pro 12s video generation model with text-to-video and single reference image support",
+   "tags": "视频",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 1.93,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "seedvr2-upscaler",
+   "description": "ByteDance SeedVR2 one-step restoration & upscaling: high-resolution recovery, denoising and deblurring for both images and video at faster speed.",
+   "tags": "图片",
+   "vendor_id": 2409391548,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.15,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "spark-lite",
+   "description": "A lightweight interface version for low-cost text generation and Q&A, suitable for resource-sensitive calling scenarios.",
+   "tags": "文本",
+   "vendor_id": 2635321133,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "step-3.5-flash",
+   "description": "Sparse MoE open-source foundational model, activating only a small number of parameters to achieve strong reasoning and agent capabilities, balancing efficiency and real-time interaction.",
+   "tags": "文本",
+   "vendor_id": 1588229312,
+   "quota_type": 0,
+   "model_ratio": 0,
+   "model_price": 0,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "免费"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "veo-3.1",
+   "description": "Focuses on generating higher-quality video and raw audio, with greater physical realism, fidelity, and alignment with prompt instructions.",
+   "tags": "视频",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 1.25,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "veo-3.1-fast",
+   "description": "Faster video generation with native audio support, ideal for rapid iteration and proof of concept.",
+   "tags": "视频",
+   "vendor_id": 3032164056,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 1.2,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai-video"
+   ]
+  },
+  {
+   "model_name": "wan2.7-image",
+   "description": "Alibaba Tongyi Wan2.7 image flagship (Apr 2026): full coverage of text-to-image, group shots, multi-reference and interactive editing, outstanding text rendering and subject consistency.",
+   "tags": "图片",
+   "vendor_id": 301577613,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.2,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  },
+  {
+   "model_name": "z-image",
+   "description": "Alibaba Tongyi open-source Z-Image (6B, Turbo renders sub-second in 8 steps): topped Artificial Analysis open-source text-to-image, photorealistic with Chinese/English text rendering.",
+   "tags": "图片",
+   "vendor_id": 301577613,
+   "quota_type": 1,
+   "model_ratio": 0,
+   "model_price": 0.07,
+   "completion_ratio": 0,
+   "enable_groups": [
+    "默认"
+   ],
+   "supported_endpoint_types": [
+    "openai"
+   ]
+  }
+ ],
+ "group_ratio": {
+  "默认": 1,
+  "优质": 1,
+  "免费": 1,
+  "按次": 1,
+  "特价": 1,
+  "特价福利": 1,
+  "经济": 1,
+  "限免": 1
+ },
+ "vendors": [
+  {
+   "id": 265142443,
+   "name": "Boogu"
+  },
+  {
+   "id": 301577613,
+   "name": "Qwen"
+  },
+  {
+   "id": 702126580,
+   "name": "Bilibili"
+  },
+  {
+   "id": 820633257,
+   "name": "Tencent"
+  },
+  {
+   "id": 1217543673,
+   "name": "GLM"
+  },
+  {
+   "id": 1525491447,
+   "name": "MiniMax"
+  },
+  {
+   "id": 1588229312,
+   "name": "Stepfun"
+  },
+  {
+   "id": 1771363722,
+   "name": "BRIA"
+  },
+  {
+   "id": 1833880246,
+   "name": "mistral"
+  },
+  {
+   "id": 1851298727,
+   "name": "Kimi"
+  },
+  {
+   "id": 1917989178,
+   "name": "Flux"
+  },
+  {
+   "id": 2391361458,
+   "name": "Claude"
+  },
+  {
+   "id": 2409391548,
+   "name": "DouBao"
+  },
+  {
+   "id": 2635321133,
+   "name": "Spark"
+  },
+  {
+   "id": 2758837156,
+   "name": "Open"
+  },
+  {
+   "id": 2869014186,
+   "name": "LTX"
+  },
+  {
+   "id": 3032164056,
+   "name": "Gemini"
+  },
+  {
+   "id": 3079380706,
+   "name": "OpenAI"
+  },
+  {
+   "id": 3164229063,
+   "name": "DeepSeek"
+  },
+  {
+   "id": 3247120851,
+   "name": "XHS"
+  },
+  {
+   "id": 3622966325,
+   "name": "Meta"
+  },
+  {
+   "id": 3871206238,
+   "name": "XiaoMi"
+  },
+  {
+   "id": 3979043808,
+   "name": "XAI"
+  }
+ ]
+}

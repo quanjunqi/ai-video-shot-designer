@@ -435,16 +435,21 @@ jobs:
       - name: Check ADR directory exists
         run: test -d docs/adr
 
-      # 防止 `$var` 紧跟非 ASCII 字符：bash 会把多字节字符并入变量名，
-      # 在 set -u 下报 "unbound variable"。本仓库已因此踩坑两次
-      # （check-coverage.sh 与 detect-changes.sh），故固化为检查。
-      # 正确写法：${var} 或 ${var}：
+      # 两类 bash 引号陷阱（TASK-PROC-009 起由同一道门覆盖）：
+      #   A. `$var` 紧跟非 ASCII 字符：bash 会把多字节字符并入变量名，在 set -u 下报
+      #      "unbound variable"。本仓库已因此踩坑三次（check-coverage.sh、detect-changes.sh，
+      #      以及 TASK-PROC-009 里我自己新写的 check-coverage.sh 补丁）。正确写法：${var}。
+      #   B. **双引号字符串内的反引号**：那是命令替换，会被**真的执行**。
+      #      实测 check-coverage.sh 的提示里写了 `.agents/skills/…/SKILL.md` ⇒ 每次门禁未通过
+      #      都去执行那个 Markdown 路径（Permission denied）且提示残缺；
+      #      .husky/pre-push 的 `AGENTS.md` 同病（command not found，丢掉"规则在哪"的指引）。
+      #      检查时排除 heredoc 正文与已转义的反引号，避免误报。
       # ★ 规则只有一份实现：scripts/check-shell-vars.sh（预检的门 0 与 .husky/pre-commit 也用它）。
       #   此前这里是**另一份**实现（grep -P，且只扫 .github/scripts 与 deploy/），
       #   而 preflight 扫的是 scripts/ 与 .husky/ —— 两者互补，也就是说**都有盲区**。
       #   现在由脚本按"git 追踪的全部 shell 脚本"来算，谁都不用记目录。
       #   用 Python 而非 grep -P：后者在 macOS 上不可用，本地就复现不了 CI 的判定。
-      - name: Check shell scripts for \$var followed by non-ASCII
+      - name: Check shell scripts ($var + non-ASCII / backticks in double quotes)
         run: |
           set +e
           bash scripts/check-shell-vars.sh
@@ -571,6 +576,47 @@ jobs:
       # defaults.run.working-directory。详见 `.github/scripts/check-workflow-structure.sh` 头部不变量与 `.agents/skills/ci-triage/SKILL.md`（禁止事项）。
       - name: Validate workflow structure invariants
         run: bash .github/scripts/check-workflow-structure.sh .github/workflows/ci.yml
+
+      # 台账一致性（AC-008/010/011）：README（人读表）× ledger.json（机读视图）× 任务卡 front-matter
+      # 三方一致；状态词表只认中文五值（待开工/进行中/待验收/已验收/已关闭，unknown = 未填写）。
+      #
+      # 为什么需要它：这两个视图此前是**双维护、无校验**，一致性只靠人记得。实测漂移四类
+      # （标题截断 40 字符 / 状态写成自由文本 / 数量口径不一致 / 状态滞后），历史
+      # `chore/ledger-backfill-*` PR 已重复回填 6 次 —— 靠人事后修不能终止它。
+      #
+      # ★ 刻意挂在 docs job 的**步骤级**上，不新增 job：新增 job 必须重新登记为必需检查，
+      #   一旦漏配就卡死所有 PR（见 check-workflow-structure.sh 不变量 1 与 ci-triage skill）。
+      #
+      # 退出码语义：0=通过；1=违规；2=**无法检查**（缺 python3 等）—— 2 不等于通过，显式判红。
+      # 本地同口径：scripts/preflight.sh 调用**同一个脚本**，不另写第二份实现。
+      - name: Check task ledger consistency (台账一致性)
+        run: |
+          set +e
+          bash .github/scripts/check-task-ledger.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::台账一致性检查【未验证】（缺 python3 等）—— 未验证不等于通过"
+            exit 1
+          fi
+          exit "$rc"
+
+      # 后端文件行数门禁 + 债务棘轮（BE-SIZE-001 / BE-LAYER-002）：机器化此前只有
+      # 「人工 + PR 审查」的两条规则（实测已漂移 12 处：5 个 >500 行的 Go 文件 +
+      # 3 个 >50 行的 cmd/server/main.go）。存量走 .github/file-size-baseline.txt（只减不增）。
+      # 退出码语义：0=通过；1=违规；2=**无法检查**（缺 python3／基线缺失／基线格式错／扫不到 Go 文件）
+      # —— 2 不等于通过，显式判红。本地同口径：scripts/preflight.sh 调用**同一个脚本**。
+      - name: Check file size ratchet (文件行数棘轮)
+        run: |
+          set +e
+          bash scripts/check-file-size.sh
+          rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then
+            echo "::error::文件行数门禁【未验证】（缺 python3／基线缺失或格式错／扫不到 Go 文件）—— 未验证不等于通过"
+            exit 1
+          fi
+          exit "$rc"
 
   # 契约破坏性变更检测（PR 专用）
   # bff.yaml 是前后端字段级契约的唯一事实源。frontend job 的 `npm run api:check` 只保证

@@ -1,0 +1,173 @@
+{
+  "taskId": "TASK-CREATE-006",
+  "updatedAt": "2026-10-16T00:15:00+08:00",
+  "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。本号为 ADR 分片 6 的原定义（aspectRatios），2026-10-15 由 TASK-PROC-004 裁定从被借用的平铺卡归还。",
+  "events": [
+    {
+      "ts": "2026-10-15T23:45:00+08:00",
+      "phase": "立卡/前提核实",
+      "action": "按排期 v2 §5 第 8 条在建卡前逐条核实分片 6 前提（不用 grep 级结论建卡）",
+      "evidence": [
+        "apps/web/src/config/create/control-schema.ts:167 listAspectRatios(count) → listFallbackRange(count, COMMON_ASPECT_RATIOS)",
+        "control-schema.ts:96 source: 'declared' | 'count-fallback' | 'platform-default'（'declared' 当前无人走 ⇒ 扩展点已就绪）",
+        "control-schema.ts:332 listFallbackRange(3, COMMON_ASPECT_RATIOS) —— 视频侧硬编码 3",
+        "control-schema.ts:248,270 aspectRatios: { values: [], source: 'platform-default' }",
+        "grep aspectRatios openapi/bff.yaml → 无输出（契约未声明）",
+        "grep -rn 'aspect_ratios|aspectRatios' services/ → 无输出（后端无字段）",
+        "编号归位：TASK-PROC-004 已把借用 006 号的平铺卡 git mv 为 TASK-CREATE-010（R100）"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T00:05:00+08:00",
+      "phase": "开工核实",
+      "action": "核实 capability 存储形态与契约声明方式，发现原范围三项（契约/后端/迁移）均不需要",
+      "evidence": [
+        "services/production/migrations/004_catalog.sql:27 capability jsonb",
+        "openapi/bff.yaml:2940,2996,3028,3177 capability 为 type: object（开放对象）",
+        "后端无字段级处理（JSONB 透传）"
+      ],
+      "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T00:12:00+08:00",
+      "phase": "开发",
+      "action": "listAspectRatios(declared,count) 声明优先；两处调用点更新（视频去硬编码 3）；类型增 aspectRatios?；minimax-h3 数据示范；新增 2 条测试",
+      "evidence": [
+        "apps/web/src/config/create/control-schema.ts",
+        "apps/web/src/config/models/model-catalog.ts",
+        "apps/web/tests/create-control-schema.test.ts"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T00:15:00+08:00",
+      "phase": "验证",
+      "action": "单测 + 全量 gate + 全量 npm test",
+      "evidence": [
+        "node --test create-control-schema.test.ts → 17/17",
+        "npm run gate → 0 error 0 warning",
+        "npm test → node --test 175/175 + vitest 50/50"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "改动顺序",
+      "options": [
+        "先改后端/数据再补契约",
+        "契约先行"
+      ],
+      "choice": "契约先行",
+      "reason": "仓库红线 CT-001；且前端类型由 openapi-typescript 生成，先改契约才能 api:check 绿",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "未声明模型的行为",
+      "options": [
+        "一并改为空/报错",
+        "保持既有 count-fallback 逐字不变"
+      ],
+      "choice": "保持既有 count-fallback 逐字不变",
+      "reason": "向后兼容是硬约束（既有视频/图片模型都在用推断路径）；回归断言须逐字相等",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-003",
+      "topic": "视频硬编码 3 的处置",
+      "options": [
+        "本卡一并去掉",
+        "留待数据补齐时"
+      ],
+      "choice": "本卡一并去掉（列入范围）",
+      "reason": "它正是『目录无法声明』的直接后果；不修则本卡目标未达成（判据 7）",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-004",
+      "topic": "核实后契约/后端/迁移都不需要，如何处置",
+      "options": [
+        "仍按原范围做（改契约+写迁移）",
+        "收缩范围并作废对应判据"
+      ],
+      "choice": "收缩范围并作废对应判据",
+      "reason": "A 是为流程而流程——改一个开放对象、写一个不需要的 DDL，凭空制造变更与风险；判据作废必须写明理由，不能装作做过",
+      "timing": "开工核实"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "前置事实核实（供开工用，非验收判据）",
+      "command": "读 control-schema.ts 相关行 + grep 契约/后端",
+      "result": "PASS",
+      "evidence": "六项事实均实测；见 events[0].evidence"
+    },
+    {
+      "id": "V-002",
+      "criterion": "存储形态核实（决定是否需契约/迁移）",
+      "command": "读 004_catalog.sql:27 + openapi/bff.yaml capability 声明 + grep 后端",
+      "result": "PASS",
+      "evidence": "三项均不需要"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据4/5/6/7 前端声明优先+回归+去硬编码",
+      "command": "node --experimental-strip-types --test tests/create-control-schema.test.ts",
+      "result": "PASS",
+      "evidence": "17/17（新增 2 条）"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据8 门禁与全量测试",
+      "command": "npm run gate; npm test",
+      "result": "PASS",
+      "evidence": "gate 0/0；node --test 175/175；vitest 50/50"
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    {
+      "item": "立卡前核实前提（排期 v2 §5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001；task.md 背景表逐条带证据"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 8 条判据（未开工故未勾对）"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "尚未开工（未写码）",
+      "result": "✓",
+      "evidence": "本卡仅有四件套文档"
+    },
+    {
+      "item": "开工第一步核实前提（排期 v2 §5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-002：证伪三条原范围，L→S/M"
+    },
+    {
+      "item": "作废判据写明理由（不装作做过）",
+      "result": "✓",
+      "evidence": "task.md 验收标准 1~3 划删除线 + 理由"
+    }
+  ],
+  "retrospective": {
+    "good": "开工第一步核实存储形态，直接证伪自己卡片里三条范围（契约/后端/迁移都不需要），L 缩成 S/M；作废判据时写明理由而非硬凑交付",
+    "improve": "立卡时就该查存储形态——我在卡里写「契约先行」是照搬 CT-001 惯例却未确认该字段是否真受契约约束，属『惯例替代核实』；同类问题已第四次出现，§5 第 8 条应前移到立卡时",
+    "followups": "①生产 DB 目录各模型真实比例待产品/数据侧申报（机制已就绪，JSONB 加键无需 DDL）；②QualityOptions 同类机制（qualityTierCount 亦为数量推断）可复用本模式，建议另立小卡"
+  }
+}

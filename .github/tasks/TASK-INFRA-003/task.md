@@ -1,6 +1,6 @@
 ---
 taskId: TASK-INFRA-003
-status: accepted
+status: 已验收
 priority: P0（排期第一批第 7 刀）
 pr: "#201"
 criteria: 8

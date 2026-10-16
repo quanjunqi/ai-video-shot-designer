@@ -1,0 +1,172 @@
+{
+  "taskId": "TASK-PROC-008",
+  "updatedAt": "2026-10-16T18:30:00+08:00",
+  "note": "本卡状态：进行中。四件套在动码前齐全（落实 PROC-007 复盘对策），尚未改码。",
+  "events": [
+    {
+      "ts": "2026-10-16T17:00:00+08:00",
+      "phase": "立卡（四件套齐全）",
+      "action": "界定范围为基线剩余 5 项并写齐四件套 + 登记台账，然后才准备动码",
+      "evidence": [
+        "范围：engine.go 526（实测 410-444 + 452-526 共 110 行 0 代码的孤立注释）+ 4 个测试文件 764/745/659/550",
+        "为何一张卡：同属『清零基线』一个目标、手法一致；拆两张卡会让验收点跨卡",
+        "前置约束：engine.go 删注释前必须逐条验证副本存在，无副本必须保留或搬回函数处",
+        "机制改进：本卡先写齐四件套并登记台账再动码，以纠上卡『漏建 devlog』的 AC-010 偏差"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T18:30:00+08:00",
+      "phase": "实现 + 全判据验证",
+      "action": "清 engine.go 孤立注释、拆 4 个测试文件、清零基线；过程中发现并修正门禁自身缺陷",
+      "evidence": [
+        "判据1/2/3：engine.go 526→417（删110行孤立注释）；main_test.go 764→261（拆214/173/158）；request_template_test.go 745→225（拆254/288）；protocol_registry_test.go 659→442（拆229）；engine_test.go 550→199（拆368）——全部 ≤500",
+        "engine.go 删注释前置验证：73 条实义注释全部 73 条在同包其它文件有副本（0 条无副本）；两个纯注释块均断言 0 代码行",
+        "★判据4：基线清零，非注释行 0 条 ⇒ 存量豁免清完，此后任何超限文件直接阻断",
+        "★目标态暴露门禁自身缺陷：基线清零+零违规（正是成功态）时脚本报 rc=2『无法检查』——原 fail-closed 守卫 if not real and not base: exit 2 分不清『没扫到文件』(=未验证,2)与『扫了101个文件0违规』(=成功,0)。若不修则达标即自锁",
+        "修法：fail-closed 改看 scanned==0（扫到几个文件），而非看有几个违规",
+        "并补两条 self-test 用例钉住两端：正例8『扫到文件+0违规+空基线 ⇒ 必须绿』；反例9『目录下无 .go ⇒ 仍必须 rc=2（fail-closed 未被削弱）』⇒ self-test 7→9 例全绿",
+        "判据6a：三服务 build/vet/gofmt/test -race 全绿",
+        "判据6b：audit-verdicts.sh 20 通过 / 0 失败 / EXIT=0",
+        "判据7：整包 func Test* 集合 35/28/59/34/63 与 HEAD 逐条一致（零丢失零新增）",
+        "自我纠正：拆分器首版漏 package 行导致新文件不可编译，已修正重跑；import 裁剪对 engine 包跑了10轮（go vet 首个错误批次即停，结果正确但轮次多）"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "立卡流程",
+      "options": [
+        "先建 task 就开工",
+        "四件套齐全再开工"
+      ],
+      "choice": "四件套齐全再开工",
+      "reason": "落实 PROC-007 复盘的对策；上卡因『建了 task 就算立卡』漏建 devlog",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "基线清零后门禁语义",
+      "options": [
+        "保持 rc=2（原实现）",
+        "改为 rc=0"
+      ],
+      "choice": "改为 rc=0，并把 fail-closed 改看 scanned==0",
+      "reason": "零违规+空基线正是目标成功态；原实现会让人加假基线或削弱守卫（两种都是坏结局）。两者区别：没扫到文件=未验证(2)；扫到文件但零违规=通过(0)",
+      "timing": "实现"
+    },
+    {
+      "id": "D-003",
+      "topic": "self-test 是否扩例",
+      "options": [
+        "保持 7 例",
+        "扩到 9 例"
+      ],
+      "choice": "扩到 9 例",
+      "reason": "把新语义的两端都钉住：正例8（目标态必须绿）防止退回自锁；反例9（空扫描必须红）防止有人把 fail-closed 一并删掉",
+      "timing": "实现"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "范围核实",
+      "command": "bash scripts/check-file-size.sh",
+      "result": "PASS：剩余 5 项",
+      "evidence": "task.md"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 1/2/3 文件达标",
+      "command": "wc -l 全部",
+      "result": "PASS：全部 ≤500（engine 417；测试 199~442）",
+      "evidence": "devlog"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 4 基线清零",
+      "command": "非注释行计数",
+      "result": "PASS：0 条",
+      "evidence": ".github/file-size-baseline.txt"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 5 self-test",
+      "command": "--self-test",
+      "result": "PASS：9/9",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-005",
+      "criterion": "门禁缺陷的发现与修正",
+      "command": "清零后实跑得 rc=2",
+      "result": "已修正：fail-closed 改看 scanned 而非 violations",
+      "evidence": "devlog"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据 6a 构建测试",
+      "command": "三服务 build/vet/gofmt/test -race",
+      "result": "PASS 全绿",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-007",
+      "criterion": "判据 6b 整链回归",
+      "command": "bash scripts/audit-verdicts.sh",
+      "result": "PASS：20 通过 / 0 失败 / EXIT=0",
+      "evidence": "/tmp/verdict5.out"
+    },
+    {
+      "id": "V-008",
+      "criterion": "判据 7 测试零丢失",
+      "command": "整包 func Test* 集合 vs HEAD",
+      "result": "PASS：35/28/59/34/63 完全一致",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-009",
+      "criterion": "engine.go 删注释前置验证",
+      "command": "73 条实义注释副本核对",
+      "result": "PASS：73/73 有副本；两块 0 代码行",
+      "evidence": "devlog"
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    {
+      "item": "开工即建 devlog（AC-010）",
+      "result": "✓ 本卡做到（四件套齐全后才动码）",
+      "evidence": "devlog + 台账门"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 8 条"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "立卡前核实前提（§5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001 全量扫描"
+    },
+    {
+      "item": "尚未改码",
+      "result": "✓",
+      "evidence": "仅四件套文档"
+    }
+  ],
+  "retrospective": {
+    "good": "①engine.go 删注释前逐条验证副本（73/73），守住卡里写死的前置约束；②拆分用函数名标记 + 连续区间断言，并加整包 func Test* 集合比对作为零丢失判据；③★达到目标态后立刻发现门禁自身缺陷并修正，且补两条 self-test 把两端钉住——没有为了让结果好看去改判据或加假基线；④四件套先齐再动码，纠正了上卡的 AC-010 偏差",
+    "improve": "①拆分器首版漏 package 行，说明我对『生成新 Go 文件』的必需元素没有先列清单（应先写一个最小正确模板再套用）；②import 裁剪循环对某包跑 10 轮，我应该先一次性把所有未用 import 报出来（go vet 首个批次即停是工具限制，但我可以改用 goimports 等价手段或一次性多轮直到稳定并接受它）",
+    "followups": "①建议全仓扫一遍其它孤立注释块（本次只处理了基线内文件）——可作为一次性的卫生检查；②BE-SIZE-001 现在基线清零=全面阻断，规则闭环完成；③其余 8 条基线已清的规则线（覆盖率等）可参照本卡做法自查是否有同类『成功态被误判』缺陷"
+  }
+}

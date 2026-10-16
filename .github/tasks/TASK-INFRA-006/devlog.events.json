@@ -1,0 +1,127 @@
+{
+  "taskId": "TASK-INFRA-006",
+  "updatedAt": "2026-10-16T00:25:00+08:00",
+  "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
+  "events": [
+    {
+      "ts": "2026-10-15T23:38:00+08:00",
+      "phase": "立卡/前提核实",
+      "action": "在提出『T13 走查自动化』建议前先实测前提（避免凭未核实前提写卡）：浏览器驱动能力、栈可用性、身份注入机制",
+      "evidence": [
+        "apps/web/scripts/visual-regression.mjs 头注：依赖系统 Chrome（headless）+ spawn 调起",
+        "apps/web/node_modules 无 playwright/puppeteer（实测）",
+        "curl http://localhost:5174/ → HTTP 200；docker info 可用",
+        ".github/tasks/TASK-AUTH-001/devlog.md A-021/A-022：DEV_ACTORS 三角色 + useAuthStore.hydrate + TopBar dev 下拉",
+        "docs/how-to/t13-walkthrough-guide.md 已有人读版走查脚本（§2 勾选表）",
+        "技术缺口：headless Chrome 命令行无法注入 localStorage ⇒ 需 CDP 或预置 profile"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T00:25:00+08:00",
+      "phase": "开工核实",
+      "action": "核实运行环境（Chrome/前端/身份契约/服务端口/栈新鲜度），发现运行中的 BFF 为旧二进制",
+      "evidence": [
+        "Chrome 存在：/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "curl :5174 → 200",
+        "useAuthStore.ts:24-28,82,108：localStorage 键 mdp-dev-actor ∈ {user_dev,user_admin,user_viewer}",
+        "五个服务均在监听：8080/18081/18082/8085/18084",
+        "curl :8080/api/v1/me → 404，而 services/web-bff/internal/httpserver/server.go:94 已注册该路由 ⇒ 进程启动于 AUTH-001 之前"
+      ],
+      "decisionRef": null,
+      "blockRef": "B-001"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "浏览器驱动方式",
+      "options": [
+        "引入 playwright/puppeteer",
+        "系统 Chrome + CDP",
+        "纯 --screenshot"
+      ],
+      "choice": "系统 Chrome + CDP",
+      "reason": "A 增加依赖与供应链面积（仓库刚因 MinIO 分发关闭踩过环境坑）；C 做不到三角色切换（核心需求）；B 复用 visual-regression.mjs 已验证的做法",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "身份注入方式",
+      "options": [
+        "点 TopBar dev 下拉",
+        "注入 localStorage 后重载"
+      ],
+      "choice": "注入 localStorage 后重载",
+      "reason": "不依赖下拉 DOM 结构，更稳；且避免『测的是下拉本身』的循环。仅当下拉交互本身是被测对象时才用点选",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-003",
+      "topic": "是否接入 CI",
+      "options": [
+        "本卡一并接入",
+        "先做本地一键复跑"
+      ],
+      "choice": "先做本地一键复跑",
+      "reason": "走查需真实栈 + Chrome，CI 未必具备；先证明脚本可用，接入另议（避免又一条『看起来接入了』的假防线）",
+      "timing": "立卡"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "前置事实核实（供开工用，非验收判据）",
+      "command": "读 visual-regression.mjs / 查 node_modules / curl :5174 / docker info",
+      "result": "PASS",
+      "evidence": "四项事实均实测；见 events[0].evidence"
+    },
+    {
+      "id": "V-002",
+      "criterion": "运行环境核实（Chrome/前端/身份契约/服务端口）",
+      "command": "curl + 读 useAuthStore.ts + ls Chrome",
+      "result": "PASS",
+      "evidence": "4/5 项通过"
+    },
+    {
+      "id": "V-003",
+      "criterion": "栈新鲜度",
+      "command": "curl :8080/api/v1/me vs server.go:94",
+      "result": "FAIL",
+      "evidence": "404 ⇒ 旧二进制 → B-001"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "运行中的 BFF 是旧二进制（/api/v1/me 404，源码已注册）",
+      "rootCause": "进程启动于 AUTH-001 合并之前，本地栈未随 develop 重建",
+      "solution": "① 重建本地栈；② 本卡内置『栈新鲜度』前置断言，不可达即退出 2（未验证）而非继续跑出假失败",
+      "lesson": "走查类工具的第一断言应是『被测对象是当前代码』，而不是直接断言业务行为；否则环境陈旧会被误读为功能缺陷（或更糟：假通过）"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "立卡前核实前提（排期 v2 §5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001；task.md 背景表逐条带证据"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 10 条判据（未开工故未勾对）"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "尚未开工（未写码）",
+      "result": "✓",
+      "evidence": "本卡仅有四件套文档"
+    }
+  ],
+  "retrospective": null
+}

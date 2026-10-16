@@ -1,0 +1,136 @@
+{
+  "taskId": "TASK-PROC-004",
+  "updatedAt": "2026-10-15T23:35:00+08:00",
+  "note": "存量台账真实化：13 张 unknown 卡逐卡核实与状态回填。本卡零代码改动。",
+  "events": [
+    {
+      "ts": "2026-10-15T23:12:00+08:00",
+      "phase": "核实",
+      "action": "对 13 张 unknown 卡做只读核实：读各自验收标准 → 在代码中逐条找证据",
+      "evidence": [
+        "FIX-002：execution/007（jobs 含 timeout）、production/022（projects 六值）、023（episodes status 六值 + stage 八值）、state-machines.md、CHANGELOG:280-282",
+        "FIX-003：SettingsProtocols.tsx:96-100（必填 + {task_id} 校验）、:371（可编辑）、ProtocolPreview.tsx:75、迁移 029、CHANGELOG:237 —— 4/4 标准命中",
+        "SEC-003：迁移 024 CHECK 含 token",
+        "SEC-004：迁移 027（可空不回填、NULL 走 auth_type 兜底）、engine.go:61-69,499、credentials.go:132 keepOr",
+        "P2-001：executor.go:123 正是卡片点名要新建的 Executor 接口（Submit/Poll/Cancel/GetResult）+ api_connector.go",
+        "INFRA-002：detect-changes.sh + CI job；判据 3/4/5/6 实测（apps/web→仅前端；services/asset→仅 asset；文档→全跳过；.github→全量）；偏差：卡片写的 8 条路径单测实为 docs/how-to/ci.md:71 手工命令",
+        "PLAN-a-and-adr008：ADR-008 已接受"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:20:00+08:00",
+      "phase": "核实（委派）",
+      "action": "委派只读子 agent 逐条比对 CREATE-001~006 的验收标准（禁改文件、禁跑 npm/go）",
+      "evidence": [
+        "代码侧 6/6 判为已实现；提交 f1959c3/f6243d6/3220e50/cd8c0cf/8b0ad54/ebff8ef + 整片恢复 41c9988（PR #54）均在 develop",
+        "但六卡全缺 AC-008 验收清单 + AC-010 devlog/front-matter（均为无 front-matter 平铺文件）",
+        "五卡自己的交付记录写明「未完成：L3 浏览器实测」，001 无交付记录",
+        "已知偏差：control-schema.ts:383 视频侧 maxRefImages 未与 modes 耦合（无现存触发样本）"
+      ],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-15T23:26:00+08:00",
+      "phase": "裁定",
+      "action": "核对 ADR 分片表与平铺卡，作出 CREATE 编号裁定：以 ADR 分片表为权威；不擅自闭合/重编号 CREATE-006",
+      "evidence": [
+        "docs/adr/smart-creation-workbench.md:158-168 分片表逐片标状态：分片 1-5 = ✅ 已交付；分片 6 = capability.aspectRatios（D3-B）= ⏳ 待 Owner 确认",
+        "grep -rn 'aspectRatios' services/ openapi/ → 无输出 ⇒ 分片 6 未交付",
+        "同族：ADR 分片 7=个人素材、分片 10=队列抽屉，而提交 0248cca 自标 CREATE-007=队列分组"
+      ],
+      "decisionRef": "D-002",
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-15T23:33:00+08:00",
+      "phase": "回填/验证",
+      "action": "更新 ledger.json 与 README.md：FIX-002/FIX-003 → 已验收；SEC-003/SEC-004/P2-001/INFRA-002/CREATE-001~005 → 待验收；CREATE-006 维持 unknown；登记本卡",
+      "evidence": [
+        "check-task-ledger.sh → rc=0",
+        "check-task-ledger.sh --self-test → 10/10 反例拦截",
+        "scripts/check-shell-vars.sh → rc=0"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "13 张卡能否一刀切闭合",
+      "options": ["全部记已验收", "按核实结果分级处置"],
+      "choice": "按核实结果分级处置",
+      "reason": "证据强度不同：FIX-002/003 逐条对上其验收标准；SEC-004 缺真库实测；INFRA-002 有文档偏差；CREATE 五卡自认 L3 未做。一刀切＝把未验证当通过（ci-triage 明令禁止）",
+      "timing": "核实"
+    },
+    {
+      "id": "D-002",
+      "topic": "CREATE 编号冲突以谁为准",
+      "options": ["平铺卡/提交", "ADR 分片表"],
+      "choice": "ADR 分片表为权威（留 PR 评审复核）",
+      "reason": "分片表有日期、逐片状态、是设计决策记录；平铺卡与提交编号是松散用法。且分片 6（aspectRatios）实测无任何实现痕迹，按标题闭合会把未做的后端片记成已验收",
+      "timing": "裁定"
+    },
+    {
+      "id": "D-003",
+      "topic": "是否为已实现卡补写 acceptance.md",
+      "options": ["逐卡补四件套", "以本卡核实记录作为其验收证据"],
+      "choice": "以本卡核实记录作为证据",
+      "reason": "补文档属形式主义且产生 24 个文件；本卡 devlog 逐条证据可追溯。若 Owner 要求正式四件套则另立卡",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-004",
+      "topic": "是否在本卡执行各卡真库集成测试/L3",
+      "options": ["本卡一并跑", "记为残留项交各卡验收"],
+      "choice": "记为残留项",
+      "reason": "属各卡自身验收动作，且需 Docker 栈/浏览器；本卡只做代码级核实并如实标注残留",
+      "timing": "立卡"
+    }
+  ],
+  "verifications": [
+    { "id": "V-001", "criterion": "判据3 FIX-002 逐条核实", "command": "read/grep 三迁移约束取值 + 文档", "result": "PASS", "evidence": "jobs 含 timeout / projects 六值 / episodes 六值+stage 八值；CHANGELOG:280-282" },
+    { "id": "V-002", "criterion": "判据3 FIX-003 逐条核实", "command": "grep UI 字段/校验/预览 + 迁移 029", "result": "PASS", "evidence": "4/4 验收标准命中；CHANGELOG:237" },
+    { "id": "V-003", "criterion": "判据4 SEC-003", "command": "读迁移 024 CHECK 取值", "result": "PASS", "evidence": "auth_type IN (...,'token',...)" },
+    { "id": "V-004", "criterion": "判据4 SEC-004", "command": "读迁移 027 + engine.go + credentials.go", "result": "PASS(代码级)", "evidence": "真库集成测试未执行 → 残留项" },
+    { "id": "V-005", "criterion": "判据4 P2-001", "command": "读 executor.go:123 接口方法 + api_connector.go", "result": "PASS", "evidence": "Submit/Poll/Cancel/GetResult 齐备" },
+    { "id": "V-006", "criterion": "判据4 INFRA-002 判据3/4/5/6 实测", "command": "printf '<path>' | bash .github/scripts/detect-changes.sh --from-stdin ×4", "result": "PASS", "evidence": "apps/web→frontend only；services/asset→[\"asset\"]；README.md→全 false；.github/**→全量" },
+    { "id": "V-007", "criterion": "判据2/8 台账一致性", "command": "bash .github/scripts/check-task-ledger.sh", "result": "PASS", "evidence": "rc=0" },
+    { "id": "V-008", "criterion": "判据8 门禁有效性", "command": "check-task-ledger.sh --self-test", "result": "PASS", "evidence": "10/10 反例拦截" },
+    { "id": "V-009", "criterion": "判据5 CREATE 编号裁定证据", "command": "读 ADR 分片表 + grep -rn aspectRatios services/ openapi/", "result": "PASS", "evidence": "无输出 ⇒ 分片 6 未交付" },
+    { "id": "V-010", "criterion": "判据4 CREATE-001~005 逐条核实", "command": "委派只读子 agent 逐卡比对", "result": "PASS(代码级 6/6)", "evidence": "gate/test/L3 未执行 → 残留项" }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "CREATE-006 无法闭合",
+      "rootCause": "同号不同事：ADR 分片 6 = 后端 aspectRatios（未交付），平铺卡 = 前端档位+双视图（已实现）",
+      "solution": "以 ADR 为权威作出裁定并登记；不擅自闭合、不重编号，留 Owner 确认",
+      "lesson": "编号是软约定，跨文档引用前必须查权威源；按标题对号入座会把 A 的完成记成 B 的完成"
+    },
+    {
+      "id": "B-002",
+      "block": "13 张卡「未排期」实为「已完成」",
+      "rootCause": "台账双维护无校验（已由 PROC-003 修）＋ 无「交付物是否已存在」的开工核实纪律",
+      "solution": "本卡回填；该纪律写入排期 v2 §5 第 8 条",
+      "lesson": "台账只保证自洽，不保证真实；「描述是否仍成立」只能靠开工核实"
+    }
+  ],
+  "disciplineSelfCheck": [
+    { "item": "先本地测试/验证再 commit", "result": "✓", "evidence": "V-001~V-010 全部在 commit 前完成；V-007/V-008 复跑" },
+    { "item": "按路径 add（禁 git add -A）", "result": "✓", "evidence": "commit 前 git diff --cached --name-only 核对" },
+    { "item": "只改点名范围（未越界）", "result": "✓", "evidence": "本卡四件套 + ledger.json + README.md；零代码改动" },
+    { "item": "验收清单逐项勾对（AC-004/005）", "result": "✓", "evidence": "acceptance.md 8/8" },
+    { "item": "GATE / 后端门禁全绿", "result": "N/A+脚本门绿", "evidence": "无 Go/前端改动；台账门 + shell 门 rc=0" },
+    { "item": "台账同步（状态/PR 号）", "result": "✓", "evidence": "本次回填即台账同步本身" },
+    { "item": "未验证项如实标注（不冒称通过）", "result": "✓", "evidence": "devlog「各卡残留的未验证项」表" }
+  ],
+  "retrospective": {
+    "good": "拒绝一刀切闭合，按证据强度分三级处置；发现并停住 CREATE-006 同号不同事（若按标题闭合会把 ADR 未交付的后端片记成已验收）；CREATE 系列委派只读子 agent 逐条核实且未执行项一律标⚠️；INFRA-002 不停在「文件存在」而实际跑通四类路径分类",
+    "improve": "本卡的核实早该做——它是我自己在 v2 §3 犯错的根因，制定 v2 前先核实存量卡可省一整轮返工；D-003 不补 acceptance.md 是效率取舍，但验收证据分散在本卡 devlog，可追溯性弱于独立文件",
+    "followups": "①等 Owner 确认编号裁定后重编号并闭合 CREATE-001~006；②SEC-004 真库集成测试、CREATE 系列 L3 走查属各卡验收动作；③ADR 分片 6=aspectRatios 应正式登记为未交付项（建议立卡）"
+  }
+}

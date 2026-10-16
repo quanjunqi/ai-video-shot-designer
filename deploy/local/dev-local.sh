@@ -22,7 +22,7 @@ echo ">> 构建应用服务二进制..."
 (cd "$ROOT/services/production"    && go build -o "$BIN/production"    ./cmd/server)
 (cd "$ROOT/services/execution"     && go build -o "$BIN/execution"     ./cmd/server)
 (cd "$ROOT/services/asset"         && go build -o "$BIN/asset"         ./cmd/server)
-(cd "$ROOT/services/outbox-relay"  && go build -o "$BIN/outbox-relay"  .)
+(cd "$ROOT/services/outbox-relay"  && go build -o "$BIN/outbox-relay"  ./cmd/server)
 (cd "$ROOT/services/web-bff"       && go build -o "$BIN/bff"           ./cmd/server)
 
 # ---- 启动（& 并行；Ctrl+C 统一清理）----

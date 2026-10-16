@@ -31,7 +31,7 @@ export const UI_CATALOG: UiCatalog = {
     "components": 42,
     "lines": 5081,
     "dead": 20,
-    "tokens": 69,
+    "tokens": 76,
     "withNotes": 42,
     "withDemo": 42
   },
@@ -1996,10 +1996,11 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 2,
+        "count": 3,
         "files": [
           "apps/web/src/components/ui/sidebar.tsx",
-          "apps/web/src/features/genworkbench/CreateWorkbench.tsx"
+          "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
+          "apps/web/src/features/tasks/TaskDetailSheet.tsx"
         ]
       },
       "dead": false,
@@ -3069,6 +3070,69 @@ export const UI_CATALOG: UiCatalog = {
       "utilities": []
     },
     {
+      "name": "--duration-instant",
+      "light": "80ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-instant"
+      ]
+    },
+    {
+      "name": "--duration-fast",
+      "light": "150ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-fast"
+      ]
+    },
+    {
+      "name": "--duration-base",
+      "light": "200ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-base"
+      ]
+    },
+    {
+      "name": "--duration-slow",
+      "light": "250ms",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--duration-slow"
+      ]
+    },
+    {
+      "name": "--ease-standard",
+      "light": "cubic-bezier(0.2, 0, 0, 1)",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--ease-standard"
+      ]
+    },
+    {
+      "name": "--ease-decelerate",
+      "light": "cubic-bezier(0, 0, 0, 1)",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--ease-decelerate"
+      ]
+    },
+    {
+      "name": "--ease-accelerate",
+      "light": "cubic-bezier(0.3, 0, 1, 1)",
+      "dark": null,
+      "group": "动效",
+      "utilities": [
+        "--ease-accelerate"
+      ]
+    },
+    {
       "name": "--shadow-2xs",
       "light": "0px 2px 12px 0px hsl(0 0% 0% / 0.01)",
       "dark": null,
@@ -3390,6 +3454,41 @@ export const UI_CATALOG: UiCatalog = {
       "group": "圆角"
     },
     {
+      "name": "--duration-instant",
+      "value": "var(--duration-instant)",
+      "group": "其他"
+    },
+    {
+      "name": "--duration-fast",
+      "value": "var(--duration-fast)",
+      "group": "其他"
+    },
+    {
+      "name": "--duration-base",
+      "value": "var(--duration-base)",
+      "group": "其他"
+    },
+    {
+      "name": "--duration-slow",
+      "value": "var(--duration-slow)",
+      "group": "其他"
+    },
+    {
+      "name": "--ease-standard",
+      "value": "var(--ease-standard)",
+      "group": "其他"
+    },
+    {
+      "name": "--ease-decelerate",
+      "value": "var(--ease-decelerate)",
+      "group": "其他"
+    },
+    {
+      "name": "--ease-accelerate",
+      "value": "var(--ease-accelerate)",
+      "group": "其他"
+    },
+    {
       "name": "--shadow-2xs",
       "value": "var(--shadow-2xs)",
       "group": "阴影"
@@ -3600,15 +3699,15 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 187,
+    "scannedFiles": 190,
     "text": [
       {
         "value": "xs",
-        "count": 431
+        "count": 434
       },
       {
         "value": "sm",
-        "count": 194
+        "count": 195
       },
       {
         "value": "lg",
@@ -3640,11 +3739,11 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 718
+        "count": 726
       },
       {
         "value": "1",
-        "count": 506
+        "count": 511
       },
       {
         "value": "3",
@@ -3656,7 +3755,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "4",
-        "count": 246
+        "count": 252
       },
       {
         "value": "0.5",
@@ -3668,7 +3767,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "6",
-        "count": 75
+        "count": 77
       },
       {
         "value": "0",
@@ -3687,11 +3786,11 @@ export const UI_CATALOG: UiCatalog = {
         "count": 9
       },
       {
-        "value": "7",
-        "count": 6
+        "value": "10",
+        "count": 9
       },
       {
-        "value": "10",
+        "value": "7",
         "count": 6
       },
       {
@@ -3736,7 +3835,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 209
+        "count": 212
       },
       {
         "value": "xl",
@@ -3882,5 +3981,5 @@ export const UI_CATALOG: UiCatalog = {
       }
     ]
   },
-  "themeUtilityCount": 58
+  "themeUtilityCount": 65
 };

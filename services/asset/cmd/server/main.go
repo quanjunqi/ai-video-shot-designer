@@ -3,71 +3,34 @@ package main
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
-	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"shotdesigner/services/asset/internal/asset"
-	"shotdesigner/services/asset/internal/httpapi"
 	"shotdesigner/shared/observability"
 )
 
+// main 只做装配（BE-LAYER-002）：读 env → 构造 → 启动。
+//
+// 收敛位置（TASK-PROC-006）：依赖构造与**装配校验**（含 minio 建桶的"存在即容忍"语义）
+// → internal/New（本文件因此 ≤50 行）；业务全在 internal/<pkg>。
+//
+// 行为不变：环境变量名、默认值、启动顺序、日志文案、os.Exit 语义逐条照搬；
+// 失败日志仍由 New 按原文案打出，本文件只负责退出。
 func main() {
 	logger := observability.NewJSONLogger("asset")
-	dsn := os.Getenv("ASSET_DATABASE_URL")
-	token := os.Getenv("ASSET_INTERNAL_TOKEN")
-	endpoint := env("ASSET_S3_ENDPOINT", "minio:9000")
-	bucket := env("ASSET_S3_BUCKET", "assets")
-	if dsn == "" || token == "" {
-		logger.Error("ASSET_DATABASE_URL and ASSET_INTERNAL_TOKEN must be set")
-		os.Exit(1)
-	}
+	cfg := ConfigFromEnv()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	p, err := pgxpool.New(ctx, dsn)
+
+	a, err := New(ctx, logger, cfg)
 	if err != nil {
-		logger.Error("pgxpool init failed", slog.Any("err", err))
 		os.Exit(1)
 	}
-	defer p.Close()
-	if err := p.Ping(ctx); err != nil {
-		logger.Error("db ping failed", slog.Any("err", err))
-		os.Exit(1)
-	}
-	mc, err := minio.New(endpoint, &minio.Options{Creds: credentials.NewStaticV4(os.Getenv("ASSET_S3_ACCESS_KEY"), os.Getenv("ASSET_S3_SECRET_KEY"), ""), Secure: false})
-	if err != nil {
-		logger.Error("minio init failed", slog.Any("err", err))
-		os.Exit(1)
-	}
-	if err := mc.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
-		exists, _ := mc.BucketExists(ctx, bucket)
-		if !exists {
-			logger.Error("bucket init failed", "bucket", bucket, slog.Any("err", err))
-			os.Exit(1)
-		}
-	}
-	max := int64(100 * 1024 * 1024)
-	if v, err := strconv.ParseInt(os.Getenv("ASSET_MAX_BYTES"), 10, 64); err == nil && v > 0 {
-		max = v
-	}
-	h := httpapi.Handler{Store: asset.Store{Pool: p, Object: mc, Bucket: bucket, MaxBytes: max}, Token: token, Ready: p.Ping}
-	addr := env("ASSET_LISTEN_ADDR", "0.0.0.0:8084")
-	metrics := observability.NewMetrics()
-	handler := observability.WithObservability(logger, metrics)(h.Routes())
-	logger.Info("asset service listening", "addr", addr)
-	if err := (&http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second}).ListenAndServe(); err != nil {
+	defer a.Close()
+
+	if err := a.ListenAndServe(); err != nil {
 		logger.Error("asset server stopped", slog.Any("err", err))
 		os.Exit(1)
 	}
-}
-
-func env(k, f string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return f
 }

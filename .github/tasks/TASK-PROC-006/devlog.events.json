@@ -1,0 +1,212 @@
+{
+  "taskId": "TASK-PROC-006",
+  "updatedAt": "2026-10-17T06:00:00+08:00",
+  "note": "本卡状态：进行中。已完成范围界定与违规性质判定，尚未改码。",
+  "events": [
+    {
+      "ts": "2026-10-16T14:00:00+08:00",
+      "phase": "立卡/违规性质判定",
+      "action": "界定范围为三个 cmd/server/main.go；逐行读最严重者后判定其违规性质为尺寸而非业务堆 cmd，据此定修法为搬移",
+      "evidence": [
+        "范围：TASK-PROC-005 基线中 cmd/server/main.go 三项 184(execution)/94(production)/73(asset)，同规则同修法，做完即关闭 BE-LAYER-002",
+        "逐行读 execution/cmd/server/main.go（184 行）：1-28 行 import；30-164 行 main() = env 读取 + 14 个依赖构造 + 启 worker/HTTP；166-184 行两个 env 工具",
+        "⇒ 文件内无业务逻辑/SQL/handler 实现: 不是『业务堆在 cmd』的实质违规，而是『单文件超行数上限』",
+        "⇒ 修法必须是搬移装配（规则原话『装配校验收敛在构造函数』）；照『业务堆 cmd』删减会误删必要装配、造成真回归",
+        "已参考 TASK-PROC-005 的棘轮：改完应对这三项输出『可收紧』并收紧基线"
+      ],
+      "decisionRef": "D-002",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T15:00:00+08:00",
+      "phase": "实现 + 全判据验证",
+      "action": "三服务装配搬移到 internal/app，main.go 收缩到 ≤50 行；已有测试 git mv 到同包；收紧基线；跑整链回归与服务可用验证",
+      "evidence": [
+        "判据1：execution 184→38 / production 94→37 / asset 73→37 行（上限50）；新装配包 301/150/146 行（≤500）",
+        "测试同包迁移：git mv services/execution/cmd/server/main_test.go → internal/app/app_test.go（包名 main→app）；该测试锁『保留期只认正数』，注释写明理由是删数据相关的不变量，不能丢",
+        "为让迁来的测试只需换包名，envInt/envDuration 签名照搬原样（直接读 os.Getenv）",
+        "判据2/3 棘轮按设计工作：三项依次报『可收紧』，基线 12→9 条 ⇒ BE-LAYER-002 的 main.go 部分彻底关闭",
+        "判据5 整链回归：audit-verdicts.sh 通过 20 / 失败 0 / EXIT=0，与重构前逐项一致；该套件从源码构建 execution 并跑全链路 ⇒ 真正验证了重构后的 app.New/Start/ListenAndServe",
+        "判据6 服务可用：停旧栈→新二进制重启→5 端口 10s 就绪、/api/v1/me=200、启动日志文案逐字保持",
+        "判据7 部分满足：三 app 包默认值/显式值测试已加；New 的必填缺失/部分配置分支需真实 DB，属集成测试范畴，未覆盖（已如实说明）",
+        "三处细微行为差异（均不可外部观测）已如实记录：错误路径显式 pool.Close（原依赖 os.Exit 跳过 defer）；ctx 创建早于校验；停止日志仍在 main 内（刻意保持文案一致）"
+      ],
+      "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T06:00:00+08:00",
+      "phase": "🔴 纠正：装配搬家搬错地方（internal/app → cmd/server/app.go）",
+      "action": "PR #205 的 CI 在 asset 覆盖率棘轮失败；定位为我把装配搬进被计数的 internal/app；改搬到同包 cmd/server/app.go",
+      "evidence": [
+        "CI 失败步骤：Backend Build & Test (asset) 的 Coverage floor (ratchet)；Test 与 Integration tests must not skip 都是 success ⇒ 不是跳过问题，是真低于下限",
+        "CI 各包覆盖率：cmd/server 0.0%（被排除）；internal/app 15.8%（我新建，被计入）；internal/asset 81.7%；internal/httpapi 82.2% ⇒ 总 72.3% < 80%",
+        "覆盖率脚本注释里早有同一场景：『实测 cmd/server 恒为 0%，曾把 asset 整服务 82% 拉到 69%』—— 我把它从 82% 又拉到 72.3%",
+        "根因：我对 BE-LAYER-002 的理解越界。规则原文是『cmd/ 只装配：只读环境变量、依赖注入、启动 server』与『main.go ≤50 行：只留 main()…装配校验收敛在构造函数』—— 只要求 main.go 短，没要求装配搬出 cmd/",
+        "正解：cmd/server/app.go（同包、另一个文件）；我错搬到 internal/app/（另一个包，且被覆盖率计入）",
+        "修复后验证：internal/app 已不在统计里（统计语句 260→222）；CI 口径 asset = (97+85)/(118+104) = 182/222 = 82.0% ≥ 80%",
+        "三服务 build/vet/gofmt/test 全部通过；行数门禁通过（cmd/server/app.go 146/150/301 行）",
+        "★教训：两条规则同时存在时，『满足其一』不等于『理解其一』—— 为满足 main.go ≤50 行而搬走装配，却没同时检查搬到哪里会触发另一条规则（覆盖率排除只认 /cmd/ 路径）",
+        "★正面例子：本地因 S3 集成测试跳过（33.8%）根本看不出问题，只有 CI 跑全了才暴露 —— 本地不可比、CI 把关"
+      ],
+      "decisionRef": null,
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "本卡范围",
+      "options": [
+        "一次拆 12 个超标文件",
+        "只做三个 main.go"
+      ],
+      "choice": "只做三个 main.go",
+      "reason": "12 个塞一张卡即合体卡（违排期 v2 拆卡判据）；三项同规则同修法，做完即关闭该规则",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "装配怎么处置",
+      "options": [
+        "删减（以为业务堆 cmd）",
+        "搬移进构造函数"
+      ],
+      "choice": "搬移",
+      "reason": "逐行读证该文件无业务逻辑、只有装配 ⇒ 删减会真回归。规则原话：装配校验收敛在构造函数",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-003",
+      "topic": "用什么判据回归",
+      "options": [
+        "只跑单测",
+        "加跑整链 audit-verdicts.sh"
+      ],
+      "choice": "加跑整链",
+      "reason": "execution 是网关所在服务；装配改动的失败模式是启动即断链，单测覆盖不到",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-004",
+      "topic": "cmd 里的测试怎么办",
+      "options": [
+        "删掉",
+        "留在 cmd",
+        "git mv 到 internal/app"
+      ],
+      "choice": "git mv 到 internal/app",
+      "reason": "规则原文『测试随业务迁移到同包（git mv），不留在 cmd/』；且该测试锁的是保留期只认正数（删数据相关的不变量），不能丢",
+      "timing": "实现"
+    },
+    {
+      "id": "D-005",
+      "topic": "env 工具签名",
+      "options": [
+        "改成收 getenv 参数",
+        "照搬原样直接读 os.Getenv"
+      ],
+      "choice": "照搬原样",
+      "reason": "让迁来的测试只需换包名即可继续锁定同一不变量 —— 改动最小、风险最低",
+      "timing": "实现"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "范围核实",
+      "command": "check-file-size.sh + wc -l",
+      "result": "PASS：三项 184/94/73",
+      "evidence": "task.md"
+    },
+    {
+      "id": "V-002",
+      "criterion": "违规性质判定",
+      "command": "逐行读 execution/cmd/server/main.go",
+      "result": "PASS：尺寸违规，非业务堆 cmd",
+      "evidence": "devlog"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 1 三文件行数",
+      "command": "wc -l",
+      "result": "PASS：38/37/37（上限 50）",
+      "evidence": "devlog"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 2 棘轮感知",
+      "command": "check-file-size.sh",
+      "result": "PASS：三项报可收紧",
+      "evidence": "devlog"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据 3 收紧基线",
+      "command": "编辑基线文件",
+      "result": "PASS：12 → 9 条",
+      "evidence": ".github/file-size-baseline.txt"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据 4 构建测试",
+      "command": "三服务 build/vet/gofmt/test -race",
+      "result": "PASS 全绿",
+      "evidence": "终端输出"
+    },
+    {
+      "id": "V-007",
+      "criterion": "判据 5 整链回归",
+      "command": "bash scripts/audit-verdicts.sh",
+      "result": "PASS：20 通过 / 0 失败 / EXIT=0",
+      "evidence": "/tmp/verdict3.out"
+    },
+    {
+      "id": "V-008",
+      "criterion": "判据 6 服务可用",
+      "command": "停旧栈 → 新二进制重启 → 探活",
+      "result": "PASS：5 端口 10s 就绪、/api/v1/me=200、文案逐字保持",
+      "evidence": "/tmp/devlocal-restart.log"
+    },
+    {
+      "id": "V-009",
+      "criterion": "判据 7 构造函数测试",
+      "command": "三 app 包 go test -race",
+      "result": "部分 PASS：默认值/显式值已覆盖；New 的 DB 依赖分支未覆盖",
+      "evidence": "终端输出"
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    {
+      "item": "开工前建日志（AC-010）",
+      "result": "✓",
+      "evidence": "devlog.md"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 9 条"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "立卡前核实前提（§5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001/V-002 逐行读后再定修法"
+    },
+    {
+      "item": "尚未改码",
+      "result": "✓",
+      "evidence": "仅四件套文档"
+    }
+  ],
+  "retrospective": {
+    "good": "①立卡前逐行读最严重文件，判定违规性质为『尺寸』而非『业务堆 cmd』—— 避免了按错误假设删装配造成真回归；②判据 5 选得准：套件从源码构建 execution，正好覆盖装配改动的主要失败模式（启动即断链）；③棘轮按设计报『可收紧』并收紧基线，机制闭环被真实验证；④三处细微行为差异如实记录而非宣称『完全一致』",
+    "improve": "判据 7 我原写『构造函数有测试』时没意识到 New 需要真实 DB，导致只能部分满足；立判据时应先确认可测性（同 TASK-OBS-003 的教训：先核实再写判据）",
+    "followups": "剩余 9 个 >500 行文件（BE-SIZE-001）另立卡按域拆；其中 4 个是 *_test.go"
+  }
+}

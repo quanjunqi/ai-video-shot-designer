@@ -210,7 +210,15 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 	if err := rows.Err(); err != nil {
 		t.Fatalf("iterate rows: %v", err)
 	}
-	wantWithPollPath := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video"}
+	// ★ TASK-MODEL-006（迁移 061）后本集合新增第三个成员 pt_builtin_openai_video。
+	//
+	// 本断言的原意是「**029 只动了该动的行**」——该意**未被削弱**：
+	// 上面 ① ② 两段仍逐字段锁着那两个模板的值，唯一变化是**全局集合合法地长大了**。
+	// 061 新增的 PearAPI 视频模板（OpenAI 兼容 /v1/videos/generations）**有意**配了 pollPath
+	// —— 它若无 pollPath，异步视频就永远轮询不到终态（这正是协议注册表头部记的
+	// 「UI 表达不了 pollPath ⇒ 内置视频模板漏配、异步轮询全部失败」那类缺陷）。
+	// 故它不是"多改了一行"，而是"多了一个应当带 pollPath 的模板"。
+	wantWithPollPath := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video", "pt_builtin_openai_video"}
 	if !reflect.DeepEqual(withPollPath, wantWithPollPath) {
 		t.Errorf("带 pollPath 的模板集合:\n got: %v\nwant: %v", withPollPath, wantWithPollPath)
 	}
@@ -229,7 +237,8 @@ func TestPostgresProtocolTemplateAsyncPollPath(t *testing.T) {
 //     实现误判为回归（本文件此前正是如此，详见 032 的注释）。
 //     queued/in_progress 仍是有意的「继续轮询」态，不在终态候选内。
 //  2. jsonb_set 只覆盖这两个键：该行 async 仍是 6 个字段（一个都没丢），pollPath 未被破坏。
-//  3. 全表带 failValue 的行恰好是这两个异步模板；其余 6 个内置模板 async 仍为 '{}'
+//  3. 全表带 failValue 的行恰好是这三个异步模板（061 起含 pt_builtin_openai_video）；
+//     其余 6 个内置模板 async 仍为 '{}'
 //     —— 即「只改了该改的」。
 //
 // 未设置 PRODUCTION_TEST_DATABASE_URL 时跳过（与既有集成测试一致）。
@@ -256,7 +265,8 @@ func TestPostgresProtocolTemplateAsyncTerminalValues(t *testing.T) {
 		t.Errorf("minimax pollPath = %q, 被 030 破坏", pollPath)
 	}
 
-	// 断言 ③：带 failValue 的行恰好是这两个异步模板；其余 6 个内置模板 async 仍为 '{}'。
+	// 断言 ③：带 failValue 的行恰好是这三个异步模板（061 起含 pt_builtin_openai_video）；
+	// 其余 6 个内置模板 async 仍为 '{}'。
 	rows, err := store.Pool.Query(ctx,
 		`SELECT id FROM protocol_templates WHERE jsonb_exists(async, 'failValue') ORDER BY id`)
 	if err != nil {
@@ -274,7 +284,10 @@ func TestPostgresProtocolTemplateAsyncTerminalValues(t *testing.T) {
 	if err := rows.Err(); err != nil {
 		t.Fatalf("iterate rows: %v", err)
 	}
-	wantWithFailValue := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video"}
+	// ★ 同上：TASK-MODEL-006（迁移 061）后新增 pt_builtin_openai_video。
+	// 本断言的原意「030/032 只改了该改的」未被削弱 —— ①②③ 仍逐字段锁着 minimax 的值，
+	// 且"其余模板 async 仍为 '{}'"由下方 wantEmptyAsync 继续把关（061 的新模板不在其中）。
+	wantWithFailValue := []string{"pt_builtin_jimeng_video", "pt_builtin_minimax_video", "pt_builtin_openai_video"}
 	if !reflect.DeepEqual(withFailValue, wantWithFailValue) {
 		t.Errorf("带 failValue 的模板集合:\n got: %v\nwant: %v", withFailValue, wantWithFailValue)
 	}

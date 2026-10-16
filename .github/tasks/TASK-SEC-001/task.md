@@ -1,6 +1,6 @@
 ---
 taskId: TASK-SEC-001
-status: accepted
+status: 已验收
 priority: P0
 depends_on: TASK-INFRA-004
 criteria: 8

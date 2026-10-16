@@ -162,8 +162,25 @@ export function listFallbackRange(count: number | undefined, candidates: readonl
   };
 }
 
-/** 比例候选：目录当前只有 aspectRatioCount，故一律走 count-fallback（ADR-006 D3） */
-export function listAspectRatios(count: number | undefined): FallbackRange {
+/**
+ * 比例候选（ADR 分片 6 / D3-B）：
+ * - 目录**显式声明** `aspectRatios` → 走 declared，取值与声明**逐字一致**（顺序也保持）
+ * - 未声明 → 退回既有 count-fallback（`aspectRatioCount` 取常见候选前 N 项），**行为不变**
+ *
+ * 为什么要有 declared：此前目录只能声明"数量"，前端便只能拿通用表前 N 项去猜，
+ * **可能给出该模型实际不支持的比例**（用户提交后才在上游失败）。声明式让目录说了算。
+ */
+export function listAspectRatios(
+  declared: readonly string[] | undefined,
+  count: number | undefined,
+): FallbackRange {
+  // 去重但保序：重复声明不应产生重复选项；空白项视作未声明该项
+  const cleaned = (declared ?? []).map((v) => v.trim()).filter((v) => v.length > 0);
+  const values = Array.from(new Set(cleaned));
+  if (values.length > 0) {
+    return { values, source: 'declared' };
+  }
+  // 声明了空数组或全为空白 ⇒ 语义等同"未声明"，如实走 count-fallback（不放宽 source 语义）
   return listFallbackRange(count, COMMON_ASPECT_RATIOS);
 }
 
@@ -276,7 +293,7 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
 
   if (kind === 'image' && isImageCapability(model.capability)) {
     const capability = model.capability;
-    const aspectRatios = listAspectRatios(capability.aspectRatioCount);
+    const aspectRatios = listAspectRatios(capability.aspectRatios, capability.aspectRatioCount);
     const qualityOptions = listFallbackRange(capability.qualityTiers, COMMON_QUALITY_TIERS);
     const controls: ControlDef[] = [
       ...promptControls('image', true),
@@ -329,7 +346,8 @@ export function buildControlSchema(model: CatalogModel | undefined, kind: Create
 
   if (kind === 'video' && isVideoCapability(model.capability)) {
     const capability = model.capability;
-    const aspectRatios = listFallbackRange(3, COMMON_ASPECT_RATIOS); // 目录未声明视频比例数量
+    // ADR 分片 6：目录显式声明 ratio 列表则用声明值；未声明退回既有推断（含视频侧数量未知的兜底 3）
+    const aspectRatios = listAspectRatios(capability.aspectRatios, 3);
     const qualityOptions = listFallbackRange(capability.qualityTiers, COMMON_QUALITY_TIERS);
     const modes = modesForVideo(capability);
     const controls: ControlDef[] = [

@@ -1,10 +1,10 @@
 ---
 taskId: TASK-AUTH-001
-status: in_progress
+status: 待验收
 priority: P0（排期第一批第 8 刀）
-pr: "#<待开>"
-criteria: 4
-criteriaPassed: 0
+pr: "#203（已合并，fbffb64）"
+criteria: 6
+criteriaPassed: 5
 depends_on: TASK-AUDIT-001（D8 访问控制）
 ---
 
@@ -17,8 +17,8 @@ depends_on: TASK-AUDIT-001（D8 访问控制）
 - **人类 Owner**：项目 Owner
 - **AI 执行者**：AI Agent
 - **优先级**：**P0**（T13 判据 5 前置；Owner 2026-10-15 拍板：推翻 AUDIT-001「暂不含多角色管理」）
-- **状态**：待开工
-- **验收清单**：开工前产出（AC-008）
+- **状态**：待验收（PR #203 已合并 fbffb64；判据 1/2/4/5 ✅、判据 3 ✅△、判据 6 待 Owner 真机走查）
+- **验收清单**：[acceptance.md](acceptance.md)（已产出，6 条判据）
 
 ## 背景（为什么现在做）
 1. **T13 判据 5 未闭合**：P0 全链路集成验收 5 条判据中，判据 5「模型中心权限矩阵（三角色）」依赖 T10 未实现，是唯一未闭合项。

@@ -1,0 +1,567 @@
+{
+  "taskId": "TASK-MODEL-006",
+  "updatedAt": "2026-10-17T04:00:00+08:00",
+  "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
+  "events": [
+    {
+      "ts": "2026-10-16T00:45:00+08:00",
+      "phase": "立卡/前提核实",
+      "action": "Owner 定调『业务代码只是壳子+mock，当务之急是底座能力』后，直接查真库量化底座缺口（不凭印象立卡）",
+      "evidence": [
+        "useSettingsStore.ts:115 catalogSource 初始值 'demo'（硬编码 model-catalog.ts）；:130 成功才变 'server'；:134 失败退 'offline-fallback'",
+        "production 库：logical_models = 2 行，id 为 accept-smoke-text / accept-smoke-image（dev-plan T6 的『冒烟 2 行』）",
+        "model_catalog 18 行，仅 3 行有 logical_model_id（入池）",
+        "provider_model 非空仅 6/18；入池行 gpt-image-2 的 provider_model 为空 ⇒ 违反供给单元「ProviderModel 必填」语义",
+        "channel_models 79 条全部来自 PearAPI 单渠道（7 渠道中 6 个无同步数据）",
+        "protocol_templates 仅 2/8 有 capabilities（pt_builtin_openai / pt_builtin_openai_img，形态完整可照抄）"
+      ],
+      "decisionRef": "D-001",
+      "blockRef": "B-001"
+    },
+    {
+      "ts": "2026-10-16T01:00:00+08:00",
+      "phase": "Owner 答复→范围修订",
+      "action": "向 Owner 提出 4 项数据口径问题，收到答复并据此修订范围（含推翻 dev-plan T6 假设）",
+      "evidence": [
+        "① 只有 PearAPI 一个中转站真实，其余 6 渠道（ComfyUI/Google/Grsai/即梦/MiniMax/OpenAI）为 mock",
+        "② 逻辑模型不作为普遍机制，仅用于『免费模型收纳』；工作层直接从模型广场选真实模型 ⇒ 推翻 dev-plan T6 的 5 个命名",
+        "③ 价格手动录入原价 + 加价（manual），落在 037 的 cost_*/price_* 分离",
+        "④ 能力档位对齐官方文档（已派只读调研）",
+        "额外发现：同步只给裸名字——tags 全空 / endpoint_types 全 [] / vendor 全 custom / pricing 0-79 / model_type 全占位 'model'"
+      ],
+      "decisionRef": "D-004",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T01:30:00+08:00",
+      "phase": "Owner 澄清 + 拍板",
+      "action": "Owner 纠正我对逻辑模型的理解，并就 mock 渠道/加价方式/免费模型三项拍板；据此核实并第三次收缩卡范围",
+      "evidence": [
+        "纠正：逻辑模型 = 通用「模型分组/特殊收纳」机制，工作层也可用（主入口仍是模型广场）；免费模型只是案例；不替 Owner 建分组数据",
+        "核实该功能已存在：openapi/bff.yaml:1326/1368/1385/1411/1428（CRUD + /{id}/candidates）；apps/web/src/pages/SettingsLogicalModels.tsx 591 行；表 logical_models + model_catalog.logical_model_id（migration 025/026）",
+        "拍板1：mock 渠道全部删除（6 条，仅留 PearAPI）",
+        "拍板2：加价 = 原价 + 原价×比例%，逐模型可设 + 勾选批量；⚠️ 核实现有字段无『比例』（仅 cost_*/price_*/price_source/price_synced_at）⇒ 需新增且独立存储",
+        "拍板3：免费模型 Owner 自决，本卡只交付功能"
+      ],
+      "decisionRef": "D-007",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T01:45:00+08:00",
+      "phase": "补充拍板",
+      "action": "Owner 答复计费方式与加价分档两项；据此确定两级比例设计",
+      "evidence": [
+        "计费：图片按次 / 文字按 token / 视频按秒（⇒ 非包月）⇒ 对应 cost_unit 的 per_call / per_mtok_* / per_second",
+        "核实现状：cost_unit 是无约束 text，无默认无 CHECK（需在迁移中定义取值口径）",
+        "加价分两档：类型级默认（text/image/video）+ 模型级覆盖",
+        "设计：有效比例 = 模型级 ?? 类型级；售价 = 原价 × (1 + 有效比例)",
+        "批量设置 = 批量写模型级覆盖，与『改类型默认』是两个可区分操作"
+      ],
+      "decisionRef": "D-010",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T02:00:00+08:00",
+      "phase": "开工核实（第一刀）",
+      "action": "删 mock 渠道前先查引用面，发现三个后果，暂停执行交 Owner 决策",
+      "evidence": [
+        "model_catalog_versions.id → model_catalog.id 外键 ON DELETE NO ACTION；16 行 mock 目录对应 56 条归档版本（该表共 77 条）",
+        "model_catalog_archive 是 BEFORE UPDATE 触发器（每次改目录写一条版本）",
+        "model_catalog 无指向 model_channels 的外键 ⇒ 16 行孤儿目录（grsai4/google4/jimeng3/minimax2/comfy2/openai1；14/16 provider_model 为空）",
+        "gateway_audit_logs 44 行引用 mock 渠道；011_audit_immutability.sql 规定身份列不可变（channel_id 属身份列）"
+      ],
+      "decisionRef": "D-012",
+      "blockRef": "B-003"
+    },
+    {
+      "ts": "2026-10-16T02:30:00+08:00",
+      "phase": "结构交付 + 本轮收口",
+      "action": "按 Owner 拍板交付两条迁移（039 加价两级 / 040 清 mock 渠道），验证后主动收口，不在余量不足时硬推跨三层链路",
+      "evidence": [
+        "039_model_markup.sql：markup_ratio 可空列 + CHECK>=0；price_source CHECK 加 'markup'；新表 markup_type_defaults(workspace_id,type,ratio) PK(workspace_id,type)；真库事务试跑零错误并确认回滚",
+        "040_mock_channel_purge.sql：显式 ID 列表删 6 渠道 + 16 目录行 + 56 归档版本；试跑结果 目录18→2 / 版本77→21 / 孤儿0 / channel_models 79 行完好；确认回滚",
+        "关键决定：比例独立存储、类型默认单独建表、不播种比例值、显式 ID 列表、44 条悬挂审计不改写",
+        "号段：production 模型中心 024-039 已满，040 系下一个可用号（建议更新 SKILL.md 号段表）",
+        "收口理由：第 3~5 项是契约→Go→前端完整链，需逐层验证；余量不足时硬推会产出未验证的东西"
+      ],
+      "decisionRef": "D-013",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T22:30:00+08:00",
+      "phase": "迁移落地：号段让号 + 应用 039",
+      "action": "按 Owner 决定把 040 改名为 060（模型中心新认领 060-069），并只应用 039（加价比例）",
+      "evidence": [
+        "让号依据：原 040 属『项目知识库 040-049』，模型中心 024-039 已满（039 为最后一号）⇒ 无空号段可让；规范原文『撞号时后到者立即让号』",
+        "改名前核实：040 尚未应用（schema_migrations 只到 038）⇒ 铁律只约束已应用文件 ⇒ 改名零成本",
+        "号段表已同步 .agents/skills/database-migrations/SKILL.md；认领已登记进本卡 task.md",
+        "只应用 039 的处置：迁移执行器会应用全部待执行迁移，而 060 是破坏性清理（6 渠道 + 16 目录行 + 56 归档版本）⇒ 临时移出 060，应用后放回",
+        "compose 首次踩到：需 --profile app --profile platform（asset(app) 依赖 minio(platform)），否则报 service asset depends on undefined service minio",
+        "执行结果：迁移计划 待应用 1 · 已应用(跳过) 40 · 采纳 0；-> 039_model_markup.sql；当前版本 039_model_markup.sql",
+        "验证：markup_ratio 列 numeric 可空；price_source CHECK 含 manual/synced/markup；markup_type_defaults 表 PK(workspace_id,type)；既有 18 行 markup_ratio 非空 0 行、类型默认 0 行 ⇒ 向后兼容如设计",
+        "栈可用：/api/v1/me 200，5 端口全在（postgres 容器被 Recreate 未造成影响）"
+      ],
+      "decisionRef": "D-010",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T00:30:00+08:00",
+      "phase": "T5：补视频模板 + 两次失误报告",
+      "action": "新增 PearAPI 视频协议模板（061）填补真实缺口；同时报告两个我自己的失误（未确认就执行 060、建议 A 前提被证伪）",
+      "evidence": [
+        "定向实测：唯一真实渠道 PearAPI（79 channel_models），另 6 渠道全为 0；有 capabilities 的只有 openai/openai_img 2 个，恰好只有这 2 个被真实使用（入池 1 与 2）；PearAPI 的 15 个视频模型没有任何可用模板 ⇒ 视频模态走不通",
+        "交付：pt_builtin_openai_video（061），能力 text-to-video + image-to-video，POST /v1/videos/generations + 轮询 /v1/videos/{id}",
+        "证据分级写进 observed_evidence（仓内首次使用该字段）：实测已注册 4 条路由 / 实测形状（提交响应 {task_id,status:queued}、无 webhook、15s 刷新、24h 清扫、无跨渠道重试）/ 实测约束（豆包插件只保留 metadata） / 未验证 3 项 + 闭合方式；doc_ref.verifiedAt 保持 NULL",
+        "★失误1：上一轮我明确说『060 未被应用』并问是否先 dry-run 确认，本轮跑 migrate 时忘了再次移出 060 ⇒ 执行器把 060+061 一起应用（迁移计划：待应用 2）。这是承诺了确认却没执行。",
+        "失误1 处置：立即实测影响面并与会前 dry-run 对照 —— 渠道 7→1、目录行 18→2、channel_models 79 不变、归档版本 77→21，全部一致；且顺带达成判据 2（入池行 providerModel 违反 0 行）与判据 3（gpt-image-2 语义违反行 0 行剩余）",
+        "★失误2：我建议『删除 6 个零引用模板』，执行前验证发现前提只对一半 —— DB 侧引用全为 0 且无外键，但代码/文档侧每个有 4~17 处引用（jimeng_video 17、minimax_video 14、minimax_text 12）",
+        "失误2 追查：protocol_registry.go 是 ADR-007 D1 的协议即代码注册表，定义全部 8 个内置模板，读取路径『DB 行优先，DB 缺失的 id 由注册表补齐』⇒ 删 DB 行是非操作且打断测试 ⇒ 建议 A 从根上错了，已撤回",
+        "测试契约更新：061 使带 pollPath/failValue 的模板集合由 2 变 3 ⇒ 两条真库集成测试期望值过期（TestPostgresProtocolTemplateAsyncPollPath / AsyncTerminalValues）。处置：更新期望集合并写明理由，逐字段断言不放松，wantEmptyAsync 继续把关其余 6 个仍为 {}",
+        "判据4 口径问题：现状 3/9，与引用数完全对应（在用 2 个 + 061 新建 1 个有 caps；其余 6 个是内置定义、渠道已删、无官方文档可依据）⇒ 建议改为『在用模板 100% 有 caps』（现 3/3），但需 Owner 决定",
+        "我写 061 时犯了 2 个 SQL 语法错误并当场修正：COMMENT ON 里并排字符串字面量（SQL 不拼接相邻字面量）；改 || 后才知道 COMMENT ON 只接受单个字面量",
+        "验证：production 全量测试（含真库集成）rc=0；061 事务内验证→回滚干净（模板数仍 8）→再由执行器应用"
+      ],
+      "decisionRef": "D-013",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T01:30:00+08:00",
+      "phase": "发现并修正卡片内部不一致（防重复实现已作废判据）",
+      "action": "准备做 T12 时先核对判据 1，发现它已被 Owner 作废但 task/acceptance 未同步；已修正三处产物",
+      "evidence": [
+        "发现：task.md:30 与 acceptance.md:24 仍写『logical_models 恰为 GATE-3 的 5 个命名』，而 devlog:47 写着『推翻 dev-plan T6 的 5 个逻辑模型命名』、devlog:60 有 Owner 原话『他不需我创建分组数据，只需实现该功能』、devlog:65『本卡对该项改为验证端到端可用 + 工作层接线』",
+        "风险：我差点去造 5 个命名体系 —— 而 D-004 作废它的理由正是『按 A 做会产出一套无人使用的命名体系』",
+        "根因：devlog 跟着 Owner 答复更新了，task.md/acceptance.md 没同步",
+        "处置1：task.md 增『⛔ 已作废的判据（Owner 决定，勿再实现）』小节，逐条列作废项 + Owner 原话依据",
+        "处置2：acceptance.md 判据 1 改为『逻辑模型功能端到端可用 + 工作层接线』（不造数据）",
+        "处置3：task.md 写清仍然有效的核心缺口（Owner 实测原话：PearAPI 只给裸名字，tags 全空/endpoint_types 全 []/vendor 全 custom/pricing 0-of-79/model_type 全占位 model ⇒ 缺口是分类与富化）",
+        "顺带作废两项：『accept-smoke-* 不再存在』（现有 2 行 model_catalog 仍引用它们，改名牵动目录行）；『其余 6 渠道同步』（那 6 个是 mock 已被物理删除 ⇒ 不存在同步）",
+        "仍然有效的缺口数据已备：分类=model-classification.md、能力档位=model-capabilities.md、价格=Owner 定手动录入+加价、计费口径=图片按次/文字按 token/视频按秒"
+      ],
+      "decisionRef": "D-016",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T02:00:00+08:00",
+      "phase": "T12 施工前定向：撤回『手写 79 行迁移』的做法",
+      "action": "施工前取实证核对建行方式，发现架构早已把产品面限定为『人工策展产生』，且策展已全栈实现 ⇒ 撤回原计划",
+      "evidence": [
+        "ADR-004 D1 三层分离（034_channel_models.sql 头部原文）：channel_models 不被任何前端或执行路径读取；同步只写本表；只有经人工策展写入 model_catalog 后模型才可能对外可见",
+        "策展已全栈实现：production GET /internal/v1/catalog/supply + POST /internal/v1/catalog/curate；前端 CurationPanel.tsx + curation.ts；BFF 契约已暴露 /api/v1/catalog*",
+        "CurateInput 注释：凡来自供给池的字段都不在这里 —— 由 Curate 从供给池行读取，避免人工誊抄出错；Curate：只有走到这里模型才可能对外可见",
+        "⇒ 手写 79 条 INSERT 同时违反：ADR-004 策展设计 / Owner『入池 = 管理员精选，绝不自动全量挂』/ CurateInput 刻意排除供给池字段以避免誊抄的意图",
+        "修正后的交付物：①验证策展链路端到端可用（判据 8/9 正路）②把富化数据整理成人工策展可用的参考形态 ③策展一个最小示范集（1 text + 1 image + 1 video）让 061 新视频模板真正被走到",
+        "这是本轮第二次避免『按过期或错误的理解施工』（第一次是判据 1 已被 Owner 作废但 task/acceptance 未同步）"
+      ],
+      "decisionRef": "D-017",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T02:40:00+08:00",
+      "phase": "✅ 策展链路端到端验证 + 视频示范单元落地",
+      "action": "走已实现的策展 API（不手写迁移）把视频模态首个真实供给单元策展进产品面，并逐段实测链路",
+      "evidence": [
+        "①供给池读：GET /api/v1/catalog/supply?channel_id=chan-muo4b9zo 经 BFF → HTTP 200，79 条",
+        "②策展写：POST /api/v1/catalog/curate 经 BFF → HTTP 200，返回 model{id:mod_pearapi_seedance25, type:video, protocolTemplateId:pt_builtin_openai_video, logicalModelId:'', priceSource:manual, version:1}",
+        "③目录读：GET /api/v1/catalog 经 BFF → HTTP 200，3 个模型（text+image+video 示范集齐）",
+        "④前端可满足性：读 useSettingsStore.syncCatalog() —— 成功即置 catalogSource:'server'，失败才 offline-fallback；而 getCatalog() 已验证返回 3 个模型",
+        "★关键成果：061 的新视频模板目录引用由 0 变 1 —— 真正被用上，不再是建了没人用",
+        "选 doubao-seedance-2-5-260628 的理由：能力最丰富（omni-reference）+ 会走到豆包/Seedance 插件路径，使 061 observed_evidence 里记录的 metadata.content[] 约束有被检验的场景",
+        "如实边界：未入池（LogicalModelID 留空，Owner 定入池=管理员精选且不需我造分组数据）；未录价（留空=未定价而非 0，类型注释明确；价格需 Owner 手动录入原价）",
+        "如实边界：判据 8 的 catalogSource==='server' 是浏览器端运行时状态，我只验证了可满足性（逻辑+接口两条都通），未做真机浏览器断言 ⇒ 该项仍待端到端勾对",
+        "CurateInput 无 JSON 标签 ⇒ 用 Go 字段名（JSON 大小写不敏感）；handler 用 DisallowUnknownFields ⇒ 不能多字段"
+      ],
+      "decisionRef": "D-018",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-17T04:00:00+08:00",
+      "phase": "判据 8 真机勾对：先失败 → 定位到我的契约违反 → 修复 → 通过",
+      "action": "派子代理用无头 Chrome/CDP 真机断言判据 8；失败后独立核验并修复我自己引入的契约违反（迁移 062）；复验通过",
+      "evidence": [
+        "第一次实测：catalogSource === 'offline-fallback'，rc=1。不是前端没调 syncCatalog（AppShell.tsx:33 等共触发 5 次，10 个请求全部 HTTP 200），而是抛的异常被吞了",
+        "根因链：① 061 把 pt_builtin_openai_video 的 params/response_params 写成 '{}'::jsonb（对象），其余 8 个模板都是数组 ② 契约 openapi/bff.yaml:2935-2939 明确 type: array ⇒ 违反契约 ③ 前端 useSettingsStore.ts:81 的 (t.params ?? []).map —— {} 不是 nullish，?? [] 兜不住 ⇒ TypeError ④ 被 :157 裸 catch {} 吞掉 ⇒ markOfflineFallback() ⇒ UI 显示『服务端不可达』而服务端其实是好的",
+        "★反事实实验（决定性）：不改任何源码与数据，仅用 CDP Fetch.fulfillRequest 在响应途中把该行 {} 改成 []，其余字节不动 ⇒ 同一次运行里 syncCatalog() 立刻 offline-fallback → server、DOM 徽章变『目录已连接』⇒ 拦路石只有这一条畸形数据",
+        "我的独立核验（不只信子代理）：查真库确认 pt_builtin_openai_video 是 object/object，其余 8 个是 array/array",
+        "修复：新增迁移 062（061 已应用，按仓规『迁移只增不改』必须新增）；只 UPDATE 这一行这两个字段，WHERE 带 jsonb_typeof 判断 ⇒ 幂等；并给 params 列加 COMMENT 说明唯一合法类型是 array、空参数写 [] 不写 {}",
+        "应用前先核对『恰好只有 062 待应用』（吸取 060 那次教训）⇒ 待应用 1 · 已应用(跳过) 43，无连带应用；事务内先验证→回滚干净（类型仍 object）→再由执行器应用",
+        "第二次实测（rc=0）：catalogSource=server；目录非空 19（3 服务端+16 本地保留）；persist 轨迹一致 [server×5]；DOM 徽章 {connected:true,offline:false}",
+        "production 全量测试（含真库集成）rc=0",
+        "★由此暴露第三个缺陷（可观测性，本轮未修）：useSettingsStore.ts:157 的裸 catch {} 把真实异常吞了 ⇒ 任何原因失败都显示成『服务端不可达』；本次它把数据形状 bug 伪装成网络问题，直接延长了定位时间。建议至少 console.warn 带上 error",
+        "教训一：新数据必须逐字段对齐契约类型，『暂时不用参数』不是可以写错类型的理由（空参数应写 [] 不写 {}）",
+        "教训二：catch {} 空捕获会把根因变成假象 —— 这类『吞掉异常』的写法在本仓应视为缺陷"
+      ],
+      "decisionRef": "D-020",
+      "blockRef": null
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "立一张卡还是三张（T5/T6/T12）",
+      "options": [
+        "三张独立卡",
+        "一张卡三子项"
+      ],
+      "choice": "一张卡三子项",
+      "reason": "三者同属『供给单元池真实化』一个工作流、共享同一份真实数据口径；dev-plan 亦视作同一计划内三个可独立 PR。避免三张卡重复描述同一套背景数据",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-002",
+      "topic": "未获 Owner 数据口径时怎么办",
+      "options": [
+        "先按合理猜测填数据",
+        "只做结构，数据留空并标注"
+      ],
+      "choice": "只做结构，数据留空并标注",
+      "reason": "猜测填数据等于造第二份 mock——本卡要消灭的正是 mock。数据（哪些模型可用/挂哪些候选/价格口径/能力档位）是产品事实，AI 不得臆测",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-003",
+      "topic": "是否顺带做『入池』管理 UI",
+      "options": [
+        "做",
+        "不做（另议）"
+      ],
+      "choice": "不做（另议）",
+      "reason": "入池 = 管理员精选，其 UI 属模型中心页面工作，与本卡的数据/机制层解耦",
+      "timing": "立卡"
+    },
+    {
+      "id": "D-004",
+      "topic": "逻辑模型的范围",
+      "options": [
+        "按 dev-plan 做 5 个普遍命名",
+        "收缩为『免费模型收纳』一种用途"
+      ],
+      "choice": "收缩（Owner 定）",
+      "reason": "Owner 明确：逻辑模型是特殊的收纳方式，工作层直接用模型广场真实模型；按 A 做会产出一套无人使用的命名体系",
+      "timing": "Owner 答复"
+    },
+    {
+      "id": "D-005",
+      "topic": "单元级价格来源",
+      "options": [
+        "从上游同步",
+        "手动录入原价 + 加价"
+      ],
+      "choice": "手动录入原价 + 加价（Owner 定）",
+      "reason": "上游不提供可用价格口径；manual+加价正落在 037 的 cost/price 分离设计上",
+      "timing": "Owner 答复"
+    },
+    {
+      "id": "D-006",
+      "topic": "能力档位取值来源",
+      "options": [
+        "按经验/推断填",
+        "对齐官方文档"
+      ],
+      "choice": "对齐官方文档（Owner 定）",
+      "reason": "推断值会造出与官方不符的能力声明，导致请求被上游拒绝",
+      "timing": "Owner 答复"
+    },
+    {
+      "id": "D-007",
+      "topic": "逻辑模型的范围（第二次纠正）",
+      "options": [
+        "只用于收纳免费模型",
+        "通用『模型分组/特殊收纳』机制，工作层也可用"
+      ],
+      "choice": "通用分组机制（Owner 澄清）",
+      "reason": "Owner：免费模型只是案例，不是唯一用途；主入口仍是模型广场。且核实发现功能已存在（契约+591行UI+候选绑定）⇒ 本卡改为验证可用+工作层接线，不造分组数据",
+      "timing": "Owner 澄清"
+    },
+    {
+      "id": "D-008",
+      "topic": "mock 渠道处置",
+      "options": [
+        "禁用",
+        "标注 demo",
+        "全部删除"
+      ],
+      "choice": "全部删除（Owner 拍板）",
+      "reason": "Owner 决定删除；需级联检查 model_catalog 中挂在 mock 渠道的行，迁移可追溯、不静默丢数据",
+      "timing": "Owner 拍板"
+    },
+    {
+      "id": "D-009",
+      "topic": "加价比例如何落地",
+      "options": [
+        "只存算好的 price_amount",
+        "独立存比例，售价=原价×(1+比例)"
+      ],
+      "choice": "独立存比例",
+      "reason": "现有字段无『比例』；原价变动时售价必须跟随 ⇒ 比例必须独立存储。Owner 要求逐模型可设 + 勾选批量设置",
+      "timing": "Owner 拍板"
+    },
+    {
+      "id": "D-010",
+      "topic": "加价比例的层级",
+      "options": [
+        "只有模型级",
+        "两级：类型默认 + 模型覆盖"
+      ],
+      "choice": "两级（Owner 拍板分档）",
+      "reason": "Owner：类型分第一档、模型再分一档 ⇒ 有效比例 = 模型级 ?? 类型级。两级让新增模型自动继承类型默认，避免逐个设置",
+      "timing": "Owner 拍板"
+    },
+    {
+      "id": "D-011",
+      "topic": "批量设置与类型默认的关系",
+      "options": [
+        "同一个操作",
+        "两个可区分操作"
+      ],
+      "choice": "两个可区分操作",
+      "reason": "批量=改选中模型的覆盖；改类型默认=影响该类型下所有未覆盖模型。混为一谈会让用户『以为改了 3 个、实际改了整类型』",
+      "timing": "设计"
+    },
+    {
+      "id": "D-012",
+      "topic": "「删 mock 渠道」怎么删",
+      "options": [
+        "物理删除（连带删 56 条归档）",
+        "软删除",
+        "分级删除（零引用物理删、有引用软删）"
+      ],
+      "choice": "暂停，交 Owner 择一",
+      "reason": "物理删除会不可逆地删掉 56 条归档历史，与 model_catalog_versions 的 append-only 定位冲突；且 44 条不可变审计会指向已删渠道。删除历史这种不可逆操作不该由我替 Owner 决定",
+      "timing": "开工核实"
+    },
+    {
+      "id": "D-012",
+      "topic": "「删 mock 渠道」怎么删",
+      "options": [
+        "物理删除（连带删 56 条归档）",
+        "软删除",
+        "分级删除"
+      ],
+      "choice": "物理删除（Owner 拍板）",
+      "reason": "我先列出三方案与各自代价（物理删会不可逆删 56 条归档 + 44 条审计悬挂），Owner 知情后选物理删除。删除历史这类不可逆操作由 Owner 决定，不由我代决",
+      "timing": "Owner 拍板"
+    },
+    {
+      "id": "D-013",
+      "topic": "本轮是否继续硬推跨三层链路",
+      "options": [
+        "硬推第 3~5 项",
+        "收口，下一轮专门做"
+      ],
+      "choice": "收口",
+      "reason": "第 3~5 项是契约→Go→前端完整链，需逐层验证（api:check / go test -race / gate）。余量不足时硬推会产出『看起来完成但没验证』的东西，违反本仓核心纪律",
+      "timing": "收口"
+    },
+    {
+      "id": "D-010",
+      "topic": "040 的号段",
+      "options": [
+        "改名到新认领的 060",
+        "保持 040",
+        "指定其它号"
+      ],
+      "choice": "改名 060，模型中心认领 060-069",
+      "reason": "Owner 决定；024-039 已满无号可让；文件未应用 ⇒ 改名零成本",
+      "timing": "迁移"
+    },
+    {
+      "id": "D-011",
+      "topic": "是否连带应用 060",
+      "options": [
+        "一起应用",
+        "只应用 039"
+      ],
+      "choice": "只应用 039",
+      "reason": "Owner 明确「先应用 039」；060 是破坏性清理，应单独确认后执行",
+      "timing": "迁移"
+    },
+    {
+      "id": "D-012",
+      "topic": "compose 调用方式",
+      "options": [
+        "只 --profile app",
+        "app + platform"
+      ],
+      "choice": "app + platform",
+      "reason": "asset(app) 依赖 minio(platform)，只给 app 会报 invalid compose project",
+      "timing": "迁移"
+    },
+    {
+      "id": "D-013",
+      "topic": "6 个无 caps 模板怎么处置",
+      "options": [
+        "删除",
+        "保持现状",
+        "标记 disabled"
+      ],
+      "choice": "撤回『删除』，保持现状",
+      "reason": "它们是 protocol_registry.go 的内置协议定义；删 DB 行是非操作（注册表补齐）且打断 4~17 处代码/测试引用",
+      "timing": "T5"
+    },
+    {
+      "id": "D-014",
+      "topic": "视频模板的未验证项",
+      "options": [
+        "按推断填值不标注",
+        "如实标注 observed_evidence + verifiedAt=null"
+      ],
+      "choice": "如实标注",
+      "reason": "仓内铁律『不许瞎猜』；全部 8 个既有模板也都是 verifiedAt=null",
+      "timing": "T5"
+    },
+    {
+      "id": "D-015",
+      "topic": "两条集成测试期望值",
+      "options": [
+        "更新期望",
+        "改测试逻辑放宽"
+      ],
+      "choice": "更新期望并写明理由",
+      "reason": "集合合法增长；逐字段断言不放松 ⇒ 原意『只改了该改的』仍被守护",
+      "timing": "T5"
+    },
+    {
+      "id": "D-016",
+      "topic": "作废的判据怎么处置",
+      "options": [
+        "直接删掉",
+        "显式保留并标注作废 + Owner 原话"
+      ],
+      "choice": "显式保留并标注",
+      "reason": "删掉则后人无从判断『是漏写还是已作废』；显式标注可防重复实现（本次差点重复实现）",
+      "timing": "范围修正"
+    },
+    {
+      "id": "D-017",
+      "topic": "79 行目录怎么产生",
+      "options": [
+        "手写 79 条 INSERT 迁移",
+        "走已实现的策展 API/UI"
+      ],
+      "choice": "走策展 API/UI",
+      "reason": "ADR-004 D1 规定产品面只由人工策展产生；CurateInput 刻意排除供给池字段以避免誊抄；Owner 定『入池 = 管理员精选，绝不自动全量挂』",
+      "timing": "T12 定向"
+    },
+    {
+      "id": "D-018",
+      "topic": "示范集选哪个视频模型",
+      "options": [
+        "veo-3.1",
+        "hailuo-2.3",
+        "doubao-seedance-2-5-260628"
+      ],
+      "choice": "doubao-seedance-2-5-260628",
+      "reason": "能力最丰富（omni-reference）+ 会走到豆包/Seedance 插件路径 ⇒ 使 061 记录的 metadata.content[] 约束有被检验的场景",
+      "timing": "T12"
+    },
+    {
+      "id": "D-019",
+      "topic": "是否顺带入池/录价",
+      "options": [
+        "顺带做",
+        "都不做"
+      ],
+      "choice": "都不做",
+      "reason": "入池=管理员精选（Owner 定）且不需我造分组数据；留空=未定价而非 0（CurateInput 类型注释明确）",
+      "timing": "T12"
+    },
+    {
+      "id": "D-020",
+      "topic": "修 061 还是新增迁移",
+      "options": [
+        "改 061",
+        "新增 062"
+      ],
+      "choice": "新增 062",
+      "reason": "仓规铁律『迁移只增不改』；061 已应用，改它会被校验和拒绝",
+      "timing": "判据 8 修复"
+    },
+    {
+      "id": "D-021",
+      "topic": "是否让前端容忍违约数据",
+      "options": [
+        "前端容忍",
+        "修数据"
+      ],
+      "choice": "修数据",
+      "reason": "契约明确 type: array，前端按契约消费是对的；让前端容忍违约数据是掩盖问题",
+      "timing": "判据 8 修复"
+    },
+    {
+      "id": "D-022",
+      "topic": "可观测性缺陷是否同修",
+      "options": [
+        "同修",
+        "另开"
+      ],
+      "choice": "另开（本轮已记录建议）",
+      "reason": "属前端改动（需过 npm run gate），与判据 8 修复解耦，适合下一次前端改动一并做",
+      "timing": "判据 8 修复"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "前提核实（供开工用，非验收判据）",
+      "command": "查 production 真库 6 项计数 + 读 useSettingsStore",
+      "result": "PASS",
+      "evidence": "缺口量化；见 events[0].evidence 与 task.md 背景表"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "数据部分无法开工（已解除 2026-10-16）",
+      "rootCause": "缺 Owner 提供的 4 项真实口径（哪些模型可用 / 各逻辑模型挂哪些候选 / 价格来源 / 能力档位取值）",
+      "solution": "Owner 已答复 4 项口径；范围据此修订（含推翻 dev-plan T6）",
+      "lesson": "供给侧数据是产品事实，不是工程推导；AI 只能建结构，不能替产品决定『某个模型支持哪些比例』"
+    },
+    {
+      "id": "B-002",
+      "block": "同步只给裸名字",
+      "rootCause": "PearAPI 同步未提供 type/vendor/pricing/tags/endpoint_types（model_type 全为占位 'model'）",
+      "solution": "需分类与富化：79 个名字判定 type/vendor、补能力（官方文档）、补价格（manual）",
+      "lesson": "同步拿到『有名字』≠『能上架』；供给单元入池需要富化层，这是原 dev-plan 未显式列出的工作"
+    },
+    {
+      "id": "B-003",
+      "block": "「删 mock 渠道」不能照字面执行",
+      "rootCause": "①model_catalog_versions FK(NO ACTION) 挡住删除，绕开须删 56 条归档历史；②model_catalog 无 FK ⇒ 16 行孤儿目录；③44 条不可变审计引用 mock 渠道",
+      "solution": "暂不执行，把三方案交 Owner 择一（task.md 已列）",
+      "lesson": "『删数据』类指令必须先查引用面：字面执行会撞外键或删历史；软删除往往同样达成产品目标且可回退"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "立卡前核实前提（排期 v2 §5 第 8 条）",
+      "result": "✓",
+      "evidence": "V-001：真库 6 项计数，非 grep 级"
+    },
+    {
+      "item": "开工前产出验收清单（AC-008）",
+      "result": "✓",
+      "evidence": "acceptance.md 12 条判据"
+    },
+    {
+      "item": "任务卡带 front-matter（AC-011）",
+      "result": "✓",
+      "evidence": "status/priority/depends_on/criteria"
+    },
+    {
+      "item": "不臆造产品数据",
+      "result": "✓",
+      "evidence": "D-002 + task.md『需 Owner 提供的信息』表"
+    },
+    {
+      "item": "尚未开工（未写码）",
+      "result": "✓",
+      "evidence": "本卡仅有四件套文档"
+    }
+  ],
+  "retrospective": {
+    "good": "①两处不可逆/高风险决策（删历史、跨层实现节奏）都先摆明代价再交 Owner，没有替 Owner 决定；②迁移前一律先查引用面（外键/归档/审计），发现三后果后停手而非照字面执行；③两条迁移都用真库事务试跑 + 确认回滚，不绕过执行器；④主动收口，不在余量不足时硬推",
+    "improve": "①对『逻辑模型』连续两轮理解偏差，第三次才澄清清楚——供需要求的语义必须靠澄清；②本会话两次在 git commit -m 的双引号里用反引号导致提交失败（同一错误犯两次），已改为一律用 -F 消息文件；③立卡时未先查 storage 形态，导致卡片范围三次收缩",
+    "followups": "见 devlog「下一轮从哪开始」交接清单：Go 加价计算 / 契约 / 前端批量 / cost_unit 口径 / kimi-k2.5 停用 / 能力档位骨架 / 逻辑模型分组验证；等调研：5 个模型能力取值；等 Owner：三级默认比例数值、7 项 relay 别名映射"
+  }
+}

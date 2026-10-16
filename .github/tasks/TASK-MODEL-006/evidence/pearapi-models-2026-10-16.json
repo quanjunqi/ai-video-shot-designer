@@ -1,0 +1,1331 @@
+{
+ "fetched_at": "2026-10-16",
+ "source": "https://api.pearapi.ai/v1/models",
+ "models": [
+  {
+   "id": "deepseek-v3.2",
+   "model": "DeepSeek-V3.2",
+   "object": "model",
+   "created": 1769184740,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "kimi-k2.5",
+   "model": "Kimi-k2.5",
+   "object": "model",
+   "created": 1771089032,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "qwen3.5-plus",
+   "model": "Qwen3.5-Plus",
+   "object": "model",
+   "created": 1771937266,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "minimax-m2.5",
+   "model": "MiniMax-M2.5",
+   "object": "model",
+   "created": 1772029868,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "minimax-m2.7",
+   "model": "MiniMax-M2.7",
+   "object": "model",
+   "created": 1776695468,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "minimax-m3",
+   "model": "MiniMax-M3",
+   "object": "model",
+   "created": 1781501810,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "kimi-k2.7-code",
+   "model": "Kimi-K2.7-Code",
+   "object": "model",
+   "created": 1781501926,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "qwen3.7-plus",
+   "model": "Qwen3.7-Plus",
+   "object": "model",
+   "created": 1781502001,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "kimi-k2.6",
+   "model": "Kimi-k2.6",
+   "object": "model",
+   "created": 1782808293,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "mimo-v2.5-pro",
+   "model": "MiMo-V2.5-Pro",
+   "object": "model",
+   "created": 1782808642,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "mimo-v2.5",
+   "model": "MiMo-V2.5",
+   "object": "model",
+   "created": 1782808684,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "kimi-k3",
+   "model": "Kimi-K3",
+   "object": "model",
+   "created": 1784352492,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-sonnet-5",
+   "model": "Claude-Sonnet-5",
+   "object": "model",
+   "created": 1784624557,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-sonnet-4-6",
+   "model": "Claude-Sonnet-4-6",
+   "object": "model",
+   "created": 1784624624,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-haiku-4-5-20251001",
+   "model": "Claude-Haiku-4-5-20251001",
+   "object": "model",
+   "created": 1784624691,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-opus-5",
+   "model": "Claude-Opus-5",
+   "object": "model",
+   "created": 1784624744,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-opus-4-7",
+   "model": "Claude-Opus-4-7",
+   "object": "model",
+   "created": 1784624811,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-fable-5",
+   "model": "Claude-Fable-5",
+   "object": "model",
+   "created": 1784624858,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-opus-4-6",
+   "model": "Claude-Opus-4-6",
+   "object": "model",
+   "created": 1784624878,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-5.6-sol",
+   "model": "GPT-5.6-Sol",
+   "object": "model",
+   "created": 1784625789,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-5.6-terra",
+   "model": "GPT-5.6-Terra",
+   "object": "model",
+   "created": 1784625789,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-5.5",
+   "model": "GPT-5.5",
+   "object": "model",
+   "created": 1784625790,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-opus-4-8",
+   "model": "Claude-Opus-4-8",
+   "object": "model",
+   "created": 1785122744,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "deepseek-v4-pro-0813",
+   "model": "DeepSeek-v4-Pro-0813",
+   "object": "model",
+   "created": 1786554858,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-5.6-luna",
+   "model": "GPT-5.6-Luna",
+   "object": "model",
+   "created": 1787128624,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-6-astra",
+   "model": "GPT-6-Astra",
+   "object": "model",
+   "created": 1788586681,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-6-luna",
+   "model": "GPT-6-Luna",
+   "object": "model",
+   "created": 1790136608,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-6-sol",
+   "model": "GPT-6-Sol",
+   "object": "model",
+   "created": 1790136772,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-opus-5-5",
+   "model": "Claude-Opus-5-5",
+   "object": "model",
+   "created": 1790562060,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gpt-6.1-sol",
+   "model": "GPT-6.1-Sol",
+   "object": "model",
+   "created": 1790751585,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "muse-spark-1.3",
+   "model": "Muse-Spark-1.3",
+   "object": "model",
+   "created": 1791258602,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "deepseek-v4.1-flash",
+   "model": "Deepseek-v4.1-Flash",
+   "object": "model",
+   "created": 1791787659,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "deepseek-v4-flash-0731",
+   "model": "Deepseek-v4-Flash-0731",
+   "object": "model",
+   "created": 1791787710,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "glm-5.3",
+   "model": "GLM-5.3",
+   "object": "model",
+   "created": 1791787876,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "glm-5.3-flash",
+   "model": "GLM-5.3-Flash",
+   "object": "model",
+   "created": 1791787924,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "glm-5.2",
+   "model": "GLM-5.2",
+   "object": "model",
+   "created": 1791787975,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-sonnet-5-5",
+   "model": "Claude-Sonnet-5-5",
+   "object": "model",
+   "created": 1791800133,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-2.5-flash",
+   "model": "Gemini-2.5-Flash",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-3-flash-preview",
+   "model": "Gemini-3-Flash-Preview",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-3.5-flash",
+   "model": "Gemini-3.5-Flash",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-3.6-flash",
+   "model": "Gemini-3.6-Flash",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-3.7-flash",
+   "model": "Gemini-3.7-Flash",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-3.8-flash",
+   "model": "Gemini-3.8-Flash",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-2.5-pro",
+   "model": "Gemini-2.5-Pro",
+   "object": "model",
+   "created": 1791908867,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-3.1-pro-preview",
+   "model": "Gemini-3.1-Pro-Preview",
+   "object": "model",
+   "created": 1791909268,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "gemini-4-argon",
+   "model": "Gemini-4-Argon",
+   "object": "model",
+   "created": 1791958344,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-haiku-5-5",
+   "model": "Claude-Haiku-5-5",
+   "object": "model",
+   "created": 1791963077,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "claude-fable-5-1",
+   "model": "Claude-Fable-5-1",
+   "object": "model",
+   "created": 1791963884,
+   "owned_by": "custom",
+   "model_type": "chat",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions"
+   ]
+  },
+  {
+   "id": "boogu-image-0.1",
+   "model": "boogu-image-0.1",
+   "object": "model",
+   "created": 1784992549,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "doubao-seedream-4-0-250828",
+   "model": "doubao-seedream-4-0-250828",
+   "object": "model",
+   "created": 1779361852,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "doubao-seedream-4-5-251128",
+   "model": "doubao-seedream-4-5-251128",
+   "object": "model",
+   "created": 1779361724,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "doubao-seedream-5-0-260128",
+   "model": "doubao-seedream-5-0-260128",
+   "object": "model",
+   "created": 1779361887,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "doubao-seedream-5-0-pro-260628",
+   "model": "doubao-seedream-5-0-pro-260628",
+   "object": "model",
+   "created": 1789304371,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "firered-image-edit1.1",
+   "model": "firered-image-edit1.1",
+   "object": "model",
+   "created": 1773581627,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "flux2-klein-9b",
+   "model": "flux2-klein-9b",
+   "object": "model",
+   "created": 1772351015,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations"
+   ]
+  },
+  {
+   "id": "glm-image",
+   "model": "glm-image",
+   "object": "model",
+   "created": 1772351015,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations"
+   ]
+  },
+  {
+   "id": "gpt-image-1.5",
+   "model": "gpt-image-1.5",
+   "object": "model",
+   "created": 1772351015,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "gpt-image-2",
+   "model": "gpt-image-2",
+   "object": "model",
+   "created": 1784262867,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "gpt-image-2-2k",
+   "model": "gpt-image-2-2k",
+   "object": "model",
+   "created": 1781434828,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "gpt-image-2-4k",
+   "model": "gpt-image-2-4k",
+   "object": "model",
+   "created": 1784262779,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "gpt-image-2.5",
+   "model": "gpt-image-2.5",
+   "object": "model",
+   "created": 1789013937,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "gpt-image-2.5-2k",
+   "model": "gpt-image-2.5-2k",
+   "object": "model",
+   "created": 1789013989,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "gpt-image-2.5-4k",
+   "model": "gpt-image-2.5-4k",
+   "object": "model",
+   "created": 1788943437,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "grok-imagine-image-2.0",
+   "model": "grok-imagine-image-2.0",
+   "object": "model",
+   "created": 1779440827,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "Image-Layered",
+   "model": "Image-Layered",
+   "object": "model",
+   "created": 1785160769,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana",
+   "model": "nano-banana",
+   "object": "model",
+   "created": 1787050148,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2-1k",
+   "model": "nano-banana-2-1k",
+   "object": "model",
+   "created": 1791310699,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2-2k",
+   "model": "nano-banana-2-2k",
+   "object": "model",
+   "created": 1777539296,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2-4k",
+   "model": "nano-banana-2-4k",
+   "object": "model",
+   "created": 1777539562,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2-lite",
+   "model": "nano-banana-2-lite",
+   "object": "model",
+   "created": 1782876809,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2.1-1k",
+   "model": "nano-banana-2.1-1k",
+   "object": "model",
+   "created": 1791310742,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2.1-2k",
+   "model": "nano-banana-2.1-2k",
+   "object": "model",
+   "created": 1791310732,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-2.1-4k",
+   "model": "nano-banana-2.1-4k",
+   "object": "model",
+   "created": 1791310704,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-pro-1k",
+   "model": "nano-banana-pro-1k",
+   "object": "model",
+   "created": 1786696550,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-pro-2k",
+   "model": "nano-banana-pro-2k",
+   "object": "model",
+   "created": 1777539640,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "nano-banana-pro-4k",
+   "model": "nano-banana-pro-4k",
+   "object": "model",
+   "created": 1777539688,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "Real-ESRGAN",
+   "model": "Real-ESRGAN",
+   "object": "model",
+   "created": 1773676066,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "rmbg-2.0",
+   "model": "rmbg-2.0",
+   "object": "model",
+   "created": 1791383566,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "seedvr2-upscaler",
+   "model": "seedvr2-upscaler",
+   "object": "model",
+   "created": 1773676443,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "wan2.7-image",
+   "model": "wan2.7-image",
+   "object": "model",
+   "created": 1779514066,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations",
+    "images.edits"
+   ]
+  },
+  {
+   "id": "z-image",
+   "model": "z-image",
+   "object": "model",
+   "created": 1772351015,
+   "owned_by": "custom",
+   "model_type": "image",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "chat.completions",
+    "images.generations"
+   ]
+  },
+  {
+   "id": "doubao-seedance-2-0-260128",
+   "model": "doubao-seedance-2-0-260128",
+   "object": "model",
+   "created": 1784216482,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "doubao-seedance-2-0-fast-260128",
+   "model": "doubao-seedance-2-0-fast-260128",
+   "object": "model",
+   "created": 1784216482,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "doubao-seedance-2-0-mini-260615",
+   "model": "doubao-seedance-2-0-mini-260615",
+   "object": "model",
+   "created": 1784216482,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "doubao-seedance-2-5-260628",
+   "model": "doubao-seedance-2-5-260628",
+   "object": "model",
+   "created": 1787063810,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "gemini-omni",
+   "model": "gemini-omni",
+   "object": "model",
+   "created": 1784036431,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "grok-imagine-video-1.5",
+   "model": "grok-imagine-video-1.5",
+   "object": "model",
+   "created": 1783664193,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "hailuo-2.3",
+   "model": "hailuo-2.3",
+   "object": "model",
+   "created": 1787065904,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "happyhorse-1.0",
+   "model": "happyhorse-1.0",
+   "object": "model",
+   "created": 1780548353,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "ltx-digitalhuman",
+   "model": "ltx-digitalhuman",
+   "object": "model",
+   "created": 1785008503,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "minimax-h3",
+   "model": "minimax-h3",
+   "object": "model",
+   "created": 1787060466,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "seedance-1.0-pro",
+   "model": "seedance-1.0-pro",
+   "object": "model",
+   "created": 1779430643,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "seedance-1.5-pro",
+   "model": "seedance-1.5-pro",
+   "object": "model",
+   "created": 1779430643,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "veo-3.1",
+   "model": "veo-3.1",
+   "object": "model",
+   "created": 1784086407,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  },
+  {
+   "id": "veo-3.1-fast",
+   "model": "veo-3.1-fast",
+   "object": "model",
+   "created": 1779265081,
+   "owned_by": "custom",
+   "model_type": "video",
+   "channel_type": "默认",
+   "supported_endpoint_types": [
+    "openai",
+    "videos.generations",
+    "video.generations",
+    "videos"
+   ]
+  }
+ ]
+}

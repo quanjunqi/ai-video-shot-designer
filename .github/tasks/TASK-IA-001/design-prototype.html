@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA-001 预算归位 + 导航职责裁定 · 设计稿 v1（待评审）</title>
+<style>
+  :root{--ink:#1f2329;--sub:#646a73;--line:#e5e6eb;--brand:#3370ff;--ok:#18a058;--warn:#d4380d;--bg:#f7f8fa;--card:#fff}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);padding:32px}
+  h1{font-size:22px;margin-bottom:4px}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:24px}
+  h2{font-size:16px;margin:28px 0 12px;padding-left:10px;border-left:4px solid var(--brand)}
+  h3{font-size:14px;margin:16px 0 8px;color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:20px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f2f3f5;white-space:nowrap}
+  .y{color:var(--ok);font-weight:600}
+  .n{color:#c0c4cc}
+  .x{color:var(--warn);font-weight:600}
+  .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;margin-right:6px}
+  .tag.o{background:#fff1f0;color:#d4380d}
+  .tag.a{background:#e8f3ff;color:#0958d9}
+  .tag.v{background:#f6ffed;color:#389e0d}
+  .note{color:var(--sub);font-size:12px;margin-top:8px}
+  .mock{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+  .mock .head{background:#001529;color:#fff;padding:8px 12px;font-size:13px;font-weight:600;display:flex;justify-content:space-between}
+  .mock .side{padding:8px 0}
+  .mock .item{padding:6px 14px;font-size:13px;color:#333}
+  .mock .item.on{background:#e8f3ff;color:var(--brand);border-right:3px solid var(--brand)}
+  .mock .item.hid{color:#c0c4cc;text-decoration:line-through}
+  .mock .grp{font-size:11px;color:var(--sub);padding:8px 14px 2px}
+  .mock .body{padding:12px}
+  .blk{border:1px dashed var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:12px;background:#fafbfc}
+  .blk.new{border-color:var(--brand);background:#f4f8ff}
+  .blk .t{font-weight:600;color:var(--ink);font-size:12px}
+  .blk .d{color:var(--sub);font-size:11px}
+  .row2{display:grid;grid-template-columns:1fr 300px;gap:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .legend{display:flex;gap:20px;margin-top:10px;font-size:12px;color:var(--sub)}
+  code{background:#f2f3f5;padding:1px 5px;border-radius:4px;font-size:12px}
+  .warnbox{border:1px solid #ffd591;background:#fff7e6;border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px}
+  .decide{border:1px solid #91caff;background:#f0f7ff;border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px}
+  ul{margin:6px 0 0 18px}
+  li{margin:3px 0}
+</style>
+</head>
+<body>
+<h1>IA-001 预算归位 + 导航职责裁定 · 设计稿 v1</h1>
+<div class="meta">方案 A（Owner 2026-10-15 拍板）· 预算迁入 <code>/models/costs</code> 页内区块 · 排期 v2 §3.3 第 2 波第 1 项 · <b>状态：待 Owner 评审（AC-009：未过评审不得写码）</b></div>
+
+<div class="warnbox">
+<strong>⚠️ 本稿含 2 处范围修正 + 1 项待拍板裁定，请一并确认：</strong><br>
+① 缺口「设置『用量』导航未实现」<b>已由方案 A 在代码中解决</b>（导航已收敛 3 项，深链 → <code>/tasks?tab=ledger</code>）——本卡不再重复裁定。<br>
+② 缺口「渠道归属重叠」实测为<b>三方重叠</b>，非原卡描述的两方 → 见 §4。<br>
+③ <b>待拍板：</b>§4 推荐<b>移除</b>模型中心「渠道与凭据」（7 项 → 6 项）。<br>
+④ <b>待拍板：</b>§3 预算区块的<b>角色可见性</b>（区块可见 Viewer+ / 操作 Admin+）——此项同时闭合 AUTH-001 遗留的"页内按钮级隐藏"。
+</div>
+
+<h2>一、范围修正（相对任务卡；均以实测代码为依据）</h2>
+<div class="card">
+<table>
+<tr><th>原卡缺口</th><th>实测</th><th>本稿处置</th></tr>
+<tr>
+  <td>② 设置「用量」导航未实现<br><span class="note">原卡认为 ADR-005 的 4 项导航缺「用量」</span></td>
+  <td><code>settings-navigation.ts:6-8</code> 已按方案 A 把「用量」<b>移出</b>设置中心；顶层已收敛为 3 项<br><code>:106-110</code> 深链 <code>/settings/usage → /tasks?tab=ledger</code></td>
+  <td><span class="tag v">已闭合</span>不重复裁定；仅纳入回归验证（既有测试已锁定"改回 6 项即失败"）</td>
+</tr>
+<tr>
+  <td>③ 模型中心「渠道与凭据」（占位）与设置「渠道」重叠</td>
+  <td>实为三方：<code>/settings/channels</code>（已实装）、<code>/models/channels</code>（建设中占位）、<code>/models/health</code>（已实装，承载观测）</td>
+  <td><span class="tag o">待拍板</span>见 §4</td>
+</tr>
+<tr>
+  <td>① 预算孤悬在设置&gt;偏好</td>
+  <td>成立：预算区块在 <code>SettingsPreferences.tsx:237-287</code>，与成本分属两个一级导航</td>
+  <td><span class="tag a">本稿主体</span>见 §2、§3</td>
+</tr>
+</table>
+</div>
+
+<h2>二、方案 A 落地示意：<code>/models/costs</code> 新增「预算规则」页内区块</h2>
+<div class="card">
+<div class="grid2">
+  <div>
+    <h3>改前（现状）</h3>
+    <div class="mock">
+      <div class="head"><span>模型中心</span><span>owner</span></div>
+      <div class="side">
+        <div class="item">模型目录</div>
+        <div class="item">模型广场</div>
+        <div class="item">渠道与凭据 <span class="note">建设中</span></div>
+        <div class="item on">成本与用量</div>
+        <div class="item">审计日志</div>
+        <div class="item">协议模板</div>
+        <div class="item">健康</div>
+      </div>
+      <div class="body">
+        <div class="blk"><div class="t">筛选栏</div><div class="d">维度 tab · 功能归因 · 刷新</div></div>
+        <div class="row2">
+          <div class="blk"><div class="t">成本与调用趋势</div><div class="d">近 30 天折线</div></div>
+          <div class="blk"><div class="t">排行</div><div class="d">成本降序</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="note">配预算需切到 <b>设置中心 › 偏好</b> —— 五站链路跨一级导航（T13 走查痛点）</div>
+  </div>
+  <div>
+    <h3>改后（本稿）</h3>
+    <div class="mock">
+      <div class="head"><span>模型中心</span><span>owner</span></div>
+      <div class="side">
+        <div class="item">模型目录</div>
+        <div class="item">模型广场</div>
+        <div class="item hid">渠道与凭据</div>
+        <div class="item on">成本与用量</div>
+        <div class="item">审计日志</div>
+        <div class="item">协议模板</div>
+        <div class="item">健康</div>
+      </div>
+      <div class="body">
+        <div class="blk"><div class="t">筛选栏</div><div class="d">维度 tab · 功能归因 · 刷新</div></div>
+        <div class="row2">
+          <div class="blk"><div class="t">成本与调用趋势</div><div class="d">近 30 天折线</div></div>
+          <div class="blk"><div class="t">排行</div><div class="d">成本降序</div></div>
+        </div>
+        <div class="blk new"><div class="t">＋ 预算规则 <span class="note">（新增区块 · 全宽）</span></div><div class="d">日/月预算 · 告警线 · 超限动作 · 新增/删除</div></div>
+      </div>
+    </div>
+    <div class="note">区块位置：<b>观测双列之后、页面第三块（全宽）</b>——不打断「趋势 → 排行」阅读流，且保持既有双列布局不动（视觉回归风险最小）</div>
+  </div>
+</div>
+
+<h3>区块位置备选（取舍记录）</h3>
+<table>
+<tr><th>候选</th><th>结论</th><th>理由</th></tr>
+<tr><td>A 观测双列之后（全宽）</td><td class="y">✅ 采纳</td><td>改动面最小；不挤压观测内容；全宽容纳表单+列表；符合"先看后配"</td></tr>
+<tr><td>B 页面顶部（成本概览旁）</td><td class="n">不采纳</td><td>预算非高频查看项，置顶挤压观测；且与"看成本"首屏目标冲突</td></tr>
+<tr><td>C 趋势图右侧窄栏</td><td class="n">不采纳</td><td>300px 宽度不足以承载预算表单与规则列表</td></tr>
+</table>
+
+<h3>设置中心「偏好」页变化</h3>
+<table>
+<tr><th>项</th><th>改前</th><th>改后</th></tr>
+<tr><td>默认模型</td><td>✅ 保留</td><td>✅ 保留（属真"偏好"）</td></tr>
+<tr><td>预算规则区块</td><td>✅ 在偏好页</td><td class="x">移出 → <code>/models/costs</code></td></tr>
+<tr><td>指路链接</td><td class="n">—</td><td>✅ 偏好页保留一行提示：「预算规则已移至 模型中心 › 成本与用量」+ 跳转按钮</td></tr>
+</table>
+<div class="note"><b>为什么是「指路链接」而不是「legacy redirect」：</b>实测<b>不存在</b> budget 专属路由（无 <code>/settings/budget</code> 或锚点），故没有"旧路径"可重定向——预算只是偏好页内的一个区块。ADR-005 §3 的 legacy-redirect 模式适用于<b>路径</b>；此处正确机制是<b>页内指路</b>，避免用户按旧习惯找不到。<code>/settings/preferences</code> 本身仍是有效路由（TopBar 下拉有入口），不 404。</div>
+</div>
+
+<h2>三、角色可见性（对齐 AUTH-001 矩阵；闭合其遗留的"页内按钮级隐藏"）</h2>
+<div class="card">
+<p class="note" style="margin:0 0 10px">AUTH-001 验收已声明：<i>"导航可见性 + 路由守卫 + 后端矩阵一致；页内操作按钮精细隐藏按评审范围留 IA-001，后端 403 兜底"</i>。本区块是该遗留项的第一处落地。</p>
+<table>
+<tr><th>角色</th><th>「预算规则」区块</th><th>规则列表</th><th>「新增预算」按钮</th><th>删除按钮</th><th>后端兜底</th></tr>
+<tr><td><span class="tag v">Viewer</span></td><td class="y">可见</td><td class="y">只读</td><td class="n">不渲染</td><td class="n">不渲染</td><td>403（BFF 矩阵）</td></tr>
+<tr><td><span class="tag a">Admin</span></td><td class="y">可见</td><td class="y">可管理</td><td class="y">渲染</td><td class="y">渲染</td><td>—</td></tr>
+<tr><td><span class="tag o">Owner</span></td><td class="y">可见</td><td class="y">可管理</td><td class="y">渲染</td><td class="y">渲染</td><td>—</td></tr>
+</table>
+<div class="note">
+<b>为什么区块可见而操作隐藏</b>：Viewer 需要知道"当前有没有预算、会不会被拦"（这解释了成本为何被截断）；但配置权属 Admin+。
+与 AUTH-001 一致：<b>单套界面，按角色控制深度</b>（ADR-005 D1），不是两套页面。<br>
+实现沿用既有 <code>useAuthStore</code> 的 <code>ROLE_RANK</code>（与后端 <code>authz.go</code> 对齐），不新增角色概念。
+</div>
+</div>
+
+<h2>四、渠道归属裁定（待拍板）</h2>
+<div class="card">
+<div class="decide">
+<strong>推荐：候选 1 —— 移除模型中心「渠道与凭据」，模型中心收敛为 6 项</strong><br>
+<code>/models/channels</code> 走 legacy redirect → <code>/settings/channels</code>（不 404）
+</div>
+<table>
+<tr><th>候选</th><th>内容</th><th>结论</th><th>理由</th></tr>
+<tr>
+  <td>1</td>
+  <td><b>移除</b>「渠道与凭据」；接入配置归设置，观测归「健康」</td>
+  <td class="y">✅ 推荐</td>
+  <td>① 其 task 文案「模型从哪来：渠道、探活与凭据」与设置「渠道」的「模型从哪来、连不连得通」<b>几乎同义</b>，用户无法区分；② "观测"职责已由 <code>/models/health</code>（成功率/错误码/熔断）承载；③ 符合 ADR-005 D2「设置只放配置、运行数据归观测」；④ 占位入口长期存在与 frontend-quality「禁僵尸按钮」精神相悖</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td>保留但重新定位为"只读观测"，与「健康」分工</td>
+  <td class="n">不推荐</td>
+  <td>会产生<b>两个观测入口</b>（渠道 + 健康），仍需向用户解释差异；当前健康页已覆盖观测需求</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td>保持占位，仅改写文案以示区分</td>
+  <td class="n">不推荐</td>
+  <td>治标：占位入口仍在，认知负担未消；且"建设中"占位已存在多期</td>
+</tr>
+</table>
+<h3>候选 1 的连带影响（已排查）</h3>
+<ul>
+  <li><code>model-center-navigation.ts</code>：<code>MODEL_CENTER_NAV</code> 7 → 6 项；<code>visibleModelCenterNav</code> 中 <code>channels: admin+</code> 规则随之移除（该规则将无对应项）</li>
+  <li><code>tests/auth-navigation.test.ts</code>（AUTH-001 的 6 用例）：需同步更新渠道相关的可见性断言</li>
+  <li>引用排查：<code>/models/channels</code> 目前<b>仅</b>在导航配置中出现，无其它深链 → 移除影响面可控</li>
+  <li>legacy 落点须在 <code>SETTINGS_EXTERNAL_TARGETS</code> 白名单机制下校验（<code>/settings/channels</code> 已在 <code>SETTINGS_ROUTES</code> 内，无需新增白名单）</li>
+</ul>
+</div>
+
+<h2>五、旧入口与深链去向（全部不 404）</h2>
+<div class="card">
+<table>
+<tr><th>路径</th><th>改后落点</th><th>机制</th><th>理由</th></tr>
+<tr><td><code>/settings/preferences</code></td><td>不变（仍是偏好页）</td><td>—</td><td>TopBar 下拉有入口；预算区块移出后页面职责单一</td></tr>
+<tr><td>（偏好页内预算区块）</td><td><code>/models/costs</code></td><td><b>页内指路链接</b></td><td>无专属路由可重定向 → 见 §2 说明</td></tr>
+<tr><td><code>/models/channels</code></td><td><code>/settings/channels</code></td><td>legacy redirect</td><td>候选 1 通过后生效；接入配置归设置</td></tr>
+<tr><td><code>/settings/usage</code></td><td><code>/tasks?tab=ledger</code></td><td>现状（已实现）</td><td>方案 A；本卡仅回归验证</td></tr>
+</table>
+</div>
+
+<h2>六、技术方案（不重写逻辑）</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>动作</th><th>说明</th></tr>
+<tr><td>1</td><td>抽取预算区块为组件（如 <code>BudgetRulesSection.tsx</code>）</td><td>从 <code>SettingsPreferences.tsx</code> <b>原样搬迁</b>：状态、三态、表单、删除确认弹窗、API 调用全部复用，不改行为</td></tr>
+<tr><td>2</td><td>挂载到 <code>ModelCosts.tsx</code> 页内（§2 位置 A）</td><td>作为页面第三块全宽区块</td></tr>
+<tr><td>3</td><td>按角色控制操作入口（§3）</td><td>用既有 <code>useAuthStore</code> 的 <code>ROLE_RANK</code>；区块可见、操作 Admin+</td></tr>
+<tr><td>4</td><td>偏好页加指路链接一行</td><td>§2 末</td></tr>
+<tr><td>5</td><td>导航裁定落地（§4 评审结论）</td><td>含 legacy redirect 与既有测试同步</td></tr>
+<tr><td>6</td><td><code>npm run ui:generate</code> 同步三清单</td><td>导航/组件变更后必须；<code>ui:check</code> 需绿</td></tr>
+</table>
+<p class="note"><b>API 零改动</b>：预算读写沿用 <code>TASK-MODEL-005</code> 已有接口；不新增/不修改契约，故不触发 oasdiff 契约门。</p>
+<p class="note"><b>已知约束</b>：本卡与 AUTH-001 改同一对导航文件 → 开工前必须 rebase 到含 AUTH-001 的 develop（排期 v2 §2.2）。</p>
+</div>
+
+<h2>七、评审勾选表（请 Owner 逐项裁定）</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>待决事项</th><th>本稿建议</th><th>裁定</th></tr>
+<tr><td>1</td><td>预算区块落位（§2）</td><td>观测双列之后，全宽第三块</td><td>☐ 同意 ☐ 改：______</td></tr>
+<tr><td>2</td><td>偏好页旧入口处理（§5）</td><td>页内指路链接（非重定向，因无专属路由）</td><td>☐ 同意 ☐ 改：______</td></tr>
+<tr><td>3</td><td>预算区块角色可见性（§3）</td><td>区块 Viewer+ 可见；新增/删除 Admin+</td><td>☐ 同意 ☐ 改：______</td></tr>
+<tr><td>4</td><td><b>渠道归属裁定（§4）</b></td><td><b>候选 1：移除「渠道与凭据」，模型中心 7 → 6 项</b></td><td>☐ 同意 ☐ 选候选 2 ☐ 选候选 3</td></tr>
+<tr><td>5</td><td>范围修正确认（§1）</td><td>缺口 ② 不再处理；③ 按第 4 项裁定</td><td>☐ 确认 ☐ 异议：______</td></tr>
+</table>
+<p class="note" style="margin-top:12px"><b>评审通过后</b>方可进入开发（AC-009）。开发产出须逐点映射回本稿模块（AC-003），未映射项视为范围外。</p>
+<p class="note"><b>评审人</b>：__________ 　<b>日期</b>：__________ 　<b>结论</b>：☐ 通过 ☐ 需修改</p>
+</div>
+
+</body>
+</html>
