@@ -366,10 +366,12 @@
     {
       "id": "TASK-INFRA-006",
       "title": "T13 走查自动化（headless Chrome + 三角色切换 + 五站截图）",
-      "status": "进行中",
-      "priority": "P0（T13 收官的使能项）——**阻塞于栈新鲜度 B-001**",
+      "status": "待验收",
+      "priority": "P0（T13 收官的使能项）",
       "pr": null,
-      "file": "[TASK-INFRA-006/task.md](TASK-INFRA-006/task.md)"
+      "file": "[TASK-INFRA-006/task.md](TASK-INFRA-006/task.md)",
+      "criteria": 10,
+      "criteriaPassed": 10
     },
     {
       "id": "TASK-CREATE-006",
@@ -434,6 +436,14 @@
       "priority": "**P1（门禁自身可信度）**",
       "pr": null,
       "file": "[TASK-PROC-009/task.md](TASK-PROC-009/task.md)"
+    },
+    {
+      "id": "TASK-AUTH-002",
+      "title": "修复前端 dev 身份切换链路（fetchMe 回读角色，T13 走查判据 2 阻塞项）",
+      "status": "待验收",
+      "priority": "P0",
+      "pr": null,
+      "file": "[TASK-AUTH-002/task.md](TASK-AUTH-002/task.md)"
     }
   ]
 }

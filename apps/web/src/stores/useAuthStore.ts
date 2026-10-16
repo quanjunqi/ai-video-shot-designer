@@ -48,10 +48,16 @@ interface AuthState {
 
 async function fetchMe(): Promise<MeResponse | null> {
   try {
-    const resp = await fetch('/api/v1/me', {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    });
+    // TASK-AUTH-002：dev 身份切换链路修复——fetchMe 必须透传当前 dev 身份，
+    // 否则 BFF authorize() 对缺省头回退 devActor（恒 owner），三角色导航过滤永不生效。
+    // 来源与 devActorInitial() 同一契约（localStorage['mdp-dev-actor']），避免依赖 store 闭包时序；
+    // PROD 下不带头，走真实身份路径（行为与修复前一致）。
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (import.meta.env.DEV) {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('mdp-dev-actor') : null;
+      if (saved && DEV_ACTOR_BY_ID.has(saved)) headers['X-Actor-Id'] = saved;
+    }
+    const resp = await fetch('/api/v1/me', { headers, cache: 'no-store' });
     if (!resp.ok) return null;
     const body = (await resp.json()) as MeResponse;
     if (!body.role) return null;

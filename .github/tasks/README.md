@@ -24,6 +24,7 @@
 | TASK-AUDIT-001 | 审计能力实施清单（④ 如何做好审计） | P0（排期第一批第 5 刀） | 已验收（PR #197 已合并，2d32e05；D1–D7 全过，D8 访问控制归 AUTH-001，D9 不做） | ✅ | [TASK-AUDIT-001/task.md](TASK-AUDIT-001/task.md) |
 | TASK-AUDIT-002 | 审计业务归因列（T1） | — | 已验收（PR #165 已合并） | — | [TASK-AUDIT-002-attribution-columns.md](TASK-AUDIT-002-attribution-columns.md) |
 | TASK-AUTH-001 | 模型中心权限矩阵（三角色，T13 判据 5；Owner 2026-10-15 拍板提 P0，推翻「暂不含多角色管理」） | **P0** | 待验收（PR #203 已合并 fbffb64；判据 1/2/4/5 ✅、判据 3 ✅△、判据 6 ⏳ 待 Owner 真机走查） | ✅ | [TASK-AUTH-001/task.md](TASK-AUTH-001/task.md) |
+| TASK-AUTH-002 | 修复前端 dev 身份切换链路（fetchMe 回读角色，T13 走查判据 2 阻塞项） | P0 | 待验收（走查脚本三角色断言端到端通过；gate 0 错） | ✅ | [TASK-AUTH-002/task.md](TASK-AUTH-002/task.md) |
 | TASK-CREATE-001 | 能力驱动的生成参数控件 schema | P1 | 待验收（✅ 代码侧已实现；L3 未做，无交付记录） | — | [TASK-CREATE-001-capability-driven-controls.md](TASK-CREATE-001-capability-driven-controls.md) |
 | TASK-CREATE-002 | 智能创作 Composer 布局与结果主舞台 | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-002-composer-layout.md](TASK-CREATE-002-composer-layout.md) |
 | TASK-CREATE-003 | 结果元数据、参数复用与取消/重试 | P1 | 待验收（✅ 代码侧已实现；交付记录自认 L3 未做） | — | [TASK-CREATE-003-result-detail-reuse.md](TASK-CREATE-003-result-detail-reuse.md) |
@@ -42,7 +43,7 @@
 | TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | P0（排期第一批第 7 刀） | 已验收（PR #201 已合并，e5c710ab；8/8 验收标准） | ✅ | [TASK-INFRA-003/task.md](TASK-INFRA-003/task.md) |
 | TASK-INFRA-004 | 把「渠道探测」抽成一份公共能力（B3a） | P1 | 已验收（PR #193 已合并；7/7 判据） | ✅ | [TASK-INFRA-004-probe-extraction.md](TASK-INFRA-004-probe-extraction.md) |
 | TASK-INFRA-005 | P0 全链路集成验收（T13，dev-plan §9） | P0（M5 验收） | 已验收（判据 1/2/3/4 ✅；判据 5 依赖 AUTH-001 已建卡 P0，待开工） | — | [TASK-INFRA-005-p0-integration-acceptance.md](TASK-INFRA-005-p0-integration-acceptance.md) |
-| TASK-INFRA-006 | T13 走查自动化（headless Chrome + 三角色切换 + 五站截图） | P0（T13 收官的使能项） | 进行中（⚠️ **阻塞 B-001：运行中的 BFF 是旧二进制**，`/api/v1/me` 404 而源码已注册 ⇒ 须先重建栈；已据此新增「栈新鲜度」判据 11） | ✅ | [TASK-INFRA-006/task.md](TASK-INFRA-006/task.md) |
+| TASK-INFRA-006 | T13 走查自动化（headless Chrome + 三角色切换 + 五站截图） | P0（T13 收官的使能项） | 待验收（10/10 判据全过：三角色导航/五站/抽屉/产物；脚本 `.github/scripts/t13-walkthrough.mjs` 实测 EXIT=0；反例停栈 EXIT=2；截图证据在 $TMPDIR/t13-walkthrough） | ✅ | [TASK-INFRA-006/task.md](TASK-INFRA-006/task.md) |
 | TASK-MODEL-001 | T0 权威价格校准 | P0 | 已验收（PR #164 已合并） | — | [TASK-MODEL-001-price-calibration.md](TASK-MODEL-001-price-calibration.md) |
 | TASK-MODEL-003 | T2-1 运营报表聚合查询 API | P0（A 轨 T2 第一刀） | 已验收（PR #166 已合并） | — | [TASK-MODEL-003-cost-stats-api.md](TASK-MODEL-003-cost-stats-api.md) |
 | TASK-MODEL-004 | T2-2 成本看板页面 + 审计归因展示 | P0（A 轨 T2 第二刀） | 已验收（cb1ab7a 已合并） | — | [TASK-MODEL-004-cost-dashboard-page.md](TASK-MODEL-004-cost-dashboard-page.md) |
