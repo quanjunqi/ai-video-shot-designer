@@ -63,6 +63,7 @@
 | TASK-PROC-008 | 清零文件行数基线（engine.go 孤立注释 + 4 个测试文件拆分） | **P1（清零基线 ⇒ BE-SIZE-001 全面阻断）** | 待验收（**基线清零 0 条**；engine 526→417；4 测试文件全拆；self-test 9/9；整链 20/0；并修正门禁自身缺陷） | ✅ | [TASK-PROC-008/task.md](TASK-PROC-008/task.md) |
 | TASK-PROC-009 | 覆盖率门禁的三处可信度缺陷（盲区 / shell bug / 本地复现不了 CI） | **P1（门禁自身可信度）** | 待验收（三缺陷已修 + 又查出四个；门禁改 0/1/2 三态；6/7 达标 asset 判 2；含误报撤回） | ✅ | [TASK-PROC-009/task.md](TASK-PROC-009/task.md) |
 | TASK-ROUTE-001 | 路由层表结构（逻辑模型 + 多渠道候选 + 租户策略） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-001-routing-schema.md](TASK-ROUTE-001-routing-schema.md) |
+| TASK-PROTOCOL-001 | requestTemplate 数据迁移（等价可迁移子集回填 + 判别标准固化） | P1（底座收尾的自动化补刀——对齐 VOZEB requestTemplate 形态；等价子集 comfyui 已回填） | 进行中（PR #211 已开，待 CI + Owner 合并） | ✅ | [TASK-PROTOCOL-001/task.md](TASK-PROTOCOL-001/task.md) |
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |
 | TASK-SEC-001 | 模型网关出站 SSRF 防护 | P0（阶段1 第1项） | 已验收（PR #195 已合并，0b06a8d；8/8 验收标准） | ✅ | [TASK-SEC-001/task.md](TASK-SEC-001/task.md) |

@@ -252,3 +252,10 @@ func TestAssembleBodyTemplateDynamicInjection(t *testing.T) {
 var minimaxTextLegacyParams = []Param{{Key: "stream", Value: "false"}}
 
 const minimaxTextRequestTemplate = `{"stream":{{stream}},"task_type":"sync"}`
+
+// comfyuiLegacyParams / comfyuiRequestTemplate 逐字来自迁移 065（TASK-PROTOCOL-001）：
+// pt_builtin_comfyui 的 params[] 形态与回填后的模板形态。
+// 本文件从执行器一侧证明两形态等价（与 minimax_text 金标准同构）。
+var comfyuiLegacyParams = []Param{{Key: "client_id", Value: "漫剧工坊"}}
+
+const comfyuiRequestTemplate = `{"client_id":"{{client_id}}","task_type":"sync"}`

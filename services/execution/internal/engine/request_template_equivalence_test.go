@@ -286,3 +286,81 @@ func assertJSONSemanticallyEqual(t *testing.T, what string, got, want []byte) {
 		t.Fatalf("%s not equivalent:\n got: %s\nwant: %s", what, got, want)
 	}
 }
+
+// TestRequestTemplateEquivalenceBuiltinComfyUI 是迁移 065 的金标准测试（TASK-PROTOCOL-001）：
+// pt_builtin_comfyui 的模板形态与 params[] 形态在**同一组输入**下请求体语义相等。
+//
+// comfyui 是纯同步协议（Async 空 ⇒ 同步路径注入 task_type=sync），params 仅一个
+// static 字段 client_id（恒 Present）——满足 TASK-PROTOCOL-001 判别标准 ①②③，
+// 是「等价可迁移子集」的第二个成员（minimax_text 之后）。
+//
+// 覆盖：默认取值、__key 运行时覆盖、模型级覆盖、__passthrough 动态参数、
+// __passthrough 覆盖模板字段与 task_type、全部输入叠加。
+func TestRequestTemplateEquivalenceBuiltinComfyUI(t *testing.T) {
+	legacyTemplate := func() Template {
+		return Template{
+			ID:    "pt_builtin_comfyui",
+			Label: "ComfyUI 本地工作流（端口直连）",
+			// params 形态：Async 为 "{}" ⇒ 同步路径会注入 task_type=sync（执行器既有行为）。
+			Method: "POST", RequestPath: "/prompt",
+			Params: comfyuiLegacyParams, Async: json.RawMessage(`{}`),
+		}
+	}
+	templateForm := func() Template {
+		tmpl := legacyTemplate()
+		tmpl.RequestTemplate = comfyuiRequestTemplate
+		return tmpl
+	}
+
+	cases := []struct {
+		name        string
+		modelParams []Param
+		runtime     map[string]any
+	}{
+		{name: "默认取值", runtime: map[string]any{}},
+		{name: "业务 runtime 字段（模板未引用，两边都不应出现）", runtime: map[string]any{"prompt": "一只猫", "width": 512}},
+		{name: "__key 运行时覆盖", runtime: map[string]any{"__client_id": "另一个客户端"}},
+		{name: "__passthrough 新增动态参数", runtime: map[string]any{"__passthrough": map[string]any{"prompt": "一只猫", "seed": 42}}},
+		{name: "__passthrough 覆盖模板字段（client_id）与 task_type", runtime: map[string]any{"__passthrough": map[string]any{"client_id": "覆盖值", "task_type": "custom"}}},
+		{name: "全部输入叠加", modelParams: []Param{{Key: "client_id", Value: "模型级覆盖", Role: "static"}}, runtime: map[string]any{"__passthrough": map[string]any{"seed": 1.0}}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			legacyReq := RunRequest{
+				ChannelID: "ch-1", ProviderModel: "comfy-1",
+				ProtocolTemplate: legacyTemplate(), ModelParams: tc.modelParams, Runtime: tc.runtime,
+			}
+			newReq := RunRequest{
+				ChannelID: "ch-1", ProviderModel: "comfy-1",
+				ProtocolTemplate: templateForm(), ModelParams: tc.modelParams, Runtime: tc.runtime,
+			}
+
+			// 同步装配入口（Run 用的是 assembleBody(req, "sync")）。
+			legacyBody, err := assembleBody(legacyReq, "sync")
+			if err != nil {
+				t.Fatalf("legacy assembleBody: %v", err)
+			}
+			newBody, err := assembleBody(newReq, "sync")
+			if err != nil {
+				t.Fatalf("template assembleBody: %v", err)
+			}
+			assertJSONSemanticallyEqual(t, "sync body", legacyBody, newBody)
+
+			// 异步装配入口（RunAsync → buildRequest：不注入 task_type，之后由 RunAsync 注入 async）。
+			creds := Credentials{BaseURL: "https://api.example.com/"}
+			legacyURL, legacySubmit, err := buildRequest(creds, legacyReq)
+			if err != nil {
+				t.Fatalf("legacy buildRequest: %v", err)
+			}
+			newURL, newSubmit, err := buildRequest(creds, newReq)
+			if err != nil {
+				t.Fatalf("template buildRequest: %v", err)
+			}
+			if legacyURL != newURL {
+				t.Fatalf("url changed: %q vs %q", legacyURL, newURL)
+			}
+			assertJSONSemanticallyEqual(t, "async wire body", asyncWireBody(t, legacySubmit), asyncWireBody(t, newSubmit))
+		})
+	}
+}
