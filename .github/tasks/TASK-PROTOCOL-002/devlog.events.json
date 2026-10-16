@@ -1,0 +1,165 @@
+{
+  "taskId": "TASK-PROTOCOL-002",
+  "updatedAt": "2026-10-17T00:40:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T00:15:00+08:00",
+      "phase": "探查",
+      "action": "盘点 MODEL-006 判据现状（判据 2 已满足/5 已达成 a414dbc/6 已达成 4c9e440；判据 4 剩余 6 EMPTY）；读注册表 6 模板定义、mapping/engine.go、resolve.go 消费契约；查 PR #210/#211 CI 均绿",
+      "evidence": [
+        "git log services/production/migrations/",
+        "protocol_registry.go 99-256",
+        "services/execution/internal/mapping/engine.go",
+        "services/execution/internal/catalog/resolve.go"
+      ],
+      "decisionRef": "D-001/D-002/D-003/D-004"
+    },
+    {
+      "ts": "2026-10-17T00:20:00+08:00",
+      "phase": "立卡",
+      "action": "建 .github/tasks/TASK-PROTOCOL-002/ 四件套；新分支 feature/protocol-capabilities-backfill-2026-10-17；迁移 066 号段确认",
+      "evidence": [
+        ".github/tasks/TASK-PROTOCOL-002/task.md"
+      ]
+    },
+    {
+      "ts": "2026-10-17T00:30:00+08:00",
+      "phase": "开发",
+      "action": "写迁移 066（5 模板 UPDATE capabilities，能力键同源 061，param_mapping 省略，comfyui 例外注释）",
+      "evidence": [
+        "services/production/migrations/066_protocol_capabilities_backfill.sql"
+      ]
+    },
+    {
+      "ts": "2026-10-17T00:35:00+08:00",
+      "phase": "真库验证",
+      "action": "迁移 066 应用成功；5 模板键值一致；count=8/9（comfyui 例外）",
+      "evidence": [
+        "SELECT protocol_templates"
+      ]
+    },
+    {
+      "ts": "2026-10-17T00:40:00+08:00",
+      "phase": "契约核对",
+      "action": "supported_modes 动态聚合（handlers_catalog.go:114-117）；bff.yaml 无硬编码枚举；新键 ∈ 061 枚举 ⇒ 契约兼容",
+      "evidence": [
+        "openapi/bff.yaml:3231"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "能力键枚举",
+      "options": [
+        "A. 自定义",
+        "B. 沿用 061 三键枚举"
+      ],
+      "choice": "B",
+      "reason": "同源原则（064 教训：词表必须与调用方同源）",
+      "timing": "探查"
+    },
+    {
+      "id": "D-002",
+      "topic": "param_mapping",
+      "options": [
+        "A. 写推断字段名",
+        "B. 省略"
+      ],
+      "choice": "B",
+      "reason": "061 证据分级精神：无探测/文档依据不写；缺失不影响能力校验与默认透传",
+      "timing": "探查"
+    },
+    {
+      "id": "D-003",
+      "topic": "comfyui capabilities",
+      "options": [
+        "A. 填伪能力",
+        "B. 例外不填"
+      ],
+      "choice": "B",
+      "reason": "工作流自定义，协议层无法静态声明；硬填会误导 HasCapability 过滤；判据 4 口径 8/9",
+      "timing": "探查"
+    },
+    {
+      "id": "D-004",
+      "topic": "response_extract",
+      "options": [
+        "A. 自定义",
+        "B. 注册表 response_params 派生"
+      ],
+      "choice": "B",
+      "reason": "注册表定义是既有事实，派生有依据",
+      "timing": "探查"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据 1/2/3/5",
+      "cmd": "migrate.sh + SELECT jsonb_object_keys(capabilities) + count",
+      "result": "066 应用；5 模板键值一致；8/9"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 4",
+      "cmd": "迁移注释 + PR body",
+      "result": "comfyui 例外与 8/9 口径已文档化"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 6",
+      "cmd": "production build/vet + file-size + 台账",
+      "result": "全绿"
+    },
+    {
+      "id": "V-004",
+      "criterion": "契约",
+      "cmd": "supported_modes 派生核对",
+      "result": "兼容"
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✅",
+      "evidence": "V-001~V-004"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✅",
+      "evidence": "提交时按路径 add"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✅",
+      "evidence": "仅 migrations/066 + 台账"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✅",
+      "evidence": "acceptance.md 6/6"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✅",
+      "evidence": "V-003"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✅",
+      "evidence": "三方一致"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规",
+      "result": "✅",
+      "evidence": "066 号段 060-069"
+    }
+  ],
+  "retrospective": {
+    "good": "",
+    "improve": "",
+    "followups": ""
+  }
+}
