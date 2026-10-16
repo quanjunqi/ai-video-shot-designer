@@ -38,12 +38,14 @@ type Param struct {
 // ProtocolAsync 是 async 列的强类型视图，形状对齐执行器 engine.go 中的匿名结构。
 // 零值序列化为 {}，与 DB 中非异步模板的 async 默认值 '{}' 一致。
 type ProtocolAsync struct {
-	Enabled     bool   `json:"enabled,omitempty"`
-	TaskIDField string `json:"taskIdField,omitempty"`
-	StatusField string `json:"statusField,omitempty"`
-	DoneValue   string `json:"doneValue,omitempty"`
-	FailValue   string `json:"failValue,omitempty"`
-	PollPath    string `json:"pollPath,omitempty"`
+	Enabled             bool   `json:"enabled,omitempty"`
+	TaskIDField         string `json:"taskIdField,omitempty"`
+	StatusField         string `json:"statusField,omitempty"`
+	DoneValue           string `json:"doneValue,omitempty"`
+	FailValue           string `json:"failValue,omitempty"`
+	PollPath            string `json:"pollPath,omitempty"`
+	TimeoutMinutes      int    `json:"timeoutMinutes,omitempty"`
+	PollIntervalSeconds int    `json:"pollIntervalSeconds,omitempty"`
 }
 
 // ProtocolDefinition 是一个内置接入方式的完整定义。
@@ -326,6 +328,35 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Enabled:      true,
 			Version:      2,
 		},
+		// 迁移 061 由协议生成器（cmd/protocol-gen，OpenAI 官方 OpenAPI 3.1）产出；201 迁移写入 DB 行。
+		// 迁移 067 修正 pollPath 占位符 {id}→{task_id}（执行器 ReplaceAll 硬约束，061 写入 {id} 是轮询 URL bug）。
+		// 注册表补定义 = canonical 兜底（MergeTemplates：DB 行优先，注册表在 DB 缺行时兜底）；
+		// 修 TASK-PROTOCOL-004 检出的漂移（此前 openai_video 只在 DB、不在注册表）。
+		{
+			ID:          "pt_builtin_openai_video",
+			Label:       "OpenAI 兼容 · 视频生成（PearAPI/openai-video）",
+			Desc:        "videos/generations 形态，异步轮询，响应取 task_id 跟踪任务。",
+			Type:        "video",
+			Method:      "POST",
+			RequestPath: "/v1/videos/generations",
+			// params 为空：由 capabilities.param_mapping 装配（与 DB 行一致）。
+			Params:         []Param{},
+			ResponseParams: []Param{},
+			Async: ProtocolAsync{
+				Enabled:             true,
+				TaskIDField:         "id",
+				StatusField:         "status",
+				DoneValue:           "completed",
+				FailValue:           "failed",
+				PollPath:            "/v1/videos/{task_id}",
+				TimeoutMinutes:      1440,
+				PollIntervalSeconds: 15,
+			},
+			Capabilities: json.RawMessage(openaiVideoCapabilities),
+			Builtin:      true,
+			Enabled:      true,
+			Version:      1,
+		},
 	}
 }
 
@@ -419,63 +450,3 @@ func capabilitiesOrEmpty(raw json.RawMessage) json.RawMessage {
 	}
 	return json.RawMessage(trimmed)
 }
-
-// 迁移 021 为 pt_builtin_openai 初始化的 capabilities（text-chat）。
-const openaiChatCapabilities = `{
-  "text-chat": {
-    "request_path": "/v1/chat/completions",
-    "method": "POST",
-    "required_params": ["messages"],
-    "param_mapping": {
-      "messages": "messages",
-      "temperature": "temperature",
-      "top_p": "top_p",
-      "max_tokens": "max_tokens",
-      "stream": "stream",
-      "presence_penalty": "presence_penalty",
-      "frequency_penalty": "frequency_penalty"
-    },
-    "response_extract": {
-      "text": "choices.0.message.content",
-      "usage": "usage"
-    }
-  }
-}`
-
-// 迁移 021 为 pt_builtin_openai_img 初始化的 capabilities（text-to-image / image-to-image）。
-const openaiImageCapabilities = `{
-  "text-to-image": {
-    "request_path": "/v1/images/generations",
-    "method": "POST",
-    "required_params": ["prompt"],
-    "param_mapping": {
-      "prompt": "prompt",
-      "negative_prompt": "negative_prompt",
-      "aspect_ratio": "aspect_ratio",
-      "n": "n",
-      "seed": "seed",
-      "response_format": "response_format"
-    },
-    "response_extract": {
-      "image_url": "data.0.url",
-      "image_b64": "data.0.b64_json"
-    }
-  },
-  "image-to-image": {
-    "request_path": "/v1/images/edits",
-    "method": "POST",
-    "required_params": ["prompt", "image"],
-    "param_mapping": {
-      "prompt": "prompt",
-      "reference_images[0].url": "image",
-      "strength": "strength",
-      "aspect_ratio": "aspect_ratio",
-      "n": "n",
-      "response_format": "response_format"
-    },
-    "response_extract": {
-      "image_url": "data.0.url",
-      "image_b64": "data.0.b64_json"
-    }
-  }
-}`

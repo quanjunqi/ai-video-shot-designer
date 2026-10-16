@@ -69,7 +69,8 @@ fi
 hits_total=0
 for f in "${FILES[@]}"; do
   [ -f "$f" ] || continue
-  hits="$(python3 - "$f" <<'PYEOF'
+  hits_file="$(mktemp 2>/dev/null || mktemp -t checkshellvars.XXXXXX)"
+  python3 - "$f" <<'PYEOF' > "$hits_file"
 import re, sys
 
 raw = open(sys.argv[1], 'rb').read()
@@ -108,7 +109,8 @@ for i, line in enumerate(lines, 1):
 for h in a_hits + b_hits:
     print(h)
 PYEOF
-)"
+  hits="$(cat "$hits_file")"
+  rm -f "$hits_file"
   a_lines="$(printf '%s\n' "$hits" | grep '^A|' || true)"
   b_lines="$(printf '%s\n' "$hits" | grep '^B|' || true)"
   if [ -n "$a_lines" ]; then

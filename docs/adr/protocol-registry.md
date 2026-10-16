@@ -88,7 +88,16 @@ export type ChannelProtocolDefinition = {
 ### D3：请求模板改用 `{{占位符}}` 字符串
 - 从 `params[]` + `role` 抽象，改为**一个可读的模板字符串**
 - 理由：能表达 multipart/嵌套结构；用户与开发者都能一眼核对；减少一类"role 语义"的学习成本
-- **状态**：建议方向，需评估与 `model_catalog.params` 的兼容（可先并存，新模板用新形态）
+- **状态（2026-10-17 更新，TASK-PROTOCOL-001）**：渲染器 + 迁移 028 列已就绪；**等价可迁移子集已生效**
+  （`pt_builtin_minimax_text` + `pt_builtin_comfyui`，各有金标准等价性测试锁定）；
+  其余协议**不回填**——判别标准与逐协议裁定见迁移 `065_request_template_comfyui.sql` 注释：
+  - 模板可安全迁移 ⇔ ① 占位符集合 ⊆ 执行器恒 Present 的 key 集合；
+    ② 模板请求体字段集合 == params[] 形态发送集合（模板形态不再合并 params[] 组装的字段）；
+    ③ 有金标准等价性测试（同输入，两边 json.Unmarshal 后 DeepEqual）
+  - **pt_builtin_openai（14 字段含可选 runtime）禁止回填**：模板含 tools/user ⇒ 业务缺省即
+    `ErrTemplateMissingValue`（破坏现有「缺省不发送」行为）；不含 ⇒ 丢字段。两者都不等价
+  - grsai / jimeng_image / jimeng_video / minimax_video（空 params，靠 `__passthrough`）不回填：无增益
+  - openai_img 列为候选（prompt Present 非恒真），待有真实业务调用时逐场景评估
 
 ### D4：`capabilities` 增加**人读说明**（`referenceRule` 等）
 让"这个模型能不能用参考图、怎么用"能直接展示在 UI（ADR-005 D7「能力在选型时可被感知」）。

@@ -1,0 +1,227 @@
+{
+  "taskId": "TASK-PROTOCOL-005",
+  "updatedAt": "2026-10-17T04:00:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T03:05:00+08:00",
+      "phase": "探查",
+      "action": "核验 #213/#214 CI 全绿；读 MergeTemplates 语义确认修复路径",
+      "evidence": [
+        "GET pulls/213,214",
+        "protocol_registry.go"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-17T03:10:00+08:00",
+      "phase": "探查",
+      "action": "确认 openai_video DB 行已存在（可用），漂移影响=缺 canonical 兜底；ProtocolAsync 缺 timeout/poll",
+      "evidence": [
+        "model.go",
+        "postgres.go"
+      ],
+      "decisionRef": "D-002/D-003"
+    },
+    {
+      "ts": "2026-10-17T03:20:00+08:00",
+      "phase": "开发",
+      "action": "注册表补 openai_video 定义 + ProtocolAsync 补字段 + capabilities 常量 + 2 兜底单测 + audit 归零断言",
+      "evidence": [
+        "protocol_registry.go",
+        "protocol_registry_openai_video_test.go",
+        "audit_test.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T03:30:00+08:00",
+      "phase": "立卡",
+      "action": "补建 TASK-PROTOCOL-005 四件套",
+      "evidence": [
+        ".github/tasks/TASK-PROTOCOL-005/task.md"
+      ]
+    },
+    {
+      "ts": "2026-10-17T03:35:00+08:00",
+      "phase": "发现",
+      "action": "pollPath 占位符 bug：execution engine.go:341 ReplaceAll {task_id} 硬约束，061 写入 {id} 致所有任务轮询同一 URL",
+      "evidence": [
+        "engine.go:341",
+        "protocol_registry_test.go:367"
+      ]
+    },
+    {
+      "ts": "2026-10-17T03:40:00+08:00",
+      "phase": "修复",
+      "action": "迁移 067 应用（pollPath→{task_id}）+ 注册表修正 + capabilities 拆分（BE-SIZE）+ 断言 8→9 更新 + 快照刷新",
+      "evidence": [
+        "migrations/067_openai_video_pollpath.sql",
+        "protocol_capabilities.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T03:50:00+08:00",
+      "phase": "门禁",
+      "action": "11 包 -race + vet + gofmt + file-size + 台账全绿",
+      "evidence": [
+        "V-006/V-007"
+      ]
+    },
+    {
+      "ts": "2026-10-17T04:00:00+08:00",
+      "phase": "PR",
+      "action": "创建 PR #215（base develop ← feature/openai-video-registry-2026-10-17），body 含 6/6 勾对 + 轮询 bug 说明",
+      "evidence": [
+        "https://github.com/quanjunqi/ai-video-shot-designer/pull/215"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "修复方式",
+      "options": [
+        "A. 注册表补定义",
+        "B. 迁移删行",
+        "C. 迁移改行"
+      ],
+      "choice": "A",
+      "reason": "DB 行已存在且优先；注册表 = canonical 兜底；audit 归零",
+      "timing": "探查"
+    },
+    {
+      "id": "D-002",
+      "topic": "async 完整性",
+      "options": [
+        "A. 仅 6 字段",
+        "B. 补 timeout/poll（omitempty）"
+      ],
+      "choice": "B",
+      "reason": "兜底定义完整（DB 缺行时轮询不退化）；不影响既有输出",
+      "timing": "探查"
+    },
+    {
+      "id": "D-003",
+      "topic": "capabilities 来源",
+      "options": [
+        "A. 复制 DB 行",
+        "B. 精简"
+      ],
+      "choice": "A",
+      "reason": "与其它 builtin 常量同风格；词表同源（061）",
+      "timing": "探查"
+    },
+    {
+      "id": "D-004",
+      "topic": "自证口径",
+      "options": [
+        "A. 仅 audit",
+        "B. audit 归零 + catalog 兜底测试"
+      ],
+      "choice": "B",
+      "reason": "修完必须有门禁证明「不再漂移」且「兜底可用」",
+      "timing": "探查"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据 1",
+      "cmd": "go test ./internal/catalog/ -run TestRegistryFallback",
+      "result": "canonical 定义完整（含 {task_id} pollPath）"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 2",
+      "cmd": "TestRegistryFallbackMergeBehavior",
+      "result": "DB 缺行时注册表兜底"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 3",
+      "cmd": "go test ./internal/protocolaudit/",
+      "result": "db-only 空、both=9"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 4",
+      "cmd": "常量检查",
+      "result": "text-to-video + image-to-video"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据 5",
+      "cmd": "go test ./... -race",
+      "result": "11 包全绿"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据 6",
+      "cmd": "vet/gofmt/file-size/台账",
+      "result": "全绿"
+    },
+    {
+      "id": "V-007",
+      "criterion": "判据 6 追加",
+      "cmd": "迁移 067 应用验证",
+      "result": "DB pollPath=/v1/videos/{task_id}"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "desc": "capabilities 拆分脚本锚点错误破坏文件",
+      "root": "start/end 索引顺序（start > end 致空切片 + 误删函数）",
+      "solve": "git checkout 恢复 + 正确锚点重做（end=文件尾）",
+      "lesson": "切文件前先打印 start/end 行号验证"
+    },
+    {
+      "id": "B-002",
+      "desc": "既有断言 8 内置定义全失败",
+      "root": "注册表 8→9，台账式断言需同步",
+      "solve": "builtinTemplateIDs + golden table + merge 断言更新",
+      "lesson": "注册表增定义必同步测试台账"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✅",
+      "evidence": "V-001~V-007"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✅",
+      "evidence": "提交时按路径 add"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✅",
+      "evidence": "注册表 + 迁移 067 + 快照 + 测试 + 台账"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✅",
+      "evidence": "acceptance.md 6/6"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✅",
+      "evidence": "V-006"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✅",
+      "evidence": "三方一致"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规",
+      "result": "✅",
+      "evidence": "迁移 067"
+    }
+  ],
+  "retrospective": {
+    "good": "",
+    "improve": "",
+    "followups": ""
+  }
+}

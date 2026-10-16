@@ -1,0 +1,194 @@
+{
+  "taskId": "TASK-PROTOCOL-004",
+  "updatedAt": "2026-10-17T02:55:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T02:00:00+08:00",
+      "phase": "探查",
+      "action": "核验 PR #212 CI 绿、#213 CI 进行中；确认 MODEL-006 判据 7/8/9 依赖 Owner；选协议三方一致性自检（#213 遗留收口）；确认新包独立于未合并的 #213",
+      "evidence": [
+        "GET pulls/212 + runs API",
+        ".github/tasks/TASK-MODEL-006/acceptance.md",
+        "protocol_registry.go grep"
+      ],
+      "decisionRef": "D-001/D-002"
+    },
+    {
+      "ts": "2026-10-17T02:10:00+08:00",
+      "phase": "真库快照",
+      "action": "真库 protocol_templates 9 行快照（jsonb_agg）→ testdata/protocol_templates_snapshot.json（含来源注释）",
+      "evidence": [
+        "services/production/internal/protocolaudit/testdata/protocol_templates_snapshot.json"
+      ]
+    },
+    {
+      "ts": "2026-10-17T02:20:00+08:00",
+      "phase": "开发",
+      "action": "写 protocolaudit/audit.go（Audit 纯函数）+ 6 单测；修复 TestAuditClean nil/空 slice DeepEqual 陷阱（B-001）",
+      "evidence": [
+        "internal/protocolaudit/audit.go",
+        "internal/protocolaudit/audit_test.go"
+      ],
+      "decisionRef": "D-003/D-004"
+    },
+    {
+      "ts": "2026-10-17T02:30:00+08:00",
+      "phase": "立卡",
+      "action": "补建 TASK-PROTOCOL-004 四件套（开发与立卡同一连续会话；任务 #6 已在开发前登记）",
+      "evidence": [
+        ".github/tasks/TASK-PROTOCOL-004/task.md"
+      ]
+    },
+    {
+      "ts": "2026-10-17T02:45:00+08:00",
+      "phase": "门禁",
+      "action": "production build/test -race/vet/gofmt 全绿；file-size 0；台账门禁通过；SOP 补一致性自检小节",
+      "evidence": [
+        "V-005/V-006"
+      ]
+    },
+    {
+      "ts": "2026-10-17T02:55:00+08:00",
+      "phase": "PR",
+      "action": "创建 PR #214（base develop ← feature/protocol-audit-2026-10-17），body 含 6/6 勾对 + 快照自证 + 遗留说明",
+      "evidence": [
+        "https://github.com/quanjunqi/ai-video-shot-designer/pull/214"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "包位置",
+      "options": [
+        "A. 扩展 protocolgen",
+        "B. 新包 protocolaudit"
+      ],
+      "choice": "B",
+      "reason": "不依赖未合并的 #213；审计 = 独立主题",
+      "timing": "探查"
+    },
+    {
+      "id": "D-002",
+      "topic": "输入形态",
+      "options": [
+        "A. 连库",
+        "B. 纯函数 + 快照"
+      ],
+      "choice": "B",
+      "reason": "不连库；快照由调用方提供（testdata 固化真库快照）",
+      "timing": "探查"
+    },
+    {
+      "id": "D-003",
+      "topic": "例外规则",
+      "options": [
+        "A. 无例外",
+        "B. emptyCapOK（comfyui）"
+      ],
+      "choice": "B",
+      "reason": "工作流自定义无法静态声明（#212 同源口径 8/9）",
+      "timing": "探查"
+    },
+    {
+      "id": "D-004",
+      "topic": "门禁自证",
+      "options": [
+        "A. 仅单测",
+        "B. 真库快照断言已知漂移"
+      ],
+      "choice": "B",
+      "reason": "快照 = 门禁基线，防回归",
+      "timing": "探查"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "判据 1",
+      "cmd": "go test ./internal/protocolaudit/",
+      "result": "6 单测全绿"
+    },
+    {
+      "id": "V-002",
+      "criterion": "判据 2",
+      "cmd": "TestAuditCapabilityKeyViolation",
+      "result": "bad-mode → CapViolation"
+    },
+    {
+      "id": "V-003",
+      "criterion": "判据 3",
+      "cmd": "TestAuditSnapshotRealDB",
+      "result": "快照 9 行；db-only=[openai_video]；无词表违规"
+    },
+    {
+      "id": "V-004",
+      "criterion": "判据 4",
+      "cmd": "testdata 快照头",
+      "result": "来源注释已含"
+    },
+    {
+      "id": "V-005",
+      "criterion": "判据 5",
+      "cmd": "docs 检查",
+      "result": "protocol-onboarding.md 已补"
+    },
+    {
+      "id": "V-006",
+      "criterion": "判据 6",
+      "cmd": "production 门禁",
+      "result": "全绿"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "desc": "TestAuditClean 失败",
+      "root": "nil slice vs 空 slice 的 reflect.DeepEqual 陷阱",
+      "solve": "改 len() 检查",
+      "lesson": "断言空切片用 len，勿用 DeepEqual"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✅",
+      "evidence": "V-001~V-006"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✅",
+      "evidence": "提交时按路径 add"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✅",
+      "evidence": "protocolaudit/ + docs + 台账"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✅",
+      "evidence": "acceptance.md 6/6"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✅",
+      "evidence": "V-006"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✅",
+      "evidence": "三方一致"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规",
+      "result": "✅",
+      "evidence": "本卡无迁移"
+    }
+  ],
+  "retrospective": {
+    "good": "",
+    "improve": "",
+    "followups": ""
+  }
+}

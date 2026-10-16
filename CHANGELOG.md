@@ -101,6 +101,33 @@
   "列表看着筛过了、而 `total` 与统计仍是全集"。现在为**服务端**筛选，且**列表与导出共用同一解析函数**
   ⇒ 两处口径不可能分叉。
 
+#### 协议定义层治理（① 算力接入 · 协议闭环 · PR #210–#215）
+
+- **逻辑模型自动归并**（PR #210）：`POST /internal/v1/logical-models/reconcile` 返回
+  `{created,bound,skipped}`。D-004 决策：单测首跑实证「新建冲突加后缀」是不可达死分支
+  （分桶按键聚合⇒键唯一），删除 `allocateLogicalModelID`。Owner 拍板：逻辑模型=通用分组、
+  Owner 自行创建分组；入池=管理员精选绝不自动全量挂。
+- **requestTemplate 数据迁移**（PR #211）：执行器模板语义实证（非空模板⇒渲染即请求体全文；
+  占位符缺失⇒`ErrTemplateMissingValue`）。推导迁移判据（占位符⊆恒 Present key 且字段集合
+  ==params 发送集合且金标准等价性测试）：`comfyui` 等价回填（迁移 065，`client_id` 用
+  `{{client_id}}`）；**`openai` 禁止回填**（模板含 tools/user ⇒ 缺省即报错，破坏「缺省不发送」）。
+  execution 金标准测试 6 场景 × 同步/异步全 PASS。
+- **协议模板 capabilities 补齐**（PR #212）：真库 9 模板仅 3 HAS / 6 EMPTY → 迁移 066 补齐
+  判据 4 至 **8/9**（comfyui 例外：本地工作流能力由导入工作流定义，硬填误导 `HasCapability`）。
+  能力键沿用 061 枚举；`response_extract` 从注册表 `response_params` 派生。
+- **协议模板生成器**（PR #213）：`cmd/protocol-gen` 从上游 OpenAPI 3.1 确定性生成协议定义
+  （零依赖解析、`$ref`/`allOf`/`oneOf` 处理、字母序属性）。核心断言：Generate(chat) 14 手写键
+  + Generate(images) 5 键**全在 OpenAI 官方字段内** ⇒ 注册表手写定义零臆测。
+  接入 SOP：`docs/how-to/protocol-onboarding.md`。
+- **协议定义三方一致性自检**（PR #214）：`internal/protocolaudit`（纯函数 + 真库快照自证）——
+  ① id 集合（db-only=漂移阻断项）② 能力键词表（∈ 061 枚举）③ builtin 空能力提示（comfyui 例外）。
+  快照（9 行）固化为门禁基线，防注册表↔DB 再次分叉。
+- **openai_video 漂移修复 + 轮询 URL bug**（PR #215）：注册表补 `pt_builtin_openai_video`
+  canonical 定义（MergeTemplates：DB 行优先，注册表兜底）——audit 漂移归零。**关键修复**：
+  061 写入 pollPath=`/v1/videos/{id}` 不含 `{task_id}` 占位符，执行器 `engine.go:341`
+  `ReplaceAll` 无目标 ⇒ 所有任务轮询同一 URL（真 bug）。迁移 067 修正 DB 行（幂等 WHERE）。
+  `ProtocolAsync` 补 `timeoutMinutes`/`pollIntervalSeconds`（omitempty）。
+
 ### Changed
 
 - **联合并行开发规范**（`docs/PARALLEL_DEVELOPMENT.md` + `AGENTS.md` §12.7）：面向多条开发线
