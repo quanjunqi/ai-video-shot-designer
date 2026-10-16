@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MODEL-006",
-  "updatedAt": "2026-10-16T02:30:00+08:00",
+  "updatedAt": "2026-10-16T22:30:00+08:00",
   "note": "本卡状态：待开工。当前仅含『立卡/前提核实』条目——该部分工作已实际发生，非预写。",
   "events": [
     {
@@ -85,6 +85,23 @@
         "收口理由：第 3~5 项是契约→Go→前端完整链，需逐层验证；余量不足时硬推会产出未验证的东西"
       ],
       "decisionRef": "D-013",
+      "blockRef": null
+    },
+    {
+      "ts": "2026-10-16T22:30:00+08:00",
+      "phase": "迁移落地：号段让号 + 应用 039",
+      "action": "按 Owner 决定把 040 改名为 060（模型中心新认领 060-069），并只应用 039（加价比例）",
+      "evidence": [
+        "让号依据：原 040 属『项目知识库 040-049』，模型中心 024-039 已满（039 为最后一号）⇒ 无空号段可让；规范原文『撞号时后到者立即让号』",
+        "改名前核实：040 尚未应用（schema_migrations 只到 038）⇒ 铁律只约束已应用文件 ⇒ 改名零成本",
+        "号段表已同步 .agents/skills/database-migrations/SKILL.md；认领已登记进本卡 task.md",
+        "只应用 039 的处置：迁移执行器会应用全部待执行迁移，而 060 是破坏性清理（6 渠道 + 16 目录行 + 56 归档版本）⇒ 临时移出 060，应用后放回",
+        "compose 首次踩到：需 --profile app --profile platform（asset(app) 依赖 minio(platform)），否则报 service asset depends on undefined service minio",
+        "执行结果：迁移计划 待应用 1 · 已应用(跳过) 40 · 采纳 0；-> 039_model_markup.sql；当前版本 039_model_markup.sql",
+        "验证：markup_ratio 列 numeric 可空；price_source CHECK 含 manual/synced/markup；markup_type_defaults 表 PK(workspace_id,type)；既有 18 行 markup_ratio 非空 0 行、类型默认 0 行 ⇒ 向后兼容如设计",
+        "栈可用：/api/v1/me 200，5 端口全在（postgres 容器被 Recreate 未造成影响）"
+      ],
+      "decisionRef": "D-010",
       "blockRef": null
     }
   ],
@@ -245,6 +262,40 @@
       "choice": "收口",
       "reason": "第 3~5 项是契约→Go→前端完整链，需逐层验证（api:check / go test -race / gate）。余量不足时硬推会产出『看起来完成但没验证』的东西，违反本仓核心纪律",
       "timing": "收口"
+    },
+    {
+      "id": "D-010",
+      "topic": "040 的号段",
+      "options": [
+        "改名到新认领的 060",
+        "保持 040",
+        "指定其它号"
+      ],
+      "choice": "改名 060，模型中心认领 060-069",
+      "reason": "Owner 决定；024-039 已满无号可让；文件未应用 ⇒ 改名零成本",
+      "timing": "迁移"
+    },
+    {
+      "id": "D-011",
+      "topic": "是否连带应用 060",
+      "options": [
+        "一起应用",
+        "只应用 039"
+      ],
+      "choice": "只应用 039",
+      "reason": "Owner 明确「先应用 039」；060 是破坏性清理，应单独确认后执行",
+      "timing": "迁移"
+    },
+    {
+      "id": "D-012",
+      "topic": "compose 调用方式",
+      "options": [
+        "只 --profile app",
+        "app + platform"
+      ],
+      "choice": "app + platform",
+      "reason": "asset(app) 依赖 minio(platform)，只给 app 会报 invalid compose project",
+      "timing": "迁移"
     }
   ],
   "verifications": [

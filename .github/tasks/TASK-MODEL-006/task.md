@@ -174,3 +174,17 @@ SELECT channel_id,count(*) FROM channel_models GROUP BY channel_id;
 -- 能力声明覆盖（实测 2/8）
 SELECT count(*) FILTER (WHERE capabilities<>'{}'::jsonb)||'/'||count(*) FROM protocol_templates;
 ```
+
+## 号段认领（规范要求登记进任务卡）
+
+| 迁移 | 号段 | 状态 |
+|---|---|---|
+| `039_model_markup.sql` | production 模型中心 **024-039**（039 = 该段最后一号） | ✅ 在段内；未应用 |
+| `060_mock_channel_purge.sql` | production 模型中心 **060-069**（**Owner 2026-10-16 新认领**） | ✅ 已改名让号；未应用 |
+
+**让号经过（Owner 2026-10-16 决定）**：
+原文件名为 `040_mock_channel_purge.sql`，但 **040-049 属「项目知识库」**，而模型中心 024-039 **已满**
+⇒ 无空号段可让。Owner 决定：**模型中心新认领 060-069，040 改名为 060**。
+改名前已核实该文件**尚未应用**（`schema_migrations` 只到 038）⇒ 「迁移只增不改」的铁律
+只约束**已应用**文件 ⇒ **改名不影响校验和**。
+号段表已同步：`.agents/skills/database-migrations/SKILL.md`（机制落地 = 同步规则文件）。
