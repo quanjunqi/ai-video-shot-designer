@@ -472,7 +472,7 @@
       "title": "协议定义三方一致性自检（注册表 ↔ DB ↔ 能力键词表）",
       "status": "进行中",
       "priority": "P1（协议层治理收口——把 openai_video 漂移升级为自动门禁）",
-      "pr": "#<待开>",
+      "pr": "#214",
       "file": "[TASK-PROTOCOL-004/task.md](TASK-PROTOCOL-004/task.md)"
     }
   ]

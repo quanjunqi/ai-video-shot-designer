@@ -66,7 +66,7 @@
 | TASK-PROTOCOL-001 | requestTemplate 数据迁移（等价可迁移子集回填 + 判别标准固化） | P1（底座收尾的自动化补刀——对齐 VOZEB requestTemplate 形态；等价子集 comfyui 已回填） | 进行中（PR #211 已开，待 CI + Owner 合并） | ✅ | [TASK-PROTOCOL-001/task.md](TASK-PROTOCOL-001/task.md) |
 | TASK-PROTOCOL-002 | 协议模板 capabilities 补齐（服务 MODEL-006 判据 4） | P1（底座收尾的自动化补刀——服务 TASK-MODEL-006 判据 4「能力声明覆盖」） | 进行中（PR #212 已开，待 CI + Owner 合并） | ✅ | [TASK-PROTOCOL-002/task.md](TASK-PROTOCOL-002/task.md) |
 | TASK-PROTOCOL-003 | 协议模板生成器（OpenAPI 规范 → 协议定义，确定性生成） | P1（协议层自动化补刀——VOZEB 三件套之三） | 进行中（PR #213 已开，待 CI + Owner 合并） | ✅ | [TASK-PROTOCOL-003/task.md](TASK-PROTOCOL-003/task.md) |
-| TASK-PROTOCOL-004 | 协议定义三方一致性自检（注册表 ↔ DB ↔ 能力键词表） | P1（协议层治理收口——把 openai_video 漂移升级为自动门禁） | 进行中（审计器 6 单测全绿：真库快照自证漂移检出） | ✅ | [TASK-PROTOCOL-004/task.md](TASK-PROTOCOL-004/task.md) |
+| TASK-PROTOCOL-004 | 协议定义三方一致性自检（注册表 ↔ DB ↔ 能力键词表） | P1（协议层治理收口——把 openai_video 漂移升级为自动门禁） | 进行中（PR #214 已开，待 CI + Owner 合并） | ✅ | [TASK-PROTOCOL-004/task.md](TASK-PROTOCOL-004/task.md) |
 | TASK-ROUTE-002 | 逻辑模型与候选绑定 API（production 服务） | — | 已验收（PR #145 已合并） | — | [TASK-ROUTE-002-logical-models-api.md](TASK-ROUTE-002-logical-models-api.md) |
 | TASK-ROUTE-003 | T4 单元熔断三件套（channel_health + 错误码分类 + 多副本共享） | P0（A 轨 M2） | 已验收（PR #177 已合并） | — | [TASK-ROUTE-003-circuit-breaker.md](TASK-ROUTE-003-circuit-breaker.md) |
 | TASK-SEC-001 | 模型网关出站 SSRF 防护 | P0（阶段1 第1项） | 已验收（PR #195 已合并，0b06a8d；8/8 验收标准） | ✅ | [TASK-SEC-001/task.md](TASK-SEC-001/task.md) |

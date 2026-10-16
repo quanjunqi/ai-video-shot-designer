@@ -2,7 +2,7 @@
 taskId: TASK-PROTOCOL-004
 status: 进行中
 priority: P1（协议层治理收口——把 openai_video 漂移升级为自动门禁）
-pr: "#<待开>"
+pr: "#214"
 criteria: 6
 criteriaPassed: 0
 depends_on: 不依赖 Owner 数据口径（输入 = 注册表 id 集 + 真库快照 + 061 能力键枚举）
