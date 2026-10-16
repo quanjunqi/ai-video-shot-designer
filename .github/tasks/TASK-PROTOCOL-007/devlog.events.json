@@ -1,0 +1,12 @@
+{
+  "taskId": "TASK-PROTOCOL-007",
+  "updatedAt": "2026-10-17T05:30:00+08:00",
+  "events": [
+    {"ts": "2026-10-17T05:00:00+08:00", "phase": "定位", "action": "页面降级 8 模板；console 定位 (t.params ?? []).map 崩溃；BFF 确认 responses params={}",
+     "evidence": ["browser console", "/api/v1/catalog"]},
+    {"ts": "2026-10-17T05:15:00+08:00", "phase": "修复", "action": "protocol-gen 确定性生成 32 params + 37 response；迁移 069 UPDATE；registry/golden 同步",
+     "evidence": ["services/production/migrations/069_openai_responses_params_fix.sql"]},
+    {"ts": "2026-10-17T05:30:00+08:00", "phase": "验证", "action": "落库 array 32/37；回归全绿；前端页面显示 10 模板 + Responses 卡片",
+     "evidence": ["/settings/channels/protocols 页面截图"]}
+  ]
+}
