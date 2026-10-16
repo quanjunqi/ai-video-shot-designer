@@ -659,3 +659,65 @@ UPDATE protocol_templates SET params='[]'::jsonb, response_params='[]'::jsonb, u
 | D-020 | 修 061 还是新增迁移 | **新增 062** | 仓规铁律「迁移只增不改」；061 已应用，改它会被校验和拒绝 |
 | D-021 | 是否"前端容忍一下"就算了 | **不**，修数据 | 契约明确 `type: array` ⇒ 前端按契约消费是对的；让前端容忍违约数据是掩盖问题 |
 | D-022 | 可观测性缺陷是否同修 | **本轮未修，已记录建议** | 属前端改动（需过 `npm run gate`），且与判据 8 的修复解耦；留给下一次前端改动一并做 |
+
+---
+
+### 2026-10-17 判据 5 达成：能力档位数据落地（迁移 063）+ 契约固化
+
+#### 施工前定向：**我差点又走错（本轮第三次实证救了我）**
+
+原计划按判据字面新建 `aspect_ratios` / `duration_range` / `quality_options` / `reference_rule` **四个列**。
+**取实证后发现那是错的**：前端 `create/control-schema.ts` **早已在消费这些键**，但它们在
+`model_catalog.capability`（JSONB）里：
+
+```
+capability.aspectRatios / aspectRatioCount / qualityTiers
+capability.minDurationSeconds / maxDurationSeconds
+capability.maxRefImages / maxRefAudios / maxRefVideos
+capability.modes / refImage / billing
+```
+
+**⇒ 真实缺口不是"字段不存在"，而是「键集合没写进契约（只写"契约待补"）」+「真实模型没填值」。**
+**若新建列，会与前端已消费的 `capability` 分裂成两套 —— 那才是真错。**
+
+#### 实测的现状缺口
+
+| 模型 | 改前 `capability` |
+|---|---|
+| text `deepseek-v4-pro-0813` | 形态完整（maxTokens/streaming/temperature…） |
+| image `gpt-image-2` | **只有计数**：`{refImage:false, qualityTiers:2, aspectRatioCount:3}` ⇒ **无实际档位值**，前端只能兜底 |
+| video `doubao-seedance-2-5` | **`{}` 空** |
+
+#### 数据来源与纪律
+
+`model-capabilities.md`（只读 web 调研，原则「**只报官方文档写了的；查不到写"未找到官方依据"，
+不填推测值**」）。★ 特别核对：`gpt-image-2` **首轮判"全域 HTTP 403 ⇒ 留空"**，但该文件 §2
+明确写着「**首轮无依据 → 现已有官方级来源**」⇒ 二次确认后才填。
+
+#### 交付
+
+1. **迁移 063**：给两个已策展模型填官方核实过的档位
+   - `gpt-image-2`：比例 4 档、quality 4 档、参考图 **16**、n 1–10、任意尺寸规则
+   - `doubao-seedance-2-5`：比例 **7 档**、时长 **4~30s**、分辨率 3 档、模式 7 种、参考图 30/视频 10/音频 10
+   - **每个档位带 `tiersSource`**（source/confidence/verifiedAt/evidenceFile）—— 沿用 061 `observed_evidence` 的做法：**数据与证据放在一起**
+   - 用 `capability || '{...}'` **合并**而非整体覆盖 ⇒ 既有 `billing` 等键不被破坏；幂等
+2. **契约固化**（`openapi/bff.yaml`）：把键集合与 `tiersSource` 写进 `capability` 定义
+   （此前只有一句"契约待补"）⇒ 并**重新生成** `api-generated.ts`，`api:check` rc=0
+3. **注释固化**：`COMMENT ON COLUMN model_catalog.capability` 写明档位键与"无依据留空、不得填占位值"
+
+#### 验证（判据 5：档位取值存在 + 至少 1 个真实模型声明）
+
+| 检查 | 结果 |
+|---|---|
+| 迁移应用 | `待应用 1 · 已应用(跳过) 44` ⇒ 只应用 063，**无连带** ✓ |
+| 档位落地 | image：比例 4 档 / quality 4 档 / 参考图 16；video：比例 7 档 / 4~30s / 参考图 30 ✓ |
+| 契约一致性（SQL 统计） | 有比例 2 行 / 有时长 1 行 / 有参考图上限 2 行 / 共 3 行 ✓ |
+| **端到端**（BFF 出口） | `GET /api/v1/catalog` 返回真实档位，**键名与前端 `control-schema.ts` 消费的完全一致** ✓ |
+| 前端门禁 | `npm run gate` rc=0；`api:check` rc=0 ✓ |
+| 事务内预验证 | `UPDATE 1` ×2 + `COMMENT` + 回滚后数据未变 ✓ |
+
+#### 教训（第三次同族）
+
+**"判据的字面描述"与"系统的实际形态"可能不一致。**
+判据说"档位字段存在" ⇒ 我读成"要新建列"；实际字段（JSONB 键）**早已存在且前端已消费**。
+**⇒ 与前两次（判据 1 已作废、79 行迁移违 ADR-004）同族：施工前必须先取实证核对前提。**

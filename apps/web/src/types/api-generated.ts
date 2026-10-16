@@ -1930,8 +1930,43 @@ export interface components {
             method?: "POST" | "GET";
             params?: components["schemas"]["ModelParam"][];
             responseParams?: components["schemas"]["ModelParam"][];
-            /** @description 能力声明（JSONB）；键集合以服务端/协议模板为准，契约待补。 */
+            /** @description 能力声明（JSONB）。**键集合于 TASK-MODEL-006 / 迁移 063 固化**（此前只写"契约待补"）。
+             *
+             *     档位类键（前端 `create/control-schema.ts` 已消费这些键名，改名须前后端同步）：
+             *       · aspectRatios         string[]  可选比例/尺寸档，如 ["16:9","9:16","adaptive"]
+             *       · aspectRatioCount     integer   仅计数（历史字段，前端在无 aspectRatios 时兜底）
+             *       · qualityOptions       string[]  画质档，如 ["low","medium","high","auto"]
+             *       · qualityTiers         integer   画质档数量（同上，兜底用）
+             *       · minDurationSeconds   integer   视频时长下限（秒）
+             *       · maxDurationSeconds   integer   视频时长上限（秒）
+             *       · resolutionOptions    string[]  分辨率档，如 ["480p","720p","1080p"]
+             *       · modes                string[]  生成模式，如 ["text-to-video","first-frame"]
+             *       · maxRefImages         integer   参考图上限
+             *       · maxRefVideos         integer   参考视频上限
+             *       · maxRefAudios         integer   参考音频上限
+             *       · refImage             boolean   是否支持参考图
+             *       · billing              object    计费信息
+             *
+             *     ★ **每个档位应带 `tiersSource` 记录来源与置信度**（source / confidence / verifiedAt /
+             *     evidenceFile），以便复核。**无官方依据的字段留空（缺失即"未知"），不得填占位值** ——
+             *     这是本项目能力数据的硬纪律（见 `model-capabilities.md` 的原则声明）。
+             *      */
             capability: {
+                /** @description 档位数据的来源与置信度（TASK-MODEL-006 起要求；缺失表示来源未记录）。 */
+                tiersSource?: {
+                    /** @enum {string} */
+                    source?: "official" | "official_mirror" | "third_party" | "community" | "manual_curated";
+                    /** @enum {string} */
+                    confidence?: "high" | "medium" | "low";
+                    /** @description 核实日期（YYYY-MM-DD）。 */
+                    verifiedAt?: string;
+                    /** @description 依据文件/锚点。 */
+                    evidenceFile?: string;
+                    note?: string;
+                } & {
+                    [key: string]: unknown;
+                };
+            } & {
                 [key: string]: unknown;
             };
             version: number;
