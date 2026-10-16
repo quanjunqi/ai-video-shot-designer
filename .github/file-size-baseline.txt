@@ -17,7 +17,7 @@
 # 为什么含 *_test.go：BE-SIZE-001 原文「单个文件 ≤ 500 行」无例外；
 #   且棘轮只约束**单文件增长**，**新增测试文件不受限**，不会抑制补测试。
 #
-# 实测日期：2026-10-16（TASK-PROC-005 立卡时全量扫描）
+# 实测日期：2026-10-16（TASK-PROC-005 立卡全量扫描；TASK-PROC-006 起随修复逐条收紧）
 # 格式：<相对仓库根路径> <实测行数>
 services/execution/internal/httpapi/handlers_generate.go 783
 services/web-bff/internal/httpserver/main_test.go 764
@@ -28,6 +28,3 @@ services/execution/internal/engine/engine_test.go 550
 services/execution/internal/engine/engine.go 526
 services/execution/internal/httpapi/handlers.go 525
 services/production/internal/httpapi/handlers.go 517
-services/execution/cmd/server/main.go 184
-services/production/cmd/server/main.go 94
-services/asset/cmd/server/main.go 73
