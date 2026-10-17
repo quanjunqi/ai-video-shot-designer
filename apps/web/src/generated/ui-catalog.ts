@@ -3742,19 +3742,19 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 741
+        "count": 745
       },
       {
         "value": "3",
-        "count": 458
+        "count": 459
       },
       {
         "value": "1",
-        "count": 450
+        "count": 453
       },
       {
         "value": "1.5",
-        "count": 331
+        "count": 334
       },
       {
         "value": "4",
@@ -3838,7 +3838,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 194
+        "count": 195
       },
       {
         "value": "xl",
@@ -3850,7 +3850,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "md",
-        "count": 91
+        "count": 93
       },
       {
         "value": "full",

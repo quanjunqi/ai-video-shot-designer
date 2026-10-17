@@ -45,7 +45,7 @@ interface SettingsState {
   upsertChannel(id: string, patch: Partial<ChannelConfig>): void;
   duplicateChannel(id: string): void; // 克隆渠道（含其下模型），用户级本地操作
   removeChannel(id: string): void; // 自定义删除走后端；内置删除=本地隐藏（hiddenBuiltinIds）
-  testChannel(id: string): void; // 演示：假调通（诊断 + 最后检测时间），真实鉴权待接入
+  testChannel(id: string): void; // 连通检测（真实 HTTP 探测：网络层+鉴权层，经 BFF probe 如实上报）
   addModel(input: Omit<CatalogModel, 'id'>): void;
   duplicateModel(id: string): void; // 克隆模型，用户级本地操作
   updateModel(id: string, patch: Partial<CatalogModel>): void;
