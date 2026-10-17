@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M8
 title: 撤销模型目录页、启停归位模型广场
-status: 进行中
+status: 待验收
 priority: P1
 depends_on:
   - TASK-MARKET-M7
