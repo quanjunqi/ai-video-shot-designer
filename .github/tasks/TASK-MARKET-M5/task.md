@@ -1,5 +1,5 @@
 ---
-status: 进行中
+status: 待验收
 priority: P1
 depends_on: [TASK-MARKET-M4]
 ---

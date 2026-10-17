@@ -611,13 +611,13 @@
     {
       "id": "TASK-MARKET-M5",
       "title": "模型目录能力归属服务端化",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M4"
       ],
-      "pr": null,
-      "criteriaPassed": 0,
+      "pr": 239,
+      "criteriaPassed": 3,
       "criteriaTotal": 3,
       "file": "TASK-MARKET-M5/task.md"
     }
