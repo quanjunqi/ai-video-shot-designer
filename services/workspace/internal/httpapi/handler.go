@@ -21,6 +21,7 @@ type Handler struct {
 
 // WorkspaceStore keeps the HTTP boundary independent from the PostgreSQL implementation.
 type WorkspaceStore interface {
+	Workspace(context.Context, string) (store.WorkspaceInfo, error)
 	Members(context.Context, string) ([]store.Member, error)
 	Authorize(context.Context, string, string) (store.Member, error)
 	PutCredential(context.Context, store.Credential) error
@@ -58,6 +59,7 @@ func (h Handler) Routes() http.Handler {
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
+	mux.HandleFunc("GET /internal/v1/workspaces/{workspace_id}", h.workspaceInfo)
 	mux.HandleFunc("GET /internal/v1/workspaces/{workspace_id}/members", h.members)
 	mux.HandleFunc("GET /internal/v1/workspaces/{workspace_id}/authorize", h.authorize)
 	mux.HandleFunc("PUT /internal/v1/workspaces/{workspace_id}/credentials/{channel_id}", h.putCredential)
@@ -84,6 +86,22 @@ func (h Handler) authenticated(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	return true
+}
+
+func (h Handler) workspaceInfo(w http.ResponseWriter, r *http.Request) {
+	if !h.authenticated(w, r) {
+		return
+	}
+	ws, err := h.Store.Workspace(r.Context(), r.PathValue("workspace_id"))
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, 404, "WORKSPACE_NOT_FOUND", "workspace not found")
+		return
+	}
+	if err != nil {
+		writeError(w, 503, "WORKSPACE_UNAVAILABLE", "workspace could not be loaded")
+		return
+	}
+	writeJSON(w, 200, ws)
 }
 
 func (h Handler) members(w http.ResponseWriter, r *http.Request) {

@@ -92,6 +92,8 @@ func (s *server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/workspace/budget/", s.workspaceBudget)
 	// TASK-SETTINGS-P3A：成员列表（admin+ 可读，矩阵守卫；前端设置 > 工作区与成员）
 	mux.HandleFunc("GET /api/v1/workspace/members", s.workspaceMembers)
+	// TASK-SETTINGS-P3B：workspace 信息（全员可读；前端设置 > 工作区信息卡）
+	mux.HandleFunc("GET /api/v1/workspace", s.workspaceInfo)
 	// TASK-AUTH-001：当前身份（workspace/actor/role），前端启动拉取以驱动角色控制
 	mux.HandleFunc("GET /api/v1/me", s.me)
 	return withTimeout(mux)

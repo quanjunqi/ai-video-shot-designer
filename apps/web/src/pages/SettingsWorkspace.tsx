@@ -3,11 +3,13 @@
 // 工作区信息卡全员可见；成员与角色卡仅 Admin+ 渲染（Viewer 整区隐藏）；
 // 邀请/调整/移除/共享预设库 = 显式 P3 占位（禁僵尸按钮）。
 // P3A：成员数据源 = BFF /api/v1/workspace/members（admin+ 矩阵守卫）；API 失败 → 降级本地 DEV_ACTORS 演示态并标注来源。
+// P3B：工作区信息卡（名称/标识/创建时间）数据源 = BFF /api/v1/workspace（全员可读）；失败 → 降级静态值并标注来源。
 import { useEffect, useState } from 'react';
 import { Building2, Crown, UserPlus, Users, SlidersHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DEV_ACTORS, useAuthStore, ROLE_RANK, type ActorRole } from '@/stores/useAuthStore';
 import { fetchWorkspaceMembers, type WorkspaceMember } from '@/features/settings/workspace-members';
+import { fetchWorkspaceInfo, type WorkspaceInfo } from '@/features/settings/workspace-info';
 
 const ROLE_LABEL: Record<ActorRole, string> = { owner: 'Owner', admin: 'Admin', viewer: 'Viewer', member: 'Member' };
 
@@ -16,10 +18,37 @@ function MemberBadge({ role }: { role: ActorRole }) {
   return <Badge variant={variant} className="font-mono text-2xs">{ROLE_LABEL[role] ?? role}</Badge>;
 }
 
+// RFC3339 → YYYY-MM-DD（信息卡展示口径，与 CI 时区无关的纯格式转换）。
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function SettingsWorkspacePage() {
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const role = useAuthStore((s) => s.role);
   const canManage = (ROLE_RANK[role] ?? 0) >= ROLE_RANK.admin;
+
+  // P3B 工作区信息：'loading' 拉取中 / 'api' 真实信息 / 'demo' 静态值降级
+  const [info, setInfo] = useState<WorkspaceInfo | null>(null);
+  const [infoSource, setInfoSource] = useState<'loading' | 'api' | 'demo'>('loading');
+
+  useEffect(() => {
+    let alive = true;
+    void fetchWorkspaceInfo().then((data) => {
+      if (!alive) return;
+      if (data) {
+        setInfo(data);
+        setInfoSource('api');
+      } else {
+        setInfoSource('demo');
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // P3A 成员数据：'loading' 拉取中 / 'api' 真实成员 / 'demo' 演示态降级
   const [members, setMembers] = useState<WorkspaceMember[] | null>(null);
@@ -54,21 +83,36 @@ export default function SettingsWorkspacePage() {
         <div className="space-y-2 text-xs">
           <div className="flex items-center gap-2">
             <span className="w-24 shrink-0 text-muted-foreground">名称</span>
-            <span className="font-medium text-foreground">镜序 Studio</span>
+            <span className="font-medium text-foreground">
+              {infoSource === 'loading' ? '加载中…' : infoSource === 'api' && info ? info.name : '镜序 Studio'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-24 shrink-0 text-muted-foreground">工作区标识</span>
-            <span className="font-mono text-foreground">{workspaceId ? `ws_${workspaceId.slice(-6)}` : '—'}</span>
+            <span className="font-mono text-foreground">
+              {infoSource === 'api' && info ? info.id : workspaceId ? `ws_${workspaceId.slice(-6)}` : '—'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-24 shrink-0 text-muted-foreground">创建时间</span>
-            <span className="text-muted-foreground/70">—（P3 由 workspace 服务提供）</span>
+            <span className="text-muted-foreground/70">
+              {infoSource === 'loading'
+                ? '加载中…'
+                : infoSource === 'api' && info
+                  ? formatDate(info.created_at)
+                  : '—（workspace 服务不可达时降级）'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-24 shrink-0 text-muted-foreground">成员数量</span>
             <span className="text-foreground">{memberCount}</span>
           </div>
         </div>
+        <p className="text-2xs text-muted-foreground">
+          {infoSource === 'api'
+            ? '工作区信息来源：workspace 服务（BFF /api/v1/workspace，全员可读）。'
+            : '工作区信息为本地静态值（workspace 服务不可达时降级，与成员数据同源）。'}
+        </p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           团队共享预设库（镜头语言库 / 风格库）

@@ -106,3 +106,86 @@ func TestWorkspaceMembersUnavailableWhenWorkspaceDown(t *testing.T) {
 		t.Fatalf("expected 503 when workspace down, got %d", rec.Code)
 	}
 }
+
+// TASK-SETTINGS-P3B：BFF workspace 信息代理。
+// 断言：转发路径正确、响应透传（id/name/created_at）、viewer 可读（read=roleMember）、上游 503。
+
+func TestWorkspaceInfoForwardsAndPassesThroughProfile(t *testing.T) {
+	var seenPath string
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/authorize") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"role":"viewer"}`) // viewer 也应能读信息卡
+			return
+		}
+		seenPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"id":"ws_dev","name":"开发工作区","created_at":"2026-10-01T00:00:00Z"}`)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/workspace", s.workspaceInfo)
+
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/workspace", nil)
+	r.Header.Set("X-Workspace-Id", "ws_dev")
+	r.Header.Set("X-Actor-Id", "user_viewer")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if seenPath != "/internal/v1/workspaces/ws_dev" {
+		t.Errorf("upstream path mismatch: %q", seenPath)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, `"name":"开发工作区"`) || !strings.Contains(body, `"created_at":"2026-10-01T00:00:00Z"`) {
+		t.Errorf("profile not passed through: %s", body)
+	}
+}
+
+func TestWorkspaceInfoRejectsNonMemberWith403(t *testing.T) {
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = io.WriteString(w, `{"error":"FORBIDDEN"}`)
+	}))
+	defer workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/workspace", s.workspaceInfo)
+
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/workspace", nil)
+	r.Header.Set("X-Workspace-Id", "ws_dev")
+	r.Header.Set("X-Actor-Id", "outsider")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for non-member, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestWorkspaceInfoUnavailableWhenWorkspaceDown(t *testing.T) {
+	workspace := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	workspace.Close()
+	production := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer production.Close()
+
+	s := testServer(workspace, production)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/workspace", s.workspaceInfo)
+
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/workspace", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, r)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 when workspace down, got %d", rec.Code)
+	}
+}
