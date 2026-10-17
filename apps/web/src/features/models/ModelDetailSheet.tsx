@@ -11,13 +11,16 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { api, type RunModelTestResponse } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import type { CatalogModel, CapabilityEvidence, ImageCapability, TextCapability, VideoCapability } from '@/config/models/model-catalog';
-import { priceText } from './modelPrice';
+import { priceSourceLabel, priceText } from './modelPrice';
 
 type ModelType = 'text' | 'image' | 'video';
 const TYPE_LABEL: Record<ModelType, string> = { text: '文本', image: '图片', video: '视频' };
 
-/** 文本计费明细：input/output 双价（TASK-MARKET-M6；缺失显示「—」） */
+/** 文本计费明细：独立价格列优先（TASK-MARKET-M7），回退 input/output 双价（M6）；缺失显示「—」 */
 function textBilling(m: CatalogModel): string {
+  if (m.priceAmount !== undefined) {
+    return m.priceUnit && m.priceUnit.trim() !== '' ? `¥${m.priceAmount}/${m.priceUnit}` : `¥${m.priceAmount}`;
+  }
   const b = m.capability?.billing as { inputPerMTok?: number; outputPerMTok?: number; minCharge?: number } | undefined;
   if (!b || b.inputPerMTok === undefined) return '—';
   const parts = [`输入 ¥${b.inputPerMTok}/百万Token`, `输出 ¥${b.outputPerMTok ?? 0}/百万Token`];
@@ -254,6 +257,7 @@ function VideoRows({ m }: { m: CatalogModel }) {
       <Row k="参考图/音频/视频" v={`${c.maxRefImages ?? 0} / ${c.maxRefAudios ?? 0} / ${c.maxRefVideos ?? 0}`} />
       <Row k="清晰度" v={c.resolutionOptions?.join(' / ') ?? (c.qualityTiers != null ? `${c.qualityTiers} 档` : '—')} />
       <Row k="起步单价" v={priceText(m)} />
+      {priceSourceLabel(m) && <Row k="价格来源" v={priceSourceLabel(m)!} />}
     </>
   );
 }
@@ -267,6 +271,7 @@ function ImageRows({ m }: { m: CatalogModel }) {
       <Row k="清晰度档位" v={c.qualityOptions?.join(' / ') ?? (c.qualityTiers != null ? `${c.qualityTiers} 档` : '—')} />
       {c.maxN != null && <Row k="单次最多" v={`${c.maxN} 张`} />}
       <Row k="单价" v={priceText(m)} />
+      {priceSourceLabel(m) && <Row k="价格来源" v={priceSourceLabel(m)!} />}
     </>
   );
 }
@@ -280,6 +285,7 @@ function TextRows({ m }: { m: CatalogModel }) {
       <Row k="最大 Token" v={c.maxTokens != null ? `${c.maxTokens}` : '—'} />
       {/* TASK-MARKET-M6：输入/输出双价 + 最低计费 */}
       <Row k="计费明细" v={textBilling(m)} />
+      {priceSourceLabel(m) && <Row k="价格来源" v={priceSourceLabel(m)!} />}
     </>
   );
 }

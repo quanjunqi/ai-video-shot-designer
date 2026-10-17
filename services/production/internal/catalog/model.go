@@ -72,6 +72,8 @@ type Model struct {
 	// 不再依赖手写 billing（ADR-004 §1 实测差 33 倍）。omitempty：无校准价的模型不出现键。
 	CostAmount    *float64   `json:"costAmount,omitempty"`
 	CostUnit      string     `json:"costUnit,omitempty"`
+	PriceAmount   *float64   `json:"priceAmount,omitempty"`
+	PriceUnit     string     `json:"priceUnit,omitempty"`
 	PriceSource   string     `json:"priceSource,omitempty"`
 	PriceSyncedAt *time.Time `json:"priceSyncedAt,omitempty"`
 }
