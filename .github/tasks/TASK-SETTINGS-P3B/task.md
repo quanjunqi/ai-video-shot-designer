@@ -1,8 +1,8 @@
 ---
 taskId: TASK-SETTINGS-P3B
-status: 进行中
+status: 待验收
 priority: P3（真实账号体系第二刀；workspace 信息真实化）
-pr:
+pr: 227
 criteria: 6
 criteriaPassed: 0
 depends_on: TASK-SETTINGS-P3A（已合并 #225）
