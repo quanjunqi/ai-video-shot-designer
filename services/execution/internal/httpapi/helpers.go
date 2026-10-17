@@ -225,7 +225,7 @@ func (h Handler) probeChannel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "INVALID_PATH", "channel id is required")
 		return
 	}
-	out, err := h.Probe.Probe(r.Context(), ws, actor, id)
+	out, err := h.Probe.Probe(r.Context(), ws, actor, r.Header.Get("X-Actor-Role"), id)
 	if errors.Is(err, probe.ErrChannelNotFound) {
 		writeError(w, 404, "NOT_FOUND", "channel not found")
 		return

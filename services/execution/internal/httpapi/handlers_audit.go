@@ -361,7 +361,7 @@ func (h Handler) reconcile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 目录权威价（含工作区视角）：无校准价的模型不出现在 ledger —— 未校准不告警（对账非缺失）
-	dir, err := h.Catalog.Get(r.Context(), ws, actor)
+	dir, err := h.Catalog.Get(r.Context(), ws, actor, r.Header.Get("X-Actor-Role"))
 	if err != nil {
 		slog.Error("reconcile catalog", "workspace_id", ws, "error", err)
 		writeError(w, 503, "CATALOG_UNAVAILABLE", "catalog could not be loaded")

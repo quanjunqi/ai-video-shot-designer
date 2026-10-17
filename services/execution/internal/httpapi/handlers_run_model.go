@@ -83,7 +83,7 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 422, "INVALID_RUN", "modelId is required")
 		return
 	}
-	dir, err := h.Catalog.Get(r.Context(), ws, actor)
+	dir, err := h.Catalog.Get(r.Context(), ws, actor, r.Header.Get("X-Actor-Role"))
 	if err != nil {
 		writeError(w, 503, "CATALOG_UNAVAILABLE", err.Error())
 		return

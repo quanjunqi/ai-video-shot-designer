@@ -44,12 +44,15 @@ func TestGetDecodesRequestTemplate(t *testing.T) {
 		if got := r.Header.Get("Authorization"); got != "Bearer tok" {
 			t.Errorf("Authorization = %q", got)
 		}
+		if got := r.Header.Get("X-Actor-Role"); got != "admin" {
+			t.Errorf("X-Actor-Role = %q, want admin", got)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(body))
 	}))
 	defer srv.Close()
 
-	dir, err := NewClient(srv.URL, "tok").Get(context.Background(), "ws-1", "actor-1")
+	dir, err := NewClient(srv.URL, "tok").Get(context.Background(), "ws-1", "actor-1", "admin")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -116,7 +119,7 @@ func TestGetDecodesCostFields(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	dir, err := NewClient(srv.URL, "tok").Get(context.Background(), "ws-1", "actor-1")
+	dir, err := NewClient(srv.URL, "tok").Get(context.Background(), "ws-1", "actor-1", "admin")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -142,5 +145,20 @@ func TestGetDecodesCostFields(t *testing.T) {
 	}
 	if b.CostUnit != "" || b.PriceSource != "" {
 		t.Fatalf("mod_b must decode absent cost fields as zero values, got unit=%q source=%q", b.CostUnit, b.PriceSource)
+	}
+}
+
+// TASK-EXEC-001 判据 3：role 为空时不注入 X-Actor-Role（production 403 如实上报，execution 不伪造）。
+func TestGetEmptyRoleDoesNotSetHeader(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("X-Actor-Role"); got != "" {
+			t.Errorf("X-Actor-Role = %q, want empty (not injected)", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"models":[],"templates":[],"channels":[]}`))
+	}))
+	defer srv.Close()
+	if _, err := NewClient(srv.URL, "tok").Get(context.Background(), "ws-1", "actor-1", ""); err != nil {
+		t.Fatalf("Get: %v", err)
 	}
 }

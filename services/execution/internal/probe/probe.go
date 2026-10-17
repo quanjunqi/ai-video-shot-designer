@@ -80,13 +80,13 @@ func New(cat *catalog.Client, ws *creds.Client, policy netguard.Policy, timeout 
 // 返回 error 只表示「探测无法执行」（渠道不存在、依赖服务不可用）；
 // 网络层/策略层的失败一律是 Result 的一部分（reachable=false + 可读 detail），
 // 与旧实现一致。
-func (p *Prober) Probe(ctx context.Context, workspaceID, actorID, channelID string) (Result, error) {
+func (p *Prober) Probe(ctx context.Context, workspaceID, actorID, role, channelID string) (Result, error) {
 	res := Result{ChannelID: channelID, ProbedAt: time.Now().UTC().Format(time.RFC3339)}
 	if strings.TrimSpace(channelID) == "" {
 		return res, ErrChannelNotFound
 	}
 
-	facts, err := p.resolve(ctx, workspaceID, actorID, channelID)
+	facts, err := p.resolve(ctx, workspaceID, actorID, role, channelID)
 	if err != nil {
 		return res, err
 	}
@@ -179,7 +179,7 @@ type channelFacts struct {
 //  1. 工作区用户渠道定义（用户实际看到、点「测试」时预期被探测的地址）
 //  2. 工作区凭据行的 base URL（历史行为：只配置过凭据、没有渠道行的渠道）
 //  3. 平台目录 model_channels（内置渠道的默认 base URL，仅在前面都为空时才查）
-func (p *Prober) resolve(ctx context.Context, workspaceID, actorID, channelID string) (channelFacts, error) {
+func (p *Prober) resolve(ctx context.Context, workspaceID, actorID, role, channelID string) (channelFacts, error) {
 	var f channelFacts
 	if p.Catalog == nil && p.Workspace == nil {
 		return f, errors.New("probe: no channel source configured (catalog and workspace both unavailable)")
@@ -221,7 +221,7 @@ func (p *Prober) resolve(ctx context.Context, workspaceID, actorID, channelID st
 
 	var catalogFound bool
 	if strings.TrimSpace(f.baseURL) == "" && p.Catalog != nil {
-		dir, err := p.Catalog.Get(ctx, workspaceID, actorID)
+		dir, err := p.Catalog.Get(ctx, workspaceID, actorID, role)
 		if err != nil {
 			if userFound || f.hasCredential {
 				// 渠道在 workspace 已有定义、只是没填地址：目录只是兜底来源，

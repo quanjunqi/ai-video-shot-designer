@@ -121,6 +121,10 @@ func newCatalogStub(t *testing.T, channelsJSON string) *httptest.Server {
 			http.Error(w, "missing actor context", http.StatusBadRequest)
 			return
 		}
+		if got := r.Header.Get("X-Actor-Role"); got != "viewer" {
+			http.Error(w, "missing actor role context", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = fmt.Fprintf(w, `{"models":[],"templates":[],"channels":%s}`, channelsJSON)
 	}))
@@ -154,7 +158,7 @@ func TestProbeReportsPrivateTargetAsPolicyDenial(t *testing.T) {
 
 	// 默认策略：拒绝环回/私网。
 	p := newProber(ws, cat, netguard.Policy{})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "local-comfy")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "local-comfy")
 	if err != nil {
 		t.Fatalf("策略拒绝必须作为结果如实上报，而不是 error: %v", err)
 	}
@@ -187,7 +191,7 @@ func TestProbeAllowPrivateReachesLocalChannel(t *testing.T) {
 		`{"items":[]}`)
 
 	p := newProber(ws, newCatalogStub(t, `[]`), netguard.Policy{AllowPrivate: true})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "local-comfy")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "local-comfy")
 	if err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
@@ -208,7 +212,7 @@ func TestProbeAllowlistRejectionIsReportedAsPolicyDenial(t *testing.T) {
 		`{"items":[]}`)
 
 	p := newProber(ws, newCatalogStub(t, `[]`), netguard.Policy{AllowPrivate: true, AllowedHosts: []string{"api.example.com"}})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "local-comfy")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "local-comfy")
 	if err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
@@ -232,7 +236,7 @@ func TestProbeUserChannelResolvesWithoutRequestBody(t *testing.T) {
 		`{"items":[{"channelId":"chan-muo4b9zo","baseUrl":"","authType":"bearer","hasKey":true}]}`)
 
 	p := newProber(ws, newCatalogStub(t, `[]`), netguard.Policy{AllowPrivate: true})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "chan-muo4b9zo")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "chan-muo4b9zo")
 	if err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
@@ -256,7 +260,7 @@ func TestProbeUsesPlaceholderCredentialAndNeverReveals(t *testing.T) {
 		`{"items":[{"channelId":"chan-x","baseUrl":"","authType":"bearer","hasKey":true}]}`)
 
 	p := newProber(ws, newCatalogStub(t, `[]`), netguard.Policy{AllowPrivate: true})
-	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "chan-x"); err != nil {
+	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "chan-x"); err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
 	hits, auth, _, ua, _ := target.snapshot()
@@ -284,7 +288,7 @@ func TestProbeBuiltinChannelFallsBackToCatalog(t *testing.T) {
 	cat := newCatalogStub(t, fmt.Sprintf(`[{"id":"comfy","kind":"local","baseUrl":%q}]`, target.srv.URL))
 
 	p := newProber(ws, cat, netguard.Policy{AllowPrivate: true})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "comfy")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "comfy")
 	if err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
@@ -313,7 +317,7 @@ func TestProbeUserChannelOverridesCatalogAndCredentialRow(t *testing.T) {
 	cat := newCatalogStub(t, fmt.Sprintf(`[{"id":"openai","kind":"official","baseUrl":%q}]`, catalogTarget.srv.URL))
 
 	p := newProber(ws, cat, netguard.Policy{AllowPrivate: true})
-	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "openai"); err != nil {
+	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "openai"); err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
 	if hits, _, _, _, _ := userTarget.snapshot(); hits != 1 {
@@ -335,7 +339,7 @@ func TestProbeCredentialRowAddressUsedWhenNoChannelRow(t *testing.T) {
 		fmt.Sprintf(`{"items":[{"channelId":"pearapi","baseUrl":%q,"authType":"apikey","hasKey":true}]}`, credTarget.srv.URL))
 
 	p := newProber(ws, newCatalogStub(t, `[]`), netguard.Policy{AllowPrivate: true})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "pearapi")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "pearapi")
 	if err != nil {
 		t.Fatalf("Probe: %v", err)
 	}
@@ -363,7 +367,7 @@ func TestProbeBareHostPortGetsHTTPPrefix(t *testing.T) {
 func TestProbeMissingBaseURLIsReportedHonestly(t *testing.T) {
 	ws := newWorkspaceStub(t, `{"items":[{"id":"chan-empty","kind":"aggregator","baseUrl":"","authType":"none"}]}`, `{"items":[]}`)
 	p := newProber(ws, nil, netguard.Policy{})
-	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "chan-empty")
+	out, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "chan-empty")
 	if err != nil {
 		t.Fatalf("「未配置地址」不是执行错误: %v", err)
 	}
@@ -375,7 +379,7 @@ func TestProbeMissingBaseURLIsReportedHonestly(t *testing.T) {
 func TestProbeUnknownChannelReturnsErrChannelNotFound(t *testing.T) {
 	ws := newWorkspaceStub(t, `{"items":[]}`, `{"items":[]}`)
 	p := newProber(ws, newCatalogStub(t, `[]`), netguard.Policy{})
-	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "nope"); !errors.Is(err, ErrChannelNotFound) {
+	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "nope"); !errors.Is(err, ErrChannelNotFound) {
 		t.Fatalf("未知渠道应返回 ErrChannelNotFound，实际 %v", err)
 	}
 }
@@ -421,7 +425,7 @@ func assertKeys(t *testing.T, raw []byte, want []string) {
 // 不得假装探测过。
 func TestProbeWithoutAnySourceFailsLoudly(t *testing.T) {
 	p := New(nil, nil, netguard.Policy{}, time.Second)
-	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "comfy"); err == nil {
+	if _, err := p.Probe(context.Background(), "ws-1", "actor-1", "viewer", "comfy"); err == nil {
 		t.Fatal("没有任何渠道来源时应返回错误")
 	}
 }

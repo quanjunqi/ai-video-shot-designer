@@ -153,7 +153,10 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 		Logger.Info("execution worker: job %s 没有 workspace_id（历史行），退回 %q", j.ID, audit.SystemWorkspace)
 		jobWorkspace = audit.SystemWorkspace
 	}
-	dir, err := cat.Get(ctx, jobWorkspace, "user_dev")
+	// worker 是平台系统执行器，消费已鉴权提交的 job；job 不存用户角色（提交即授权）。
+	// 目录读取所需最小角色是 viewer——用固定系统角色（与硬编码 actor 同一语义层，非用户自报），
+	// 打通 worker 真实生成链路；job 未来若要携带用户角色做多租户精确审计，单独立项（Job 无 actor/role 字段）。
+	dir, err := cat.Get(ctx, jobWorkspace, "user_dev", "viewer")
 	if err != nil {
 		// catalog 未命中：channel/provider 未知，传空（空串不覆盖，T1）。
 		// 无上游 HTTP 状态码：statusCode=0（网络层语义，与 breaker.Classify(status=0) 一致）。

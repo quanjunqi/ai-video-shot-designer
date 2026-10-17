@@ -1,0 +1,51 @@
+{
+  "taskId": "TASK-EXEC-001",
+  "events": [
+    {
+      "ts": "2026-10-17T21:00:00+08:00",
+      "phase": "探查",
+      "action": "定位试跑 403 根因：execution catalog.Client.Get 只带 X-Actor-Id，未透传 BFF 已注入的 X-Actor-Role",
+      "evidence": [
+        "services/production/internal/httpapi/authz.go:80",
+        "services/web-bff/internal/httpserver/server.go:115",
+        "services/execution/internal/catalog/client.go:87",
+        "services/execution/internal/httpapi/handlers.go:207"
+      ]
+    },
+    {
+      "ts": "2026-10-17T21:30:00+08:00",
+      "phase": "验证",
+      "action": "全包测试 + 本地栈重建 + 真实链路 curl 走查",
+      "evidence": [
+        "go test ./... 17 包 ok",
+        "go vet 绿",
+        "curl BFF /api/v1/tasks/run 真实 modelId → 上游 503 如实返回（无 catalog 403）",
+        "execution 日志 catalog 200"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-17T21:31:00+08:00",
+      "phase": "发现",
+      "action": "广场 mock 目录与 server 真实目录不一致（mock id 试跑 404）——单独立项",
+      "evidence": [
+        "前端 MODEL_CATALOG 14 模型 vs BFF catalog 3 个 mod_xxx",
+        "走查 mock 模型试跑 MODEL_NOT_FOUND"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "修复范围",
+      "options": [
+        "改 production authz 放宽",
+        "BFF 改注入方式",
+        "execution 透传 role"
+      ],
+      "choice": "execution 透传 role",
+      "reason": "BFF 已注入可信 role（纵深防御正确，production 不得放宽）；execution 丢弃是断点，最小修复=透传；空 role 不伪造"
+    }
+  ],
+  "updatedAt": "2026-10-17T21:31:00+08:00"
+}

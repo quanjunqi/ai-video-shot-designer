@@ -88,6 +88,7 @@
 | TASK-UI-002 | 组件库展示页受众分离改版（产品/设计可用） | P1 | 已验收（**交付段**；维护段转 CI 门禁）——v2 §3.3① 判据机器验证通过：`ui:check` 绿 / catalog 42 组件 == 磁盘 42 / 注记 42 / demo 42 | ✅ | [TASK-UI-002-ui-kit-redesign.md](TASK-UI-002-ui-kit-redesign.md) |
 | TASK-UI-003 | 收敛字号离散步长（建立小字号尺度 token + 加门禁） | P2（不与功能开发抢道；但「加门禁」这一刀建议尽早，先止血） | 已验收（PR #175 已合并；V-003b 门禁 + 989 处收敛） | ✅ | [TASK-UI-003-text-scale-convergence.md](TASK-UI-003-text-scale-convergence.md) |
 | TASK-UI-004 | 死代码口径修正 + 零引用组件裁剪 | P2 | 已验收（PR #176 已合并；组件 55 → 42） | ✅ | [TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md) |
+| TASK-EXEC-001 | execution→catalog 透传 X-Actor-Role（修复真实调用 403） | P1（真实调用链路打通） | 进行中 | ☐ | [TASK-EXEC-001/task.md](TASK-EXEC-001/task.md) |
 
 ## 现状（自动统计，供 Owner 看缺口）
 

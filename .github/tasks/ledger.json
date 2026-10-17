@@ -570,6 +570,16 @@
       "file": "[TASK-SETTINGS-P3B/task.md](TASK-SETTINGS-P3B/task.md)",
       "criteria": 6,
       "criteriaPassed": 6
+    },
+    {
+      "id": "TASK-EXEC-001",
+      "title": "execution→catalog 透传 X-Actor-Role（修复真实调用 403）",
+      "status": "进行中",
+      "priority": "P1（真实调用链路打通）",
+      "pr": null,
+      "file": "[TASK-EXEC-001/task.md](TASK-EXEC-001/task.md)",
+      "criteria": 5,
+      "criteriaPassed": 0
     }
   ]
 }
