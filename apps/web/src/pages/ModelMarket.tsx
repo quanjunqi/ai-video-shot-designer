@@ -254,7 +254,12 @@ function ModelDetailBody({
     setRunState('running');
     const t0 = Date.now();
     try {
-      const res = await api.runModelTest(m.id, { messages: [{ role: 'user', content: '你好，请回复一句简短测试。' }] });
+      // runtime 按协议模板标准角色构造（text→messages；image→prompt，见 execution engine api_connector）
+      const runtime =
+        m.type === 'image'
+          ? { prompt: '一张简单的测试图：纯色背景，居中一个圆' }
+          : { messages: [{ role: 'user', content: '你好，请回复一句简短测试。' }] };
+      const res = await api.runModelTest(m.id, runtime);
       setRunResult(res);
       setRunMs(Date.now() - t0);
       setRunState('result');
@@ -291,12 +296,12 @@ function ModelDetailBody({
         </p>
       </div>
 
-      {/* M2 试跑（真实调用；Admin+；仅文本同步可跑） */}
+      {/* M2 试跑（真实调用；Admin+；文本/图片同步可跑，视频禁用） */}
       {canDefault && (
         <div className="space-y-2 rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="font-medium text-foreground">试跑</p>
-            {m.type === 'text' ? (
+            {m.type !== 'video' ? (
               <Button
                 type="button"
                 size="sm"
@@ -309,18 +314,21 @@ function ModelDetailBody({
               </Button>
             ) : (
               <Button type="button" size="sm" variant="outline" className="h-7 text-2xs" disabled>
-                同步试跑仅支持文本
+                视频暂不开放试跑
               </Button>
             )}
           </div>
-          {m.type !== 'text' && (
-            <p className="text-2xs text-muted-foreground">图片/视频走异步生成任务，不在同步试跑范围；可到创作流发起真实生成验证。</p>
+          {m.type === 'video' && (
+            <p className="text-2xs text-muted-foreground">视频生成成本较高，暂不开放同步试跑；可到创作流发起异步生成验证。</p>
+          )}
+          {m.type === 'image' && (
+            <p className="text-2xs text-muted-foreground">图片试跑为真实生成调用（有真实成本，通常数十秒内返回）。</p>
           )}
           {runState === 'idle' && m.type === 'text' && (
             <p className="text-2xs text-muted-foreground">将对「{m.name}」发起一次真实调用（有真实成本），验证上游可用性与响应。</p>
           )}
-          {runState === 'running' && m.type === 'text' && (
-            <p className="text-2xs text-muted-foreground">真实调用中（文本通常数秒内返回）…</p>
+          {runState === 'running' && (
+            <p className="text-2xs text-muted-foreground">真实调用中（文本通常数秒、图片数十秒内返回）…</p>
           )}
           {runState === 'result' && runResult && (
             <div className="space-y-1 rounded-md border border-border bg-muted/30 px-2 py-1.5">
