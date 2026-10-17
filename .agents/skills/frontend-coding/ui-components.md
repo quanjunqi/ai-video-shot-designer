@@ -41,7 +41,7 @@
 
 - 文件：`apps/web/src/components/ui/badge.tsx`（43 行）· 导出：`Badge`、`badgeVariants`
 - variant：`default` `secondary` `destructive` `outline`（默认 `default`）
-- 引用：44 处（`ParamEditor.tsx`、`ProtocolEvidence.tsx`、`ProtocolPreview.tsx` 等）
+- 引用：45 处（`ParamEditor.tsx`、`ProtocolEvidence.tsx`、`ProtocolPreview.tsx` 等）
 - **何时用**：展示简短状态或分类标签（已发布、草稿、失败），不承载操作
 - **别用**：可点击标签用 toggle；长文案用 item-description
 - 反例：❌ 用 badge 当按钮点（应换 button、toggle）（UC-006）；❌ 长文本不截断撑破卡片（R-UI-006）
@@ -53,7 +53,7 @@
 - variant：`default` `destructive` `outline` `secondary` `ghost`（默认 `default`）
 - size：`default` `sm` `lg` `icon`
 - 底座：`@radix-ui/react-slot` · 支持 `asChild`
-- 引用：51 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`EmptyState.tsx` 等）
+- 引用：52 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`EmptyState.tsx` 等）
 - **何时用**：触发一次明确动作（提交、打开弹窗、删除），页面主要操作入口
 - **别用**：跳转用 asChild 包 Link；别用 div 手写按钮（UC-006）
 - 反例：❌ 用 button 做链接导航（该用 asChild + Link）（UC-006）；❌ 自写颜色类不走 variant（UC-002）；❌ 请求中不禁用致重复提交（FE-API-005）
@@ -426,7 +426,7 @@
 
 - 文件：`apps/web/src/components/ui/sheet.tsx`（140 行）· 导出：`Sheet`、`SheetTrigger`、`SheetClose`、`SheetContent`、`SheetHeader`、`SheetFooter`、`SheetTitle`、`SheetDescription`
 - 底座：`@radix-ui/react-dialog`
-- 引用：5 处（`sidebar.tsx`、`CreateWorkbench.tsx`、`TaskDetailSheet.tsx` 等）
+- 引用：5 处（`sidebar.tsx`、`CreateWorkbench.tsx`、`ModelDetailSheet.tsx` 等）
 - **何时用**：从边侧滑出的辅助面板（详情、设置、移动端菜单），保留上下文
 - **别用**：需居中聚焦的短表单用 dialog；底部手势抽屉用 drawer
 - 反例：❌ 用 sheet 承载需全神贯注的长表单（宽度不足）；❌ 缺 SheetTitle 与 Description 致 a11y 警告（UC-005）
