@@ -1,8 +1,8 @@
 ---
 taskId: TASK-SETTINGS-P3A
-status: 进行中
+status: 待验收
 priority: P3（v14 §五 P3 分期第一刀；真实账号体系第一步）
-pr:
+pr: 225
 criteria: 7
 criteriaPassed: 7
 depends_on: TASK-SETTINGS-P2（已合并 #222）

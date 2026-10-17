@@ -494,9 +494,9 @@
     {
       "id": "TASK-SETTINGS-P3A",
       "title": "工作区成员真实接入（BFF 代理+前端替换+演示态降级；P3 第一刀）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P3（v14 §五；真实账号体系第一步）",
-      "pr": null,
+      "pr": 225,
       "file": "[TASK-SETTINGS-P3A/task.md](TASK-SETTINGS-P3A/task.md)",
       "criteria": 7,
       "criteriaPassed": 7
