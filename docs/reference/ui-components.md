@@ -238,15 +238,15 @@
 | `--tw-prose-invert-pre-bg` | `var(--accent)` |
 | `--tw-prose-invert-th-borders` | `var(--border)` |
 | `--tw-prose-invert-td-borders` | `var(--border)` |
-### 3.2 尺度实际用法（从源码统计 197 个文件）
+### 3.2 尺度实际用法（从源码统计 200 个文件）
 
 > 回答的是「**实际在用哪几档**」，不是「有哪些档位」；统计按源码文本匹配，可能含少量非样式字符串。
 
 | 类别 | 常用档位（次数） | 离散步长（建议收敛） |
 |---|---|---|
 | 字号 | `xs`(382) · `sm`(205) · `lg`(16) · `base`(10) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
-| 间距 | `2`(745) · `3`(459) · `1`(453) · `1.5`(334) · `4`(262) · `0.5`(119) | `-0.45rem`(2) · `-0.35rem`(2) |
-| 圆角 | `lg`(195) · `xl`(170) · `DEFAULT`(105) · `md`(93) · `full`(69) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
+| 间距 | `2`(746) · `3`(460) · `1`(455) · `1.5`(337) · `4`(262) · `0.5`(120) | `-0.45rem`(2) · `-0.35rem`(2) |
+| 圆角 | `lg`(196) · `xl`(170) · `DEFAULT`(106) · `md`(93) · `full`(69) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
 | 阴影 | `DEFAULT`(61) · `md`(30) · `lg`(27) · `sm`(13) · `xs`(5) · `2xl`(5) | `0_0_0_1px_hsl(var(--sidebar-border))`(1) · `0_0_0_1px_hsl(var(--sidebar-accent))`(1) |
 | 行高 / 字距 | `relaxed`(63) · `none`(8) · `5`(7) · `snug`(4) · `wider`(7) · `wide`(7) · `tight`(5) · `widest`(4) | — |
 
@@ -262,9 +262,9 @@
 | `alert` | 反馈 | 72 | default/destructive/success/warning | — | 0 | ⚠️ | `src/components/ui/alert.tsx` |
 | `alert-dialog` | 反馈 | 158 | — | — | 9 |  | `src/components/ui/alert-dialog.tsx` |
 | `avatar` | 基础 | 54 | — | — | 1 |  | `src/components/ui/avatar.tsx` |
-| `badge` | 基础 | 43 | default/secondary/destructive/outline | — | 44 |  | `src/components/ui/badge.tsx` |
+| `badge` | 基础 | 43 | default/secondary/destructive/outline | — | 45 |  | `src/components/ui/badge.tsx` |
 | `breadcrumb` | 导航 | 110 | — | — | 0 | ⚠️ | `src/components/ui/breadcrumb.tsx` |
-| `button` | 基础 | 70 | default/destructive/outline/secondary/ghost | default/sm/lg/icon | 51 |  | `src/components/ui/button.tsx` |
+| `button` | 基础 | 70 | default/destructive/outline/secondary/ghost | default/sm/lg/icon | 52 |  | `src/components/ui/button.tsx` |
 | `calendar` | 数据录入 | 214 | — | — | 0 | ⚠️ | `src/components/ui/calendar.tsx` |
 | `card` | 基础 | 83 | — | — | 3 |  | `src/components/ui/card.tsx` |
 | `chart` | 数据展示 | 358 | — | — | 0 | ⚠️ | `src/components/ui/chart.tsx` |

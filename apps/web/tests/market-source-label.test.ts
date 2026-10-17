@@ -5,8 +5,10 @@ import { readFileSync } from 'node:fs';
 // TASK-MARKET-M1：模型广场来源标注与演示态引导。
 // 把「catalogSource 三态透明化 + demo 演示 badge」钉在测试里：
 // 谁删掉 demo 标注、把「演示」badge 错配到 server 态、或回归到只有 offline 一种标注，都会红。
+// TASK-MARKET-M6 组件拆分后：三态标注在页面，演示 badge 在卡片组件（由 catalogIsDemo prop 控制）。
 
 const page = readFileSync(new URL('../src/pages/ModelMarket.tsx', import.meta.url), 'utf8');
+const card = readFileSync(new URL('../src/features/models/ModelMarketCard.tsx', import.meta.url), 'utf8');
 
 test('广场：catalogSource 三态都有来源标注（demo / server / offline-fallback）', () => {
   assert.match(page, /catalogSource === 'demo'/, 'demo 态必须有分支');
@@ -21,13 +23,13 @@ test('demo 态标注：明示"演示目录/非真实接入"，并引导同步', 
 });
 
 test('demo 态模型卡片带「演示」badge，且只出现在 demo 分支', () => {
-  assert.match(page, />演示</, '卡片必须渲染独立「演示」badge');
-  const badgeAt = page.indexOf('>演示<');
-  const demoAt = page.indexOf("catalogSource === 'demo'");
-  assert.ok(badgeAt > demoAt, '「演示」badge 必须位于 demo 分支内（server 态不得出现）');
-  // server/offline 分支不得携带「演示」badge —— 校验 badge 文案只与 demo 条件相邻
-  const serverSection = page.slice(page.indexOf("catalogSource === 'server'"), page.indexOf("catalogSource === 'offline-fallback'"));
-  assert.doesNotMatch(serverSection, />演示</, 'server 分支不得渲染「演示」badge');
+  assert.match(card, />演示</, '卡片必须渲染独立「演示」badge');
+  assert.match(card, /catalogIsDemo/, 'badge 必须由 catalogIsDemo prop 控制');
+  const badgeAt = card.indexOf('>演示<');
+  const demoAt = card.indexOf('catalogIsDemo');
+  assert.ok(badgeAt > demoAt, '「演示」badge 必须位于 catalogIsDemo 分支内（server 态不得出现）');
+  // 页面仅在 demo 态把 catalogIsDemo 置真 —— server/offline 分支不得携带「演示」badge
+  assert.match(page, /catalogIsDemo=\{catalogSource === 'demo'\}/, '页面必须只在 demo 态传入 catalogIsDemo=true');
 });
 
 test('server 态标注：明示"已连接模型中心 / 真实调用模型"', () => {

@@ -310,7 +310,7 @@ export const UI_CATALOG: UiCatalog = {
         }
       ],
       "usage": {
-        "count": 44,
+        "count": 45,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolEvidence.tsx",
@@ -333,6 +333,8 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/comic/UnitsStage.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
           "apps/web/src/features/home/RecentProjects.tsx",
+          "apps/web/src/features/models/ModelDetailSheet.tsx",
+          "apps/web/src/features/models/ModelMarketCard.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
           "apps/web/src/features/rules/RuleVersionList.tsx",
           "apps/web/src/features/settings/BudgetRulesSection.tsx",
@@ -345,7 +347,6 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/EpisodeWorkbench.tsx",
           "apps/web/src/pages/ModelCatalog.tsx",
           "apps/web/src/pages/ModelChannels.tsx",
-          "apps/web/src/pages/ModelMarket.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
           "apps/web/src/pages/SettingsAbout.tsx",
           "apps/web/src/pages/SettingsAccount.tsx",
@@ -488,7 +489,7 @@ export const UI_CATALOG: UiCatalog = {
         }
       ],
       "usage": {
-        "count": 51,
+        "count": 52,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolParamOverrides.tsx",
@@ -521,6 +522,8 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/comic/asset/AssetPromptCard.tsx",
           "apps/web/src/features/comic/asset/BatchGenerateBar.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
+          "apps/web/src/features/models/ModelDetailSheet.tsx",
+          "apps/web/src/features/models/ModelMarketCard.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
           "apps/web/src/features/rules/RuleVersionList.tsx",
           "apps/web/src/features/settings/BudgetRulesSection.tsx",
@@ -534,7 +537,6 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/EpisodeWorkbench.tsx",
           "apps/web/src/pages/ModelCatalog.tsx",
           "apps/web/src/pages/ModelChannels.tsx",
-          "apps/web/src/pages/ModelMarket.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
           "apps/web/src/pages/SettingsAppearance.tsx",
           "apps/web/src/pages/SettingsData.tsx",
@@ -2001,9 +2003,9 @@ export const UI_CATALOG: UiCatalog = {
         "files": [
           "apps/web/src/components/ui/sidebar.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
+          "apps/web/src/features/models/ModelDetailSheet.tsx",
           "apps/web/src/features/tasks/TaskDetailSheet.tsx",
-          "apps/web/src/pages/ModelCatalog.tsx",
-          "apps/web/src/pages/ModelMarket.tsx"
+          "apps/web/src/pages/ModelCatalog.tsx"
         ]
       },
       "dead": false,
@@ -3702,7 +3704,7 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 197,
+    "scannedFiles": 200,
     "text": [
       {
         "value": "xs",
@@ -3742,19 +3744,19 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 745
+        "count": 746
       },
       {
         "value": "3",
-        "count": 459
+        "count": 460
       },
       {
         "value": "1",
-        "count": 453
+        "count": 455
       },
       {
         "value": "1.5",
-        "count": 334
+        "count": 337
       },
       {
         "value": "4",
@@ -3762,7 +3764,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "0.5",
-        "count": 119
+        "count": 120
       },
       {
         "value": "2.5",
@@ -3838,7 +3840,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 195
+        "count": 196
       },
       {
         "value": "xl",
@@ -3846,7 +3848,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "DEFAULT",
-        "count": 105
+        "count": 106
       },
       {
         "value": "md",
