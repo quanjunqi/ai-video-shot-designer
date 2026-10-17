@@ -1,0 +1,33 @@
+{
+  "taskId": "TASK-MARKET-M6",
+  "events": [
+    {
+      "ts": "2026-10-18T01:40:00+08:00",
+      "phase": "探查",
+      "action": "确认 capability 数据真实、类型未对齐、卡片/抽屉信息薄、嵌套 button bug",
+      "evidence": [
+        "DB 查询 pearapi 模型 capability 完整",
+        "ModelMarket.tsx 407 行超组件规范"
+      ]
+    },
+    {
+      "ts": "2026-10-18T02:00:00+08:00",
+      "phase": "开发",
+      "action": "类型补全+组件拆分+卡片能力行+详情补强+嵌套 button 修复",
+      "evidence": [
+        "gate 0 错 0 警"
+      ],
+      "decisionRef": "D-001/D-002"
+    },
+    {
+      "ts": "2026-10-18T02:20:00+08:00",
+      "phase": "验证",
+      "action": "浏览器实测卡片与详情抽屉",
+      "evidence": [
+        "GPT-Image 2/DeepSeek/Seedance 能力行",
+        "Seedance 能力依据 official/high",
+        "console 无错误"
+      ]
+    }
+  ]
+}

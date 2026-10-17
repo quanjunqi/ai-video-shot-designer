@@ -32,6 +32,19 @@ export interface ChannelConfig {
 }
 
 // ---- L3 能力/计费（按类型分化，对齐竞品卡片标签）----
+/** 能力证据溯源（服务端证据结构透传；本卡起展示层读取）：
+ *  source=official/manual/…；confidence=high/medium/low；evidenceFile 为仓库内证据路径 */
+export interface CapabilityEvidence {
+  source?: string;
+  confidence?: string;
+  verifiedAt?: string;
+  evidenceFile?: string;
+  note?: string;
+  productName?: string;
+  snapshotId?: string;
+  vocabulary?: string;
+}
+
 export interface TextCapability {
   isReasoning: boolean; // 推理模型标记（如 gemini-3.1-flash-lite「推理模型 短文本推理」）
   streaming: boolean; // 支持流式输出
@@ -52,6 +65,11 @@ export interface ImageCapability {
   aspectRatios?: string[];
   qualityTiers: number; // 清晰度档位
   billing: { perImage: number }; // 积分/张
+  /** 服务端证据结构透传（TASK-MARKET-M6）：单次最多生成张数、任意尺寸约束、档位选项、依据 */
+  maxN?: number;
+  arbitrarySize?: { ratioMax: string; ratioMin: string; maxPixels: string; divisibleBy: number; experimentalAbove?: string };
+  qualityOptions?: string[];
+  tiersSource?: CapabilityEvidence;
 }
 
 export interface VideoCapability {
@@ -64,6 +82,11 @@ export interface VideoCapability {
   /** ADR 分片 6（D3-B）：同 ImageCapability.aspectRatios —— 显式声明则走 declared，未声明退回推断 */
   aspectRatios?: string[];
   billing: { perSecondStart: number }; // 积分/秒起
+  /** 服务端证据结构透传（TASK-MARKET-M6） */
+  maxRefVideos?: number;
+  resolutionOptions?: string[];
+  modesSource?: CapabilityEvidence;
+  tiersSource?: CapabilityEvidence;
 }
 
 // 参数来源：static = 模板存静态默认值，执行器直传；
