@@ -37,6 +37,23 @@
       "evidence": [
         "npm test"
       ]
+    },
+    {
+      "ts": "2026-10-18T01:20:00+08:00",
+      "phase": "验证",
+      "action": "L3：任务中心成功行渲染 56px 产物缩略图（35 img，complete:true），失败行保持原样式",
+      "evidence": [
+        "/tasks JS 实证",
+        "bundle 含 M12"
+      ]
+    },
+    {
+      "ts": "2026-10-18T01:20:00+08:00",
+      "phase": "合入",
+      "action": "PR #254 merged（13 项 CI 全绿）",
+      "evidence": [
+        "github"
+      ]
     }
   ],
   "decisions": [
