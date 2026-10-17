@@ -166,10 +166,9 @@ func (store PostgresStore) Curate(ctx context.Context, workspaceID, actor string
 	if in.ID == "" || in.Family == "" || in.Name == "" || in.ChannelID == "" || in.ProviderModel == "" {
 		return out, errors.New("id, family, name, channel_id and provider_model are required")
 	}
-	switch in.Type {
-	case "text", "image", "video":
-	default:
-		// ADR §3.1 的约束在这里落地：上游可以有任意标签，但产品面只有这三类。
+	// ADR §3.1 的约束在这里落地：上游可以有任意标签，但产品面只有这三类。
+	// TASK-MARKET-M5：与 logicalmodel.go 的 ValidLogicalModelType 共用同一枚举（单一来源）。
+	if !ValidLogicalModelType(in.Type) {
 		return out, fmt.Errorf("unsupported model type %q: model_catalog only allows text|image|video", in.Type)
 	}
 

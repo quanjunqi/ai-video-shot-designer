@@ -1,0 +1,55 @@
+{
+  "taskId": "TASK-MARKET-M5",
+  "updatedAt": "2026-10-18T00:40:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-18T00:40:00+08:00",
+      "phase": "探查",
+      "action": "梳理 family/归属现状",
+      "evidence": [
+        "待探查"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-18T00:50:00+08:00",
+      "phase": "探查",
+      "action": "M5 范围精化（4 条已存在）",
+      "evidence": [
+        "ModelCatalog 归属编辑",
+        "curation.ts proposeFamily",
+        "newLogicalModelFromGroup 继承 type"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-18T00:50:00+08:00",
+      "phase": "决策",
+      "action": "收窄为 2 缺口",
+      "evidence": [
+        "curation.go/logicalmodel.go 双份校验",
+        "模板纯手动"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-18T01:00:00+08:00",
+      "phase": "开发",
+      "action": "type 校验单一来源 + suggestTemplateId",
+      "evidence": [
+        "TestCurateTypeSharedValidation PASS",
+        "npm run gate 绿"
+      ],
+      "decisionRef": "D-002"
+    },
+    {
+      "ts": "2026-10-18T01:10:00+08:00",
+      "phase": "验证",
+      "action": "浏览器实测模板建议",
+      "evidence": [
+        "type=图像 → OpenAI 兼容图片（Images API）"
+      ],
+      "decisionRef": "D-002"
+    }
+  ]
+}
