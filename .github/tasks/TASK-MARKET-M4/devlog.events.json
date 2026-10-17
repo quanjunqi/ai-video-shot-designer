@@ -1,0 +1,45 @@
+{
+  "taskId": "TASK-MARKET-M4",
+  "updatedAt": "2026-10-17T23:55:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T23:55:00+08:00",
+      "phase": "探查",
+      "action": "定位 async 拒绝根因",
+      "evidence": [
+        "handler 直调 engine.Run",
+        "RunAsync 完整实现未用"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-18T00:05:00+08:00",
+      "phase": "开发",
+      "action": "handler async 分流 + RunAsync 单测",
+      "evidence": [
+        "3 单测 PASS",
+        "go test -race 全绿"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-18T00:10:00+08:00",
+      "phase": "验证",
+      "action": "stub-image 端到端 async 试跑",
+      "evidence": [
+        "ok:true",
+        "extracted data.0.url",
+        "providerTaskId stub-img-1"
+      ],
+      "decisionRef": "D-002"
+    },
+    {
+      "ts": "2026-10-18T00:11:00+08:00",
+      "phase": "验证",
+      "action": "text 回归",
+      "evidence": [
+        "m_stub_text ok:true"
+      ]
+    }
+  ]
+}

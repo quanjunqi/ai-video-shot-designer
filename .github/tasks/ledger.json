@@ -585,15 +585,28 @@
     {
       "id": "TASK-MARKET-M3",
       "title": "模型中心数据源真实化（广场/目录接 server）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P1",
       "depends_on": [
         "TASK-EXEC-001"
       ],
-      "pr": null,
-      "criteriaPassed": 0,
+      "pr": 236,
+      "criteriaPassed": 6,
       "criteriaTotal": 6,
       "file": "TASK-MARKET-M3/task.md"
+    },
+    {
+      "id": "TASK-MARKET-M4",
+      "title": "图片试跑 async 支持（试跑分流 RunAsync）",
+      "status": "进行中",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-MARKET-M3"
+      ],
+      "pr": 237,
+      "criteriaPassed": 0,
+      "criteriaTotal": 5,
+      "file": "TASK-MARKET-M4/task.md"
     }
   ]
 }
