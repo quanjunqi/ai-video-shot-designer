@@ -620,6 +620,19 @@
       "criteriaPassed": 3,
       "criteriaTotal": 3,
       "file": "TASK-MARKET-M5/task.md"
+    },
+    {
+      "id": "TASK-MARKET-M6",
+      "title": "模型广场真实详情专业化",
+      "status": "进行中",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-MARKET-M5"
+      ],
+      "pr": null,
+      "criteriaPassed": 0,
+      "criteriaTotal": 3,
+      "file": "TASK-MARKET-M6/task.md"
     }
   ]
 }
