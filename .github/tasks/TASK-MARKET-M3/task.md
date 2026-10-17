@@ -1,5 +1,5 @@
 ---
-status: 待开工
+status: 进行中
 priority: P1
 depends_on: [TASK-EXEC-001]
 ---

@@ -114,4 +114,4 @@
 - 开发日志：**12 个任务**（24 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
 - 台账一致性由 `.github/scripts/check-task-ledger.sh` 机器校验（CI Documentation Check + 本地 preflight 门 0b），`--self-test` 可验证门禁有效性。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
-| TASK-MARKET-M3 | 模型中心数据源真实化（广场/目录接 server） | P1 | 待开工 | — | [TASK-MARKET-M3/task.md](TASK-MARKET-M3/task.md) |
+| TASK-MARKET-M3 | 模型中心数据源真实化（广场/目录接 server） | P1 | 进行中 | — | [TASK-MARKET-M3/task.md](TASK-MARKET-M3/task.md) |

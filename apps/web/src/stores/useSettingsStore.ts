@@ -106,6 +106,8 @@ function serverModelToLocal(m: ServerCatalogDirectory['models'][number]): Catalo
 
 const defaultChannels = () => MODEL_CHANNELS.map((c) => ({ ...c }));
 const defaultModels = () => MODEL_CATALOG.map((m) => ({ ...m, capability: { ...m.capability } as CatalogModel['capability'] }));
+// 内置逻辑模型（能力归属 demo 清单）：server 态下不混入真实目录展示；仅保留用户自定义/克隆副本（id 非内置）。
+const BUILTIN_MODEL_IDS = new Set(MODEL_CATALOG.map((m) => m.id));
 const defaultPrefs = () => ({ defaultTextModel: '', defaultImageModel: 'gpt-image-2', defaultVideoModel: 'MiniMax H3', defaultRoute: '/comic/projects', density: { shotFontSize: 'standard' as const, canvasDensity: 'normal' as const }, notifications: { taskDone: true, channelHealth: false } });
 
 export const useSettingsStore = create<SettingsState>()(
@@ -132,7 +134,7 @@ export const useSettingsStore = create<SettingsState>()(
         const dirModelIds = new Set(dir.models.map((m) => m.id));
         set({
           channels: [...byId.values()].filter((c) => !get().hiddenBuiltinIds.includes(c.id)),
-          models: [...dir.models.map(serverModelToLocal), ...get().models.filter((m) => !dirModelIds.has(m.id))],
+          models: [...dir.models.map(serverModelToLocal), ...get().models.filter((m) => !dirModelIds.has(m.id) && !BUILTIN_MODEL_IDS.has(m.id))],
           templates: dir.templates.map(serverTemplateToLocal),
           catalogSource: 'server',
         });
@@ -154,7 +156,7 @@ export const useSettingsStore = create<SettingsState>()(
           const channels = [...byId.values()].filter((c) => !get().hiddenBuiltinIds.includes(c.id)).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
           // 模型：目录为准，保留本地非目录来源（克隆副本/自定义渠道模型）
           const dirModelIds = new Set(dir.models.map((m) => m.id));
-          const localExtra = get().models.filter((m) => !dirModelIds.has(m.id));
+          const localExtra = get().models.filter((m) => !dirModelIds.has(m.id) && !BUILTIN_MODEL_IDS.has(m.id));
           set({
             channels,
             models: [...dir.models.map(serverModelToLocal), ...localExtra],

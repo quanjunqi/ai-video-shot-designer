@@ -1,13 +1,30 @@
 {
   "taskId": "TASK-MARKET-M3",
-  "updatedAt": "2026-10-17T23:30:00+08:00",
+  "updatedAt": "2026-10-17T23:50:00+08:00",
   "events": [
     {
       "ts": "2026-10-17T23:30:00+08:00",
       "phase": "探查",
       "action": "立卡前探查前端数据源",
-      "evidence": ["BFF GET /api/v1/catalog 返回 7 真实模型", "store 已有 server 分支骨架", "UI 停在 demo 态"],
+      "evidence": [
+        "BFF GET /api/v1/catalog 返回 7 真实模型",
+        "store 已有 server 分支骨架",
+        "UI 停在 demo 态"
+      ],
       "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-17T23:50:00+08:00",
+      "phase": "开发+验证",
+      "action": "修复 server 态 demo 混入 + 污染行停用 + 浏览器验证",
+      "evidence": [
+        "BUILTIN_MODEL_IDS 过滤两处 localExtra",
+        "目录/广场 7 server 模型、demo 消失",
+        "污染行 disabled",
+        "试跑入口可见",
+        "gate GATE=0"
+      ],
+      "decisionRef": "D-002"
     }
   ]
 }
