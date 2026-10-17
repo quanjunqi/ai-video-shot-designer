@@ -40,7 +40,7 @@
 | TASK-FIX-004 | 任务中心 /tasks 崩溃修复（KIND_META 缺 kind=text，T13 验收缺口 1） | P0 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-004-task-center-kind-crash.md](TASK-FIX-004-task-center-kind-crash.md) |
 | TASK-FIX-005 | 创建页积分 NaN/undefined 兜底（T13 验收缺口 2） | P1 | 已验收（PR #186 已合并，1d498cc） | — | [TASK-FIX-005-credit-nan-display.md](TASK-FIX-005-credit-nan-display.md) |
 | TASK-IA-001 | 模型中心/设置中心信息架构收敛重建（v14 P1：6 项导航实装+设置 6 区+用量唯一入口；Owner 2026-10-17 确认 2 决策） | P1（排期 v2 §3.3 第 2 波首位） | 进行中（设计稿 v14 评审通过；开发阶段） | ✅ | [TASK-IA-001/task.md](TASK-IA-001/task.md) |
-| TASK-SETTINGS-P2 | 设置中心 P2 骨架：账号/工作区/数据 3 区实装+外观·创作密度+通知开关（v14 P2 分期；本地演示态，P3 显式禁用） | P2（v14 §五） | 进行中（设计稿 v15 评审通过；开发阶段） | ☐ | [TASK-SETTINGS-P2/task.md](TASK-SETTINGS-P2/task.md) |
+| TASK-SETTINGS-P2 | 设置中心 P2 骨架：账号/工作区/数据 3 区实装+外观·创作密度+通知开关（v14 P2 分期；本地演示态，P3 显式禁用） | P2（v14 §五） | 进行中（设计稿 v15 评审通过；开发阶段） | ☐ | [TASK-SETTINGS-P2/task.md](TASK-SETTINGS-P2/task.md) |（PR [#222](https://github.com/quanjunqi/ai-video-shot-designer/pull/222)）
 | TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | P0（基建） | 已验收（d612122 已合并；Docker 8 类场景验证 2026-10-15） | ✅ | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | 待验收（✅ 判据 3/4/5/6 已实测；「8 条路径单测」实为手工命令） | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
 | TASK-INFRA-003 | worker 可靠性（重试 / 死信 / 并发闸门） | P0（排期第一批第 7 刀） | 已验收（PR #201 已合并，e5c710ab；8/8 验收标准） | ✅ | [TASK-INFRA-003/task.md](TASK-INFRA-003/task.md) |
