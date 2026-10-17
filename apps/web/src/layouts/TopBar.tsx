@@ -146,7 +146,7 @@ export default function TopBar({ collapsed }: { collapsed: boolean }) {
     ...episodes.map((e) => ({ id: e.id, type: '剧集', label: `第 ${e.index} 集 · ${e.title.replace(/^第\s*\d+\s*集[：:]/, '')}`, to: `/comic/projects/${e.projectId}/episodes/${e.id}/analyze` })),
     ...assets.map((a) => ({ id: a.id, type: '资产', label: a.name, to: `/assets?asset=${encodeURIComponent(a.id)}` })),
     ...lens.map((l) => ({ id: l.id, type: '镜头模板', label: l.name, to: `/shot-language?q=${encodeURIComponent(l.name)}` })),
-    ...models.map((m) => ({ id: m.id, type: '模型', label: m.name, to: '/models/catalog' })),
+    ...models.map((m) => ({ id: m.id, type: '模型', label: m.name, to: '/models/market' })),
   ].filter((item) => `${item.type} ${item.label}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 30);
   const notifications = [
     ...jobs.filter((j) => j.status === 'failed').map((j) => ({ id: j.id, title: '任务失败', desc: j.label, to: j.contextPath ?? '/tasks', tone: 'danger' })),

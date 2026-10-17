@@ -353,7 +353,7 @@ export default function CreateWorkbench({
   );
   const promptIssue = issueFor('prompt');
 
-  // 无可用模型：给真实空态并指向设置中心（不回退到硬编码模型名）
+  // 无可用模型：给真实空态并指向模型中心（M9：落点 /models/market，M8 目录已撤销）
   if (models.length === 0) {
     return (
       <div className="mx-auto w-full max-w-[1200px] px-4 py-6">
@@ -363,10 +363,10 @@ export default function CreateWorkbench({
           description={
             kind === 'audio'
               ? '模型目录当前不含音频类型（type 仅支持 text/image/video），音频执行链路尚未接入。'
-              : '请先在设置中心启用渠道并添加该类型的模型，页面会自动读取目录能力生成参数。'
+              : '请先在模型中心启用渠道并添加该类型的模型，页面会自动读取目录能力生成参数。'
           }
-          actionLabel={kind === 'audio' ? undefined : '去设置中心'}
-          onAction={kind === 'audio' ? undefined : () => navigate('/models/catalog')}
+          actionLabel={kind === 'audio' ? undefined : '去模型中心'}
+          onAction={kind === 'audio' ? undefined : () => navigate('/models/market')}
         />
       </div>
     );
