@@ -1,14 +1,14 @@
 // EXPORTS: default TasksPage
 // 任务中心读取服务端 Execution Service，浏览器只负责展示和发起控制命令。
+// TASK-IA-001 v14（Owner 确认）：用量/审计唯一入口=模型中心 —— 「账目」页签移除；
+// 旧深链 /tasks?tab=ledger 重定向到 /models/costs（不 404）。
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { RotateCw, ArrowUpRight, CheckCircle2, XCircle, Loader2, Clock, RefreshCw, Ban, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ModelAuditPage from '@/pages/ModelAudit';
 import TaskDetailSheet from '@/features/tasks/TaskDetailSheet';
 import { kindMeta, statusMeta } from '@/features/tasks/task-meta';
 import { api, type ServerTask } from '@/lib/api/client';
@@ -19,12 +19,10 @@ import { cn } from '@/lib/utils';
 function formatUpdatedAt(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 
 export default function TasksPage() {
-  // 页签由 URL 驱动（?tab=tasks|ledger）：可分享、刷新不丢。
-  // 方案 A：把「用量/审计」从设置中心移到任务中心 —— 旧深链 /settings/usage 与
-  // /settings/audit 都重定向到 /tasks?tab=ledger（见 settings-navigation.ts）。
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'ledger' ? 'ledger' : 'tasks';
-  const onTabChange = (next: string) => setSearchParams(next === 'ledger' ? { tab: 'ledger' } : {}, { replace: true });
+  // 账目页签已移除：?tab=ledger 旧深链统一落到模型中心成本页（用量唯一入口，IA v14）
+  // ★ hooks 必须在任何条件返回之前调用（规则-of-hooks）；重定向判断放 render 尾部
+  const [searchParams] = useSearchParams();
+
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<ServerTask[]>([]); const [status, setStatus] = useState('all'); const [kind, setKind] = useState('all'); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [error, setError] = useState<string>(); const [busyId, setBusyId] = useState<string>();
   // 详情抽屉只记 taskId（不存对象）：详情数据必须来自 api.getTask 的实时单任务结果，
@@ -35,13 +33,9 @@ export default function TasksPage() {
   const runAction = async (id: string, action: 'cancel' | 'retry') => { setBusyId(id); try { const updated = action === 'cancel' ? await api.cancelTask(id) : await api.retryTask(id); setTasks((current) => current.map((task) => task.id === id ? updated : task)); setError(undefined); } catch (cause) { setError(cause instanceof Error ? cause.message : '操作失败'); } finally { setBusyId(undefined); } };
   const filtered = useMemo(() => tasks.filter((task) => (status === 'all' || task.status === status) && (kind === 'all' || task.kind === kind)), [kind, status, tasks]);
 
+  if (searchParams.get('tab') === 'ledger') return <Navigate to="/models/costs" replace />;
+
   return <div className="mx-auto w-full max-w-[1100px] px-6 py-6">
-    <Tabs value={tab} onValueChange={onTabChange}>
-      <TabsList className="mb-4">
-        <TabsTrigger value="tasks">任务</TabsTrigger>
-        <TabsTrigger value="ledger">账目</TabsTrigger>
-      </TabsList>
-      <TabsContent value="tasks" className="space-y-4">
     <div className="mb-4 flex flex-wrap items-center gap-2"><h1 className="text-lg font-semibold">任务中心</h1><Badge variant="outline" className="font-mono text-3xs">{tasks.length}</Badge><div className="ml-auto flex flex-wrap items-center gap-2">
       <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-9 w-32"><SelectValue placeholder="全部状态" /></SelectTrigger><SelectContent><SelectItem value="all">全部状态</SelectItem><SelectItem value="running">运行中</SelectItem><SelectItem value="queued">排队中</SelectItem><SelectItem value="succeeded">成功</SelectItem><SelectItem value="failed">失败</SelectItem><SelectItem value="cancelled">已取消</SelectItem></SelectContent></Select>
       <Select value={kind} onValueChange={setKind}><SelectTrigger className="h-9 w-36"><SelectValue placeholder="全部类型" /></SelectTrigger><SelectContent><SelectItem value="all">全部类型</SelectItem><SelectItem value="split">拆集</SelectItem><SelectItem value="interpret">导演解读</SelectItem><SelectItem value="image">图片生成</SelectItem><SelectItem value="video">视频拍摄</SelectItem><SelectItem value="audio">音频</SelectItem><SelectItem value="canvas_export">画布导出</SelectItem><SelectItem value="text">文本生成</SelectItem></SelectContent></Select>
@@ -54,12 +48,7 @@ export default function TasksPage() {
         <div className="flex shrink-0 items-center gap-1"><Button type="button" variant="ghost" size="sm" title="查看详情" onClick={(event) => { event.stopPropagation(); setDetailTaskId(task.id); }}><Eye className="h-3.5 w-3.5" /></Button>{canCancel && <Button type="button" variant="ghost" size="sm" title="取消任务" disabled={busyId === task.id} onClick={(event) => { event.stopPropagation(); void runAction(task.id, 'cancel'); }}><Ban className="h-3.5 w-3.5" /></Button>}{canRetry && <Button type="button" variant="outline" size="sm" disabled={busyId === task.id} onClick={(event) => { event.stopPropagation(); void runAction(task.id, 'retry'); }}><RotateCw className="h-3.5 w-3.5" />重试</Button>}{task.status === 'running' && <Loader2 className="ml-1 h-4 w-4 animate-spin text-primary" />}{task.status === 'succeeded' && <CheckCircle2 className="ml-1 h-4 w-4 text-success" />}{task.status === 'failed' && <XCircle className="ml-1 h-4 w-4 text-destructive" />}{task.status === 'cancelled' && <Ban className="ml-1 h-4 w-4 text-muted-foreground" />}{task.status === 'queued' && <Clock className="ml-1 h-4 w-4 text-muted-foreground" />}</div>{task.context_path && <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
       </div>; })}
     </div>}
-    {/* 详情抽屉：只在任务页签内渲染；关闭时清空 taskId（下次打开重新拉取，不显示旧数据） */}
+    {/* 详情抽屉：关闭时清空 taskId（下次打开重新拉取，不显示旧数据） */}
     <TaskDetailSheet taskId={detailTaskId} open={detailTaskId !== undefined} onOpenChange={(open) => { if (!open) setDetailTaskId(undefined); }} />
-    </TabsContent>
-    <TabsContent value="ledger" className="space-y-4">
-      <ModelAuditPage />
-    </TabsContent>
-  </Tabs>
   </div>;
 }

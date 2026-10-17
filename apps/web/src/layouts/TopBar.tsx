@@ -25,11 +25,8 @@ import { useUIStore } from '@/stores/useUIStore';
 import { DEV_ACTORS, useAuthStore } from '@/stores/useAuthStore';
 import { placeholderUrl } from '@/lib/placeholder';
 import {
-  SETTINGS_CHANNEL_RULES_PATH,
   SETTINGS_DEFAULT_PATH,
-  SETTINGS_MODEL_CATALOG_PATH,
   settingsSectionForPath,
-  settingsSubViewForPath,
 } from '@/features/settings/settings-navigation';
 import { cn } from '@/lib/utils';
 
@@ -92,14 +89,11 @@ function buildCrumbs(pathname: string): Crumb[] {
   if (parts[0] === 'shot-language') return [{ label: '镜头语言库' }];
   if (parts[0] === 'assets') return [{ label: '资产库' }];
   if (parts[0] === 'settings') {
-    // 面包屑按 ADR-005 的 4 项 + 「模型」的两个层级展开，让层级不只靠 URL 区分
+    // 面包屑按 IA v14 的 6 区系统设置展开
     const crumbs: Crumb[] = [{ label: '设置', to: SETTINGS_DEFAULT_PATH }];
     const section = settingsSectionForPath(pathname);
     if (!section) return crumbs;
     crumbs.push({ label: section.label, to: section.path });
-    const subView = settingsSubViewForPath(pathname);
-    if (subView && subView.path !== section.path) crumbs.push({ label: subView.label });
-    if (pathname === SETTINGS_CHANNEL_RULES_PATH) crumbs.push({ label: '连接规则' });
     return crumbs;
   }
   return [{ label: pathname }];
@@ -152,7 +146,7 @@ export default function TopBar({ collapsed }: { collapsed: boolean }) {
     ...episodes.map((e) => ({ id: e.id, type: '剧集', label: `第 ${e.index} 集 · ${e.title.replace(/^第\s*\d+\s*集[：:]/, '')}`, to: `/comic/projects/${e.projectId}/episodes/${e.id}/analyze` })),
     ...assets.map((a) => ({ id: a.id, type: '资产', label: a.name, to: `/assets?asset=${encodeURIComponent(a.id)}` })),
     ...lens.map((l) => ({ id: l.id, type: '镜头模板', label: l.name, to: `/shot-language?q=${encodeURIComponent(l.name)}` })),
-    ...models.map((m) => ({ id: m.id, type: '模型', label: m.name, to: SETTINGS_MODEL_CATALOG_PATH })),
+    ...models.map((m) => ({ id: m.id, type: '模型', label: m.name, to: '/models/catalog' })),
   ].filter((item) => `${item.type} ${item.label}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 30);
   const notifications = [
     ...jobs.filter((j) => j.status === 'failed').map((j) => ({ id: j.id, title: '任务失败', desc: j.label, to: j.contextPath ?? '/tasks', tone: 'danger' })),

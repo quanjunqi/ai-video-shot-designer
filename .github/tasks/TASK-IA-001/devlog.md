@@ -97,3 +97,39 @@
 - **遗留/后续**：
 
 > 复盘在开发阶段收尾时填写；本卡当前仅完成设计阶段。
+
+---
+
+## 2026-10-17 追加：设计稿 v14 评审收敛 + Owner 决策确认（进入开发阶段）
+
+### 开发（P1 实施，10-17）
+- **导航层**：MODEL_CENTER_NAV 7→6（删 protocols、去内部词「渠道与凭据→渠道」）；SETTINGS_NAV 3 业务 tab→6 区系统设置 + 10 条 legacy 重定向；SettingsLayout 6 区图标；TopBar 面包屑简化；CreateWorkbench 落点改 /models/catalog；app.tsx 路由重挂（models 6 项 + settings 6 区 + protocols→channels）；useSettingsStore 新增 expertMode（persist v3）。
+- **设置 6 区**：实装外观（主题/语言迁入+专家开关 Admin+）、通知与默认行为（默认模型/路由迁入）、关于；账号/工作区/数据显式占位（禁僵尸按钮）。
+- **模型广场**：ModelMarket 真实模型+详情抽屉 Sheet+类型/渠道/状态筛选+起步价排序+停用/渠道停用标+设默认=个人默认（Admin+）；服务端 capability 证据结构容错（billing 空对象 → priceText 垫底）。
+- **预算迁入**：抽 BudgetRulesSection（复用 T3 API，数据层零改动）挂 ModelCosts 替换只读占位；Viewer 只读、Admin+ 写。
+- **个人默认层**：StageModelPicker 生效顺序=阶段→项目→个人→目录首项，来源标签加「个人默认」。
+- **模型目录**：ModelCatalog 已接入行+归属状态（已归属/待归属）+能力归属编辑（logicalModelId/优先级，Admin+）+启停切换；待归属=可直调不进路由。
+- **渠道页**：ModelChannels 列表+连通检测全员+同步上游/添加 Admin+（v14 矩阵实测修正）+删除确认弹窗+级联移除+每渠道策展入口（CurationPanel，ADR-005 D4）。
+- **用量唯一入口**：Tasks 移除「账目」页签（核对=与 /models/audit 零独占），?tab=ledger → /models/costs；删除旧设置页 5 个（模型/逻辑模型/渠道/协议/偏好，无引用）；3 个 UI 护栏测试改指 ModelChannels/store 层。
+- **ADR-005 终态**：D2 终态修订（设置=系统设置 6 区 + 模型中心=控制台 6 项）、§9 拍板记录（2 决策点 + Owner 三点修正）。
+
+### 动作
+- **十轮评审收敛**（v4→v14）：设置中心=系统设置 6 区、模型中心=模型控制台 6 项；模型广场=真实调用模型+详情、模型目录=能力归属、渠道=接入源；能力归属解耦（同步先加真实模型、归属后补）；用量域唯一入口；权限浏览/写分列；实施分期 P1/P2/P3；页面行数约束。
+- **Owner 确认 2 决策点**（interaction_ask，2026-10-17）：① 用量/审计唯一入口=模型中心（任务中心「账目」页签移除并重定向）；② 广场「设为默认」=个人创作默认（StageModelPicker 生效顺序追加个人默认层）。
+- **范围扩展**：TASK-IA-001 由「预算归位+渠道裁定」扩展为 v14 P1 收敛整体，criteria 8→15；acceptance.md 开发判据重写（15 条 + 映射 8 项 + 三态 8 项）；design-prototype.html 更新为 IA v14。
+
+### 决策（本轮新增）
+1. 用量/审计唯一入口=模型中心；任务中心账目页签移除并重定向（Owner）
+2. 广场设默认=个人创作默认（defaultPrefs）+ 生效顺序补层（Owner）
+3. 广场=真实模型+详情；目录=能力归属；同步先加真实模型、归属后补（Owner，v10）
+
+### 验证记录
+- V-003（10-17）：`apps/web/src/config/models/model-catalog.ts` 证实 CatalogModel 含 capability/logicalModelId/routePriority——广场/目录两页同源可行。
+- V-004（10-17）：`StageModelPicker.tsx` 生效顺序=阶段→项目→目录首项，个人默认层为 P1 小改。
+- V-005（10-17）：页面行数实测 SettingsChannels=679、SettingsModels=820、SettingsLogicalModels=591，迁移须拆分（≤300/≤500）。
+
+### 纪律自检（追加）
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| AC-009 设计稿评审通过后才进入开发 | ✓ | IA v14 十轮评审 + Owner 2 决策确认（10-17） |
+| 台账同步 | ✓ | task.md/acceptance.md/devlog 三件套更新；README/ledger 待本轮同步 |

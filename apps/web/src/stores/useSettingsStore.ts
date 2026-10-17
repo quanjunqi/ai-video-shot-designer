@@ -14,6 +14,8 @@ export type CatalogSource = 'demo' | 'server' | 'offline-fallback';
 interface SettingsState {
   theme: ThemeMode;
   language: string;
+  /** 专家模式（TASK-IA-001 v14：外观区开关，仅 Admin+ 显示）：展示接入方式/参数映射/精细路由等高级配置 */
+  expertMode: boolean;
   channels: ChannelConfig[]; // L1 渠道（内置 + 自定义）
   models: CatalogModel[]; // L2+L3 模型目录（挂渠道 + 类型 + 能力/计费）
   templates: ProtocolTemplate[]; // 协议模板（内置预置 + 用户自定义；模型引用，改一处全局生效）
@@ -107,6 +109,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set, get) => ({
       theme: 'dark',
       language: '简体中文',
+      expertMode: false,
       channels: defaultChannels(),
       models: defaultModels(),
       templates: PROTOCOL_TEMPLATES.map((t) => ({ ...t })),
@@ -373,7 +376,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'mdp:settings',
       version: 3,
-      migrate: () => ({ theme: 'dark', language: '简体中文', channels: defaultChannels(), models: defaultModels(), templates: PROTOCOL_TEMPLATES.map((t) => ({ ...t })), credentials: [], hiddenBuiltinIds: [], catalogSource: 'demo', preferences: defaultPrefs() }),
+      migrate: () => ({ theme: 'dark', language: '简体中文', expertMode: false, channels: defaultChannels(), models: defaultModels(), templates: PROTOCOL_TEMPLATES.map((t) => ({ ...t })), credentials: [], hiddenBuiltinIds: [], catalogSource: 'demo', preferences: defaultPrefs() }),
       // 结构防御 merge：历史/脏缓存中 channels/models 非数组或 catalogSource 非法时回退默认，
       // 避免 channels.map is not a function 一类运行时崩溃；自定义渠道/模型数据仍保留（数组时原样合并）。
       merge: (persisted, current) => {
@@ -383,6 +386,7 @@ export const useSettingsStore = create<SettingsState>()(
           ...p,
           theme: p.theme === 'light' || p.theme === 'dark' || p.theme === 'system' ? p.theme : current.theme,
           language: typeof p.language === 'string' && p.language ? p.language : current.language,
+          expertMode: typeof p.expertMode === 'boolean' ? p.expertMode : current.expertMode,
           channels: Array.isArray(p.channels)
             ? (p.channels as Array<Record<string, unknown> & ChannelConfig>).map((c) => ({ ...c, authType: (String(c.authType) === 'apikey' || String(c.authType) === 'sign' ? 'bearer' : c.authType) as ChannelConfig['authType'] }))
             : current.channels,

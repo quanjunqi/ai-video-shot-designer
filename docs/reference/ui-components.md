@@ -238,17 +238,17 @@
 | `--tw-prose-invert-pre-bg` | `var(--accent)` |
 | `--tw-prose-invert-th-borders` | `var(--border)` |
 | `--tw-prose-invert-td-borders` | `var(--border)` |
-### 3.2 尺度实际用法（从源码统计 190 个文件）
+### 3.2 尺度实际用法（从源码统计 195 个文件）
 
 > 回答的是「**实际在用哪几档**」，不是「有哪些档位」；统计按源码文本匹配，可能含少量非样式字符串。
 
 | 类别 | 常用档位（次数） | 离散步长（建议收敛） |
 |---|---|---|
-| 字号 | `xs`(434) · `sm`(195) · `lg`(20) · `base`(11) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
-| 间距 | `2`(726) · `1`(511) · `3`(452) · `1.5`(395) · `4`(252) · `0.5`(133) | `-0.45rem`(2) · `-0.35rem`(2) |
-| 圆角 | `lg`(212) · `xl`(169) · `DEFAULT`(113) · `md`(97) · `full`(68) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
+| 字号 | `xs`(369) · `sm`(202) · `lg`(16) · `base`(10) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
+| 间距 | `2`(698) · `1`(449) · `3`(439) · `1.5`(329) · `4`(246) · `0.5`(119) | `-0.45rem`(2) · `-0.35rem`(2) |
+| 圆角 | `lg`(191) · `xl`(164) · `DEFAULT`(105) · `md`(91) · `full`(68) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
 | 阴影 | `DEFAULT`(61) · `md`(30) · `lg`(27) · `sm`(13) · `xs`(5) · `2xl`(5) | `0_0_0_1px_hsl(var(--sidebar-border))`(1) · `0_0_0_1px_hsl(var(--sidebar-accent))`(1) |
-| 行高 / 字距 | `relaxed`(75) · `none`(8) · `5`(7) · `snug`(4) · `wide`(12) · `wider`(7) · `tight`(5) · `widest`(4) | — |
+| 行高 / 字距 | `relaxed`(63) · `none`(8) · `5`(7) · `snug`(4) · `wider`(7) · `wide`(7) · `tight`(5) · `widest`(4) | — |
 
 > ⚠️ 离散步长合计 **16** 处：
 > 小字号尤其集中（如 `text-[10px]`），说明"尺度 token 之外还有一套事实上的离散值"。新增 UI 请优先用尺度 token；标题禁 `text-[Npx]`（V-003）。
@@ -262,22 +262,22 @@
 | `alert` | 反馈 | 72 | default/destructive/success/warning | — | 0 | ⚠️ | `src/components/ui/alert.tsx` |
 | `alert-dialog` | 反馈 | 158 | — | — | 9 |  | `src/components/ui/alert-dialog.tsx` |
 | `avatar` | 基础 | 54 | — | — | 1 |  | `src/components/ui/avatar.tsx` |
-| `badge` | 基础 | 43 | default/secondary/destructive/outline | — | 39 |  | `src/components/ui/badge.tsx` |
+| `badge` | 基础 | 43 | default/secondary/destructive/outline | — | 41 |  | `src/components/ui/badge.tsx` |
 | `breadcrumb` | 导航 | 110 | — | — | 0 | ⚠️ | `src/components/ui/breadcrumb.tsx` |
 | `button` | 基础 | 70 | default/destructive/outline/secondary/ghost | default/sm/lg/icon | 50 |  | `src/components/ui/button.tsx` |
 | `calendar` | 数据录入 | 214 | — | — | 0 | ⚠️ | `src/components/ui/calendar.tsx` |
-| `card` | 基础 | 83 | — | — | 2 |  | `src/components/ui/card.tsx` |
+| `card` | 基础 | 83 | — | — | 3 |  | `src/components/ui/card.tsx` |
 | `chart` | 数据展示 | 358 | — | — | 0 | ⚠️ | `src/components/ui/chart.tsx` |
-| `checkbox` | 数据录入 | 33 | — | — | 3 |  | `src/components/ui/checkbox.tsx` |
-| `collapsible` | 布局 | 34 | — | — | 3 |  | `src/components/ui/collapsible.tsx` |
+| `checkbox` | 数据录入 | 33 | — | — | 2 |  | `src/components/ui/checkbox.tsx` |
+| `collapsible` | 布局 | 34 | — | — | 1 |  | `src/components/ui/collapsible.tsx` |
 | `command` | 导航 | 209 | — | — | 1 |  | `src/components/ui/command.tsx` |
-| `dialog` | 反馈 | 144 | — | — | 27 |  | `src/components/ui/dialog.tsx` |
+| `dialog` | 反馈 | 144 | — | — | 24 |  | `src/components/ui/dialog.tsx` |
 | `dropdown-menu` | 导航 | 330 | — | — | 2 |  | `src/components/ui/dropdown-menu.tsx` |
 | `empty` | 布局 | 105 | default/icon | — | 0 | ⚠️ | `src/components/ui/empty.tsx` |
 | `field` | 数据录入 | 249 | — | — | 0 | ⚠️ | `src/components/ui/field.tsx` |
 | `form` | 数据录入 | 168 | — | — | 0 | ⚠️ | `src/components/ui/form.tsx` |
 | `image` | 基础 | 184 | — | — | 0 | ⚠️ | `src/components/ui/image.tsx` |
-| `input` | 数据录入 | 22 | — | — | 29 |  | `src/components/ui/input.tsx` |
+| `input` | 数据录入 | 22 | — | — | 27 |  | `src/components/ui/input.tsx` |
 | `input-group` | 数据录入 | 167 | — | — | 0 | ⚠️ | `src/components/ui/input-group.tsx` |
 | `item` | 布局 | 194 | default/outline/muted | default/sm | 0 | ⚠️ | `src/components/ui/item.tsx` |
 | `label` | 数据录入 | 25 | — | — | 21 |  | `src/components/ui/label.tsx` |
@@ -287,9 +287,9 @@
 | `progress` | 反馈 | 32 | — | — | 4 |  | `src/components/ui/progress.tsx` |
 | `radio-group` | 数据录入 | 46 | — | — | 0 | ⚠️ | `src/components/ui/radio-group.tsx` |
 | `scroll-area` | 布局 | 59 | — | — | 0 | ⚠️ | `src/components/ui/scroll-area.tsx` |
-| `select` | 数据录入 | 244 | — | — | 22 |  | `src/components/ui/select.tsx` |
+| `select` | 数据录入 | 244 | — | — | 23 |  | `src/components/ui/select.tsx` |
 | `separator` | 基础 | 29 | — | — | 3 |  | `src/components/ui/separator.tsx` |
-| `sheet` | 反馈 | 140 | — | — | 3 |  | `src/components/ui/sheet.tsx` |
+| `sheet` | 反馈 | 140 | — | — | 5 |  | `src/components/ui/sheet.tsx` |
 | `sidebar` | 布局 | 728 | default/outline | default/sm/lg | 0 | ⚠️ | `src/components/ui/sidebar.tsx` |
 | `skeleton` | 基础 | 14 | — | — | 1 |  | `src/components/ui/skeleton.tsx` |
 | `slider` | 数据录入 | 88 | — | — | 0 | ⚠️ | `src/components/ui/slider.tsx` |
@@ -297,7 +297,7 @@
 | `spinner` | 基础 | 17 | — | — | 0 | ⚠️ | `src/components/ui/spinner.tsx` |
 | `switch` | 数据录入 | 32 | — | — | 3 |  | `src/components/ui/switch.tsx` |
 | `table` | 数据展示 | 117 | — | — | 0 | ⚠️ | `src/components/ui/table.tsx` |
-| `tabs` | 导航 | 67 | — | — | 3 |  | `src/components/ui/tabs.tsx` |
+| `tabs` | 导航 | 67 | — | — | 2 |  | `src/components/ui/tabs.tsx` |
 | `textarea` | 数据录入 | 19 | — | — | 14 |  | `src/components/ui/textarea.tsx` |
 | `tooltip` | 反馈 | 62 | — | — | 2 |  | `src/components/ui/tooltip.tsx` |
 

@@ -21,13 +21,17 @@ import {
   SETTINGS_LEGACY_REDIRECTS,
   settingsRelativePath,
 } from '@/features/settings/settings-navigation';
-import SettingsChannelsPage from '@/pages/SettingsChannels';
-import SettingsModelsPage from '@/pages/SettingsModels';
-import SettingsProtocolsPage from '@/pages/SettingsProtocols';
-import SettingsPreferencesPage from '@/pages/SettingsPreferences';
-import SettingsLogicalModelsPage from '@/pages/SettingsLogicalModels';
-import ModelCenterLayout, { ModelCenterPlaceholder } from '@/features/model-center/ModelCenterLayout';
+import SettingsAccountPage from '@/pages/SettingsAccount';
+import SettingsWorkspacePage from '@/pages/SettingsWorkspace';
+import SettingsAppearancePage from '@/pages/SettingsAppearance';
+import SettingsNotificationsPage from '@/pages/SettingsNotifications';
+import SettingsDataPage from '@/pages/SettingsData';
+import SettingsAboutPage from '@/pages/SettingsAbout';
+import ModelCenterLayout from '@/features/model-center/ModelCenterLayout';
 import { MODEL_CENTER_DEFAULT_PATH } from '@/features/model-center/model-center-navigation';
+import ModelMarketPage from '@/pages/ModelMarket';
+import ModelCatalogPage from '@/pages/ModelCatalog';
+import ModelChannelsPage from '@/pages/ModelChannels';
 import ModelCostsPage from '@/pages/ModelCosts';
 import ModelAuditPage from '@/pages/ModelAudit';
 import ModelHealthPage from '@/pages/ModelHealth';
@@ -64,22 +68,16 @@ export default function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="shot-language" element={<ShotLanguagePage />} />
         <Route path="assets" element={<AssetsPage />} />
-        {/* 模型中心（高保真稿 GATE-2 + T11）：独立一级导航；实装成本与用量/审计日志/健康，其余入口建设中占位 */}
+        {/* 模型中心（IA v14，TASK-IA-001）：独立一级导航 = 模型控制台 6 项；
+            广场/目录/渠道页面迁移进行中（本 PR 导航层先落位，页面下一轮迁移实装） */}
         <Route path="models" element={<ModelCenterLayout />}>
           <Route index element={<Navigate to={MODEL_CENTER_DEFAULT_PATH} replace />} />
-          <Route path="catalog" element={<ModelCenterPlaceholder label="模型目录" />} />
-          <Route path="market" element={<ModelCenterPlaceholder label="模型广场" />} />
-          {/* TASK-AUTH-001：渠道与凭据 = Admin+（后端矩阵兜底，前端守卫防直达） */}
-          <Route
-            path="channels"
-            element={
-              <RequireRole min="admin">
-                <ModelCenterPlaceholder label="渠道与凭据" />
-              </RequireRole>
-            }
-          />
+          <Route path="market" element={<ModelMarketPage />} />
+          <Route path="catalog" element={<ModelCatalogPage />} />
+          {/* TASK-IA-001 v14：渠道浏览/连通检测全员，接入/凭据/同步=Admin+ 在页面内按操作细分 */}
+          <Route path="channels" element={<ModelChannelsPage />} />
           <Route path="costs" element={<ModelCostsPage />} />
-          {/* TASK-AUTH-001：审计日志 = 仅 Owner（设计稿 v2 评审定稿） */}
+          {/* TASK-AUTH-001：审计日志 = 仅 Owner */}
           <Route
             path="audit"
             element={
@@ -89,41 +87,20 @@ export default function App() {
             }
           />
           <Route path="health" element={<ModelHealthPage />} />
-          <Route path="protocols" element={<ModelCenterPlaceholder label="协议模板" />} />
+          {/* IA v14 路由稳定性：/models/protocols 占位删除，归渠道接入方式 */}
+          <Route path="protocols" element={<Navigate to="/models/channels" replace />} />
         </Route>
         <Route path="settings" element={<SettingsLayout />}>
-          {/* ADR-005 D2：设置中心默认落到「模型」 */}
+          {/* IA v14：设置中心默认落到「外观」 */}
           <Route index element={<Navigate to={SETTINGS_DEFAULT_PATH} replace />} />
-          {/* 模型：顶层=对外能力（逻辑模型）；次级=具体模型与来源渠道（原「模型配置」目录行） */}
-          <Route path="models" element={<SettingsLogicalModelsPage />} />
-          <Route path="models/catalog" element={<SettingsModelsPage />} />
-          {/* TASK-AUTH-001：渠道配置 = Admin+（Viewer 隐藏 + 后端 403） */}
-          <Route
-            path="channels"
-            element={
-              <RequireRole min="admin">
-                <SettingsChannelsPage />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="channels/protocols"
-            element={
-              <RequireRole min="admin">
-                <SettingsProtocolsPage />
-              </RequireRole>
-            }
-          />
-          {/* TASK-AUTH-001：偏好（含预算/默认模型等敏感配置）= Admin+，Viewer 隐藏（设计稿 v2 评审定稿） */}
-          <Route
-            path="preferences"
-            element={
-              <RequireRole min="admin">
-                <SettingsPreferencesPage />
-              </RequireRole>
-            }
-          />
-          {/* 旧路径兼容（ADR-005 §3）：旧深链一律 replace 到新位置，不得 404。
+          {/* 系统设置 6 区：账号/工作区/数据 = P2 显式占位；外观/通知与默认行为/关于 = 实装 */}
+          <Route path="account" element={<SettingsAccountPage />} />
+          <Route path="workspace" element={<SettingsWorkspacePage />} />
+          <Route path="appearance" element={<SettingsAppearancePage />} />
+          <Route path="notifications" element={<SettingsNotificationsPage />} />
+          <Route path="data" element={<SettingsDataPage />} />
+          <Route path="about" element={<SettingsAboutPage />} />
+          {/* 旧路径兼容（IA v14 §四 10 条）：旧深链一律 replace 到新位置，不得 404。
               映射表唯一事实源在 features/settings/settings-navigation.ts，并由单测锁定。 */}
           {SETTINGS_LEGACY_REDIRECTS.map((r) => (
             <Route key={r.from} path={settingsRelativePath(r.from)} element={<Navigate to={r.to} replace />} />

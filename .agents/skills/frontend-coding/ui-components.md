@@ -10,7 +10,7 @@
 - 组件 **42** 个 / 5081 行；死组件（零引用）**20** 个
 - 语义 token **76** 个；Tailwind 工具类映射 65 条；排版：字体 3 族 + prose 映射 36 条
 - 注记覆盖 **42/42**；展示页 demo 覆盖 **42/42**
-- 尺度实际用法：字号常用 xs(434)；离散步长 6 处（优先用尺度 token）
+- 尺度实际用法：字号常用 xs(369)；离散步长 6 处（优先用尺度 token）
 
 ## 按分类速查
 
@@ -41,7 +41,7 @@
 
 - 文件：`apps/web/src/components/ui/badge.tsx`（43 行）· 导出：`Badge`、`badgeVariants`
 - variant：`default` `secondary` `destructive` `outline`（默认 `default`）
-- 引用：39 处（`ParamEditor.tsx`、`ProtocolEvidence.tsx`、`ProtocolPreview.tsx` 等）
+- 引用：41 处（`ParamEditor.tsx`、`ProtocolEvidence.tsx`、`ProtocolPreview.tsx` 等）
 - **何时用**：展示简短状态或分类标签（已发布、草稿、失败），不承载操作
 - **别用**：可点击标签用 toggle；长文案用 item-description
 - 反例：❌ 用 badge 当按钮点（应换 button、toggle）（UC-006）；❌ 长文本不截断撑破卡片（R-UI-006）
@@ -62,7 +62,7 @@
 #### `card`
 
 - 文件：`apps/web/src/components/ui/card.tsx`（83 行）· 导出：`Card`、`CardContent`、`CardDescription`、`CardFooter`、`CardHeader`、`CardTitle`
-- 引用：2 处（`PromptRulesTab.tsx`、`RulesCenterPage.tsx`）
+- 引用：3 处（`PromptRulesTab.tsx`、`RulesCenterPage.tsx`、`SettingsAbout.tsx`）
 - **何时用**：把一块相关信息（标题、内容、操作）聚合成独立区块
 - **别用**：纯列表项用 item；仅作留白容器时别套 card（会卡片套卡片）
 - 反例：❌ 卡片套卡片导致层级混乱（R3）；❌ CardTitle 长文本不截断溢出（R-UI-006）；❌ 卡片内 grid 列缺 min-w-0 挤爆（R2）
@@ -111,7 +111,7 @@
 
 - 文件：`apps/web/src/components/ui/collapsible.tsx`（34 行）· 导出：`Collapsible`、`CollapsibleTrigger`、`CollapsibleContent`
 - 底座：`@radix-ui/react-collapsible`
-- 引用：3 处（`CreateWorkbench.tsx`、`SettingsModels.tsx`、`SettingsProtocols.tsx`）
+- 引用：1 处（`CreateWorkbench.tsx`）
 - **何时用**：折叠次要详情（高级设置、原始 JSON），由用户主动展开
 - **别用**：关键信息必须默认可见，别折叠（R7）；组内多项互斥折叠用 accordion
 - 反例：❌ 把生效规则全文默认折叠（R7）；❌ 折叠无过渡动画瞬间跳变（R-UI-005）
@@ -206,7 +206,7 @@
 
 - 文件：`apps/web/src/components/ui/tabs.tsx`（67 行）· 导出：`Tabs`、`TabsList`、`TabsTrigger`、`TabsContent`
 - 底座：`@radix-ui/react-tabs`
-- 引用：3 处（`NewProjectDialog.tsx`、`RulesCenterPage.tsx`、`Tasks.tsx`）
+- 引用：2 处（`NewProjectDialog.tsx`、`RulesCenterPage.tsx`）
 - **何时用**：同一页内平级视图切换（规则、版本、任务队列），内容互斥
 - **别用**：需要同时对比多视图用并排布局；分步流程用向导
 - 反例：❌ 用 tabs 做路由级页面切换；❌ 把关键信息藏进非默认 tab（R7）
@@ -228,7 +228,7 @@
 
 - 文件：`apps/web/src/components/ui/checkbox.tsx`（33 行）· 导出：`Checkbox`
 - 底座：`@radix-ui/react-checkbox`
-- 引用：3 处（`CharacterStage.tsx`、`LogicalModelCandidatesPanel.tsx`、`SettingsProtocols.tsx`）
+- 引用：2 处（`CharacterStage.tsx`、`LogicalModelCandidatesPanel.tsx`）
 - **何时用**：独立多选、批量选择与全选（配合列表批量删除）
 - **别用**：互斥单选用 radio-group；即时生效的设置开关用 switch
 - 反例：❌ 批量列表无全选入口（R-CRUD-001）；❌ 用 checkbox 当设置开关状态含义不清（UC-004）
@@ -256,7 +256,7 @@
 #### `input`
 
 - 文件：`apps/web/src/components/ui/input.tsx`（22 行）· 导出：`Input`
-- 引用：29 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`input-group.tsx` 等）
+- 引用：27 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`input-group.tsx` 等）
 - **何时用**：单行文本、数字或密码输入，配合 label 使用
 - **别用**：多行用 textarea；选项多用 select；前缀用 input-group
 - 反例：❌ 只有 placeholder 没有 label 与 htmlFor（FE-A11Y-002）；❌ 错误态不置 aria-invalid（UC-004）；❌ 自写输入框替代 input（UC-006）
@@ -304,7 +304,7 @@
 
 - 文件：`apps/web/src/components/ui/select.tsx`（244 行）· 导出：`Select`、`SelectContent`、`SelectGroup`、`SelectItem`、`SelectLabel`、`SelectScrollDownButton`、`SelectScrollUpButton`、`SelectSeparator`、`SelectTrigger`、`SelectValue`
 - 底座：`@radix-ui/react-select` · 支持 `asChild`
-- 引用：22 处（`ParamEditor.tsx`、`FilterBar.tsx`、`NewProjectDialog.tsx` 等）
+- 引用：23 处（`ParamEditor.tsx`、`FilterBar.tsx`、`NewProjectDialog.tsx` 等）
 - **何时用**：从固定选项中单选，选项较多且需受控值（模型、风格、渠道）
 - **别用**：选项多且需搜索时用 command 配 popover（P0 缺口）
 - 反例：❌ SelectTrigger 显式 w-fit 致同行重叠（R2）；❌ 用 select 做多选（应换 checkbox）（UC-006）；❌ 选项长文本不截断挤出容器（R-UI-006）
@@ -324,7 +324,7 @@
 
 - 文件：`apps/web/src/components/ui/switch.tsx`（32 行）· 导出：`Switch`
 - 底座：`@radix-ui/react-switch`
-- 引用：3 处（`PromptRulesTab.tsx`、`RulesCenterPage.tsx`、`SettingsProtocols.tsx`）
+- 引用：3 处（`PromptRulesTab.tsx`、`RulesCenterPage.tsx`、`SettingsAppearance.tsx`）
 - **何时用**：即时生效的二元设置（启用、停用），点击立即改变状态
 - **别用**：需提交后才生效的表单字段用 checkbox 加保存按钮
 - 反例：❌ 切换后不落库不请求致刷新丢失（R-DATA-001）；❌ 无 label 只有图形（FE-A11Y-002）
@@ -396,7 +396,7 @@
 
 - 文件：`apps/web/src/components/ui/dialog.tsx`（144 行）· 导出：`Dialog`、`DialogClose`、`DialogContent`、`DialogDescription`、`DialogFooter`、`DialogHeader`、`DialogOverlay`、`DialogPortal`、`DialogTitle`、`DialogTrigger`
 - 底座：`@radix-ui/react-dialog`
-- 引用：27 处（`command.tsx`、`AddEpisodeDialog.tsx`、`CharacterStage.tsx` 等）
+- 引用：24 处（`command.tsx`、`AddEpisodeDialog.tsx`、`CharacterStage.tsx` 等）
 - **何时用**：需要用户聚焦完成的模态内容（表单、详情、选择器）
 - **别用**：只做二次确认用 alert-dialog；大表单用 sheet 或 drawer
 - 反例：❌ 用 dialog 做破坏性确认（应换 alert-dialog）（UC-006）；❌ 缺 DialogTitle 致 a11y 缺失（UC-005）；❌ 弹窗内容不滚动致底部按钮不可达（清单 2）
@@ -426,7 +426,7 @@
 
 - 文件：`apps/web/src/components/ui/sheet.tsx`（140 行）· 导出：`Sheet`、`SheetTrigger`、`SheetClose`、`SheetContent`、`SheetHeader`、`SheetFooter`、`SheetTitle`、`SheetDescription`
 - 底座：`@radix-ui/react-dialog`
-- 引用：3 处（`sidebar.tsx`、`CreateWorkbench.tsx`、`TaskDetailSheet.tsx`）
+- 引用：5 处（`sidebar.tsx`、`CreateWorkbench.tsx`、`TaskDetailSheet.tsx` 等）
 - **何时用**：从边侧滑出的辅助面板（详情、设置、移动端菜单），保留上下文
 - **别用**：需居中聚焦的短表单用 dialog；底部手势抽屉用 drawer
 - 反例：❌ 用 sheet 承载需全神贯注的长表单（宽度不足）；❌ 缺 SheetTitle 与 Description 致 a11y 警告（UC-005）

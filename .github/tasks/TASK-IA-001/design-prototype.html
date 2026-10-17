@@ -1,246 +1,352 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IA-001 预算归位 + 导航职责裁定 · 设计稿 v1（待评审）</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>设置中心与模型中心 IA v14 线框评审稿 · 镜序 Studio</title>
 <style>
-  :root{--ink:#1f2329;--sub:#646a73;--line:#e5e6eb;--brand:#3370ff;--ok:#18a058;--warn:#d4380d;--bg:#f7f8fa;--card:#fff}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);padding:32px}
-  h1{font-size:22px;margin-bottom:4px}
-  .meta{color:var(--sub);font-size:13px;margin-bottom:24px}
-  h2{font-size:16px;margin:28px 0 12px;padding-left:10px;border-left:4px solid var(--brand)}
-  h3{font-size:14px;margin:16px 0 8px;color:var(--ink)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:20px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
-  th{background:#f2f3f5;white-space:nowrap}
-  .y{color:var(--ok);font-weight:600}
-  .n{color:#c0c4cc}
-  .x{color:var(--warn);font-weight:600}
-  .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;margin-right:6px}
-  .tag.o{background:#fff1f0;color:#d4380d}
-  .tag.a{background:#e8f3ff;color:#0958d9}
-  .tag.v{background:#f6ffed;color:#389e0d}
-  .note{color:var(--sub);font-size:12px;margin-top:8px}
-  .mock{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
-  .mock .head{background:#001529;color:#fff;padding:8px 12px;font-size:13px;font-weight:600;display:flex;justify-content:space-between}
-  .mock .side{padding:8px 0}
-  .mock .item{padding:6px 14px;font-size:13px;color:#333}
-  .mock .item.on{background:#e8f3ff;color:var(--brand);border-right:3px solid var(--brand)}
-  .mock .item.hid{color:#c0c4cc;text-decoration:line-through}
-  .mock .grp{font-size:11px;color:var(--sub);padding:8px 14px 2px}
-  .mock .body{padding:12px}
-  .blk{border:1px dashed var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:12px;background:#fafbfc}
-  .blk.new{border-color:var(--brand);background:#f4f8ff}
-  .blk .t{font-weight:600;color:var(--ink);font-size:12px}
-  .blk .d{color:var(--sub);font-size:11px}
-  .row2{display:grid;grid-template-columns:1fr 300px;gap:8px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  .legend{display:flex;gap:20px;margin-top:10px;font-size:12px;color:var(--sub)}
-  code{background:#f2f3f5;padding:1px 5px;border-radius:4px;font-size:12px}
-  .warnbox{border:1px solid #ffd591;background:#fff7e6;border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px}
-  .decide{border:1px solid #91caff;background:#f0f7ff;border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px}
-  ul{margin:6px 0 0 18px}
-  li{margin:3px 0}
+  :root {
+    --ink: #1f2430; --sub: #6b7280; --line: #d8dde6; --bg: #f6f7f9;
+    --blue: #2f6bff; --blue-bg: #eef2ff; --green: #1e7e34; --green-bg: #e6f4ea;
+    --amber: #b45309; --amber-bg: #fff3e0; --red: #c0392b; --red-bg: #fdecea;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.6; }
+  .page { max-width: 1160px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .meta { color: var(--sub); font-size: 13px; margin-bottom: 24px; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 10px; border-radius: 20px; margin-left: 6px; vertical-align: 2px; }
+  .b-keep { background: var(--green-bg); color: var(--green); }
+  .b-new { background: var(--blue-bg); color: var(--blue); }
+  .b-del { background: var(--red-bg); color: var(--red); }
+  .b-down { background: var(--amber-bg); color: var(--amber); }
+  h2 { font-size: 18px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  h3 { font-size: 15px; margin: 20px 0 8px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin: 12px 0; }
+  .callout { border-left: 4px solid var(--blue); background: var(--blue-bg); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13px; margin: 10px 0; }
+  .callout.red { border-color: var(--red); background: var(--red-bg); }
+  .callout.amber { border-color: var(--amber); background: var(--amber-bg); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #fafbfc; font-weight: 600; }
+  code { background: #f1f3f7; border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+  .wire { border: 1.5px dashed #aeb6c4; border-radius: 8px; padding: 12px; background: #fcfdfe; }
+  .wire .wbar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .wire .wtab { font-size: 12px; padding: 4px 12px; border-radius: 6px 6px 0 0; background: #eef1f6; border: 1px solid var(--line); border-bottom: 0; }
+  .wire .wtab.on { background: #fff; color: var(--blue); font-weight: 600; border-color: var(--blue); }
+  .wrow { display: flex; gap: 10px; flex-wrap: wrap; }
+  .wcol { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: #fff; font-size: 12px; }
+  .wcol .cap { font-weight: 600; font-size: 12px; margin-bottom: 6px; }
+  .witem { padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; margin: 4px 0; background: #fafbfc; }
+  .witem.on { border-color: var(--blue); background: var(--blue-bg); }
+  .witem small { color: var(--sub); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--sub); margin: 8px 0 16px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .foot { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--sub); font-size: 12px; }
+  .role { font-size: 11px; color: var(--sub); }
+  .p1 { background: var(--green-bg); color: var(--green); font-size: 11px; padding: 1px 8px; border-radius: 20px; }
+  .p2 { background: var(--amber-bg); color: var(--amber); font-size: 11px; padding: 1px 8px; border-radius: 20px; }
+  .p3 { background: var(--blue-bg); color: var(--blue); font-size: 11px; padding: 1px 8px; border-radius: 20px; }
 </style>
 </head>
 <body>
-<h1>IA-001 预算归位 + 导航职责裁定 · 设计稿 v1</h1>
-<div class="meta">方案 A（Owner 2026-10-15 拍板）· 预算迁入 <code>/models/costs</code> 页内区块 · 排期 v2 §3.3 第 2 波第 1 项 · <b>状态：待 Owner 评审（AC-009：未过评审不得写码）</b></div>
+<div class="page">
 
-<div class="warnbox">
-<strong>⚠️ 本稿含 2 处范围修正 + 1 项待拍板裁定，请一并确认：</strong><br>
-① 缺口「设置『用量』导航未实现」<b>已由方案 A 在代码中解决</b>（导航已收敛 3 项，深链 → <code>/tasks?tab=ledger</code>）——本卡不再重复裁定。<br>
-② 缺口「渠道归属重叠」实测为<b>三方重叠</b>，非原卡描述的两方 → 见 §4。<br>
-③ <b>待拍板：</b>§4 推荐<b>移除</b>模型中心「渠道与凭据」（7 项 → 6 项）。<br>
-④ <b>待拍板：</b>§3 预算区块的<b>角色可见性</b>（区块可见 Viewer+ / 操作 Admin+）——此项同时闭合 AUTH-001 遗留的"页内按钮级隐藏"。
-</div>
+  <h1>设置中心 × 模型中心 IA v14 线框评审稿</h1>
+  <div class="meta">镜序 Studio · 漫剧导演工坊 · 2026-10-17 · 依据：ADR-005（方案 A）+ 功能盘点 + Owner 方向修正 + 十轮评审（v14：待归属=可直调不进路由、删除渠道级联+确认、空态/同步失败/计费未校准降级）</div>
 
-<h2>一、范围修正（相对任务卡；均以实测代码为依据）</h2>
-<div class="card">
-<table>
-<tr><th>原卡缺口</th><th>实测</th><th>本稿处置</th></tr>
-<tr>
-  <td>② 设置「用量」导航未实现<br><span class="note">原卡认为 ADR-005 的 4 项导航缺「用量」</span></td>
-  <td><code>settings-navigation.ts:6-8</code> 已按方案 A 把「用量」<b>移出</b>设置中心；顶层已收敛为 3 项<br><code>:106-110</code> 深链 <code>/settings/usage → /tasks?tab=ledger</code></td>
-  <td><span class="tag v">已闭合</span>不重复裁定；仅纳入回归验证（既有测试已锁定"改回 6 项即失败"）</td>
-</tr>
-<tr>
-  <td>③ 模型中心「渠道与凭据」（占位）与设置「渠道」重叠</td>
-  <td>实为三方：<code>/settings/channels</code>（已实装）、<code>/models/channels</code>（建设中占位）、<code>/models/health</code>（已实装，承载观测）</td>
-  <td><span class="tag o">待拍板</span>见 §4</td>
-</tr>
-<tr>
-  <td>① 预算孤悬在设置&gt;偏好</td>
-  <td>成立：预算区块在 <code>SettingsPreferences.tsx:237-287</code>，与成本分属两个一级导航</td>
-  <td><span class="tag a">本稿主体</span>见 §2、§3</td>
-</tr>
-</table>
-</div>
+  <div class="callout"><b>v14 相对 v13 的修正（第 10 轮：边界/降级）</b>：① <b>待归属模型 = 可显式直调、不进能力路由</b>（无 logicalModelId 不被路由命中，仅创作显式选）；② <b>删除渠道 → 确认弹窗 + 其模型禁用/移除</b>（前端删除确认规范，引用模型的项目提示）；③ 空态/同步失败/计费未校准已覆盖三态；④ 广场空态引导「去渠道接入」。</div>
 
-<h2>二、方案 A 落地示意：<code>/models/costs</code> 新增「预算规则」页内区块</h2>
-<div class="card">
-<div class="grid2">
-  <div>
-    <h3>改前（现状）</h3>
-    <div class="mock">
-      <div class="head"><span>模型中心</span><span>owner</span></div>
-      <div class="side">
-        <div class="item">模型目录</div>
-        <div class="item">模型广场</div>
-        <div class="item">渠道与凭据 <span class="note">建设中</span></div>
-        <div class="item on">成本与用量</div>
-        <div class="item">审计日志</div>
-        <div class="item">协议模板</div>
-        <div class="item">健康</div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--green)"></span>保留/迁移</span>
+    <span><span class="dot" style="background:var(--blue)"></span>新建/实装</span>
+    <span><span class="dot" style="background:var(--amber)"></span>降级/增量</span>
+    <span><span class="dot" style="background:var(--red)"></span>删除</span>
+  </div>
+
+  <h2>〇、权限矩阵 v2（浏览 / 写分列，v5 修正）</h2>
+  <div class="card">
+    <table>
+      <tr><th>页面 / 动作</th><th>Owner</th><th>Admin</th><th>Viewer</th><th>说明</th></tr>
+      <tr><td>模型广场 · 浏览真实模型 + 详情（capability/计费/渠道）</td><td>✓</td><td>✓</td><td>✓</td><td>真实调用模型，全员</td></tr>
+      <tr><td>模型广场 · <b>设为默认</b>（写当前项目默认）</td><td>✓</td><td>✓</td><td>—</td><td>写操作 Admin+</td></tr>
+      <tr><td>模型目录 · 浏览（已接入模型 + 归属状态）</td><td>✓</td><td>✓</td><td>✓</td><td>只读可见</td></tr>
+      <tr><td>模型目录 · 启停 / 同步 / 计费校准（写）</td><td>✓</td><td>✓</td><td>—</td><td>Admin+</td></tr>
+      <tr><td>模型目录 · <b>能力归属</b>（编辑 logicalModelId/优先级，常态）</td><td>✓</td><td>✓</td><td>—</td><td>v10：归属在目录页做，Admin+；未归属=「待归属」</td></tr>
+      <tr><td>接入方式 / 参数映射 / 精细路由（专家模式可见可调）</td><td>✓</td><td>✓</td><td>—</td><td>Admin+ 且 expert=on（契约细节）</td></tr>
+      <tr><td>渠道 · 浏览 / 连通检测（只读探测）</td><td>✓</td><td>✓</td><td>✓</td><td>只读可看状态、可触发探测</td></tr>
+      <tr><td>渠道 · 接入 / 凭据 / 启停 / <b>同步上游</b>（写）</td><td>✓</td><td>✓</td><td>—</td><td>v6：同步=写目录数据，Admin+（TASK-AUTH-001）</td></tr>
+      <tr><td>成本与用量 · 浏览</td><td>✓</td><td>✓</td><td>✓</td><td>治理数据只读</td></tr>
+      <tr><td>预算配置（迁移实装 · 写）</td><td>✓</td><td>✓</td><td>—</td><td>T10 权限矩阵对齐（成本页注释）</td></tr>
+      <tr><td>审计日志</td><td>✓</td><td>—</td><td>—</td><td>TASK-AUTH-001（已有）</td></tr>
+      <tr><td>健康 · 浏览</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr>
+      <tr><td>健康 · 告警配置（写）</td><td>✓</td><td>✓</td><td>—</td><td>v5：写操作 Admin+</td></tr>
+      <tr><td>设置 · 账号与安全</td><td>✓</td><td>✓</td><td>✓</td><td>本人</td></tr>
+      <tr><td>设置 · 工作区与成员 · 浏览（成员列表/工作区信息）</td><td>✓</td><td>✓</td><td>✓</td><td>v8：协作可见</td></tr>
+      <tr><td>设置 · 工作区与成员 · 邀请/角色/移除/共享预设（写）</td><td>✓</td><td>✓</td><td>—</td><td>Admin+</td></tr>
+      <tr><td>设置 · 外观 / 默认行为 / 数据与存储</td><td>✓</td><td>✓</td><td>✓</td><td>本人偏好</td></tr>
+      <tr><td>设置 · 关于</td><td>✓</td><td>✓</td><td>✓</td><td>全员</td></tr>
+    </table>
+    <div style="font-size:12px;color:var(--sub)">未知角色按 Viewer（fail-safe）；权限只控内容可见性，不改结构与路由（ADR-005 §6）。</div>
+  </div>
+
+  <h2>一、主导航目标结构 + 用量域唯一入口</h2>
+  <div class="card">
+    <table>
+      <tr><th>主导航</th><th>二级结构</th><th>说明</th></tr>
+      <tr><td><b>模型中心</b>（模型域）</td><td>模型广场 / 模型目录 / 渠道 / 成本与用量 / 审计日志 / 健康</td><td>6 项（广场=真实模型+详情；目录=能力归属）</td></tr>
+      <tr><td><b>设置</b>（系统设置域）</td><td>账号与安全 / 工作区与成员 / 外观 / 通知与默认行为 / 数据与存储 / 关于</td><td>6 区，从本项目定制</td></tr>
+      <tr><td><b>任务中心</b></td><td>执行任务（任务/进度/重试）</td><td><b>「账目」页签移除</b>（用量唯一入口=模型中心），旧链重定向</td></tr>
+    </table>
+    <div style="font-size:12px;color:var(--sub)">创作流保持现状：各阶段 <code>StageModelPicker</code> 直接选具体模型（不出现逻辑模型名）；<b>显式选模型=执行器直调</b>，能力路由仅用于默认/自动兜底场景（v13）。</div>
+  </div>
+
+  <h2>二、模型中心（模型域）IA</h2>
+
+  <h3>2.1 二级导航（6 项 · 去内部词）</h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wbar">
+        <span class="wtab on">模型广场</span><span class="wtab on">模型目录</span><span class="wtab on">渠道</span><span class="wtab">成本与用量</span><span class="wtab">审计日志</span><span class="wtab">健康</span>
       </div>
-      <div class="body">
-        <div class="blk"><div class="t">筛选栏</div><div class="d">维度 tab · 功能归因 · 刷新</div></div>
-        <div class="row2">
-          <div class="blk"><div class="t">成本与调用趋势</div><div class="d">近 30 天折线</div></div>
-          <div class="blk"><div class="t">排行</div><div class="d">成本降序</div></div>
+      <div style="font-size:12px;color:var(--sub)">职责：<b>广场</b>=真实调用的模型+详情（选择视角）· <b>目录</b>=已接入模型+能力归属（管理视角）· <b>渠道</b>=从哪来（接入源）· 成本/审计/健康=运行治理（唯一入口）</div>
+    </div>
+  </div>
+
+  <h3>2.2 模型广场（占位 → 实装 · 真实调用模型 + 详情 · 全员）<span class="badge b-new">实装</span> <span class="p1">P1</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:1">
+          <div class="cap">真实调用的模型（数据=CatalogModel，目录同步 catalogSource=server；默认仅显示<b>启用</b>）</div>
+          <div class="witem on"><b>DeepSeek-V4-Pro-0813</b> <small>· 文生图 · grsai</small> <span style="float:right"><small>启用 · 设为默认（Admin+）</small></span><br><small class="role">详情：✓参考图 · 4:5/3:4/1:1 · 质量档 3 · ¥0.00/1k · 简介一行</small></div>
+          <div class="witem"><b>gemini-3.1-flash-lite</b> <small>· 文生图 · google</small> <span style="float:right"><small>启用</small></span><br><small class="role">详情：✓参考图 · 免费档 · 支持 8k</small></div>
+          <div class="witem"><b>gpt-image-2</b> <small>· 图生图 · chan-muo4b9zo</small> <span style="float:right"><small>启用</small></span><br><small class="role">详情：✓参考图 · 质量档 2 · ¥0.02/张</small></div>
+          <div class="witem"><b>即梦视频</b> <small>· 文生视频 · 即梦</small> <span style="float:right"><small>启用</small></span><br><small class="role">详情：t2v/i2v · 首尾帧 ✓ · 参考图 9 · 1–15s · ¥0.5/s 起</small></div>
+          <div style="margin-top:8px;font-size:12px;color:var(--sub)">展示真实调用模型的<b>详情</b>（capability 字段：模式/时长/参考图/质量档/计费 + note + 渠道来源）；<b>点卡片→详情抽屉</b>（capability 完整字段 + 参数 + 请求示例）；筛选：功能类型 · 渠道 · 状态 · 排序（同类型按起步单价低到高）；「设为默认」写入<b>个人创作默认</b>（defaultPrefs；StageModelPicker 生效顺序追加个人默认层：阶段覆盖→项目默认→个人默认→目录首项，P1 小改）；<b>渠道停用→该渠道模型标「渠道停用」不可选</b>（v12）；三态：加载骨架 / 空态（去渠道接入）/ 错误重试</div>
         </div>
       </div>
     </div>
-    <div class="note">配预算需切到 <b>设置中心 › 偏好</b> —— 五站链路跨一级导航（T13 走查痛点）</div>
   </div>
-  <div>
-    <h3>改后（本稿）</h3>
-    <div class="mock">
-      <div class="head"><span>模型中心</span><span>owner</span></div>
-      <div class="side">
-        <div class="item">模型目录</div>
-        <div class="item">模型广场</div>
-        <div class="item hid">渠道与凭据</div>
-        <div class="item on">成本与用量</div>
-        <div class="item">审计日志</div>
-        <div class="item">协议模板</div>
-        <div class="item">健康</div>
-      </div>
-      <div class="body">
-        <div class="blk"><div class="t">筛选栏</div><div class="d">维度 tab · 功能归因 · 刷新</div></div>
-        <div class="row2">
-          <div class="blk"><div class="t">成本与调用趋势</div><div class="d">近 30 天折线</div></div>
-          <div class="blk"><div class="t">排行</div><div class="d">成本降序</div></div>
+
+  <h3>2.3 模型目录（占位 → 实装 · 已接入模型 + 能力归属 · Admin+ 写）<span class="badge b-new">实装</span> <span class="p1">P1</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:0 0 52%">
+          <div class="cap">已接入模型（渠道 → 模型 → 能力/计费 → <b>归属状态</b>）</div>
+          <div class="witem"><b>grsai</b> → deepseek-v4-pro <small>文生图 · ¥0.00/1k · 启用</small> <span style="float:right"><small class="role">已归属：文生图·高</small></span></div>
+          <div class="witem"><b>google</b> → gemini-3.1-flash-lite <small>文生图 · 免费档 · 启用</small> <span style="float:right"><small class="role">已归属：文生图·高（备用）</small></span></div>
+          <div class="witem"><b>chan-muo4b9zo</b> → gpt-image-2 <small>图生图 · 计费待校准 · 启用</small> <span style="float:right"><small class="role">待归属</small></span></div>
+          <div style="margin-top:8px;font-size:12px;color:var(--sub)">← 来源：设置·模型/目录（SettingsModels，<b>迁移时拆分组件</b>：820 行→≤300）；启停 / 同步 / 计费校准在此管理</div>
         </div>
-        <div class="blk new"><div class="t">＋ 预算规则 <span class="note">（新增区块 · 全宽）</span></div><div class="d">日/月预算 · 告警线 · 超限动作 · 新增/删除</div></div>
+        <div class="wcol" style="flex:1">
+          <div class="cap">能力归属（在此补归属 · 常态 Admin+ · v10）</div>
+          <div class="witem">选中模型 → 归到哪个能力（文生图·高 / 文生视频·异步 / …）<small class="role">编辑 logicalModelId + 优先级</small></div>
+          <div class="witem">未归属模型标<b>「待归属」</b>（广场仍可见可用，不影响接入；<b>可显式直调、不进能力路由</b>——v14）</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:6px">支持<b>按能力视图</b>（能力→候选模型覆盖，<span class="p3">P3 增量</span>）；能力=业务概念（文生图/文生视频+质量档）；绑定结果写入真实模型行的 logicalModelId/routePriority（已有字段）。<b>上游下线模型保留并标「上游不可用」</b>（同步投影不删历史行，防破坏历史引用；清理=<span class="p3">P3</span>）。<b>接入方式 / 参数映射 / 精细路由</b>=契约细节，仅专家模式可见可调（ADR-005 D3）。</div>
+        </div>
       </div>
     </div>
-    <div class="note">区块位置：<b>观测双列之后、页面第三块（全宽）</b>——不打断「趋势 → 排行」阅读流，且保持既有双列布局不动（视觉回归风险最小）</div>
   </div>
-</div>
 
-<h3>区块位置备选（取舍记录）</h3>
-<table>
-<tr><th>候选</th><th>结论</th><th>理由</th></tr>
-<tr><td>A 观测双列之后（全宽）</td><td class="y">✅ 采纳</td><td>改动面最小；不挤压观测内容；全宽容纳表单+列表；符合"先看后配"</td></tr>
-<tr><td>B 页面顶部（成本概览旁）</td><td class="n">不采纳</td><td>预算非高频查看项，置顶挤压观测；且与"看成本"首屏目标冲突</td></tr>
-<tr><td>C 趋势图右侧窄栏</td><td class="n">不采纳</td><td>300px 宽度不足以承载预算表单与规则列表</td></tr>
-</table>
+  <h3>2.4 渠道（占位 → 实装 · 接入源）<span class="badge b-new">实装</span> <span class="p1">P1</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:0 0 46%">
+          <div class="cap">渠道列表</div>
+          <div class="witem">PearAPI <small>聚合 · 自定义 · 密钥已加密</small> <span style="float:right"><small>已启用 · 最近同步 10-11</small></span></div>
+          <div class="witem">即梦 <small>内置 · 平台集中</small></div>
+          <div class="witem">MiniMax <small>内置 · 平台集中</small></div>
+          <div class="witem">OpenAI <small>内置 · 平台集中</small></div>
+          <div style="margin-top:8px"><b>+ 添加渠道</b>（3 步向导）<small class="role">· 删除渠道=确认弹窗 + 其模型禁用/移除（引用项目提示，v14）</small></div>
+        </div>
+        <div class="wcol" style="flex:1">
+          <div class="cap">添加渠道 3 步向导（依赖标注）</div>
+          <div class="witem">① 地址 + 密钥　<b>测试连通</b>（已有：production 真实 HTTP 探测）</div>
+          <div class="witem">② 同步上游模型清单（已有）<small class="role">=拉取上游清单，预览不入库</small> · 自动匹配接入方式（<span class="p3">P3 增量</span>，本期手动选 + 模板库预填）</div>
+          <div class="witem">③ 勾选要启用的模型 → <b>添加为真实模型</b><small class="role">（勾选入目录，广场即用）</small>；<b>能力归属不强制当场绑定</b>，可在模型目录页后续补</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--sub);margin-top:6px">← 来源：设置·渠道（SettingsChannels，<b>迁移时拆分组件</b>：679 行→≤300）。密钥经 workspace 加密（只写不读）；设置·账号区不放密钥（v4 起修正）。</div>
+    </div>
+  </div>
 
-<h3>设置中心「偏好」页变化</h3>
-<table>
-<tr><th>项</th><th>改前</th><th>改后</th></tr>
-<tr><td>默认模型</td><td>✅ 保留</td><td>✅ 保留（属真"偏好"）</td></tr>
-<tr><td>预算规则区块</td><td>✅ 在偏好页</td><td class="x">移出 → <code>/models/costs</code></td></tr>
-<tr><td>指路链接</td><td class="n">—</td><td>✅ 偏好页保留一行提示：「预算规则已移至 模型中心 › 成本与用量」+ 跳转按钮</td></tr>
-</table>
-<div class="note"><b>为什么是「指路链接」而不是「legacy redirect」：</b>实测<b>不存在</b> budget 专属路由（无 <code>/settings/budget</code> 或锚点），故没有"旧路径"可重定向——预算只是偏好页内的一个区块。ADR-005 §3 的 legacy-redirect 模式适用于<b>路径</b>；此处正确机制是<b>页内指路</b>，避免用户按旧习惯找不到。<code>/settings/preferences</code> 本身仍是有效路由（TopBar 下拉有入口），不 404。</div>
-</div>
+  <h3>2.5 接入方式 / 参数映射 / 运行时测试（降级：内部资产 + 专家模式）<span class="badge b-down">降级</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:1">
+          <div class="cap">接入方式（内部资产，不占导航）</div>
+          <div class="witem">协议模板库 10 个：向导第 ② 步选择（OpenAI Responses / ChatCompletions / 异步任务等）</div>
+          <div class="witem">请求/响应参数映射、原始响应体：<b>专家模式</b>下可调</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:6px">ADR-005：HTTP 形状属实现细节；供给池=机舱。模板库保留为系统内部资产（catalog API，已有）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<h2>三、角色可见性（对齐 AUTH-001 矩阵；闭合其遗留的"页内按钮级隐藏"）</h2>
-<div class="card">
-<p class="note" style="margin:0 0 10px">AUTH-001 验收已声明：<i>"导航可见性 + 路由守卫 + 后端矩阵一致；页内操作按钮精细隐藏按评审范围留 IA-001，后端 403 兜底"</i>。本区块是该遗留项的第一处落地。</p>
-<table>
-<tr><th>角色</th><th>「预算规则」区块</th><th>规则列表</th><th>「新增预算」按钮</th><th>删除按钮</th><th>后端兜底</th></tr>
-<tr><td><span class="tag v">Viewer</span></td><td class="y">可见</td><td class="y">只读</td><td class="n">不渲染</td><td class="n">不渲染</td><td>403（BFF 矩阵）</td></tr>
-<tr><td><span class="tag a">Admin</span></td><td class="y">可见</td><td class="y">可管理</td><td class="y">渲染</td><td class="y">渲染</td><td>—</td></tr>
-<tr><td><span class="tag o">Owner</span></td><td class="y">可见</td><td class="y">可管理</td><td class="y">渲染</td><td class="y">渲染</td><td>—</td></tr>
-</table>
-<div class="note">
-<b>为什么区块可见而操作隐藏</b>：Viewer 需要知道"当前有没有预算、会不会被拦"（这解释了成本为何被截断）；但配置权属 Admin+。
-与 AUTH-001 一致：<b>单套界面，按角色控制深度</b>（ADR-005 D1），不是两套页面。<br>
-实现沿用既有 <code>useAuthStore</code> 的 <code>ROLE_RANK</code>（与后端 <code>authz.go</code> 对齐），不新增角色概念。
-</div>
-</div>
+  <h3>2.6 成本与用量 / 审计日志 / 健康 <span class="badge b-keep">保留</span></h3>
+  <div class="card">
+    <table>
+      <tr><th>页</th><th>保持</th><th>本次变化</th></tr>
+      <tr><td>成本与用量</td><td>4 KPI + 趋势 + 排行 + 归因</td><td><b>预算配置迁移实装到此页</b>（页面移动 + 数据层复用：store/API 不动，<span class="p2">P2</span>；权限 T10 对齐）；唯一入口声明</td></tr>
+      <tr><td>审计日志</td><td>调用记录 + 业务归因</td><td>无（Owner）；唯一入口声明</td></tr>
+      <tr><td>健康</td><td>供给单元健康 + 熔断 + 告警配置</td><td>告警配置=写，Admin+（浏览全员）</td></tr>
+    </table>
+  </div>
 
-<h2>四、渠道归属裁定（待拍板）</h2>
-<div class="card">
-<div class="decide">
-<strong>推荐：候选 1 —— 移除模型中心「渠道与凭据」，模型中心收敛为 6 项</strong><br>
-<code>/models/channels</code> 走 legacy redirect → <code>/settings/channels</code>（不 404）
-</div>
-<table>
-<tr><th>候选</th><th>内容</th><th>结论</th><th>理由</th></tr>
-<tr>
-  <td>1</td>
-  <td><b>移除</b>「渠道与凭据」；接入配置归设置，观测归「健康」</td>
-  <td class="y">✅ 推荐</td>
-  <td>① 其 task 文案「模型从哪来：渠道、探活与凭据」与设置「渠道」的「模型从哪来、连不连得通」<b>几乎同义</b>，用户无法区分；② "观测"职责已由 <code>/models/health</code>（成功率/错误码/熔断）承载；③ 符合 ADR-005 D2「设置只放配置、运行数据归观测」；④ 占位入口长期存在与 frontend-quality「禁僵尸按钮」精神相悖</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td>保留但重新定位为"只读观测"，与「健康」分工</td>
-  <td class="n">不推荐</td>
-  <td>会产生<b>两个观测入口</b>（渠道 + 健康），仍需向用户解释差异；当前健康页已覆盖观测需求</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td>保持占位，仅改写文案以示区分</td>
-  <td class="n">不推荐</td>
-  <td>治标：占位入口仍在，认知负担未消；且"建设中"占位已存在多期</td>
-</tr>
-</table>
-<h3>候选 1 的连带影响（已排查）</h3>
-<ul>
-  <li><code>model-center-navigation.ts</code>：<code>MODEL_CENTER_NAV</code> 7 → 6 项；<code>visibleModelCenterNav</code> 中 <code>channels: admin+</code> 规则随之移除（该规则将无对应项）</li>
-  <li><code>tests/auth-navigation.test.ts</code>（AUTH-001 的 6 用例）：需同步更新渠道相关的可见性断言</li>
-  <li>引用排查：<code>/models/channels</code> 目前<b>仅</b>在导航配置中出现，无其它深链 → 移除影响面可控</li>
-  <li>legacy 落点须在 <code>SETTINGS_EXTERNAL_TARGETS</code> 白名单机制下校验（<code>/settings/channels</code> 已在 <code>SETTINGS_ROUTES</code> 内，无需新增白名单）</li>
-</ul>
-</div>
+  <h2>三、设置中心（系统设置域）6 区 —— 从本项目定制</h2>
 
-<h2>五、旧入口与深链去向（全部不 404）</h2>
-<div class="card">
-<table>
-<tr><th>路径</th><th>改后落点</th><th>机制</th><th>理由</th></tr>
-<tr><td><code>/settings/preferences</code></td><td>不变（仍是偏好页）</td><td>—</td><td>TopBar 下拉有入口；预算区块移出后页面职责单一</td></tr>
-<tr><td>（偏好页内预算区块）</td><td><code>/models/costs</code></td><td><b>页内指路链接</b></td><td>无专属路由可重定向 → 见 §2 说明</td></tr>
-<tr><td><code>/models/channels</code></td><td><code>/settings/channels</code></td><td>legacy redirect</td><td>候选 1 通过后生效；接入配置归设置</td></tr>
-<tr><td><code>/settings/usage</code></td><td><code>/tasks?tab=ledger</code></td><td>现状（已实现）</td><td>方案 A；本卡仅回归验证</td></tr>
-</table>
-</div>
+  <h3>3.1 账号与安全 <span class="badge b-new">新建</span> <span class="p2">P2 骨架</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:1">
+          <div class="cap">导演用户</div>
+          <div class="witem">头像 / 昵称 / 邮箱</div>
+          <div class="witem">角色徽标：<b>Owner · Admin · Viewer</b></div>
+          <div class="witem">登录方式 / 当前会话（退出登录）</div>
+        </div>
+        <div class="wcol" style="flex:1">
+          <div class="cap">安全</div>
+          <div class="witem">会话与设备管理</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:6px">依赖：真实账号体系（当前为测试身份注入）→ <span class="p3">P3 增量</span>；本期骨架+显式占位（禁僵尸按钮）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<h2>六、技术方案（不重写逻辑）</h2>
-<div class="card">
-<table>
-<tr><th>#</th><th>动作</th><th>说明</th></tr>
-<tr><td>1</td><td>抽取预算区块为组件（如 <code>BudgetRulesSection.tsx</code>）</td><td>从 <code>SettingsPreferences.tsx</code> <b>原样搬迁</b>：状态、三态、表单、删除确认弹窗、API 调用全部复用，不改行为</td></tr>
-<tr><td>2</td><td>挂载到 <code>ModelCosts.tsx</code> 页内（§2 位置 A）</td><td>作为页面第三块全宽区块</td></tr>
-<tr><td>3</td><td>按角色控制操作入口（§3）</td><td>用既有 <code>useAuthStore</code> 的 <code>ROLE_RANK</code>；区块可见、操作 Admin+</td></tr>
-<tr><td>4</td><td>偏好页加指路链接一行</td><td>§2 末</td></tr>
-<tr><td>5</td><td>导航裁定落地（§4 评审结论）</td><td>含 legacy redirect 与既有测试同步</td></tr>
-<tr><td>6</td><td><code>npm run ui:generate</code> 同步三清单</td><td>导航/组件变更后必须；<code>ui:check</code> 需绿</td></tr>
-</table>
-<p class="note"><b>API 零改动</b>：预算读写沿用 <code>TASK-MODEL-005</code> 已有接口；不新增/不修改契约，故不触发 oasdiff 契约门。</p>
-<p class="note"><b>已知约束</b>：本卡与 AUTH-001 改同一对导航文件 → 开工前必须 rebase 到含 AUTH-001 的 develop（排期 v2 §2.2）。</p>
-</div>
+  <h3>3.2 工作区与成员 <span class="badge b-new">新建</span> <span class="p2">P2 骨架</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:0 0 46%">
+          <div class="cap">工作区信息</div>
+          <div class="witem">名称 / 创建时间 / 工作区标识</div>
+          <div class="witem">团队共享预设库（开关）：镜头语言库 / 风格库 <span class="p3">P3 增量</span></div>
+        </div>
+        <div class="wcol" style="flex:1">
+          <div class="cap">成员与角色（Admin+）</div>
+          <div class="witem">成员列表：昵称 / 角色 / 最近活跃</div>
+          <div class="witem">+ 邀请 / 调整角色 / 移除 <span class="p3">P3 增量</span>（当前无前端实现）</div>
+          <div style="font-size:12px;color:var(--sub)">本期：读取成员展示（workspace 成员数据）+ 邀请/移除为显式占位。</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<h2>七、评审勾选表（请 Owner 逐项裁定）</h2>
-<div class="card">
-<table>
-<tr><th>#</th><th>待决事项</th><th>本稿建议</th><th>裁定</th></tr>
-<tr><td>1</td><td>预算区块落位（§2）</td><td>观测双列之后，全宽第三块</td><td>☐ 同意 ☐ 改：______</td></tr>
-<tr><td>2</td><td>偏好页旧入口处理（§5）</td><td>页内指路链接（非重定向，因无专属路由）</td><td>☐ 同意 ☐ 改：______</td></tr>
-<tr><td>3</td><td>预算区块角色可见性（§3）</td><td>区块 Viewer+ 可见；新增/删除 Admin+</td><td>☐ 同意 ☐ 改：______</td></tr>
-<tr><td>4</td><td><b>渠道归属裁定（§4）</b></td><td><b>候选 1：移除「渠道与凭据」，模型中心 7 → 6 项</b></td><td>☐ 同意 ☐ 选候选 2 ☐ 选候选 3</td></tr>
-<tr><td>5</td><td>范围修正确认（§1）</td><td>缺口 ② 不再处理；③ 按第 4 项裁定</td><td>☐ 确认 ☐ 异议：______</td></tr>
-</table>
-<p class="note" style="margin-top:12px"><b>评审通过后</b>方可进入开发（AC-009）。开发产出须逐点映射回本稿模块（AC-003），未映射项视为范围外。</p>
-<p class="note"><b>评审人</b>：__________ 　<b>日期</b>：__________ 　<b>结论</b>：☐ 通过 ☐ 需修改</p>
-</div>
+  <h3>3.3 外观（含专家模式总开关）<span class="badge b-new">新建</span> <span class="p1">P1（开关）/ P2（其余）</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:1">
+          <div class="cap">界面主题（迁入：已有 theme/language）</div>
+          <div class="witem">主题：浅色 / 深色 / 跟随系统 <small>（当前默认深色，已实现）</small></div>
+          <div class="witem">语言：中文 / English <small>（已实现）</small></div>
+          <div class="witem">创作界面密度：分镜字号 / 画布密度 <small class="role">新建（P2）</small></div>
+        </div>
+        <div class="wcol" style="flex:1">
+          <div class="cap">能力开关（Admin+ 显示）</div>
+          <div class="witem"><b>专家模式（总开关 · 新建）</b>：接入方式/参数映射/原始响应体/批量操作可见 <small class="role">仅 Admin+ 显示（Viewer 无专家内容可看）</small></div>
+          <div style="font-size:12px;color:var(--sub);margin-top:6px">P1：开关本身实装（存储 useSettingsStore）；相关高级 UI 随页面迁移逐步接上。</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <h3>3.4 通知与默认行为 <span class="badge b-new">新建</span> <span class="p1">P1（默认模型/路由迁入）/ P2（通知）</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wrow">
+        <div class="wcol" style="flex:1">
+          <div class="cap">通知</div>
+          <div class="witem">任务完成 / 失败通知 <span class="p2">P2</span></div>
+          <div class="witem">渠道健康告警（关联健康页）<span class="p2">P2</span></div>
+          <div class="witem">成员协作通知 <span class="p3">P3</span></div>
+        </div>
+        <div class="wcol" style="flex:1">
+          <div class="cap">默认行为（迁入：偏好 · 已有实现）</div>
+          <div class="witem">登录后默认落点（defaultRoute，已有）</div>
+          <div class="witem">默认文本/图片/视频模型（defaultTextModel / gpt-image-2 / MiniMax H3，已有）<small class="role">被停用/下线时显示提示，创作自动 fallback 目录首项（v12）</small></div>
+          <div class="witem">默认画布尺寸 / 分镜默认格式 / 失败自动重试 <span class="p3">P3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>3.5 数据与存储 <span class="badge b-new">新建</span> <span class="p2">P2 骨架</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wcol">
+        <div class="cap">本地数据</div>
+        <div class="witem">本地缓存管理（离线模板缓存 / 草稿）<span class="p2">P2</span></div>
+        <div class="witem">导出：项目 / 剧集 / 资产 / 分镜 <span class="p3">P3</span></div>
+        <div class="witem">重置本地偏好 <span class="p2">P2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>3.6 关于 <span class="badge b-new">新建</span> <span class="p1">P1</span></h3>
+  <div class="card">
+    <div class="wire">
+      <div class="wcol">
+        <div class="cap">关于镜序</div>
+        <div class="witem">版本：V0.2 · 镜序前端原型（已有标识）</div>
+        <div class="witem">更新日志 / 反馈入口 / 服务状态 <span class="p3">P3</span></div>
+        <div class="witem">协议与隐私 <span class="p3">P3</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>四、重定向全量清单（10 条，全部可达不 404）</h2>
+  <div class="card">
+    <table>
+      <tr><th>旧路径</th><th>去向</th><th>动作</th></tr>
+      <tr><td><code>/settings/models</code></td><td><code>/models/catalog</code>（模型目录 · 能力归属）</td><td>降级迁移 + 重定向</td></tr>
+      <tr><td><code>/settings/logical-models</code></td><td><code>/models/catalog</code>（同上）</td><td>降级迁移 + 重定向</td></tr>
+      <tr><td><code>/settings/models/catalog</code></td><td><code>/models/catalog</code>（模型目录视图）</td><td>迁移 + 重定向</td></tr>
+      <tr><td><code>/settings/channels</code></td><td><code>/models/channels</code>（渠道）</td><td>迁移 + 重定向</td></tr>
+      <tr><td><code>/settings/channels/protocols</code></td><td>向导「接入方式」高级区 / 专家模式</td><td>降级 + 重定向</td></tr>
+      <tr><td><code>/settings/protocols</code></td><td>同上</td><td>降级 + 重定向</td></tr>
+      <tr><td><code>/settings/preferences</code></td><td><code>/settings/appearance</code>（外观）；预算→成本页、默认模型/路由→设置内部分区引导</td><td>v8：单一重定向目标定死，拆散内容在设置内导航</td></tr>
+      <tr><td><code>/settings/usage</code></td><td><code>/models/costs</code>（成本与用量）</td><td>v5：改向模型中心（不再去任务中心账目）</td></tr>
+      <tr><td><code>/settings/audit</code></td><td><code>/models/audit</code>（审计日志）</td><td>v5：改向模型中心</td></tr>
+      <tr><td><code>/models/protocols</code>（占位）</td><td>同协议降级目标</td><td>删除占位 + 重定向</td></tr>
+    </table>
+    <div style="font-size:12px;color:var(--sub)">任务中心「账目」页签（?tab=ledger）移除；<b>移除前先核对账目页签内容与模型中心成本/审计的重叠度</b>（方案 A 旧实现，防丢项目/功能维度视图），确认无独占视图后重定向 /tasks?tab=ledger → /models/costs。<br><b>路由稳定性（v9）</b>：模型中心路由固定 <code>/models/catalog|market|channels|costs|audit|health</code>，删除 <code>/models/protocols</code>；「模型目录」仅改导航 label，不改路由路径（当前 <code>/models/catalog</code> 已实装，防新增重定向链）。</div>
+  </div>
+
+  <h2>五、实施分期与占位原则</h2>
+  <div class="card">
+    <table>
+      <tr><th>期</th><th>范围</th><th>验收</th></tr>
+      <tr><td><span class="p1">P1 收敛</span></td><td>模型中心 6 项导航实装（广场/目录/渠道/成本/审计/健康）；设置 3 业务 tab 迁出、<b>设置导航 6 区全出现</b>（外观含专家开关+主题、通知与默认行为含默认模型/路由、关于=实装；账号/工作区/数据=显式占位）；任务中心账目页签移除（先核对重叠）；10 条重定向；模型广场/模型目录/渠道页迁移（伴随组件拆分，≤300 行/≤8 容器）</td><td>导航无重复入口；旧链全可达；npm run gate 全绿；ADR-005 指标达标</td></tr>
+      <tr><td><span class="p2">P2 设置骨架</span></td><td>账号与安全 / 工作区与成员 / 通知 / 数据与存储 4 区骨架 + 显式占位（禁僵尸按钮）；预算迁移实装成本页</td><td>6 区齐全；占位符合前端质量规范</td></tr>
+      <tr><td><span class="p3">P3 增量</span></td><td>自动匹配接入方式 · 成员邀请/移除 · 团队共享预设 · 导出 · 真实账号体系 · 协作通知</td><td>依赖后端/产品决策</td></tr>
+    </table>
+    <div style="font-size:12px;color:var(--sub)">占位原则：未实装区域必须显式「建设中」占位，禁僵尸按钮（frontend-quality）。</div>
+  </div>
+
+  <h2>六、验收指标对照（ADR-005 §5）</h2>
+  <div class="card">
+    <table>
+      <tr><th>指标</th><th>目标</th><th>对照</th></tr>
+      <tr><td>一级导航项数</td><td>主导航平铺业务配置=0（模型/渠道/协议/凭据不再散落）</td><td>全部收敛到模型中心/设置</td></tr>
+      <tr><td>单页交互容器上限</td><td>≤ 8</td><td>迁移页拆组件后核对</td></tr>
+      <tr><td>最大页面行数</td><td>≤ 300（文件 ≤500）</td><td>679/820/591 行迁移时拆分重构</td></tr>
+      <tr><td>UI 内部词</td><td>= 0（普通视图：逻辑模型/候选/协议模板/目录/凭据）</td><td>v7 命名已去词；专家模式显式标注</td></tr>
+      <tr><td>权限矩阵落地</td><td>三角色走查断言</td><td>v7 新增：Owner/Admin/Viewer 对新页面可见性实测（沿用 T13 走查链路）</td></tr>
+      <tr><td>ADR 同步</td><td>实施后修订 ADR-005 至终态</td><td>v8 新增：IA 落地后同步更新决策记录，防 ADR 与实际漂移</td></tr>
+      <tr><td>接入新渠道步数</td><td>3 步（②自动匹配为 P3 增量）</td><td>本期 3 步（②=同步+手动选接入方式）</td></tr>
+    </table>
+  </div>
+
+  <div class="callout amber"><b>待你确认（仅 2 项）</b>：① 用量域唯一入口=模型中心（任务中心「账目」页签移除并重定向）——涉及改既有功能；② 广场「设为默认」作用于当前项目级（非个人默认）。确认后立卡实施（P1 范围见 §五）。</div>
+
+  <div class="foot">镜序 Studio · 漫剧导演工坊 · IA v14 线框评审稿 · 2026-10-17 · 评审通过后按此实施</div>
+</div>
 </body>
 </html>

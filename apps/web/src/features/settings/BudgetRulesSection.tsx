@@ -1,8 +1,9 @@
-// EXPORTS: default SettingsPreferencesPage
-// 通用设置（3.4 / 7.9）：主题 / 语言 / 默认路由与默认模型
-// T3 预算规则（TASK-MODEL-005）：日/月预算配置（租户级/工作区级 × 告警/拦截）
-import { useState, useEffect, useCallback } from 'react';
-import { Monitor, Sun, Moon, Languages, Route, Image as ImageIcon, Video, Wallet, Plus, Trash2, Loader2 } from 'lucide-react';
+// EXPORTS: default BudgetRulesSection
+// 模型中心 > 成本与用量 > 预算规则区块（TASK-IA-001 v14 §2.6：预算从设置中心迁入成本页）
+// 复用 T3（TASK-MODEL-005）的预算 API 与交互逻辑，数据层零改动（判据：数据层复用）。
+// 权限（v14 矩阵）：区块浏览=全员；新增/删除=Admin+（操作入口不渲染）。
+import { useCallback, useEffect, useState } from 'react';
+import { Wallet, Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,16 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useSettingsStore } from '@/stores/useSettingsStore';
-import type { ThemeMode } from '@/stores/useSettingsStore';
-import { cn } from '@/lib/utils';
+import { useAuthStore, ROLE_RANK } from '@/stores/useAuthStore';
 import { api, type BudgetRuleItem } from '@/lib/api/client';
-
-const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
-  { value: 'light', label: '浅色', icon: Sun },
-  { value: 'dark', label: '深色', icon: Moon },
-  { value: 'system', label: '跟随系统', icon: Monitor },
-];
 
 const PERIOD_LABEL: Record<'day' | 'month', string> = { day: '日预算', month: '月预算' };
 const ACTION_LABEL: Record<'warn' | 'block', string> = { warn: '只告警', block: '超限拦截' };
@@ -41,11 +34,10 @@ const EMPTY_BUDGET_FORM: BudgetForm = {
   warnAt: '0.8',
 };
 
-export default function SettingsPreferencesPage() {
-  const settings = useSettingsStore((s) => s);
-  const update = useSettingsStore((s) => s.update);
+export default function BudgetRulesSection() {
+  const role = useAuthStore((s) => s.role);
+  const canWrite = (ROLE_RANK[role] ?? 0) >= ROLE_RANK.admin;
 
-  // T3 预算规则：loading / error / empty 三态（R-CRUD-001）
   const [rules, setRules] = useState<BudgetRuleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,7 +46,6 @@ export default function SettingsPreferencesPage() {
   const [saving, setSaving] = useState(false);
   const [deletingPeriod, setDeletingPeriod] = useState<'day' | 'month' | null>(null);
 
-  // 事件处理器用：可同步置 loading（effect 之外的 setState 不受 react-hooks/set-state-in-effect 约束）
   const refresh = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -68,7 +59,6 @@ export default function SettingsPreferencesPage() {
     }
   }, []);
 
-  // 初始加载：与 ModelCosts 同款 —— promise 链内 setState（回调中执行，非 effect 同步路径）
   useEffect(() => {
     let cancelled = false;
     api
@@ -138,138 +128,44 @@ export default function SettingsPreferencesPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <section className="space-y-3 rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2">
-        <h1 className="text-lg font-semibold">通用设置</h1>
-              </div>
-
-      <div className="space-y-4 rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Monitor className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">主题</Label>
-          <div className="ml-auto flex flex-wrap gap-2">
-            {THEMES.map((t) => (
-              <Button
-                key={t.value}
-                type="button"
-                size="sm"
-                variant={settings.theme === t.value ? 'default' : 'outline'}
-                onClick={() => update({ theme: t.value })}
-                className="gap-1.5"
-              >
-                <t.icon className="h-3.5 w-3.5" />
-                {t.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Languages className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">语言</Label>
-          <div className="ml-auto">
-            <Select value={settings.language} onValueChange={(v) => update({ language: v })}>
-              <SelectTrigger className="h-9 w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="简体中文">简体中文</SelectItem>
-                <SelectItem value="English" disabled>English（尚未开放）</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center gap-2">
-          <Route className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">默认路由</Label>
-          <Badge variant="outline" className={cn('ml-auto font-mono text-3xs')}>{settings.preferences.defaultRoute}</Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <ImageIcon className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">默认图片模型</Label>
-          <div className="ml-auto">
-            <Select
-              value={settings.preferences.defaultImageModel}
-              onValueChange={(v) => update({ preferences: { ...settings.preferences, defaultImageModel: v } })}
-            >
-              <SelectTrigger className="h-9 w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {settings.models.filter((m) => m.type === 'image' && m.status === 'enabled').map((m) => (
-                  <SelectItem key={m.id} value={m.name}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Video className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">默认视频模型</Label>
-          <div className="ml-auto">
-            <Select
-              value={settings.preferences.defaultVideoModel}
-              onValueChange={(v) => update({ preferences: { ...settings.preferences, defaultVideoModel: v } })}
-            >
-              <SelectTrigger className="h-9 w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {settings.models.filter((m) => m.type === 'video' && m.status === 'enabled').map((m) => (
-                  <SelectItem key={m.id} value={m.name}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <p className="text-2xs text-muted-foreground">
-          默认模型只是新任务的预设；单次可选其他已配置且能力兼容的模型，已提交任务固定版本。
-        </p>
-      </div>
-
-      {/* T3 预算规则（TASK-MODEL-005）：日/月预算，超限拦截/告警；仅基于已校准价格 */}
-      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center gap-2">
-          <Wallet className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">预算规则</Label>
+        <Wallet className="h-4 w-4 text-primary" />
+        <Label className="text-sm font-medium">预算规则</Label>
+        {canWrite && (
           <Button type="button" size="sm" variant="outline" className="ml-auto gap-1.5" onClick={() => setBudgetOpen(true)}>
             <Plus className="h-3.5 w-3.5" />
             新增预算
           </Button>
-        </div>
-        <p className="text-2xs text-muted-foreground">
-          超限拦截只基于已校准（权威价）成本；未校准调用不计入拦截。故障时放行并告警（fail-open）。
-        </p>
+        )}
+      </div>
+      <p className="text-2xs text-muted-foreground">
+        超限拦截只基于已校准（权威价）成本；未校准调用不计入拦截。故障时放行并告警（fail-open）。
+      </p>
 
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            加载中…
-          </div>
-        ) : loadError ? (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {loadError}（预算配置暂不可用；预算校验在服务端 fail-open，不影响生成）
-          </p>
-        ) : rules.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
-            未配置任何预算规则 —— 当前不拦截任何成本（建议设置日预算，防脚本失控刷上游付费模型）
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {rules.map((r) => (
-              <li key={`${r.scope}-${r.period}`} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs">
-                <Badge variant="outline" className="font-mono">{SCOPE_LABEL[r.scope]}</Badge>
-                <Badge variant="outline" className="font-mono">{PERIOD_LABEL[r.period]}</Badge>
-                <span className="font-medium text-foreground">¥{r.limitAmount.toLocaleString('zh-CN')}</span>
-                <Badge variant={r.action === 'block' ? 'default' : 'outline'}>{ACTION_LABEL[r.action]}</Badge>
-                <span className="ml-auto text-2xs text-muted-foreground">告警线 {(r.warnAt ?? 0.8) * 100}%</span>
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          加载中…
+        </div>
+      ) : loadError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {loadError}（预算配置暂不可用；预算校验在服务端 fail-open，不影响生成）
+        </p>
+      ) : rules.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+          未配置任何预算规则 —— 当前不拦截任何成本（建议设置日预算，防脚本失控刷上游付费模型）
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {rules.map((r) => (
+            <li key={`${r.scope}-${r.period}`} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs">
+              <Badge variant="outline" className="font-mono">{SCOPE_LABEL[r.scope]}</Badge>
+              <Badge variant="outline" className="font-mono">{PERIOD_LABEL[r.period]}</Badge>
+              <span className="font-medium text-foreground">¥{r.limitAmount.toLocaleString('zh-CN')}</span>
+              <Badge variant={r.action === 'block' ? 'default' : 'outline'}>{ACTION_LABEL[r.action]}</Badge>
+              <span className="ml-auto text-2xs text-muted-foreground">告警线 {(r.warnAt ?? 0.8) * 100}%</span>
+              {canWrite && (
                 <Button
                   type="button"
                   size="sm"
@@ -281,11 +177,11 @@ export default function SettingsPreferencesPage() {
                 >
                   {deletingPeriod === r.period ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                 </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <Dialog open={budgetOpen} onOpenChange={setBudgetOpen}>
         <DialogContent className="max-w-md">
@@ -375,6 +271,6 @@ export default function SettingsPreferencesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   );
 }
