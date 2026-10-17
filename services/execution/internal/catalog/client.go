@@ -77,7 +77,10 @@ type Template struct {
 }
 
 // Get fetches the directory for a tenant context.
-func (c *Client) Get(ctx context.Context, workspaceID, actorID string) (Directory, error) {
+// role 是 BFF 经 authorize 验证后注入的可信角色（X-Actor-Role 透传）；production 内部中间件
+// 校验该头（纵深防御：禁止绕过 BFF 直连）。role 为空时按原样不带头——上游 403 如实上报，
+// execution 不自行伪造角色。
+func (c *Client) Get(ctx context.Context, workspaceID, actorID, role string) (Directory, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.ProductionURL+"/internal/v1/catalog", nil)
 	if err != nil {
 		return Directory{}, err
@@ -85,6 +88,9 @@ func (c *Client) Get(ctx context.Context, workspaceID, actorID string) (Director
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	req.Header.Set("X-Workspace-Id", workspaceID)
 	req.Header.Set("X-Actor-Id", actorID)
+	if role != "" {
+		req.Header.Set("X-Actor-Role", role)
+	}
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return Directory{}, fmt.Errorf("catalog: %w", err)

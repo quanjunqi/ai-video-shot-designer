@@ -145,7 +145,7 @@ func (h Handler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Resolve model + template from catalog
-	dir, err := h.Catalog.Get(r.Context(), ws, actor)
+	dir, err := h.Catalog.Get(r.Context(), ws, actor, r.Header.Get("X-Actor-Role"))
 	if err != nil {
 		writeAudit("failed", nil, "catalog unavailable: "+err.Error(), "", "")
 		writeError(w, 503, "CATALOG_UNAVAILABLE", err.Error())
