@@ -2,7 +2,7 @@
 taskId: TASK-IA-001
 status: 进行中
 priority: P1（排期 v2 §3.3 第 2 波首位；解锁 CREATE 系列）
-pr: "#<待开>"
+pr: #221
 criteria: 15
 criteriaPassed: 0
 depends_on: TASK-AUTH-001（已合并 #203；⚠️ 热点文件冲突，见 §2）
