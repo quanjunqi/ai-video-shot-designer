@@ -119,4 +119,5 @@
 | TASK-MARKET-M5 | 模型目录能力归属服务端化 | P1 | 待验收 | [#239](https://github.com/quanjunqi/ai-video-shot-designer/pull/239) | [TASK-MARKET-M5/task.md](TASK-MARKET-M5/task.md) |
 | TASK-MARKET-M6 | 模型广场真实详情专业化 | P1 | 待验收 | [#241](https://github.com/quanjunqi/ai-video-shot-designer/pull/241) | [TASK-MARKET-M6/task.md](TASK-MARKET-M6/task.md) |
 | TASK-MARKET-M7 | 模型价格展示链路打通（独立价格列映射） | P1 | 待验收 | [#244](https://github.com/quanjunqi/ai-video-shot-designer/pull/244) | [TASK-MARKET-M7/task.md](TASK-MARKET-M7/task.md) |
+| TASK-MARKET-M9 | 创作流默认模型消费修复（广场设默认生效） | P1 | 待验收 | [#248](https://github.com/quanjunqi/ai-video-shot-designer/pull/248) | [TASK-MARKET-M9/task.md](TASK-MARKET-M9/task.md) |
 | TASK-MARKET-M8 | 撤销模型目录页，启停归位模型广场 | P1 | 待验收 | [#246](https://github.com/quanjunqi/ai-video-shot-designer/pull/246) | [TASK-MARKET-M8/task.md](TASK-MARKET-M8/task.md) |
