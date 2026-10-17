@@ -228,6 +228,10 @@ export default function CreateWorkbench({
           prompt: promptText,
           parameters: submitValues,
           model_id: model?.id,
+          // M11：execution 全链路统一消费 camelCase modelId（worker/审计/handlers_generate），
+          // BFF 对 payload 直接透传不重命名 → 缺 modelId 会「missing modelId in payload」。
+          // 双写：modelId 权威（worker 消费），model_id 保留（草稿复用/详情展示兼容）。
+          modelId: model?.id,
           protocol_template_id: model?.protocolTemplateId,
           references,
           mentions: mentionsPayload,
