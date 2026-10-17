@@ -1,10 +1,10 @@
 ---
 taskId: TASK-MARKET-M1
-status: 进行中
+status: 待验收
 priority: P1（模型中心核心体验；模型广场真实化）
-pr:
+pr: 229
 criteria: 6
-criteriaPassed: 0
+criteriaPassed: 6
 depends_on: TASK-IA-001（已合并 #221）
 ---
 
