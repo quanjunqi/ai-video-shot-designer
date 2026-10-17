@@ -51,6 +51,8 @@ var matrix = []rule{
 	{prefix: "/api/v1/channels/", read: roleAdmin, write: roleAdmin},
 	{prefix: "/api/v1/workspace/channels", read: roleAdmin, write: roleAdmin},
 	{prefix: "/api/v1/workspace/credentials", read: roleAdmin, write: roleAdmin},
+	// 成员列表（设置 > 工作区与成员）：admin（TASK-SETTINGS-P3A；Viewer 成员区隐藏 + 后端 403 纵深防御）
+	{prefix: "/api/v1/workspace/members", read: roleAdmin, write: roleAdmin},
 	// 模型目录 / 逻辑模型 / 规则模板：读全角色；写 admin
 	{prefix: "/api/v1/catalog", read: roleViewer, write: roleAdmin},
 	{prefix: "/api/v1/logical-models", read: roleViewer, write: roleAdmin},

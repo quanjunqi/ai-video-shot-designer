@@ -1,10 +1,13 @@
 // EXPORTS: default SettingsWorkspacePage
-// 设置 > 工作区与成员（TASK-SETTINGS-P2 v15 §二）：本地态骨架。
+// 设置 > 工作区与成员（TASK-SETTINGS-P2 v15 §二 + TASK-SETTINGS-P3A）。
 // 工作区信息卡全员可见；成员与角色卡仅 Admin+ 渲染（Viewer 整区隐藏）；
-// 邀请/调整/移除/共享预设库 = 显式 P3 占位（禁僵尸按钮）。成员数据源 = 本地 DEV_ACTORS（workspace 成员 API 为 P3）。
+// 邀请/调整/移除/共享预设库 = 显式 P3 占位（禁僵尸按钮）。
+// P3A：成员数据源 = BFF /api/v1/workspace/members（admin+ 矩阵守卫）；API 失败 → 降级本地 DEV_ACTORS 演示态并标注来源。
+import { useEffect, useState } from 'react';
 import { Building2, Crown, UserPlus, Users, SlidersHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DEV_ACTORS, useAuthStore, ROLE_RANK, type ActorRole } from '@/stores/useAuthStore';
+import { fetchWorkspaceMembers, type WorkspaceMember } from '@/features/settings/workspace-members';
 
 const ROLE_LABEL: Record<ActorRole, string> = { owner: 'Owner', admin: 'Admin', viewer: 'Viewer', member: 'Member' };
 
@@ -17,6 +20,29 @@ export default function SettingsWorkspacePage() {
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const role = useAuthStore((s) => s.role);
   const canManage = (ROLE_RANK[role] ?? 0) >= ROLE_RANK.admin;
+
+  // P3A 成员数据：'loading' 拉取中 / 'api' 真实成员 / 'demo' 演示态降级
+  const [members, setMembers] = useState<WorkspaceMember[] | null>(null);
+  const [source, setSource] = useState<'loading' | 'api' | 'demo'>('loading');
+
+  useEffect(() => {
+    if (!canManage) return;
+    let alive = true;
+    void fetchWorkspaceMembers().then((items) => {
+      if (!alive) return;
+      if (items && items.length > 0) {
+        setMembers(items);
+        setSource('api');
+      } else {
+        setSource('demo');
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [canManage]);
+
+  const memberCount = source === 'api' && members ? members.length : DEV_ACTORS.length;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -40,7 +66,7 @@ export default function SettingsWorkspacePage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="w-24 shrink-0 text-muted-foreground">成员数量</span>
-            <span className="text-foreground">{DEV_ACTORS.length}</span>
+            <span className="text-foreground">{memberCount}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -67,18 +93,37 @@ export default function SettingsWorkspacePage() {
                 </tr>
               </thead>
               <tbody>
-                {DEV_ACTORS.map((d) => (
-                  <tr key={d.actorId} className="border-t border-border">
-                    <td className="px-3 py-2">
-                      <span className="flex items-center gap-2 font-medium text-foreground">
-                        {d.role === 'owner' && <Crown className="h-3 w-3 text-amber-500" />}
-                        {d.actorId}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2"><MemberBadge role={d.role} /></td>
-                    <td className="px-3 py-2 text-muted-foreground">{d.role === 'viewer' ? '—' : '刚刚'}</td>
+                {source === 'loading' && (
+                  <tr className="border-t border-border">
+                    <td colSpan={3} className="px-3 py-3 text-center text-muted-foreground">加载成员…</td>
                   </tr>
-                ))}
+                )}
+                {source === 'api' &&
+                  members?.map((m) => (
+                    <tr key={m.actor_id} className="border-t border-border">
+                      <td className="px-3 py-2">
+                        <span className="flex items-center gap-2 font-medium text-foreground">
+                          {m.role === 'owner' && <Crown className="h-3 w-3 text-amber-500" />}
+                          {m.actor_id}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2"><MemberBadge role={m.role} /></td>
+                      <td className="px-3 py-2 text-muted-foreground">—</td>
+                    </tr>
+                  ))}
+                {source === 'demo' &&
+                  DEV_ACTORS.map((d) => (
+                    <tr key={d.actorId} className="border-t border-border">
+                      <td className="px-3 py-2">
+                        <span className="flex items-center gap-2 font-medium text-foreground">
+                          {d.role === 'owner' && <Crown className="h-3 w-3 text-amber-500" />}
+                          {d.actorId}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2"><MemberBadge role={d.role} /></td>
+                      <td className="px-3 py-2 text-muted-foreground">{d.role === 'viewer' ? '—' : '刚刚'}</td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -95,12 +140,14 @@ export default function SettingsWorkspacePage() {
             </div>
           </div>
           <p className="text-2xs text-muted-foreground">
-            成员数据当前为本地三角色（与右上角身份切换同源）；workspace 成员 API 接入后替换为真实数据。
+            {source === 'api'
+              ? '成员数据来源：workspace 服务（BFF /api/v1/workspace/members，仅 Admin+ 可读）。'
+              : '成员数据当前为本地演示数据（workspace 服务不可达时降级，与右上角身份切换同源）。'}
           </p>
         </div>
       )}
 
-      <p className="text-2xs text-muted-foreground">设计稿：设置中心 P2 骨架 v15 §二（TASK-SETTINGS-P2）</p>
+      <p className="text-2xs text-muted-foreground">设计稿：设置中心 P2 骨架 v15 §二（TASK-SETTINGS-P2 / P3A）</p>
     </div>
   );
 }
