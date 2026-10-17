@@ -53,6 +53,17 @@
         "store.PutCredential base_url required",
         "lsof -ti:18082 含 BFF/execution 出站连接"
       ]
+    },
+    {
+      "ts": "2026-10-17T22:40:00+08:00",
+      "phase": "验证",
+      "action": "UI 走查渠道页+目录页",
+      "evidence": [
+        "渠道页显示 stub 渠道+供给池+策展对话框",
+        "类型 combobox 选项与仓库代码不一致、提交被拦",
+        "目录页展示逻辑模型清单，真实 server 目录不可见"
+      ],
+      "decisionRef": "D-001"
     }
   ],
   "decisions": [
@@ -68,5 +79,5 @@
       "reason": "BFF 已注入可信 role（纵深防御正确，production 不得放宽）；execution 丢弃是断点，最小修复=透传；空 role 不伪造"
     }
   ],
-  "updatedAt": "2026-10-17T22:21:00+08:00"
+  "updatedAt": "2026-10-17T22:40:00+08:00"
 }

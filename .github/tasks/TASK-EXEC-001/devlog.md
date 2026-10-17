@@ -48,3 +48,11 @@
   - ① putCredential handler 把 base_url 缺失等任何错误统一报「WORKSPACE_CRED_KEY must be set」——错误归因误导（违背「错误必须可归因」），建议修 handler 文案/日志。
   - ② 运维坑：macOS `lsof -ti:port` 会列出「连接该端口」的进程（BFF/execution 出站连接 18081/18082），kill 时连坐误杀 → 应用 `lsof -tiTCP:port -sTCP:LISTEN`。
   - ③ 广场数据源真实化（已记录）：前端内置 14 模型 vs server 4 真实模型，试跑 mock id 404。
+
+### 2026-10-17 22:40 UI 走查补充（V3）
+- **动作**：浏览器走查 /models/channels + /models/catalog。
+- **证据**：
+  - 渠道页显示 chan_localstub（stub 渠道）+「同步上游/添加渠道/连通检测/策展」入口；策展对话框正确展示供给池 2 条（stub-gpt-4o-mini 已策展 / stub-text-embed 未策展），文案与 ADR-009 一致。
+  - 类型 combobox 选择异常：UI 选项显示「验收冒烟·文本生成（text）/ 文生图（image）」与仓库代码（SelectItem value=text「文本 text」）不一致，点选后列表不关闭、值未写入表单 → 提交被「必须选择产品面类型」拦截（stub-text-embed 策展未能在 UI 提交；API 层已 100% 成功）。疑为 Vite dev 版本不同步或组件交互 bug，需另查。
+  - /models/catalog 展示的是逻辑模型清单（MiniMax H3 / gemini 等前端数据），server 真实目录（m_stub_text 等 4 个）不出现在前端展示流 → **确认「广场/目录数据源真实化」是前端下一步核心项**（试跑真实模型在 UI 不可见）。
+- **结论**：完整链路（添加渠道→同步→策展→绑定协议→凭据→试跑）在**后端 API 层 100% 打通**（见 V2）；前端展示层仍为演示态数据源，待数据源真实化后闭环。
