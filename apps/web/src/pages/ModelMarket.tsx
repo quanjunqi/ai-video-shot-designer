@@ -118,6 +118,17 @@ export default function ModelMarketPage() {
         <span className="text-2xs text-muted-foreground">同类型按起步单价低到高排序</span>
       </div>
 
+      {/* 来源状态条（TASK-MARKET-M1）：三态透明化，杜绝把演示目录当真实可调模型 */}
+      {catalogSource === 'demo' && (
+        <p className="rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2 text-2xs text-amber-700">
+          当前为本地演示目录（平台默认模型示意），并非真实接入模型；接入渠道并同步上游后，这里展示真实调用模型。
+        </p>
+      )}
+      {catalogSource === 'server' && (
+        <p className="rounded-lg border border-dashed border-border px-3 py-2 text-2xs text-muted-foreground">
+          已连接模型中心，展示真实调用模型（平台目录 + 你接入并策展的模型）。
+        </p>
+      )}
       {catalogSource === 'offline-fallback' && (
         <p className="rounded-lg border border-dashed border-border px-3 py-2 text-2xs text-muted-foreground">
           当前展示离线缓存目录（后端不可达）；目录刷新后自动恢复平台数据。
@@ -158,6 +169,9 @@ export default function ModelMarketPage() {
                       <Check className="h-3 w-3" />
                       默认
                     </Badge>
+                  )}
+                  {catalogSource === 'demo' && (
+                    <Badge variant="outline" className="shrink-0 text-2xs text-amber-600">演示</Badge>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
