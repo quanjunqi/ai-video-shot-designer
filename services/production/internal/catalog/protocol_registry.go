@@ -368,9 +368,10 @@ func ProtocolDefinitions() []ProtocolDefinition {
 			Type:        "text",
 			Method:      "POST",
 			RequestPath: "/v1/responses",
-			// params 为空：由 capabilities.param_mapping 装配（与 DB 行一致）。
-			Params:         []Param{},
-			ResponseParams: []Param{},
+			// 069 修正：32 参数由 protocol-gen 从官方 openapi.json 确定性生成（与 DB 行一致）
+			Params: openaiResponsesParams,
+			// 069 修正：37 个响应映射（生成器确定性推导；数组层 .0. 语义）
+			ResponseParams: openaiResponsesRespParams,
 			Async:          ProtocolAsync{Enabled: false},
 			Capabilities:   json.RawMessage(openaiResponsesCapabilities),
 			Builtin:        true,

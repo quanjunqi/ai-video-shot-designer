@@ -1,8 +1,8 @@
 {
   "source": "production.protocol_templates 真库快照",
-  "fetched_at": "2026-10-17T04:00:00+08:00",
-  "note": "TASK-PROTOCOL-006 后快照。10 个模板全在注册表（含新增 openai_responses）；迁移 068 播种；能力键均在 061 枚举（comfyui 例外）。",
-  "migration": "068",
+  "fetched_at": "2026-10-17T05:00:00+08:00",
+  "note": "TASK-PROTOCOL-007 后快照。10 个模板全在注册表；迁移 069 修正 responses 参数形状；能力键均在 061 枚举（comfyui 例外）。",
+  "migration": "069",
   "templates": [
     {
       "id": "pt_builtin_comfyui",

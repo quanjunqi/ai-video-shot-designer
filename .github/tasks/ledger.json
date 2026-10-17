@@ -512,6 +512,16 @@
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
     },
     {
+      "id": "TASK-PROTOCOL-007",
+      "title": "修复 openai_responses 参数落库形状（B-002：params 对象→数组，前端降级解除）",
+      "status": "待验收",
+      "priority": "P0（新增模板致前端 syncCatalog 崩溃降级）",
+      "pr": 220,
+      "file": "[TASK-PROTOCOL-007/task.md](TASK-PROTOCOL-007/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 6
+    },
+    {
       "id": "TASK-SETTINGS-P2",
       "title": "设置中心 P2 骨架：账号/工作区/数据 3 区实装+外观·创作密度+通知开关（v14 P2 分期；本地演示态，P3 显式禁用）",
       "status": "待验收",
