@@ -685,6 +685,19 @@
       "criteriaPassed": 15,
       "criteriaTotal": 15,
       "file": "TASK-MARKET-M10/task.md"
+    },
+    {
+      "id": "TASK-MARKET-M11",
+      "title": "创作流真实消费修复（payload modelId/runtime 失配）",
+      "status": "待验收",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-MARKET-M10"
+      ],
+      "pr": 252,
+      "criteriaPassed": 17,
+      "criteriaTotal": 17,
+      "file": "TASK-MARKET-M11/task.md"
     }
   ]
 }
