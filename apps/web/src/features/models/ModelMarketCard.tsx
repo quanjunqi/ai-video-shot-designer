@@ -1,7 +1,8 @@
 // EXPORTS: ModelMarketCard
-// 模型广场卡片（TASK-IA-001 v14 §2.2 落地补全 / TASK-MARKET-M6）：
+// 模型广场卡片（TASK-IA-001 v14 §2.2 落地补全 / TASK-MARKET-M6 / TASK-MARKET-M8）：
 // 名称/providerModel + 类型/渠道/价格/状态 + 关键能力行（文本=maxTokens、图片=参考图/比例、视频=时长/模式），
-// 扫卡片即可判断「这个模型能干什么」。设默认=Admin+（个人默认 defaultPrefs）。
+// 扫卡片即可判断「这个模型能干什么」。设默认=Admin+（个人默认 defaultPrefs）；
+// M8：启停归位广场（Admin+，渠道停用时禁用），替代已撤销的「模型目录」行操作。
 import { Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,8 +49,11 @@ export default function ModelMarketCard({
   disabled,
   catalogIsDemo,
   canDefault,
+  canToggle,
+  toggleDisabled,
   onOpen,
   onDefault,
+  onToggle,
 }: {
   m: CatalogModel;
   channelName: (id: string) => string;
@@ -57,8 +61,13 @@ export default function ModelMarketCard({
   disabled: boolean;
   catalogIsDemo: boolean;
   canDefault: boolean;
+  /** M8：启停归位广场（Admin+ 可见；Viewer/member 不渲染） */
+  canToggle: boolean;
+  /** M8：渠道停用时禁用启停（无法从模型层复活渠道停用） */
+  toggleDisabled: boolean;
   onOpen: () => void;
   onDefault: () => void;
+  onToggle: () => void;
 }) {
   const caps = keyCapabilityText(m);
   return (
@@ -107,12 +116,27 @@ export default function ModelMarketCard({
       )}
       <div className="flex items-center gap-1 text-2xs text-muted-foreground">
         查看详情
-        {canDefault && (
+        {canToggle && (
           <Button
             type="button"
             size="sm"
             variant="ghost"
             className="ml-auto h-6 px-2 text-2xs"
+            disabled={toggleDisabled}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+          >
+            {m.status === 'enabled' ? '停用' : '启用'}
+          </Button>
+        )}
+        {canDefault && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-2xs"
             disabled={disabled || !canDefault}
             onClick={(e) => {
               e.stopPropagation();

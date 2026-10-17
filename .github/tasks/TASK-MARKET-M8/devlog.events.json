@@ -1,0 +1,126 @@
+{
+  "taskId": "TASK-XXX",
+  "updatedAt": "2026-10-18T04:30:00+08:00",
+  "events": [
+    {
+      "ts": "YYYY-MM-DDTHH:MM:SS+08:00",
+      "phase": "开工/探查 | 开发 | 验证 | 提交 | PR | 验收",
+      "action": "做了什么（一句可核验的动作）",
+      "evidence": [
+        "命令/文件路径/commit sha/PR 号（可复核的引用，不塞原始大输出）"
+      ],
+      "decisionRef": "D-001 或省略",
+      "blockRef": "B-001 或省略"
+    },
+    {
+      "ts": "2026-10-18T03:50:00+08:00",
+      "phase": "决策",
+      "action": "Owner 三轮评审：归属无消费证据撤 UI、目录撤销、启停归位广场",
+      "evidence": [
+        "ProjectParams.tsx 只按类型+启用选模型",
+        "auth-navigation.test.ts"
+      ]
+    },
+    {
+      "ts": "2026-10-18T04:00:00+08:00",
+      "phase": "开发",
+      "action": "删目录页/路由/导航项；旧深链落点改 market；广场卡片加启停",
+      "evidence": [
+        "ModelCatalog.tsx 删除",
+        "app.tsx",
+        "model-center-navigation.ts",
+        "ModelMarketCard.tsx",
+        "ModelMarket.tsx"
+      ]
+    },
+    {
+      "ts": "2026-10-18T04:20:00+08:00",
+      "phase": "验证",
+      "action": "gate/ui:check/npm test 全绿 + L3 浏览器（导航 5 项/深链/停用生效）",
+      "evidence": [
+        "npm test 202+50",
+        "/settings/models→market",
+        "/models/catalog→market"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "决策主题",
+      "options": [
+        "A",
+        "B"
+      ],
+      "choice": "B",
+      "reason": "一句理由（审计据此判断拍板成立性）",
+      "timing": "开工 | 开发中 | 收尾"
+    },
+    {
+      "id": "D-001",
+      "ts": "2026-10-18T03:50:00+08:00",
+      "decision": "撤销模型目录页，启停归位广场（Admin+），归属编辑撤 UI（后端契约保留）",
+      "rationale": "归属无消费证据、目录信息密度不足、避免 UI 承载不产生行为的字段"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "对应验收判据/验收标准 N",
+      "command": "验证命令或方式",
+      "result": "PASS | FAIL | SKIP+原因",
+      "evidence": "证据位置（文件/CI/PR body）"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "阻塞描述",
+      "rootCause": "根因",
+      "resolution": "解法",
+      "lesson": "复用教训"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✓ | ✗",
+      "evidence": "V-xxx"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✓ | ✗",
+      "evidence": "commit 明细"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✓ | ✗",
+      "evidence": "diff 清单"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✓ | ✗",
+      "evidence": "acceptance.md"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✓ | ✗",
+      "evidence": "CI 结论"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✓ | ✗",
+      "evidence": "ledger.json / README"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规（如涉）",
+      "result": "✓ | ✗",
+      "evidence": "迁移 diff"
+    }
+  ],
+  "retrospective": {
+    "good": "做得好的（1-3 句）",
+    "improve": "可改进的（1-3 句）",
+    "followups": "遗留/后续（含转交其他卡的事项）"
+  }
+}

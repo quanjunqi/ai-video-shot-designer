@@ -60,9 +60,9 @@ test('all legacy settings paths keep an explicit destination (IA v14 redirect ta
   assert.deepEqual(
     SETTINGS_LEGACY_PATHS.map((p) => [p.from, p.to]),
     [
-      ['/settings/models', '/models/catalog'],
-      ['/settings/logical-models', '/models/catalog'],
-      ['/settings/models/catalog', '/models/catalog'],
+      ['/settings/models', '/models/market'],
+      ['/settings/logical-models', '/models/market'],
+      ['/settings/models/catalog', '/models/market'],
       ['/settings/channels', '/models/channels'],
       ['/settings/channels/protocols', '/models/channels'],
       ['/settings/protocols', '/models/channels'],

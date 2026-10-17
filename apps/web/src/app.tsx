@@ -30,7 +30,6 @@ import SettingsAboutPage from '@/pages/SettingsAbout';
 import ModelCenterLayout from '@/features/model-center/ModelCenterLayout';
 import { MODEL_CENTER_DEFAULT_PATH } from '@/features/model-center/model-center-navigation';
 import ModelMarketPage from '@/pages/ModelMarket';
-import ModelCatalogPage from '@/pages/ModelCatalog';
 import ModelChannelsPage from '@/pages/ModelChannels';
 import ModelCostsPage from '@/pages/ModelCosts';
 import ModelAuditPage from '@/pages/ModelAudit';
@@ -68,12 +67,13 @@ export default function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="shot-language" element={<ShotLanguagePage />} />
         <Route path="assets" element={<AssetsPage />} />
-        {/* 模型中心（IA v14，TASK-IA-001）：独立一级导航 = 模型控制台 6 项；
-            广场/目录/渠道页面迁移进行中（本 PR 导航层先落位，页面下一轮迁移实装） */}
+        {/* 模型中心（IA v14，TASK-IA-001；M8 收敛 5 项）：广场/渠道/成本/审计/健康；
+            模型目录已撤销（TASK-MARKET-M8），启停归位广场卡片 */}
         <Route path="models" element={<ModelCenterLayout />}>
           <Route index element={<Navigate to={MODEL_CENTER_DEFAULT_PATH} replace />} />
           <Route path="market" element={<ModelMarketPage />} />
-          <Route path="catalog" element={<ModelCatalogPage />} />
+          {/* M8：模型目录已撤销，旧路径重定向到广场（ADR-005 §6：跳转不 404） */}
+          <Route path="catalog" element={<Navigate to="/models/market" replace />} />
           {/* TASK-IA-001 v14：渠道浏览/连通检测全员，接入/凭据/同步=Admin+ 在页面内按操作细分 */}
           <Route path="channels" element={<ModelChannelsPage />} />
           <Route path="costs" element={<ModelCostsPage />} />

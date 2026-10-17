@@ -49,18 +49,18 @@ export interface SettingsLegacyPath {
 export const SETTINGS_LEGACY_PATHS: readonly SettingsLegacyPath[] = [
   {
     from: '/settings/models',
-    to: '/models/catalog',
-    why: '模型配置迁出设置中心：模型中心「模型目录」（能力归属）接管（IA v14 §四）',
+    to: '/models/market',
+    why: '模型配置迁出设置中心：模型中心「模型广场」接管（IA v14 §四；M8 目录撤销，落点改广场）',
   },
   {
     from: '/settings/logical-models',
-    to: '/models/catalog',
-    why: '逻辑模型管理降级为执行器契约，UI 归模型中心「模型目录」（IA v14：目录=能力归属）',
+    to: '/models/market',
+    why: '逻辑模型管理降级为执行器契约，UI 归模型中心「模型广场」（M8：归属编辑撤下，落点改广场）',
   },
   {
     from: '/settings/models/catalog',
-    to: '/models/catalog',
-    why: '目录行视图迁移至模型中心「模型目录」',
+    to: '/models/market',
+    why: '目录行视图迁移至模型中心「模型广场」（M8：模型目录撤销）',
   },
   {
     from: '/settings/channels',
@@ -115,7 +115,7 @@ export const SETTINGS_LEGACY_REDIRECTS: readonly SettingsLegacyPath[] = SETTINGS
  * 保证跳转不 404（ADR-005 §6；模型配置/用量/审计迁入模型中心后白名单扩容）。
  */
 export const SETTINGS_EXTERNAL_TARGETS: readonly string[] = [
-  '/models/catalog',
+  '/models/market',
   '/models/channels',
   '/models/costs',
   '/models/audit',
