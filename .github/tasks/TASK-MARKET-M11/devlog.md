@@ -77,3 +77,10 @@
 - **探查证据**：execution 全链路消费 camelCase `modelId`（worker executeJob `json:"modelId"`、writeSubmitAudit、handlers_generate）；BFF 透传不重命名（契约 CreateTaskRequest.payload「以服务端为准」）；前端 CreateWorkbench 只传 snake_case `model_id` → payload.ModelID="" → 拒绝
 - **动作**：payload 双写 `modelId`（权威）+ 保留 `model_id`（草稿复用/详情展示兼容）；新增 market-payload-modelid.test.ts 钉死双键
 - **证据**：gate GATE=0 / ui:check ✓ / npm test 全过（node 210 + vitest 50，新增 M11 分支）
+
+### 2026-10-18 M11 二次实测（M11b）
+- **M11a 修复后实测**：任务不再 missing modelId，但上游 400 `Missing required parameter: prompt`
+- **M11b 根因**：engine 按 `payload.runtime` 装配 role=runtime 参数（jobPayload.Runtime `json:"runtime"`）；创作流 payload 缺 runtime 对象 → prompt 缺失
+- **动作**：payload 增 `runtime: { prompt, ...submitValues }`
+- **L3 证据（全链路）**：/create/image 提交 → 任务「成功」（10/18 00:33）→ result_payload.output.data.0.url=cdn.pearapi.ai 真实图 → audit/logs 2 条 success model=mod_aaaaaaaaaaaaaaaaaaab provider=gpt-image-2 ws=ws_dev
+- **门禁**：gate=0 / ui:check=0 / npm test 全过（node 211 + vitest 50，M11+M11b 分支）

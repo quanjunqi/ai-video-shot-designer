@@ -122,3 +122,4 @@
 | TASK-MARKET-M9 | 创作流默认模型消费修复（广场设默认生效） | P1 | 待验收 | [#248](https://github.com/quanjunqi/ai-video-shot-designer/pull/248) | [TASK-MARKET-M9/task.md](TASK-MARKET-M9/task.md) |
 | TASK-MARKET-M8 | 撤销模型目录页，启停归位模型广场 | P1 | 待验收 | [#246](https://github.com/quanjunqi/ai-video-shot-designer/pull/246) | [TASK-MARKET-M8/task.md](TASK-MARKET-M8/task.md) |
 | TASK-MARKET-M10 | 试跑结果图片渲染（output. 前缀抽取修复） | P1 | 待验收 | [#250](https://github.com/quanjunqi/ai-video-shot-designer/pull/250) | [TASK-MARKET-M10/task.md](TASK-MARKET-M10/task.md) |
+| TASK-MARKET-M11 | 创作流真实消费修复（payload modelId/runtime 失配） | P1 | 待验收 | [#252](https://github.com/quanjunqi/ai-video-shot-designer/pull/252) | [TASK-MARKET-M11/task.md](TASK-MARKET-M11/task.md) |

@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-XXX",
-  "updatedAt": "2026-10-18T00:45:00+08:00",
+  "updatedAt": "2026-10-18T00:50:00+08:00",
   "events": [
     {
       "ts": "YYYY-MM-DDTHH:MM:SS+08:00",
@@ -36,6 +36,24 @@
       "action": "门禁全绿（node 210+50，M11 分支）",
       "evidence": [
         "npm test"
+      ]
+    },
+    {
+      "ts": "2026-10-18T00:45:00+08:00",
+      "phase": "开发",
+      "action": "M11b：payload 补 runtime 对象（上游 400 Missing prompt）",
+      "evidence": [
+        "CreateWorkbench.tsx",
+        "engine jobPayload.Runtime"
+      ]
+    },
+    {
+      "ts": "2026-10-18T00:50:00+08:00",
+      "phase": "验证",
+      "action": "L3 全链路：提交→任务成功→产物 URL 落库→audit 归因 2 条 success",
+      "evidence": [
+        "/api/v1/tasks result_payload",
+        "/api/v1/audit/logs"
       ]
     }
   ],
