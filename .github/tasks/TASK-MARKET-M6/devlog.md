@@ -85,3 +85,14 @@
 - [x] 先本地验证再交付（gate + 浏览器实测全链路）
 - [x] 拆分遵守 react-refresh 规则（共享函数独立文件）
 - [x] 修复探查中发现的既有 bug（嵌套 button），未越界扩展
+
+### 2026-10-18 02:50 CI 失败复盘与修复（重要教训）
+- **事件**：#241 合并瞬间 Frontend Quality Gate 红（本地 gate 绿），合并后重跑仍红。定位：CI Frontend Quality Gate = typecheck + lint + quality-gate + **ui:check（UI 清单同步）** + **npm test**（本地 `npm run gate` 不含后两项）。
+- **根因**：①M6 新增组件后 ui-catalog 生成物未重跑（ui:check 红）；②M1/M2 源码级断言测试（market-model-run/market-source-label）静态扫描 ModelMarket.tsx，组件拆分后失配（npm test 红）。
+- **修复（#242，CI 全绿）**：`npm run ui:generate` 同步 3 份生成物；两个测试断言改指新组件文件（ModelDetailSheet/ModelMarketCard），意图不弱化（197+50 测试全过）。
+- **决策**：D-003 前端交付前须跑 `npm run ui:check` + `npm test`（不只是 gate）；已回写 AGENTS.md 前端红线。
+
+## 纪律自检（补充）
+
+- [x] CI 红不放过：查明根因（ui:check + npm test 双失配）、修复、复验全绿后才算完成
+- [x] 教训写入流程（AGENTS.md 前端红线补 ui:check/npm test）
