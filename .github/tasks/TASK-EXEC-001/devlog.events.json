@@ -64,6 +64,18 @@
         "目录页展示逻辑模型清单，真实 server 目录不可见"
       ],
       "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-17T23:20:00+08:00",
+      "phase": "验证",
+      "action": "真实链路验证（PearAPI key 加密存储→真实同步 83 模型→策展 2→绑定→试跑 3）",
+      "evidence": [
+        "sync 200 raw_count:83",
+        "claude-haiku2/boogu-image 策展 enabled+模板绑定",
+        "DeepSeek 503 上游状态 / Claude 150s 超时 / Boogu async-task 引擎限制",
+        "curate family 唯一键覆盖语义确认"
+      ],
+      "decisionRef": "D-001"
     }
   ],
   "decisions": [
@@ -79,5 +91,5 @@
       "reason": "BFF 已注入可信 role（纵深防御正确，production 不得放宽）；execution 丢弃是断点，最小修复=透传；空 role 不伪造"
     }
   ],
-  "updatedAt": "2026-10-17T22:40:00+08:00"
+  "updatedAt": "2026-10-17T23:20:00+08:00"
 }
