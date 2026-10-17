@@ -2,8 +2,10 @@
 // 模型中心 > 模型广场（TASK-IA-001 v14 §2.2）：真实调用模型 + 详情，可设为个人创作默认。
 // 数据源 = useSettingsStore.models（与创作流 StageModelPicker 同源，目录/渠道停用即时反映）。
 // 能力归属在「模型目录」；广场不承载归属编辑。设默认=Admin+，写入个人创作默认（Owner 已确认）。
+// M2（TASK-MARKET-M2）：详情抽屉「试跑」（Admin+）→ api.runModelTest 真实调用 execution /tasks/run
+// （同步真实生成，文本可跑；图片/视频走异步任务，同步试跑不支持→禁用说明）。结果如实展示 ok/上游 status/耗时/响应摘要。
 import { useMemo, useState } from 'react';
-import { ShoppingBag, Check, ExternalLink, Store } from 'lucide-react';
+import { ShoppingBag, Check, ExternalLink, Loader2, Store } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { toast } from 'sonner';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore, ROLE_RANK } from '@/stores/useAuthStore';
+import { api, type RunModelTestResponse } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import type { CatalogModel, VideoCapability, ImageCapability, TextCapability } from '@/config/models/model-catalog';
 
@@ -241,6 +244,33 @@ function ModelDetailBody({
   onDefault: () => void;
 }) {
   const disabled = m.status !== 'enabled';
+  // M2 试跑状态：idle / running / result / error
+  const [runState, setRunState] = useState<'idle' | 'running' | 'result' | 'error'>('idle');
+  const [runResult, setRunResult] = useState<RunModelTestResponse | null>(null);
+  const [runError, setRunError] = useState('');
+  const [runMs, setRunMs] = useState(0);
+
+  const runTest = async () => {
+    setRunState('running');
+    const t0 = Date.now();
+    try {
+      const res = await api.runModelTest(m.id, { messages: [{ role: 'user', content: '你好，请回复一句简短测试。' }] });
+      setRunResult(res);
+      setRunMs(Date.now() - t0);
+      setRunState('result');
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : '试跑失败，请稍后重试');
+      setRunState('error');
+    }
+  };
+
+  const runSummary = (() => {
+    if (!runResult) return '';
+    const extracted = runResult.run?.extracted?.['choices.0.message.content'];
+    if (typeof extracted === 'string' && extracted.trim()) return extracted.trim().slice(0, 300);
+    return runResult.run?.rawBody?.slice(0, 300) ?? '（上游未返回可读内容）';
+  })();
+
   return (
     <div className="space-y-4 text-xs">
       {m.note && <p className="text-muted-foreground">{m.note}</p>}
@@ -260,6 +290,58 @@ function ModelDetailBody({
           {m.method} {m.requestPath || '（由协议模板注入）'}
         </p>
       </div>
+
+      {/* M2 试跑（真实调用；Admin+；仅文本同步可跑） */}
+      {canDefault && (
+        <div className="space-y-2 rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium text-foreground">试跑</p>
+            {m.type === 'text' ? (
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 gap-1 text-2xs"
+                onClick={() => void runTest()}
+                disabled={disabled || runState === 'running'}
+              >
+                {runState === 'running' ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                {runState === 'running' ? '调用中…' : '发起试跑'}
+              </Button>
+            ) : (
+              <Button type="button" size="sm" variant="outline" className="h-7 text-2xs" disabled>
+                同步试跑仅支持文本
+              </Button>
+            )}
+          </div>
+          {m.type !== 'text' && (
+            <p className="text-2xs text-muted-foreground">图片/视频走异步生成任务，不在同步试跑范围；可到创作流发起真实生成验证。</p>
+          )}
+          {runState === 'idle' && m.type === 'text' && (
+            <p className="text-2xs text-muted-foreground">将对「{m.name}」发起一次真实调用（有真实成本），验证上游可用性与响应。</p>
+          )}
+          {runState === 'running' && m.type === 'text' && (
+            <p className="text-2xs text-muted-foreground">真实调用中（文本通常数秒内返回）…</p>
+          )}
+          {runState === 'result' && runResult && (
+            <div className="space-y-1 rounded-md border border-border bg-muted/30 px-2 py-1.5">
+              <p className="flex flex-wrap items-center gap-1.5 text-2xs">
+                <Badge variant={runResult.ok ? 'outline' : 'destructive'} className="gap-1">
+                  {runResult.ok ? '成功' : '上游失败'}
+                </Badge>
+                <span className="font-mono text-muted-foreground">HTTP {runResult.run?.status ?? '—'}</span>
+                <span className="font-mono text-muted-foreground">{runMs}ms</span>
+              </p>
+              <p className="whitespace-pre-wrap break-words font-mono text-2xs text-muted-foreground">{runSummary}</p>
+            </div>
+          )}
+          {runState === 'error' && (
+            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-2xs text-destructive">
+              试跑失败：{runError}
+            </p>
+          )}
+        </div>
+      )}
+
       {canDefault && (
         <Button type="button" size="sm" className="w-full" onClick={onDefault} disabled={disabled}>
           设为个人默认{TYPE_LABEL[m.type]}模型
