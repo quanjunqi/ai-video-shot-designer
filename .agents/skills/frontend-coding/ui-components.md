@@ -10,7 +10,7 @@
 - 组件 **42** 个 / 5081 行；死组件（零引用）**20** 个
 - 语义 token **76** 个；Tailwind 工具类映射 65 条；排版：字体 3 族 + prose 映射 36 条
 - 注记覆盖 **42/42**；展示页 demo 覆盖 **42/42**
-- 尺度实际用法：字号常用 xs(369)；离散步长 6 处（优先用尺度 token）
+- 尺度实际用法：字号常用 xs(382)；离散步长 6 处（优先用尺度 token）
 
 ## 按分类速查
 
@@ -41,7 +41,7 @@
 
 - 文件：`apps/web/src/components/ui/badge.tsx`（43 行）· 导出：`Badge`、`badgeVariants`
 - variant：`default` `secondary` `destructive` `outline`（默认 `default`）
-- 引用：41 处（`ParamEditor.tsx`、`ProtocolEvidence.tsx`、`ProtocolPreview.tsx` 等）
+- 引用：44 处（`ParamEditor.tsx`、`ProtocolEvidence.tsx`、`ProtocolPreview.tsx` 等）
 - **何时用**：展示简短状态或分类标签（已发布、草稿、失败），不承载操作
 - **别用**：可点击标签用 toggle；长文案用 item-description
 - 反例：❌ 用 badge 当按钮点（应换 button、toggle）（UC-006）；❌ 长文本不截断撑破卡片（R-UI-006）
@@ -53,7 +53,7 @@
 - variant：`default` `destructive` `outline` `secondary` `ghost`（默认 `default`）
 - size：`default` `sm` `lg` `icon`
 - 底座：`@radix-ui/react-slot` · 支持 `asChild`
-- 引用：50 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`EmptyState.tsx` 等）
+- 引用：51 处（`ParamEditor.tsx`、`ProtocolParamOverrides.tsx`、`EmptyState.tsx` 等）
 - **何时用**：触发一次明确动作（提交、打开弹窗、删除），页面主要操作入口
 - **别用**：跳转用 asChild 包 Link；别用 div 手写按钮（UC-006）
 - 反例：❌ 用 button 做链接导航（该用 asChild + Link）（UC-006）；❌ 自写颜色类不走 variant（UC-002）；❌ 请求中不禁用致重复提交（FE-API-005）
@@ -324,7 +324,7 @@
 
 - 文件：`apps/web/src/components/ui/switch.tsx`（32 行）· 导出：`Switch`
 - 底座：`@radix-ui/react-switch`
-- 引用：3 处（`PromptRulesTab.tsx`、`RulesCenterPage.tsx`、`SettingsAppearance.tsx`）
+- 引用：4 处（`PromptRulesTab.tsx`、`RulesCenterPage.tsx`、`SettingsAppearance.tsx` 等）
 - **何时用**：即时生效的二元设置（启用、停用），点击立即改变状态
 - **别用**：需提交后才生效的表单字段用 checkbox 加保存按钮
 - 反例：❌ 切换后不落库不请求致刷新丢失（R-DATA-001）；❌ 无 label 只有图形（FE-A11Y-002）
@@ -396,7 +396,7 @@
 
 - 文件：`apps/web/src/components/ui/dialog.tsx`（144 行）· 导出：`Dialog`、`DialogClose`、`DialogContent`、`DialogDescription`、`DialogFooter`、`DialogHeader`、`DialogOverlay`、`DialogPortal`、`DialogTitle`、`DialogTrigger`
 - 底座：`@radix-ui/react-dialog`
-- 引用：24 处（`command.tsx`、`AddEpisodeDialog.tsx`、`CharacterStage.tsx` 等）
+- 引用：25 处（`command.tsx`、`AddEpisodeDialog.tsx`、`CharacterStage.tsx` 等）
 - **何时用**：需要用户聚焦完成的模态内容（表单、详情、选择器）
 - **别用**：只做二次确认用 alert-dialog；大表单用 sheet 或 drawer
 - 反例：❌ 用 dialog 做破坏性确认（应换 alert-dialog）（UC-006）；❌ 缺 DialogTitle 致 a11y 缺失（UC-005）；❌ 弹窗内容不滚动致底部按钮不可达（清单 2）

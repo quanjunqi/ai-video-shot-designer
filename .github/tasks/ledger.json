@@ -510,6 +510,16 @@
       "priority": "P2",
       "pr": 176,
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
+    },
+    {
+      "id": "TASK-SETTINGS-P2",
+      "title": "设置中心 P2 骨架：账号/工作区/数据 3 区实装+外观·创作密度+通知开关（v14 P2 分期；本地演示态，P3 显式禁用）",
+      "status": "进行中",
+      "priority": "P2（v14 §五；设置 6 区骨架收尾）",
+      "pr": null,
+      "file": "[TASK-SETTINGS-P2/task.md](TASK-SETTINGS-P2/task.md)",
+      "criteria": 8,
+      "criteriaPassed": 8
     }
   ]
 }

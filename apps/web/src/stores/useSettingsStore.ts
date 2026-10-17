@@ -27,6 +27,10 @@ interface SettingsState {
     defaultImageModel: string;
     defaultVideoModel: string;
     defaultRoute: string;
+    /** 创作界面密度（TASK-SETTINGS-P2：外观区新增，本地偏好存储） */
+    density: { shotFontSize: 'compact' | 'standard' | 'relaxed'; canvasDensity: 'normal' | 'high' };
+    /** 通知开关（TASK-SETTINGS-P2：通知区新增，本地偏好存储；真实推送 P3） */
+    notifications: { taskDone: boolean; channelHealth: boolean };
   };
   update(patch: Partial<SettingsState>): void;
   // ---- 凭据（正式：workspace 加密存储，只写不读明文）----
@@ -102,7 +106,7 @@ function serverModelToLocal(m: ServerCatalogDirectory['models'][number]): Catalo
 
 const defaultChannels = () => MODEL_CHANNELS.map((c) => ({ ...c }));
 const defaultModels = () => MODEL_CATALOG.map((m) => ({ ...m, capability: { ...m.capability } as CatalogModel['capability'] }));
-const defaultPrefs = () => ({ defaultTextModel: '', defaultImageModel: 'gpt-image-2', defaultVideoModel: 'MiniMax H3', defaultRoute: '/comic/projects' });
+const defaultPrefs = () => ({ defaultTextModel: '', defaultImageModel: 'gpt-image-2', defaultVideoModel: 'MiniMax H3', defaultRoute: '/comic/projects', density: { shotFontSize: 'standard' as const, canvasDensity: 'normal' as const }, notifications: { taskDone: true, channelHealth: false } });
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -375,8 +379,30 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'mdp:settings',
-      version: 3,
-      migrate: () => ({ theme: 'dark', language: '简体中文', expertMode: false, channels: defaultChannels(), models: defaultModels(), templates: PROTOCOL_TEMPLATES.map((t) => ({ ...t })), credentials: [], hiddenBuiltinIds: [], catalogSource: 'demo', preferences: defaultPrefs() }),
+      version: 4,
+      // v3→v4：保留旧值仅补新字段（density/notifications），不再全量重置丢用户数据
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<SettingsState>;
+        const prefs: Partial<SettingsState['preferences']> =
+          p.preferences && typeof p.preferences === 'object' && !Array.isArray(p.preferences) ? p.preferences : {};
+        return {
+          theme: p.theme === 'light' || p.theme === 'dark' || p.theme === 'system' ? p.theme : 'dark',
+          language: typeof p.language === 'string' && p.language ? p.language : '简体中文',
+          expertMode: typeof p.expertMode === 'boolean' ? p.expertMode : false,
+          channels: Array.isArray(p.channels) ? (p.channels as ChannelConfig[]) : defaultChannels(),
+          models: Array.isArray(p.models) ? (p.models as CatalogModel[]) : defaultModels(),
+          templates: Array.isArray(p.templates) ? (p.templates as ProtocolTemplate[]) : PROTOCOL_TEMPLATES.map((t) => ({ ...t })),
+          credentials: Array.isArray(p.credentials) ? (p.credentials as CredentialStatus[]) : [],
+          hiddenBuiltinIds: Array.isArray(p.hiddenBuiltinIds) ? p.hiddenBuiltinIds : [],
+          catalogSource: p.catalogSource === 'server' || p.catalogSource === 'offline-fallback' ? p.catalogSource : 'demo',
+          preferences: {
+            ...defaultPrefs(),
+            ...prefs,
+            density: prefs.density && typeof prefs.density === 'object' ? { ...defaultPrefs().density, ...prefs.density } : defaultPrefs().density,
+            notifications: prefs.notifications && typeof prefs.notifications === 'object' ? { ...defaultPrefs().notifications, ...prefs.notifications } : defaultPrefs().notifications,
+          },
+        };
+      },
       // 结构防御 merge：历史/脏缓存中 channels/models 非数组或 catalogSource 非法时回退默认，
       // 避免 channels.map is not a function 一类运行时崩溃；自定义渠道/模型数据仍保留（数组时原样合并）。
       merge: (persisted, current) => {
