@@ -33,9 +33,20 @@ test('结果展示：真实字段（ok / 上游 HTTP status / 耗时 / 响应摘
   assert.match(detail, /runResult\.ok/, '必须如实读取上游 ok 结果');
   assert.match(detail, /runResult\.run\?\.status/, '必须展示上游 HTTP 状态码');
   assert.match(detail, /runMs/, '必须展示耗时');
-  assert.match(detail, /choices\.0\.message\.content/, '必须尝试抽取响应内容');
+  assert.match(detail, /choices\.0\.message\.content/, '必须尝试抽取文本响应内容');
   assert.match(detail, /rawBody/, '抽取不到时回退原始响应体');
   assert.match(detail, /上游失败/, 'ok=false 必须如实显示为失败而非假装成功');
+});
+
+// TASK-MARKET-M10：图片试跑产物渲染（output. 前缀抽取修复）
+test('M10: 图片试跑产物必须按执行器 output. 前缀抽取并渲染 <img>', () => {
+  assert.match(detail, /output\.data\.0\.url/, '必须识别执行器 output. 前缀图片键（curl 实证）');
+  assert.match(detail, /data\.0\.url/, '协议模板声明键作兼容兜底');
+  assert.match(detail, /output\.image_urls\.0/, '必须识别 image_urls 形态键');
+  assert.match(detail, /extractRunArtifact/, '必须存在产物 URL 抽取函数');
+  assert.match(detail, /m\.type === 'image' && runArtifact/, '图片类型且命中产物时走图片分支');
+  assert.match(detail, /<img/, '命中产物必须渲染 <img> 缩略图（不再只显示文本）');
+  assert.doesNotMatch(detail, /未返回可读内容.*未返回可读内容/, '不得在命中产物时仍显示「未返回可读内容」');
 });
 
 test('视频：禁用同步试跑并说明（成本高，走创作流异步生成）', () => {

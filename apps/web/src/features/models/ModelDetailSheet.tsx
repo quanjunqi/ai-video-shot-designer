@@ -12,6 +12,7 @@ import { api, type RunModelTestResponse } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import type { CatalogModel, CapabilityEvidence, ImageCapability, TextCapability, VideoCapability } from '@/config/models/model-catalog';
 import { priceSourceLabel, priceText } from './modelPrice';
+import { extractRunArtifact } from './modelRunArtifact';
 
 type ModelType = 'text' | 'image' | 'video';
 const TYPE_LABEL: Record<ModelType, string> = { text: '文本', image: '图片', video: '视频' };
@@ -126,10 +127,18 @@ function ModelDetailBody({
 
   const runSummary = (() => {
     if (!runResult) return '';
-    const extracted = runResult.run?.extracted?.['choices.0.message.content'];
-    if (typeof extracted === 'string' && extracted.trim()) return extracted.trim().slice(0, 300);
+    const extracted = runResult.run?.extracted;
+    // 文本优先：chat/completions 的 choices.0.message.content（执行器加 output. 前缀，双形态兼容）
+    const text =
+      extracted?.['choices.0.message.content'] ?? extracted?.['output.choices.0.message.content'];
+    if (typeof text === 'string' && text.trim()) return text.trim().slice(0, 300);
+    // 图片/产物 URL：执行器 extracted 键带 output. 前缀（curl 实证 output.data.0.url / output.image_urls.0）
+    const artifact = extractRunArtifact(runResult.run);
+    if (artifact) return artifact;
     return runResult.run?.rawBody?.slice(0, 300) ?? '（上游未返回可读内容）';
   })();
+  // M10：图片试跑产物 URL（命中即渲染缩略图；对齐执行器 extracted 键与协议模板声明键）
+  const runArtifact = extractRunArtifact(runResult?.run);
 
   const evidence = evidenceEntries(m);
 
@@ -219,7 +228,18 @@ function ModelDetailBody({
                 <span className="font-mono text-muted-foreground">HTTP {runResult.run?.status ?? '—'}</span>
                 <span className="font-mono text-muted-foreground">{runMs}ms</span>
               </p>
-              <p className="whitespace-pre-wrap break-words font-mono text-2xs text-muted-foreground">{runSummary}</p>
+              {/* M10：图片试跑产物渲染缩略图（点击原图新窗口打开）；文本/无产物时显示抽取文本 */}
+              {m.type === 'image' && runArtifact ? (
+                <a href={runArtifact} target="_blank" rel="noreferrer" className="block">
+                  <img
+                    src={runArtifact}
+                    alt={`${m.name} 试跑产物`}
+                    className="max-h-56 w-full rounded-md border border-border object-contain"
+                  />
+                </a>
+              ) : (
+                <p className="whitespace-pre-wrap break-words font-mono text-2xs text-muted-foreground">{runSummary}</p>
+              )}
             </div>
           )}
           {runState === 'error' && (
