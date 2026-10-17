@@ -35,3 +35,16 @@
 - **证据**：go build/vet 绿；go test ./... 17 包全 ok（新增 TestGetEmptyRoleDoesNotSetHeader；client_test 断言 X-Actor-Role=admin；probe_test catalogStub 断言 viewer）。
 - **走查（本地栈重建 dev-local 新二进制）**：curl BFF /api/v1/tasks/run（真实 modelId mod_aaaaaaaaaaaaaaaaaaaa）→ 返回 200 {ok:false, run:{status:503, error:"upstream 503: 当前服务暂时不可用"}} —— **catalog 403 消失，链路打到真实上游**（PearAPI 上游 503 如实返回）；execution 日志 production GET /internal/v1/catalog status=200。
 - **新发现（另立事项）**：前端广场展示的内置 mock 目录（14 个模型）与 server 真实目录（3 个 mod_xxx）不一致——对 mock 模型点试跑会 404 MODEL_NOT_FOUND。**广场数据源真实化**需单独立项（本卡不处理）。
+
+### 2026-10-17 22:20 完整链路端到端验证（V2，用户要求「添加渠道→同步上游→测试」）
+- **动作**：本地测试替身上游 stub（127.0.0.1:19090，/v1/models + /v1/chat/completions，明确标注非真实）；dev-local 补 production 同步器配置（PRODUCTION_WORKSPACE_URL/TOKEN）+ production/execution 私网放行（netguard 本地开发开关）；model_channels 插入 stub 渠道。
+- **链路实测（curl，全部真实执行）**：
+  1. 同步 `POST /api/v1/channels/chan_localstub/sync` → 200 {raw_count:2, updated:2}（stub /v1/models → channel_models 供给池）
+  2. 策展 `POST /api/v1/catalog/curate`（providerModel=stub-gpt-4o-mini）→ m_stub_text 进目录（catalog 4 模型）
+  3. 绑定协议模板 pt_builtin_openai；写凭据（workspace credentials，baseUrl+apiKey）
+  4. 试跑 `POST /api/v1/tasks/run`（modelId=m_stub_text）→ **ok:True, status:200, extracted:「你好，这是本地测试替身上游的回复。」** —— 完整闭环成功
+- **净结论**：EXEC-001（X-Actor-Role 透传）经真实多跳链路验证：BFF→execution→catalog(production)→引擎→上游 无 403；安全防线（netguard SSRF 拦截私网、错误可归因）全部真实生效。
+- **新发现（另立事项/建议）**：
+  - ① putCredential handler 把 base_url 缺失等任何错误统一报「WORKSPACE_CRED_KEY must be set」——错误归因误导（违背「错误必须可归因」），建议修 handler 文案/日志。
+  - ② 运维坑：macOS `lsof -ti:port` 会列出「连接该端口」的进程（BFF/execution 出站连接 18081/18082），kill 时连坐误杀 → 应用 `lsof -tiTCP:port -sTCP:LISTEN`。
+  - ③ 广场数据源真实化（已记录）：前端内置 14 模型 vs server 4 真实模型，试跑 mock id 404。

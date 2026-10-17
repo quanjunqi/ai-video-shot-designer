@@ -32,6 +32,27 @@
         "前端 MODEL_CATALOG 14 模型 vs BFF catalog 3 个 mod_xxx",
         "走查 mock 模型试跑 MODEL_NOT_FOUND"
       ]
+    },
+    {
+      "ts": "2026-10-17T22:20:00+08:00",
+      "phase": "验证",
+      "action": "完整链路端到端：添加渠道(stub)→同步上游→策展→绑定模板→写凭据→试跑",
+      "evidence": [
+        "sync 200 raw_count=2",
+        "curate → m_stub_text 进目录",
+        "run ok:True status:200 extracted=本地测试替身上游回复"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-17T22:21:00+08:00",
+      "phase": "发现",
+      "action": "putCredential 错误文案误导（base_url 缺失报成 key 缺失）+ lsof -ti 连坐误杀运维坑",
+      "evidence": [
+        "handler.go:179 统一 503 文案",
+        "store.PutCredential base_url required",
+        "lsof -ti:18082 含 BFF/execution 出站连接"
+      ]
     }
   ],
   "decisions": [
@@ -47,5 +68,5 @@
       "reason": "BFF 已注入可信 role（纵深防御正确，production 不得放宽）；execution 丢弃是断点，最小修复=透传；空 role 不伪造"
     }
   ],
-  "updatedAt": "2026-10-17T21:31:00+08:00"
+  "updatedAt": "2026-10-17T22:21:00+08:00"
 }
