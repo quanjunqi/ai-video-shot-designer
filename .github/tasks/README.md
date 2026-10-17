@@ -115,4 +115,4 @@
 - 台账一致性由 `.github/scripts/check-task-ledger.sh` 机器校验（CI Documentation Check + 本地 preflight 门 0b），`--self-test` 可验证门禁有效性。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 | TASK-MARKET-M3 | 模型中心数据源真实化（广场/目录接 server） | P1 | 待验收 | ✅ | [TASK-MARKET-M3/task.md](TASK-MARKET-M3/task.md) |
-| TASK-MARKET-M4 | 图片试跑 async 支持（试跑分流 RunAsync） | P1 | 进行中 | [#237](https://github.com/quanjunqi/ai-video-shot-designer/pull/237) | [TASK-MARKET-M4/task.md](TASK-MARKET-M4/task.md) |
+| TASK-MARKET-M4 | 图片试跑 async 支持（试跑分流 RunAsync） | P1 | 待验收 | [#237](https://github.com/quanjunqi/ai-video-shot-designer/pull/237) | [TASK-MARKET-M4/task.md](TASK-MARKET-M4/task.md) |

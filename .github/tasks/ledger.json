@@ -598,13 +598,13 @@
     {
       "id": "TASK-MARKET-M4",
       "title": "图片试跑 async 支持（试跑分流 RunAsync）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M3"
       ],
       "pr": 237,
-      "criteriaPassed": 0,
+      "criteriaPassed": 5,
       "criteriaTotal": 5,
       "file": "TASK-MARKET-M4/task.md"
     }
