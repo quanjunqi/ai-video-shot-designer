@@ -1,6 +1,16 @@
 {
   "tasks": [
     {
+      "id": "TASK-MARKET-M1",
+      "title": "模型广场真实化：供给池→添加真实模型闭环（归属后补；P1 核心体验）",
+      "status": "进行中",
+      "priority": "P1（v14 §2.2/2.3）",
+      "pr": null,
+      "file": "[TASK-MARKET-M1/task.md](TASK-MARKET-M1/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 0
+    },
+    {
       "id": "PLAN-a-and-adr008-2026-10-10",
       "title": "实施清单：设置导航收敛（方案 A）＋ 协议文档对齐（ADR-008）",
       "status": "unknown",

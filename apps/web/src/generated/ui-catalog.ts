@@ -3742,11 +3742,11 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 739
+        "count": 741
       },
       {
         "value": "3",
-        "count": 456
+        "count": 458
       },
       {
         "value": "1",
@@ -3838,7 +3838,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 192
+        "count": 194
       },
       {
         "value": "xl",
