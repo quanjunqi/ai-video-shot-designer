@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M9
 title: 创作流默认模型消费修复（广场设默认生效）
-status: 进行中
+status: 待验收
 priority: P1
 depends_on:
   - TASK-MARKET-M8
