@@ -14,6 +14,7 @@ import type { ChannelConfig } from '@/config/models/model-catalog';
 import {
   curateRequest,
   draftFromSupply,
+  suggestTemplateId,
   supplyRows,
   validateCurateDraft,
   type CurateDraft,
@@ -202,7 +203,18 @@ export default function CurationPanel({
                   <Label className="text-xs">
                     产品面类型 <span className="text-destructive">*</span>
                   </Label>
-                  <Select value={draft.type} onValueChange={(v) => setDraft({ ...draft, type: v as CurateDraft['type'] })}>
+                  <Select
+                    value={draft.type}
+                    onValueChange={(v) => {
+                      const t = v as CurateDraft['type'];
+                      // TASK-MARKET-M5：选 type 时自动建议内置协议模板（未手工选过才建议；已选则保留）。
+                      setDraft({
+                        ...draft,
+                        type: t,
+                        protocolTemplateId: draft.protocolTemplateId ?? suggestTemplateId(t, enabledTemplates),
+                      });
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="必须选择（上游标签无法确定它属于哪一类）" />
                     </SelectTrigger>

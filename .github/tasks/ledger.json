@@ -607,6 +607,19 @@
       "criteriaPassed": 5,
       "criteriaTotal": 5,
       "file": "TASK-MARKET-M4/task.md"
+    },
+    {
+      "id": "TASK-MARKET-M5",
+      "title": "模型目录能力归属服务端化",
+      "status": "进行中",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-MARKET-M4"
+      ],
+      "pr": null,
+      "criteriaPassed": 0,
+      "criteriaTotal": 3,
+      "file": "TASK-MARKET-M5/task.md"
     }
   ]
 }

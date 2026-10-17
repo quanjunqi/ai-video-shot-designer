@@ -106,6 +106,28 @@ export function draftFromSupply(item: SupplyItem, existingIds: Iterable<string>)
 }
 
 /**
+ * 按产品面类型建议内置协议模板（TASK-MARKET-M5）。
+ * 匹配「type 相同 + builtin」的第一个启用模板：本地常量（openai-compatible 等）
+ * 与 server 模板（pt_builtin_openai 等）都能命中 —— 不硬编码模板 id。
+ * 返回 undefined 表示没有可建议的内置模板（表单保持「不指定」）。
+ */
+/**
+ * 按产品面类型建议内置协议模板（TASK-MARKET-M5）。
+ * 匹配「type 相同 + builtin」的启用模板；多个候选时优先 OpenAI 兼容族
+ * （openai-compatible / pt_builtin_openai*，通用默认），否则取第一个。
+ * 兼容本地常量与服务端模板两套 id；返回 undefined 表示无可建议模板（保持「不指定」）。
+ */
+export function suggestTemplateId(
+  type: ProductModelType | '',
+  templates: ReadonlyArray<{ id: string; type?: string; builtin?: boolean; enabled?: boolean }>,
+): string | undefined {
+  if (!type) return undefined;
+  const candidates = templates.filter((t) => t.enabled !== false && t.type === type && t.builtin);
+  if (candidates.length === 0) return undefined;
+  return candidates.find((t) => t.id.includes('openai'))?.id ?? candidates[0].id;
+}
+
+/**
  * 提交前自查（把后端的 422 提前到界面上）。
  * 返回错误文案；通过返回 null。
  */

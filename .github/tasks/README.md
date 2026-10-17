@@ -116,3 +116,4 @@
 - 验收留痕机制自 `TASK-UI-001` 起启用。
 | TASK-MARKET-M3 | 模型中心数据源真实化（广场/目录接 server） | P1 | 待验收 | ✅ | [TASK-MARKET-M3/task.md](TASK-MARKET-M3/task.md) |
 | TASK-MARKET-M4 | 图片试跑 async 支持（试跑分流 RunAsync） | P1 | 待验收 | [#237](https://github.com/quanjunqi/ai-video-shot-designer/pull/237) | [TASK-MARKET-M4/task.md](TASK-MARKET-M4/task.md) |
+| TASK-MARKET-M5 | 模型目录能力归属服务端化 | P1 | 进行中 | — | [TASK-MARKET-M5/task.md](TASK-MARKET-M5/task.md) |
