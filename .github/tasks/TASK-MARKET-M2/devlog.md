@@ -12,9 +12,9 @@
 | 任务卡 | [task.md](task.md) |
 | 验收清单 | [acceptance.md](acceptance.md) |
 | 分支 | `feature/market-model-run-2026-10-17` |
-| PR | #（待开） |
+| PR | #231（合并 sha：dbfce3f） |
 | 开工 | 2026-10-17 19:00（本地） |
-| 完成 | （待） |
+| 完成 | 2026-10-17 19:50（本地，CI 全绿合并） |
 | 开发者 | AI Agent（MainAgent） |
 
 ## 执行轨迹（正序；每个动作一条）

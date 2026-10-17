@@ -3,12 +3,12 @@
     {
       "id": "TASK-MARKET-M2",
       "title": "模型中心「模型试跑」入口（真实 runModelTest，Admin+）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P1（v14 §2.2）",
-      "pr": null,
+      "pr": 231,
       "file": "[TASK-MARKET-M2/task.md](TASK-MARKET-M2/task.md)",
       "criteria": 6,
-      "criteriaPassed": 0
+      "criteriaPassed": 6
     },
     {
       "id": "TASK-MARKET-M1",
