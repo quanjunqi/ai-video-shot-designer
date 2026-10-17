@@ -76,3 +76,7 @@
 - **探查**：任务列表行（Tasks.tsx）成功态只显示「成功 + —」；详情抽屉（TaskDetailSheet）已渲染 resultUrl（extractResultUrl）——缺口在列表行
 - **动作**：Tasks.tsx 行首成功且产物为 image 时渲染 56px 缩略图（复用 parseTaskPayload/extractResultUrl/mediaKind 单一实现，onError 隐藏防 CDN 过期裂图）；无产物保持 kind icon
 - **证据**：gate GATE=0 / ui:check ✓（生成物已同步）/ npm test 全过（node 213 + vitest 50，M12 分支）
+
+### 2026-10-18 M12 L3 验证 + 合入
+- **PR #254 已合并**（13 项 CI 全绿，merge commit 非 squash）→ develop=4b9e64d
+- **L3 实测**：/tasks bundle 含 M12 代码；成功任务行渲染 56×56 产物缩略图（cdn.pearapi.ai 真实图 complete:true，10-09/10-10 旧成功任务仍有效）；失败任务行保持原样式；react 无渲染错误
