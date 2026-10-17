@@ -1,6 +1,6 @@
 ---
 taskId: TASK-SETTINGS-P2
-status: 进行中
+status: 待验收
 priority: P2（v14 实施分期 §五；设置 6 区骨架收尾）
 pr:
 criteria: 8

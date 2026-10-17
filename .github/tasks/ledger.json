@@ -146,7 +146,7 @@
     {
       "id": "TASK-IA-001",
       "title": "模型中心/设置中心信息架构收敛重建（v14 P1：6 项导航实装+设置 6 区+用量唯一入口；Owner 2026-10-17 确认 2 决策）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P1（排期 v2 §3.3 第 2 波首位；解锁 CREATE 系列）",
       "pr": "#221",
       "file": "[TASK-IA-001/task.md](TASK-IA-001/task.md)",
@@ -514,7 +514,7 @@
     {
       "id": "TASK-SETTINGS-P2",
       "title": "设置中心 P2 骨架：账号/工作区/数据 3 区实装+外观·创作密度+通知开关（v14 P2 分期；本地演示态，P3 显式禁用）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P2（v14 §五；设置 6 区骨架收尾）",
       "pr": 222,
       "file": "[TASK-SETTINGS-P2/task.md](TASK-SETTINGS-P2/task.md)",

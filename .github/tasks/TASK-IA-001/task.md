@@ -1,6 +1,6 @@
 ---
 taskId: TASK-IA-001
-status: 进行中
+status: 待验收
 priority: P1（排期 v2 §3.3 第 2 波首位；解锁 CREATE 系列）
 pr: #221
 criteria: 15
