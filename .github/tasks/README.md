@@ -118,3 +118,4 @@
 | TASK-MARKET-M4 | 图片试跑 async 支持（试跑分流 RunAsync） | P1 | 待验收 | [#237](https://github.com/quanjunqi/ai-video-shot-designer/pull/237) | [TASK-MARKET-M4/task.md](TASK-MARKET-M4/task.md) |
 | TASK-MARKET-M5 | 模型目录能力归属服务端化 | P1 | 待验收 | [#239](https://github.com/quanjunqi/ai-video-shot-designer/pull/239) | [TASK-MARKET-M5/task.md](TASK-MARKET-M5/task.md) |
 | TASK-MARKET-M6 | 模型广场真实详情专业化 | P1 | 待验收 | [#241](https://github.com/quanjunqi/ai-video-shot-designer/pull/241) | [TASK-MARKET-M6/task.md](TASK-MARKET-M6/task.md) |
+| TASK-MARKET-M7 | 模型价格展示链路打通（独立价格列映射） | P1 | 待验收 | [#244](https://github.com/quanjunqi/ai-video-shot-designer/pull/244) | [TASK-MARKET-M7/task.md](TASK-MARKET-M7/task.md) |
