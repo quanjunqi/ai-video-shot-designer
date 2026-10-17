@@ -1,9 +1,9 @@
 // EXPORTS: default ModelCenterLayout
-// 模型中心壳（IA v14，TASK-IA-001）：左侧二级导航 6 项 + 内容区。
+// 模型中心壳（IA v14，TASK-IA-001；M8 收敛 5 项导航）：左侧二级导航 + 内容区。
 // 与 SettingsLayout 同一视觉语言（左右双栏、52 宽二级导航、顶部分组任务一句话）。
 // 未实装分组渲染 ModelCenterPlaceholder（「建设中」占位，禁僵尸按钮）。
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Boxes, ShoppingBag, Cable, Coins, ScrollText, HeartPulse, type LucideIcon } from 'lucide-react';
+import { ShoppingBag, Cable, Coins, ScrollText, HeartPulse, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   modelCenterSectionForPath,
@@ -13,7 +13,6 @@ import {
 import { useAuthStore } from '@/stores/useAuthStore';
 
 const NAV_ICON: Record<ModelCenterSectionKey, LucideIcon> = {
-  catalog: Boxes,
   market: ShoppingBag,
   channels: Cable,
   costs: Coins,

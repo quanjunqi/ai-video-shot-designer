@@ -1,7 +1,7 @@
 // EXPORTS: default ModelMarketPage
-// 模型中心 > 模型广场（TASK-IA-001 v14 §2.2 / TASK-MARKET-M6）：
+// 模型中心 > 模型广场（TASK-IA-001 v14 §2.2 / TASK-MARKET-M6 / TASK-MARKET-M8）：
 // 真实调用模型 + 详情，可设为个人创作默认；数据源 = useSettingsStore.models（与创作流同源）。
-// 能力归属在「模型目录」；广场不承载归属编辑。组件拆分（ADR-005 ≤300 行）：卡片/详情抽屉独立。
+// M8：模型目录撤销 → 启停归位广场卡片（Admin+）；空态文案不再引用「模型目录」。
 import { useMemo, useState } from 'react';
 import { Store } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,8 +26,11 @@ export default function ModelMarketPage() {
   const preferences = useSettingsStore((s) => s.preferences);
   const catalogSource = useSettingsStore((s) => s.catalogSource);
   const update = useSettingsStore((s) => s.update);
+  const toggleModel = useSettingsStore((s) => s.toggleModel);
   const role = useAuthStore((s) => s.role);
   const canDefault = (ROLE_RANK[role] ?? 0) >= ROLE_RANK.admin;
+  /** M8：启停归位广场（Admin+，与设默认同权限级；Viewer/member 不渲染） */
+  const canToggle = canDefault;
 
   const [typeFilter, setTypeFilter] = useState<'all' | ModelType>('all');
   const [channelFilter, setChannelFilter] = useState('all');
@@ -116,13 +119,15 @@ export default function ModelMarketPage() {
           <Store className="h-6 w-6 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">暂无可用模型</p>
           <p className="max-w-80 text-2xs text-muted-foreground">
-            先去「渠道」接入并提供凭据，模型会出现在这里；当前可用模型可从「模型目录」查看已接入供给。
+            先去「渠道」接入并提供凭据并同步上游，模型会出现在这里。
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((m) => {
             const disabled = m.status !== 'enabled' || channelDisabled(m.channelId);
+            // M8：启停按钮仅因「渠道停用」禁用（模型停用=可启用）；渠道停用无法从模型层复活
+            const toggleDisabled = channelDisabled(m.channelId);
             return (
               <ModelMarketCard
                 key={m.id}
@@ -132,8 +137,14 @@ export default function ModelMarketPage() {
                 disabled={disabled}
                 catalogIsDemo={catalogSource === 'demo'}
                 canDefault={canDefault}
+                canToggle={canToggle}
+                toggleDisabled={toggleDisabled}
                 onOpen={() => setDetail(m)}
                 onDefault={() => setDefault(m)}
+                onToggle={() => {
+                  if (!canToggle || toggleDisabled) return;
+                  toggleModel(m.id);
+                }}
               />
             );
           })}

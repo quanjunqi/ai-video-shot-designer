@@ -1,14 +1,15 @@
 // EXPORTS: MODEL_CENTER_NAV, MODEL_CENTER_DEFAULT_PATH, modelCenterSectionForPath,
 //          type ModelCenterSectionKey, type ModelCenterNavItem
 //
-// 模型中心信息架构（IA v14 收敛，TASK-IA-001）：独立一级导航 = 模型控制台 6 项
-// 「模型广场 / 模型目录 / 渠道 / 成本与用量 / 审计日志 / 健康」。
+// 模型中心信息架构（IA v14 收敛，TASK-IA-001；TASK-MARKET-M8 收敛为 5 项）：
+// 独立一级导航 = 模型控制台 5 项「模型广场 / 渠道 / 成本与用量 / 审计日志 / 健康」。
 // 本模块只承载「导航事实」——项、层级、路径；不含 JSX 与图标，因此可被 node --test 直接断言。
-// v14 职责：广场=真实调用模型+详情；目录=能力归属；渠道=接入源（同步先加真实模型、归属后补）；
+// M8（Owner 三轮评审）：能力归属无消费证据（创作流只按类型+启用选模型）→ 归属编辑撤 UI（后端契约保留）；
+// 「模型目录」撤销（信息密度不足，展示与广场重叠）→ 导航 6 项 → 5 项；启停归位模型广场（Admin+）。
 // 用量唯一入口=模型中心（任务中心「账目」页签移除并重定向）。
-// 路由固定 /models/catalog|market|channels|costs|audit|health（删 /models/protocols，防重定向链）。
+// 路由固定 /models/market|channels|costs|audit|health（删 /models/protocols 与 /models/catalog，防重定向链）。
 
-export type ModelCenterSectionKey = 'catalog' | 'market' | 'channels' | 'costs' | 'audit' | 'health';
+export type ModelCenterSectionKey = 'market' | 'channels' | 'costs' | 'audit' | 'health';
 
 export interface ModelCenterNavItem {
   key: ModelCenterSectionKey;
@@ -20,10 +21,9 @@ export interface ModelCenterNavItem {
   task: string;
 }
 
-/** 左侧二级导航：6 项，顺序即产品顺序（IA v14） */
+/** 左侧二级导航：5 项，顺序即产品顺序（M8：目录撤销，启停归位广场） */
 export const MODEL_CENTER_NAV: readonly ModelCenterNavItem[] = [
   { key: 'market', label: '模型广场', path: '/models/market', task: '真实调用模型与详情，可设为个人创作默认' },
-  { key: 'catalog', label: '模型目录', path: '/models/catalog', task: '已接入模型的供应池与能力归属' },
   { key: 'channels', label: '渠道', path: '/models/channels', task: '模型从哪来：渠道接入与连通检测' },
   { key: 'costs', label: '成本与用量', path: '/models/costs', task: '钱花在哪、花多少、趋势如何' },
   { key: 'audit', label: '审计日志', path: '/models/audit', task: '每一次调用的完整记录与归因' },
