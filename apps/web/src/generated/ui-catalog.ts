@@ -3698,7 +3698,7 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 199,
+    "scannedFiles": 200,
     "text": [
       {
         "value": "xs",
@@ -3846,7 +3846,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "md",
-        "count": 93
+        "count": 94
       },
       {
         "value": "full",
