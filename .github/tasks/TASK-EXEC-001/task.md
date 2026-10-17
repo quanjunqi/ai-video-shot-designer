@@ -1,6 +1,6 @@
 ---
 taskId: TASK-EXEC-001
-status: 进行中
+status: 待验收
 priority: P1（真实调用链路打通；阻塞试跑/创作生成验证）
 pr:
 criteria: 5

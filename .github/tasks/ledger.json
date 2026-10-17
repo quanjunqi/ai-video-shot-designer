@@ -574,12 +574,26 @@
     {
       "id": "TASK-EXEC-001",
       "title": "execution→catalog 透传 X-Actor-Role（修复真实调用 403）",
-      "status": "进行中",
+      "status": "待验收",
       "priority": "P1（真实调用链路打通）",
-      "pr": null,
+      "pr": 234,
       "file": "[TASK-EXEC-001/task.md](TASK-EXEC-001/task.md)",
       "criteria": 5,
-      "criteriaPassed": 0
+      "criteriaPassed": 5,
+      "criteriaTotal": 5
+    },
+    {
+      "id": "TASK-MARKET-M3",
+      "title": "模型中心数据源真实化（广场/目录接 server）",
+      "status": "待开工",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-EXEC-001"
+      ],
+      "pr": null,
+      "criteriaPassed": 0,
+      "criteriaTotal": 6,
+      "file": "TASK-MARKET-M3/task.md"
     }
   ]
 }
