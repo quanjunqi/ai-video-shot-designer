@@ -155,14 +155,30 @@ func (h Handler) runModel(w http.ResponseWriter, r *http.Request) {
 			}
 			return e
 		}
-		out, err := engine.Run(r.Context(), creds, engine.RunRequest{
+		// TASK-MARKET-M4：async 协议（图片等 submit→poll）走 RunAsync，sync 协议保持 Run 行为不变。
+		asyncEnabled := false
+		if len(tmpl.Async) > 0 {
+			var asyncCfg struct {
+				Enabled bool `json:"enabled"`
+			}
+			if json.Unmarshal(tmpl.Async, &asyncCfg) == nil {
+				asyncEnabled = asyncCfg.Enabled
+			}
+		}
+		runReq := engine.RunRequest{
 			ChannelID:        m.ChannelID,
 			ProviderModel:    m.ProviderModel,
 			ProtocolTemplate: engine.Template{ID: tmpl.ID, Label: tmpl.Label, Method: tmpl.Method, RequestPath: tmpl.RequestPath, Params: tmpl.Params, ResponseParams: tmpl.ResponseParams, Async: tmpl.Async, RequestTemplate: tmpl.RequestTemplate},
 			ModelParams:      m.Params,
 			ModelRequestPath: m.RequestPath,
 			Runtime:          in.Runtime,
-		}, h.EngineClient)
+		}
+		var out engine.RunResult
+		if asyncEnabled {
+			out, err = engine.RunAsync(r.Context(), creds, runReq, h.EngineClient)
+		} else {
+			out, err = engine.Run(r.Context(), creds, runReq, h.EngineClient)
+		}
 		lastOut = out
 		if err != nil {
 			// T4 表 3-1：按错误码分类决定切换/直返；失败计入该单元（软 4xx/5xx/超时/网络）
