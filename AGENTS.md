@@ -74,7 +74,7 @@ cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 - **迁移执行器**：`deploy/local/migrate.sh`（`schema_migrations` 版本+校验和跟踪，每文件只执行一次，重复 `compose up` 安全）；既有库无跟踪记录 → **fail-closed 拒绝**，需 `MIGRATE_ADOPT=1`（或加 `MIGRATE_ADOPT_UNTIL=<version>`）显式采纳（只登记不执行 SQL）
 - **审计纪律**：`gateway_audit_logs` 必须**同步写**（禁异步）、密钥打码 `<REDACTED>`、禁止绕过 execution 网关直调上游（见 `.agents/skills/audit-ledger/SKILL.md`）
 - **后端红线**：覆盖率棘轮 fail-closed（无 internal/ 即失败；退出码 0/1/2，**2 = 无法判定 ≠ 通过**；扫描实际服务目录，新增服务未登记下限即失败；本地用 CI 等价库 `ci-repro-pg:15432`，见 `.agents/skills/backend-standards/SKILL.md`）、契约先行（错误码/状态枚举由契约定义）、金额禁 float64、错误码禁硬编码（见 `.agents/skills/backend-standards/SKILL.md`）
-- **前端红线**：CRUD 三态（loading/error/empty）必过、删除需确认弹窗、禁内联样式（动态值除外）（见 `.agents/skills/frontend-quality/SKILL.md`）
+- **前端红线**：CRUD 三态（loading/error/empty）必过、删除需确认弹窗、禁内联样式（动态值除外）（见 `.agents/skills/frontend-quality/SKILL.md`）；**交付前须跑 `npm run ui:check` + `npm test`**（CI Frontend Quality Gate 含此两项与生成物同步检查，本地 `npm run gate` 不含——2026-10-18 M6 曾因 ui-catalog 生成物未同步 + 源码级断言失配双红）
 - TypeScript 口径以 `apps/web/tsconfig.app.json` 为准（不是默认 tsconfig）。注意该文件目前 `strict: false`：类型安全靠 eslint（`no-explicit-any` 为 error）与审查兜底，别指望类型系统拦截
 - 测试不得依赖本地时区/系统时间（CI 跑 UTC）
 - 迁移文件只增不改，号段按服务认领

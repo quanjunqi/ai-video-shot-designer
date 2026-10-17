@@ -28,6 +28,16 @@
         "Seedance 能力依据 official/high",
         "console 无错误"
       ]
+    },
+    {
+      "ts": "2026-10-18T02:50:00+08:00",
+      "phase": "修复",
+      "action": "CI 失败复盘：#242 修 ui:generate 生成物 + 测试断言适配组件拆分",
+      "evidence": [
+        "#242 CI 13 项全绿",
+        "本地 197+50 测试 0 fail"
+      ],
+      "decisionRef": "D-003"
     }
   ]
 }
