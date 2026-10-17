@@ -1,0 +1,65 @@
+{
+  "taskId": "TASK-SETTINGS-P2",
+  "updatedAt": "2026-10-17T13:50:00+08:00",
+  "note": "设置中心 P2 骨架：账号/工作区/数据 3 区 + 外观·创作密度 + 通知开关（本地演示态，P3 显式禁用）",
+  "events": [
+    {
+      "ts": "2026-10-17T16:30:00+08:00",
+      "phase": "范围对齐",
+      "action": "查证 v14 设计稿分期：自动匹配接入方式=P3 增量（依赖后端/产品决策），修正上轮将其列为 P2 的错误推荐；P2 剩余=设置 3 区骨架+外观密度+通知开关",
+      "evidence": [
+        "prototypes/settings-redesign/设置中心与模型中心IA v14.html（§五 实施分期：P3=自动匹配接入方式/成员邀请/导出/真实账号体系）"
+      ]
+    },
+    {
+      "ts": "2026-10-17T16:40:00+08:00",
+      "phase": "评审",
+      "action": "产出 P2 骨架设计稿 v15（范围边界表/逐区线框/权限矩阵/验收标准 8 条）并交付 Owner 评审；Owner 授权按专业建议执行=范围 OK+权限选 A（数据区全员可操作+确认弹窗）",
+      "evidence": [
+        "prototypes/settings-redesign/设置中心P2骨架 v15.html",
+        "interaction_ask 回复：按照专业设定执行"
+      ]
+    },
+    {
+      "ts": "2026-10-17T17:00:00+08:00",
+      "phase": "立卡",
+      "action": "TASK-SETTINGS-P2 立卡：task.md/acceptance.md（8 判据+设计稿映射+三态+反模式）/devlog/devlog.events.json/design-prototype.html（v15 归档）；依赖 TASK-IA-001（已合并 #221）",
+      "evidence": [
+        ".github/tasks/TASK-SETTINGS-P2/task.md",
+        ".github/tasks/TASK-SETTINGS-P2/acceptance.md"
+      ]
+    }
+  ],
+  "decisions": [
+    "P2 范围=账号/工作区/数据 3 区骨架+外观·创作密度+通知开关（v14 §五 P2 分期），本地演示态",
+    "权限选 A：清理缓存/重置偏好全员可操作+确认弹窗（本机浏览器数据，非共享）",
+    "P3 项（昵称/邮箱编辑、登录方式、会话设备、邀请/调整/移除、共享预设库、导出、成员协作通知）一律显式禁用（禁僵尸按钮）",
+    "数据源：身份/角色=useAuthStore（/api/v1/me）；成员列表=本地 DEV_ACTORS（workspace 成员 API 为 P3）；密度/通知写入 preferences（persist v4 兼容迁移）"
+  ],
+  "verifications": [
+    {
+      "ts": "2026-10-17T13:30:00+08:00",
+      "item": "门禁：gate 0/0 · node --test 177/177 · vitest 50/50 · ui:check 绿 · visual:check 全绿",
+      "result": "pass",
+      "evidence": [
+        "npm run gate 输出",
+        "tests/settings-p2-skeleton.test.ts（6 项）"
+      ]
+    },
+    {
+      "ts": "2026-10-17T13:45:00+08:00",
+      "item": "浏览器走查三角色：Viewer 成员卡隐藏/数据全员/密度与通知渲染/导出协作 P3 禁用；Owner 成员卡出现+角色徽标联动",
+      "result": "pass",
+      "evidence": [
+        "mac_computer_use_tool 走查记录"
+      ]
+    }
+  ],
+  "blocks": [],
+  "disciplineSelfCheck": {
+    "AC-009 设计稿先于开发并经 Owner 评审": true,
+    "AC-010 开发日志随开发同步记录": true,
+    "AC-008 清单落成文件": true
+  },
+  "retrospective": ""
+}

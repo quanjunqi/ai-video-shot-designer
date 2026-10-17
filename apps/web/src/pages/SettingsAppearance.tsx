@@ -1,7 +1,8 @@
 // EXPORTS: default SettingsAppearancePage
-// 设置 > 外观（TASK-IA-001 v14 §三）：主题 / 语言（自偏好页迁入）+ 专家模式开关（新建，仅 Admin+ 显示）
+// 设置 > 外观（TASK-IA-001 v14 §三 + TASK-SETTINGS-P2 §四）：主题 / 语言（自偏好页迁入）+ 专家模式开关（新建，仅 Admin+ 显示）
+// + 创作界面密度（P2 新增：分镜字号/画布密度，写入 preferences.density，persist v4）。
 // 专家模式：展示渠道接入方式/参数映射/精细路由等高级配置入口（v14：接入方式=渠道向导高级区）
-import { Monitor, Sun, Moon, Languages, Wrench } from 'lucide-react';
+import { Monitor, Sun, Moon, Languages, Wrench, Scaling } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -16,10 +17,22 @@ const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
   { value: 'system', label: '跟随系统', icon: Monitor },
 ];
 
+const SHOT_SIZES = [
+  { value: 'compact', label: '紧凑' },
+  { value: 'standard', label: '标准' },
+  { value: 'relaxed', label: '宽松' },
+] as const;
+
+const CANVAS_DENSITIES = [
+  { value: 'normal', label: '普通' },
+  { value: 'high', label: '高密度' },
+] as const;
+
 export default function SettingsAppearancePage() {
   const theme = useSettingsStore((s) => s.theme);
   const language = useSettingsStore((s) => s.language);
   const expertMode = useSettingsStore((s) => s.expertMode);
+  const preferences = useSettingsStore((s) => s.preferences);
   const update = useSettingsStore((s) => s.update);
   const role = useAuthStore((s) => s.role);
   const canExpert = (ROLE_RANK[role] ?? 0) >= ROLE_RANK.admin;
@@ -62,6 +75,51 @@ export default function SettingsAppearancePage() {
             </Select>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center gap-2">
+          <Scaling className="h-4 w-4 text-primary" />
+          <Label className="text-sm font-medium">创作界面密度</Label>
+          <Badge variant="outline" className="font-mono text-2xs">本地偏好</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">分镜字号</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            {SHOT_SIZES.map((s) => (
+              <Button
+                key={s.value}
+                type="button"
+                size="sm"
+                variant={preferences.density.shotFontSize === s.value ? 'default' : 'outline'}
+                onClick={() => update({ preferences: { ...preferences, density: { ...preferences.density, shotFontSize: s.value } } })}
+                className="gap-1.5"
+              >
+                {s.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">画布密度</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            {CANVAS_DENSITIES.map((d) => (
+              <Button
+                key={d.value}
+                type="button"
+                size="sm"
+                variant={preferences.density.canvasDensity === d.value ? 'default' : 'outline'}
+                onClick={() => update({ preferences: { ...preferences, density: { ...preferences.density, canvasDensity: d.value } } })}
+                className="gap-1.5"
+              >
+                {d.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <p className="text-2xs text-muted-foreground">
+          创作页面按此密度渲染（本期仅存储与展示；分镜/画布组件适配在后续迭代接入）。
+        </p>
       </div>
 
       {canExpert && (

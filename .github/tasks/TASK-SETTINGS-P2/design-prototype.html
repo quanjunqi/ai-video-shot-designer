@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置中心 P2 骨架 · 评审稿 v15</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --line: #e4e7ec; --ink: #1f2329; --sub: #6b7280;
+    --p1: #2563eb; --p2: #7c3aed; --p3: #b45309; --ok: #16a34a; --warn: #b45309;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); padding: 24px; line-height: 1.6; }
+  .page { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: var(--sub); font-size: 13px; margin-bottom: 16px; }
+  h2 { font-size: 15px; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  h3 { font-size: 14px; margin: 18px 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600; }
+  .b-new { background: #eef2ff; color: var(--p1); }
+  .b-local { background: #f5f3ff; color: var(--p2); }
+  .b-p3 { background: #fef3c7; color: var(--p3); }
+  .cap { font-size: 12px; color: var(--sub); font-weight: 600; margin-bottom: 6px; letter-spacing: .5px; }
+  .wire { display: flex; gap: 14px; flex-wrap: wrap; }
+  .wcol { flex: 1; min-width: 240px; }
+  .witem { background: #fafbfc; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; }
+  .witem small { color: var(--sub); }
+  .witem .role { color: var(--p2); font-size: 11px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .muted { color: var(--sub); font-size: 12px; }
+  .ok { color: var(--ok); }
+  .amber { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  th { background: #fafbfc; font-weight: 600; }
+  .foot { margin-top: 24px; font-size: 12px; color: var(--sub); text-align: center; }
+  .mock { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 14px; font-size: 12.5px; }
+  .mock h4 { font-size: 13px; margin-bottom: 10px; }
+  .mock .field { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f2f3f5; }
+  .mock .field:last-child { border-bottom: 0; }
+  .mock label { width: 110px; color: var(--sub); font-size: 12px; flex-shrink: 0; }
+  .mock .val { flex: 1; }
+  .mock .btn { border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; font-size: 12px; background: #fff; }
+  .mock .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .mock .btn.danger { color: #dc2626; border-color: #fecaca; }
+  .mock .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .mock .pill { display: inline-block; font-size: 11px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); }
+  .pill.owner { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .pill.admin { background: #eef2ff; color: #3730a3; border-color: #c7d2fe; }
+  .pill.viewer { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+  .tag { font-size: 11px; color: var(--sub); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>设置中心 P2 骨架 · 评审稿 <span style="font-size:12px;color:var(--sub)">v15 · 2026-10-17</span></h1>
+  <p class="sub">范围：账号与安全 / 工作区与成员 / 数据与存储 3 区骨架实装 + 外观·创作密度 + 通知区开关。本地演示态（不依赖后端），真实账号体系相关项一律显式 P3 占位（禁僵尸按钮）。基线：v14（已合入 develop）。</p>
+
+  <h2>〇、P2 范围与边界（与 v14 分期对齐）</h2>
+  <div class="card">
+    <table>
+      <tr><th>区域</th><th>本期实装（本地态骨架）</th><th>显式 P3 占位（禁僵尸按钮）</th></tr>
+      <tr><td>3.1 账号与安全</td><td>当前身份卡（actorId / 角色徽标 / 工作区）；身份来源说明（dev 注入）</td><td>昵称/邮箱编辑 · 登录方式管理 · 会话与设备 · 退出登录（真实账号体系提供）</td></tr>
+      <tr><td>3.2 工作区与成员</td><td>工作区信息卡（标识 / 名称 / 角色计数）；成员列表展示（Admin+ 可见，本地三角色数据）</td><td>邀请 / 调整角色 / 移除 · 团队共享预设库（依赖 workspace 成员与授权）</td></tr>
+      <tr><td>3.5 数据与存储</td><td>离线缓存管理（容量展示 + 一键清理）；重置本地偏好（确认弹窗 → 恢复默认）</td><td>导出（项目/剧集/资产/分镜）· 云端存储管理</td></tr>
+      <tr><td>3.3 外观·创作密度</td><td>分镜字号（紧凑/标准/宽松）+ 画布密度（普通/高密度）——本地偏好存储</td><td>—</td></tr>
+      <tr><td>3.4 通知</td><td>任务完成 / 失败通知开关、渠道健康告警开关——本地偏好存储</td><td>成员协作通知（P3）</td></tr>
+    </table>
+    <p class="muted" style="margin-top:8px">原则：骨架 = 可交互的真实结构（展示/开关/清理/重置），但不假装有后端能力；凡需真实账号/成员/导出能力的入口，标注「P3 提供」且不可点击（禁僵尸按钮，frontend-quality）。</p>
+  </div>
+
+  <h2>一、3.1 账号与安全 <span class="badge b-new">骨架实装</span> <span class="badge b-p3">P3：真实账号体系</span></h2>
+  <div class="card">
+    <div class="wire">
+      <div class="wcol">
+        <div class="cap">身份卡（本地态 · 全员可见）</div>
+        <div class="mock">
+          <div class="field"><label>当前身份</label><div class="val"><b>user_dev</b> <span class="pill owner">Owner</span></div></div>
+          <div class="field"><label>工作区</label><div class="val">镜序 Studio · <span class="tag">ws_xxx（标识）</span></div></div>
+          <div class="field"><label>角色来源</label><div class="val muted">BFF <code>/api/v1/me</code>（workspace 授权端点解析）；当前为开发身份注入</div></div>
+        </div>
+        <p class="muted" style="margin-top:8px">头像：首字母圆形占位（不引入上传，P3 提供）。角色徽标随三角色切换实时变化（与 TopBar 同源 useAuthStore）。</p>
+      </div>
+      <div class="wcol">
+        <div class="cap">安全（显式 P3 占位）</div>
+        <div class="witem">昵称 / 邮箱编辑 <small class="role">P3 · 真实账号体系</small></div>
+        <div class="witem">登录方式 / 当前会话（退出登录）<small class="role">P3 · 不可点击</small></div>
+        <div class="witem">会话与设备管理 <small class="role">P3 · 不可点击</small></div>
+        <div class="witem">说明：本期不实现任何会修改身份的操作；「退出登录」在真实账号体系落地前不做假按钮</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>二、3.2 工作区与成员 <span class="badge b-new">骨架实装</span> <span class="badge b-p3">P3：成员操作</span></h2>
+  <div class="card">
+    <div class="wire">
+      <div class="wcol" style="flex:0 0 44%">
+        <div class="cap">工作区信息（本地态 · 全员可见）</div>
+        <div class="mock">
+          <div class="field"><label>工作区名称</label><div class="val">镜序 Studio</div></div>
+          <div class="field"><label>标识</label><div class="val tag">ws_xxx（来自 /api/v1/me）</div></div>
+          <div class="field"><label>创建时间</label><div class="val muted">—（P3 由 workspace 服务提供）</div></div>
+          <div class="field"><label>成员数量</label><div class="val">3（本地三角色）</div></div>
+        </div>
+        <div class="witem" style="margin-top:8px">团队共享预设库（镜头语言库 / 风格库 开关）<small class="role">P3 · 不可点击</small></div>
+      </div>
+      <div class="wcol">
+        <div class="cap">成员与角色（Admin+ 可见；Viewer 整区隐藏）</div>
+        <div class="mock">
+          <div class="field"><label>成员列表</label><div class="val">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span>user_dev <span class="pill owner">Owner</span> <span class="tag">最近活跃 刚刚</span></span>
+              <span>user_admin <span class="pill admin">Admin</span> <span class="tag">最近活跃 刚刚</span></span>
+              <span>user_viewer <span class="pill viewer">Viewer</span> <span class="tag">最近活跃 —</span></span>
+            </div>
+          </div></div>
+          <div class="field"><label>邀请成员</label><div class="val"><button class="btn" disabled>邀请（P3）</button></div></div>
+          <div class="field"><label>调整角色 / 移除</label><div class="val"><button class="btn" disabled>调整（P3）</button></div></div>
+        </div>
+        <p class="muted" style="margin-top:8px">数据源：本地 DEV_ACTORS 三角色（与 TopBar 切换下拉同源）；workspace 成员 API 在 P3 接入后替换为真实数据。Viewer 看不到本卡（权限矩阵）。</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>三、3.5 数据与存储 <span class="badge b-new">骨架实装</span> <span class="badge b-p3">P3：导出</span></h2>
+  <div class="card">
+    <div class="wire">
+      <div class="wcol" style="flex:0 0 46%">
+        <div class="cap">本地数据（全员可见）</div>
+        <div class="mock">
+          <div class="field"><label>本地存储用量</label><div class="val">离线模板缓存 / 草稿 <span class="tag">约 0.4 MB（动态统计 localStorage）</span></div></div>
+          <div class="field"><label>清理离线缓存</label><div class="val"><button class="btn">清理</button> <span class="tag">仅清离线目录缓存，不动偏好</span></div></div>
+          <div class="field"><label>重置本地偏好</label><div class="val"><button class="btn danger">重置</button> <span class="tag">确认弹窗 → 恢复默认设置</span></div></div>
+          <div class="field"><label>导出</label><div class="val"><button class="btn" disabled>导出（P3）</button> <span class="tag">项目/剧集/资产/分镜</span></div></div>
+        </div>
+        <p class="muted" style="margin-top:8px">交互：清理/重置均需二次确认（破坏性操作，禁误触）；重置范围=本系统偏好键（mdp:settings 等），不动用户项目数据。</p>
+      </div>
+      <div class="wcol">
+        <div class="cap">边界说明</div>
+        <div class="witem">「清理离线缓存」= 清 catalog offline-fallback 快照，保留渠道/模型/偏好（它们可再同步恢复）</div>
+        <div class="witem">「重置本地偏好」= 清 useSettingsStore persist（mdp:settings v3），刷新后回到默认值；需确认弹窗（内容列出将被重置的项）</div>
+        <div class="witem">导出与云端存储管理 = 显式 P3 占位（禁僵尸按钮）</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>四、3.3 外观·创作密度 & 3.4 通知 <span class="badge b-local">本地偏好新增</span></h2>
+  <div class="card">
+    <div class="wire">
+      <div class="wcol">
+        <div class="cap">外观（在现有页追加一节）</div>
+        <div class="mock">
+          <div class="field"><label>分镜字号</label><div class="val"><button class="btn">紧凑</button> <button class="btn primary">标准</button> <button class="btn">宽松</button></div></div>
+          <div class="field"><label>画布密度</label><div class="val"><button class="btn primary">普通</button> <button class="btn">高密度</button></div></div>
+        </div>
+        <p class="muted" style="margin-top:8px">写入 preferences（新增 density 字段，persist v4）；创作页后续按此生效（本期仅存储与展示）。</p>
+      </div>
+      <div class="wcol">
+        <div class="cap">通知（在现有页追加一节）</div>
+        <div class="mock">
+          <div class="field"><label>任务完成通知</label><div class="val"><span style="display:inline-flex;gap:6px;align-items:center"><span class="pill admin">开关</span> 完成/失败时提醒</span></div></div>
+          <div class="field"><label>渠道健康告警</label><div class="val"><span style="display:inline-flex;gap:6px;align-items:center"><span class="pill admin">开关</span> 关联健康页</span></div></div>
+          <div class="field"><label>成员协作通知</label><div class="val"><button class="btn" disabled>P3</button></div></div>
+        </div>
+        <p class="muted" style="margin-top:8px">写入 preferences（notifications 开关）；本期仅存储与展示，真实推送 P3。</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>五、权限矩阵（沿用 v14 角色体系）</h2>
+  <div class="card">
+    <table>
+      <tr><th>内容</th><th>Owner</th><th>Admin</th><th>Viewer</th><th>说明</th></tr>
+      <tr><td>账号身份卡 / 工作区信息卡</td><td>✓</td><td>✓</td><td>✓</td><td>全员可见（只读展示）</td></tr>
+      <tr><td>成员与角色列表</td><td>✓</td><td>✓</td><td>—</td><td>整区隐藏（ROLE_RANK ≥ admin）</td></tr>
+      <tr><td>数据与存储（清理 / 重置）</td><td>✓</td><td>✓</td><td>✓</td><td>破坏性操作全员可做？——<b>待定</b>：建议 Admin+（见下方待确认）</td></tr>
+      <tr><td>创作密度 / 通知开关</td><td>✓</td><td>✓</td><td>✓</td><td>个人偏好，全员可改</td></tr>
+      <tr><td>P3 占位项</td><td colspan="3" style="text-align:center">一律不可点击</td><td>禁僵尸按钮</td></tr>
+    </table>
+    <div class="amber"><b>待确认（1 项）</b>：数据与存储的「清理离线缓存 / 重置本地偏好」权限——(A) 全员可操作（个人本地数据）；(B) 仅 Admin+（破坏性操作分级）。默认建议 (A) 全员可操作（作用于本机浏览器，非共享数据），仅确认弹窗兜底。</div>
+  </div>
+
+  <h2>六、验收标准（映射 v14 §3 与 frontend-quality）</h2>
+  <div class="card">
+    <table>
+      <tr><th>#</th><th>判据</th></tr>
+      <tr><td>1</td><td>账号区：身份卡展示 actorId/角色徽标/工作区标识；角色随 TopBar 切换实时变化；P3 项全部不可点击</td></tr>
+      <tr><td>2</td><td>工作区区：信息卡展示；成员列表（Admin+ 可见，Viewer 隐藏整区）；邀请/调整/移除=禁用态</td></tr>
+      <tr><td>3</td><td>数据区：存储用量动态统计；清理/重置带确认弹窗；重置后刷新恢复默认（store persist 生效）；导出=禁用态</td></tr>
+      <tr><td>4</td><td>外观追加：分镜字号/画布密度三态切换，写入 preferences（persist v4 兼容迁移）</td></tr>
+      <tr><td>5</td><td>通知追加：任务/告警开关写入 preferences；P3 协作通知禁用</td></tr>
+      <tr><td>6</td><td>三态齐备：loading/error/empty 边界；无僵尸按钮；页面 ≤300 行（骨架页拆分组件）</td></tr>
+      <tr><td>7</td><td>门禁：npm run gate=0/0、node --test 全绿（含导航/权限测试更新）、ui:check 绿、visual:check 绿（基线更新）</td></tr>
+      <tr><td>8</td><td>走查：三角色实测（账号/工作区/数据 × Owner/Admin/Viewer），P3 占位断言不可点</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">镜序 Studio · 设置中心 P2 骨架评审稿 v15 · 2026-10-17 · 评审通过后立卡实施（TASK 前缀待定）</div>
+</div>
+</body>
+</html>

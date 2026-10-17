@@ -310,7 +310,7 @@ export const UI_CATALOG: UiCatalog = {
         }
       ],
       "usage": {
-        "count": 41,
+        "count": 44,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolEvidence.tsx",
@@ -348,8 +348,11 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/ModelMarket.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
           "apps/web/src/pages/SettingsAbout.tsx",
+          "apps/web/src/pages/SettingsAccount.tsx",
           "apps/web/src/pages/SettingsAppearance.tsx",
+          "apps/web/src/pages/SettingsData.tsx",
           "apps/web/src/pages/SettingsNotifications.tsx",
+          "apps/web/src/pages/SettingsWorkspace.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx",
           "apps/web/src/pages/Tasks.tsx"
@@ -485,7 +488,7 @@ export const UI_CATALOG: UiCatalog = {
         }
       ],
       "usage": {
-        "count": 50,
+        "count": 51,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolParamOverrides.tsx",
@@ -534,6 +537,7 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/ModelMarket.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
           "apps/web/src/pages/SettingsAppearance.tsx",
+          "apps/web/src/pages/SettingsData.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx",
           "apps/web/src/pages/Tasks.tsx"
@@ -890,7 +894,7 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 24,
+        "count": 25,
         "files": [
           "apps/web/src/components/ui/command.tsx",
           "apps/web/src/features/comic/AddEpisodeDialog.tsx",
@@ -914,6 +918,7 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/EpisodeWorkbench.tsx",
           "apps/web/src/pages/ModelChannels.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
+          "apps/web/src/pages/SettingsData.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx"
         ]
@@ -2324,11 +2329,12 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 3,
+        "count": 4,
         "files": [
           "apps/web/src/features/rules/PromptRulesTab.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsAppearance.tsx"
+          "apps/web/src/pages/SettingsAppearance.tsx",
+          "apps/web/src/pages/SettingsNotifications.tsx"
         ]
       },
       "dead": false,
@@ -3700,11 +3706,11 @@ export const UI_CATALOG: UiCatalog = {
     "text": [
       {
         "value": "xs",
-        "count": 369
+        "count": 382
       },
       {
         "value": "sm",
-        "count": 202
+        "count": 205
       },
       {
         "value": "lg",
@@ -3736,23 +3742,23 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 698
-      },
-      {
-        "value": "1",
-        "count": 449
+        "count": 735
       },
       {
         "value": "3",
-        "count": 439
+        "count": 451
+      },
+      {
+        "value": "1",
+        "count": 450
       },
       {
         "value": "1.5",
-        "count": 329
+        "count": 331
       },
       {
         "value": "4",
-        "count": 246
+        "count": 262
       },
       {
         "value": "0.5",
@@ -3776,7 +3782,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "8",
-        "count": 23
+        "count": 20
       },
       {
         "value": "10",
@@ -3832,11 +3838,11 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 191
+        "count": 192
       },
       {
         "value": "xl",
-        "count": 164
+        "count": 170
       },
       {
         "value": "DEFAULT",
@@ -3848,7 +3854,7 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "full",
-        "count": 68
+        "count": 69
       },
       {
         "value": "2xl",
