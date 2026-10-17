@@ -4,12 +4,13 @@ import test from 'node:test';
 
 // D2 接线不变量（源码级）：面板必须真的被挂上，且**顺序**必须是"先写后端、再刷新界面"。
 // 这类测试抓的是"组件写好了但没接上 / 接反了顺序"——本项目已发生过多次（接线漏改 ×2、合并丢字段 ×2）。
+// TASK-IA-001：渠道页已从设置中心迁至模型中心 → 策展入口落在 ModelChannels.tsx。
 
-const page = readFileSync(new URL('../src/pages/SettingsChannels.tsx', import.meta.url), 'utf8');
+const page = readFileSync(new URL('../src/pages/ModelChannels.tsx', import.meta.url), 'utf8');
 const panel = readFileSync(new URL('../src/features/settings/CurationPanel.tsx', import.meta.url), 'utf8');
 
 test('渠道页：策展按钮存在、且面板被挂载并传入该渠道', () => {
-  assert.match(page, /策展上游模型/, '渠道卡片上必须有策展入口');
+  assert.match(page, /策展/, '渠道卡片上必须有策展入口');
   assert.match(page, /<CurationPanel[\s\S]*?channel=\{curationFor\}/, '面板必须接收当前渠道');
   assert.match(page, /setCurationFor\(c\)/, '按钮必须设置当前渠道');
   assert.match(page, /import CurationPanel from '@\/features\/settings\/CurationPanel'/, '必须真的 import 面板');

@@ -1,5 +1,6 @@
 // 阶段级模型选择器（L6：每个阶段随时换模型）
-// 生效顺序：阶段覆盖(episode.stageModels) → 项目默认(仅图片/视频) → 目录该类型首项
+// 生效顺序（TASK-IA-001 v14，Owner 确认）：阶段覆盖(episode.stageModels) → 项目默认(仅图片/视频)
+// → 个人创作默认(preferences) → 目录该类型首项
 // 切换写入剧集级 stageModels（persist），换模型即影响该阶段真实执行与容量展示。
 import { useMemo } from 'react';
 import { Check, ChevronDown, Wand2 } from 'lucide-react';
@@ -14,6 +15,13 @@ const TYPE_KEY: Record<Exclude<ModelType, 'all'>, 'text' | 'image' | 'video'> = 
   text: 'text',
   image: 'image',
   video: 'video',
+};
+
+/** 个人创作默认字段（v14：广场「设为默认」写入 defaultPrefs，此处作为项目默认之下的兜底层） */
+const PREF_KEY: Record<'text' | 'image' | 'video', 'defaultTextModel' | 'defaultImageModel' | 'defaultVideoModel'> = {
+  text: 'defaultTextModel',
+  image: 'defaultImageModel',
+  video: 'defaultVideoModel',
 };
 
 export default function StageModelPicker({
@@ -33,6 +41,7 @@ export default function StageModelPicker({
   hint?: string;
 }) {
   const models = useSettingsStore((s) => s.models);
+  const preferences = useSettingsStore((s) => s.preferences);
   const episode = useEpisodeStore((s) => s.episodes.find((e) => e.id === episodeId));
   const project = useProjectStore((s) => s.projects.find((p) => p.id === episode?.projectId));
 
@@ -47,22 +56,20 @@ export default function StageModelPicker({
 
   const slot = episode?.stageModels?.[stage] as StageModelSlot | undefined;
 
-  // 生效模型 id：阶段覆盖 → 项目默认（name→id）→ 目录首项
+  // 生效模型 id：阶段覆盖 → 项目默认（name→id）→ 个人默认（name→id）→ 目录首项
   // 刻意不用 useMemo：options 本身已 memo，依赖数组无论写 options 还是 models 都会
   // 与 React Compiler 的推断冲突（preserve-manual-memoization / exhaustive-deps 二选一），
   // 列表规模小，直接计算即可。
   const effectiveId = (() => {
     if (slot?.[TYPE_KEY[type]]) return slot[TYPE_KEY[type]] as string;
-    if (type === 'text' && project?.defaultTextModel) {
-      const hit = options.find((m) => m.name === project.defaultTextModel);
+    const projectDefault = type === 'text' ? project?.defaultTextModel : type === 'image' ? project?.defaultImageModel : project?.defaultVideoModel;
+    if (projectDefault) {
+      const hit = options.find((m) => m.name === projectDefault);
       if (hit) return hit.id;
     }
-    if (type === 'image' && project?.defaultImageModel) {
-      const hit = options.find((m) => m.name === project.defaultImageModel);
-      if (hit) return hit.id;
-    }
-    if (type === 'video' && project?.defaultVideoModel) {
-      const hit = options.find((m) => m.name === project.defaultVideoModel);
+    const personalDefault = preferences[PREF_KEY[type]];
+    if (personalDefault) {
+      const hit = options.find((m) => m.name === personalDefault);
       if (hit) return hit.id;
     }
     return options[0]?.id ?? '';
@@ -70,16 +77,24 @@ export default function StageModelPicker({
 
   const effective = options.find((m) => m.id === effectiveId) ?? null;
 
-  // 来源标注：阶段覆盖 / 项目默认 / 目录默认
+  // 来源标注：阶段覆盖 / 项目默认 / 个人默认 / 目录默认
+  const projectDefaultHit =
+    (type === 'text' && project?.defaultTextModel) ||
+    (type === 'image' && project?.defaultImageModel) ||
+    (type === 'video' && project?.defaultVideoModel)
+      ? options.find((m) => m.name === (type === 'text' ? project?.defaultTextModel : type === 'image' ? project?.defaultImageModel : project?.defaultVideoModel))
+      : undefined;
+  const personalDefaultHit = preferences[PREF_KEY[type]]
+    ? options.find((m) => m.name === preferences[PREF_KEY[type]])
+    : undefined;
+
   const sourceTag = slot?.[TYPE_KEY[type]]
     ? '阶段覆盖'
-    : project?.defaultTextModel && type === 'text' && options.find((m) => m.name === project.defaultTextModel)
+    : projectDefaultHit
       ? '项目默认'
-      : project?.defaultImageModel && type === 'image' && options.find((m) => m.name === project.defaultImageModel)
-        ? '项目默认'
-        : project?.defaultVideoModel && type === 'video' && options.find((m) => m.name === project.defaultVideoModel)
-          ? '项目默认'
-          : '目录默认';
+      : personalDefaultHit
+        ? '个人默认'
+        : '目录默认';
 
   const change = (id: string) => {
     const cur = { ...(episode?.stageModels ?? {}) };

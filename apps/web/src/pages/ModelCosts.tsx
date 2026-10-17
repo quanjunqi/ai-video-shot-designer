@@ -1,10 +1,12 @@
 // EXPORTS: default ModelCostsPage
 // 成本与用量（高保真稿 GATE-2 成本页，T2-2）：4 KPI + ECharts 成本/调用趋势 +
-// 四维排行 + 粒度/归因筛选 + 预算只读占位（T3 前）。数据源 = T2-1 聚合 API（经 BFF 透传）。
+// 四维排行 + 粒度/归因筛选 + 预算规则区块（TASK-IA-001 v14 §2.6：预算从设置中心迁入）。
+// 数据源 = T2-1 聚合 API（经 BFF 透传）；预算区块复用 T3 API（数据层零改动）。
 import { useEffect, useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { RefreshCw } from 'lucide-react';
 import { api, type AuditStat, type AuditTrendPoint } from '@/lib/api/client';
+import BudgetRulesSection from '@/features/settings/BudgetRulesSection';
 import { cn } from '@/lib/utils';
 
 type Granularity = 'day' | 'week' | 'month';
@@ -256,14 +258,8 @@ export default function ModelCostsPage() {
         </section>
       </div>
 
-      {/* 预算只读占位（T3 预算拦截实现前的显式占位；超管可见，普通成员不可见待 T10 权限矩阵） */}
-      <section className="rounded-xl border border-dashed border-border bg-accent/30 px-4 py-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-medium text-foreground">月度预算</span>
-          <span className="text-muted-foreground">未配置 · T3 开放</span>
-        </div>
-        <p className="mt-1 text-2xs text-muted-foreground">预算拦截只基于已校准价格，配置功能随 T3 上线。</p>
-      </section>
+      {/* 预算规则区块（TASK-IA-001 v14：预算从设置中心迁入成本页；浏览全员、操作 Admin+） */}
+      <BudgetRulesSection />
 
       <p className="border-t border-dashed border-border pt-2 text-2xs text-muted-foreground">
         成本双口径：已校准（权威价格回写）与预估（价格未校准的调用计数）。预算拦截只基于已校准价格。

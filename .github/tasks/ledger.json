@@ -145,11 +145,13 @@
     },
     {
       "id": "TASK-IA-001",
-      "title": "模型中心/设置中心信息架构整改（预算迁入成本与用量，方案 A；Owner 2026-10-15 拍板）",
+      "title": "模型中心/设置中心信息架构收敛重建（v14 P1：6 项导航实装+设置 6 区+用量唯一入口；Owner 2026-10-17 确认 2 决策）",
       "status": "进行中",
       "priority": "P1（排期 v2 §3.3 第 2 波首位；解锁 CREATE 系列）",
       "pr": null,
-      "file": "[TASK-IA-001/task.md](TASK-IA-001/task.md)"
+      "file": "[TASK-IA-001/task.md](TASK-IA-001/task.md)",
+      "criteria": 15,
+      "criteriaPassed": 15
     },
     {
       "id": "TASK-INFRA-001",

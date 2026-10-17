@@ -310,7 +310,7 @@ export const UI_CATALOG: UiCatalog = {
         }
       ],
       "usage": {
-        "count": 39,
+        "count": 41,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolEvidence.tsx",
@@ -335,6 +335,7 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/home/RecentProjects.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
           "apps/web/src/features/rules/RuleVersionList.tsx",
+          "apps/web/src/features/settings/BudgetRulesSection.tsx",
           "apps/web/src/features/settings/CurationPanel.tsx",
           "apps/web/src/features/settings/LogicalModelCandidatesPanel.tsx",
           "apps/web/src/layouts/TopBar.tsx",
@@ -342,12 +343,13 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/ComicProjectDetail.tsx",
           "apps/web/src/pages/ComicProjects.tsx",
           "apps/web/src/pages/EpisodeWorkbench.tsx",
+          "apps/web/src/pages/ModelCatalog.tsx",
+          "apps/web/src/pages/ModelChannels.tsx",
+          "apps/web/src/pages/ModelMarket.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsChannels.tsx",
-          "apps/web/src/pages/SettingsLogicalModels.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsPreferences.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx",
+          "apps/web/src/pages/SettingsAbout.tsx",
+          "apps/web/src/pages/SettingsAppearance.tsx",
+          "apps/web/src/pages/SettingsNotifications.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx",
           "apps/web/src/pages/Tasks.tsx"
@@ -518,6 +520,7 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
           "apps/web/src/features/rules/RuleVersionList.tsx",
+          "apps/web/src/features/settings/BudgetRulesSection.tsx",
           "apps/web/src/features/settings/CurationPanel.tsx",
           "apps/web/src/features/settings/LogicalModelCandidatesPanel.tsx",
           "apps/web/src/layouts/TopBar.tsx",
@@ -526,12 +529,11 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/pages/ComicProjectDetail.tsx",
           "apps/web/src/pages/ComicProjects.tsx",
           "apps/web/src/pages/EpisodeWorkbench.tsx",
+          "apps/web/src/pages/ModelCatalog.tsx",
+          "apps/web/src/pages/ModelChannels.tsx",
+          "apps/web/src/pages/ModelMarket.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsChannels.tsx",
-          "apps/web/src/pages/SettingsLogicalModels.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsPreferences.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx",
+          "apps/web/src/pages/SettingsAppearance.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx",
           "apps/web/src/pages/Tasks.tsx"
@@ -617,10 +619,11 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 2,
+        "count": 3,
         "files": [
           "apps/web/src/features/rules/PromptRulesTab.tsx",
-          "apps/web/src/pages/RulesCenterPage.tsx"
+          "apps/web/src/pages/RulesCenterPage.tsx",
+          "apps/web/src/pages/SettingsAbout.tsx"
         ]
       },
       "dead": false,
@@ -707,11 +710,10 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 3,
+        "count": 2,
         "files": [
           "apps/web/src/features/comic/CharacterStage.tsx",
-          "apps/web/src/features/settings/LogicalModelCandidatesPanel.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx"
+          "apps/web/src/features/settings/LogicalModelCandidatesPanel.tsx"
         ]
       },
       "dead": false,
@@ -756,11 +758,9 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 3,
+        "count": 1,
         "files": [
-          "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx"
+          "apps/web/src/features/genworkbench/CreateWorkbench.tsx"
         ]
       },
       "dead": false,
@@ -890,7 +890,7 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 27,
+        "count": 24,
         "files": [
           "apps/web/src/components/ui/command.tsx",
           "apps/web/src/features/comic/AddEpisodeDialog.tsx",
@@ -907,16 +907,13 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/genworkbench/MentionTextarea.tsx",
           "apps/web/src/features/genworkbench/ReferenceBar.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
+          "apps/web/src/features/settings/BudgetRulesSection.tsx",
           "apps/web/src/features/settings/CurationPanel.tsx",
           "apps/web/src/pages/Assets.tsx",
           "apps/web/src/pages/Canvas.tsx",
           "apps/web/src/pages/EpisodeWorkbench.tsx",
+          "apps/web/src/pages/ModelChannels.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsChannels.tsx",
-          "apps/web/src/pages/SettingsLogicalModels.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsPreferences.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx"
         ]
@@ -1259,7 +1256,7 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 29,
+        "count": 27,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/ProtocolParamOverrides.tsx",
@@ -1277,17 +1274,15 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
           "apps/web/src/features/home/CreationSquare.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
+          "apps/web/src/features/settings/BudgetRulesSection.tsx",
           "apps/web/src/features/settings/CurationPanel.tsx",
           "apps/web/src/features/settings/LogicalModelCandidatesPanel.tsx",
           "apps/web/src/pages/Assets.tsx",
           "apps/web/src/pages/Canvas.tsx",
           "apps/web/src/pages/ComicProjects.tsx",
+          "apps/web/src/pages/ModelCatalog.tsx",
+          "apps/web/src/pages/ModelChannels.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsChannels.tsx",
-          "apps/web/src/pages/SettingsLogicalModels.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsPreferences.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx"
         ]
@@ -1511,16 +1506,16 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/comic/asset/AssetPromptCard.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
           "apps/web/src/features/rules/PromptRulesTab.tsx",
+          "apps/web/src/features/settings/BudgetRulesSection.tsx",
           "apps/web/src/features/settings/CurationPanel.tsx",
           "apps/web/src/features/settings/LogicalModelCandidatesPanel.tsx",
           "apps/web/src/pages/Assets.tsx",
           "apps/web/src/pages/Canvas.tsx",
+          "apps/web/src/pages/ModelCatalog.tsx",
+          "apps/web/src/pages/ModelChannels.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsChannels.tsx",
-          "apps/web/src/pages/SettingsLogicalModels.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsPreferences.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx",
+          "apps/web/src/pages/SettingsAppearance.tsx",
+          "apps/web/src/pages/SettingsNotifications.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/StyleLibraryPage.tsx"
         ]
@@ -1866,7 +1861,7 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": true,
       "variants": [],
       "usage": {
-        "count": 22,
+        "count": 23,
         "files": [
           "apps/web/src/components/ParamEditor.tsx",
           "apps/web/src/components/common/FilterBar.tsx",
@@ -1879,15 +1874,16 @@ export const UI_CATALOG: UiCatalog = {
           "apps/web/src/features/comic/asset/AssetPromptCard.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
           "apps/web/src/features/home/CreationSquare.tsx",
+          "apps/web/src/features/settings/BudgetRulesSection.tsx",
           "apps/web/src/features/settings/CurationPanel.tsx",
           "apps/web/src/pages/Assets.tsx",
           "apps/web/src/pages/Canvas.tsx",
           "apps/web/src/pages/ComicProjects.tsx",
-          "apps/web/src/pages/SettingsChannels.tsx",
-          "apps/web/src/pages/SettingsLogicalModels.tsx",
-          "apps/web/src/pages/SettingsModels.tsx",
-          "apps/web/src/pages/SettingsPreferences.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx",
+          "apps/web/src/pages/ModelCatalog.tsx",
+          "apps/web/src/pages/ModelChannels.tsx",
+          "apps/web/src/pages/ModelMarket.tsx",
+          "apps/web/src/pages/SettingsAppearance.tsx",
+          "apps/web/src/pages/SettingsNotifications.tsx",
           "apps/web/src/pages/ShotLanguage.tsx",
           "apps/web/src/pages/Tasks.tsx"
         ]
@@ -1996,11 +1992,13 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 3,
+        "count": 5,
         "files": [
           "apps/web/src/components/ui/sidebar.tsx",
           "apps/web/src/features/genworkbench/CreateWorkbench.tsx",
-          "apps/web/src/features/tasks/TaskDetailSheet.tsx"
+          "apps/web/src/features/tasks/TaskDetailSheet.tsx",
+          "apps/web/src/pages/ModelCatalog.tsx",
+          "apps/web/src/pages/ModelMarket.tsx"
         ]
       },
       "dead": false,
@@ -2330,7 +2328,7 @@ export const UI_CATALOG: UiCatalog = {
         "files": [
           "apps/web/src/features/rules/PromptRulesTab.tsx",
           "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/SettingsProtocols.tsx"
+          "apps/web/src/pages/SettingsAppearance.tsx"
         ]
       },
       "dead": false,
@@ -2438,11 +2436,10 @@ export const UI_CATALOG: UiCatalog = {
       "asChild": false,
       "variants": [],
       "usage": {
-        "count": 3,
+        "count": 2,
         "files": [
           "apps/web/src/features/comic/NewProjectDialog.tsx",
-          "apps/web/src/pages/RulesCenterPage.tsx",
-          "apps/web/src/pages/Tasks.tsx"
+          "apps/web/src/pages/RulesCenterPage.tsx"
         ]
       },
       "dead": false,
@@ -3699,23 +3696,23 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 190,
+    "scannedFiles": 195,
     "text": [
       {
         "value": "xs",
-        "count": 434
+        "count": 369
       },
       {
         "value": "sm",
-        "count": 195
+        "count": 202
       },
       {
         "value": "lg",
-        "count": 20
+        "count": 16
       },
       {
         "value": "base",
-        "count": 11
+        "count": 10
       },
       {
         "value": "xl",
@@ -3739,39 +3736,39 @@ export const UI_CATALOG: UiCatalog = {
     "spacing": [
       {
         "value": "2",
-        "count": 726
+        "count": 698
       },
       {
         "value": "1",
-        "count": 511
+        "count": 449
       },
       {
         "value": "3",
-        "count": 452
+        "count": 439
       },
       {
         "value": "1.5",
-        "count": 395
+        "count": 329
       },
       {
         "value": "4",
-        "count": 252
+        "count": 246
       },
       {
         "value": "0.5",
-        "count": 133
+        "count": 119
       },
       {
         "value": "2.5",
-        "count": 113
+        "count": 87
       },
       {
         "value": "6",
-        "count": 77
+        "count": 74
       },
       {
         "value": "0",
-        "count": 34
+        "count": 35
       },
       {
         "value": "5",
@@ -3779,14 +3776,14 @@ export const UI_CATALOG: UiCatalog = {
       },
       {
         "value": "8",
-        "count": 21
-      },
-      {
-        "value": "12",
-        "count": 9
+        "count": 23
       },
       {
         "value": "10",
+        "count": 10
+      },
+      {
+        "value": "12",
         "count": 9
       },
       {
@@ -3835,19 +3832,19 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 212
+        "count": 191
       },
       {
         "value": "xl",
-        "count": 169
+        "count": 164
       },
       {
         "value": "DEFAULT",
-        "count": 113
+        "count": 105
       },
       {
         "value": "md",
-        "count": 97
+        "count": 91
       },
       {
         "value": "full",
@@ -3935,7 +3932,7 @@ export const UI_CATALOG: UiCatalog = {
     "leading": [
       {
         "value": "relaxed",
-        "count": 75
+        "count": 63
       },
       {
         "value": "none",
@@ -3964,11 +3961,11 @@ export const UI_CATALOG: UiCatalog = {
     ],
     "tracking": [
       {
-        "value": "wide",
-        "count": 12
+        "value": "wider",
+        "count": 7
       },
       {
-        "value": "wider",
+        "value": "wide",
         "count": 7
       },
       {
