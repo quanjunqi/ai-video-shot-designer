@@ -26,3 +26,10 @@ test('M11: 不得退化为单键（只传 model_id 会致 execution 拒绝）', 
   const modelIdCount = (seg.match(/modelId:/g) ?? []).length;
   assert.ok(modelIdCount >= 1, 'payload 至少出现一次 modelId: 赋值');
 });
+
+test('M11b: payload 必须携带 runtime 对象（engine 装配 role=runtime 参数，缺 prompt 上游 400）', () => {
+  const at = wb.indexOf('const payload = {');
+  const seg = wb.slice(at, at + 1100);
+  assert.match(seg, /runtime: \{ prompt: promptText/, 'runtime 必须含 prompt（engine 权威消费）');
+  assert.match(seg, /runtime: \{ prompt: promptText, \.\.\.submitValues/, 'runtime 必须透传其余业务参数');
+});

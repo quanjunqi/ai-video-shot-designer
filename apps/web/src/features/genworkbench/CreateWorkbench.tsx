@@ -232,6 +232,9 @@ export default function CreateWorkbench({
           // BFF 对 payload 直接透传不重命名 → 缺 modelId 会「missing modelId in payload」。
           // 双写：modelId 权威（worker 消费），model_id 保留（草稿复用/详情展示兼容）。
           modelId: model?.id,
+          // M11b：engine 按 payload.runtime 装配 role=runtime 参数（模板 prompt 等），
+          // 缺 runtime 对象 → 上游 400 Missing required parameter: prompt。
+          runtime: { prompt: promptText, ...submitValues },
           protocol_template_id: model?.protocolTemplateId,
           references,
           mentions: mentionsPayload,
