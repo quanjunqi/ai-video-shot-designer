@@ -1,6 +1,6 @@
 {
   "taskId": "TASK-MARKET-M2",
-  "updatedAt": "2026-10-17T19:30:00+08:00",
+  "updatedAt": "2026-10-17T20:00:00+08:00",
   "events": [
     {
       "ts": "2026-10-17T19:00:00+08:00",
@@ -25,6 +25,17 @@
         "ui/visual 绿",
         "walkthrough /models/market Owner+Viewer"
       ]
+    },
+    {
+      "ts": "2026-10-17T20:00:00+08:00",
+      "phase": "增量",
+      "action": "按 Owner 决策开放图片试跑（prompt runtime）、视频保持禁用",
+      "evidence": [
+        "apps/web/src/pages/ModelMarket.tsx",
+        "services/execution/internal/engine/api_connector.go",
+        "apps/web/tests/market-model-run.test.ts"
+      ],
+      "decisionRef": "D-003"
     }
   ],
   "decisions": [
@@ -47,6 +58,17 @@
       ],
       "choice": "如实展示",
       "reason": "前端如实上报真实链路结果；execution→catalog actor 403 是本地 dev 链路配置问题，单独立项处理"
+    },
+    {
+      "id": "D-003",
+      "topic": "试跑范围",
+      "options": [
+        "仅文本",
+        "文本+图片，视频禁用",
+        "全部开放"
+      ],
+      "choice": "文本+图片，视频禁用",
+      "reason": "Owner 明确：图片可测试（prompt 是协议模板标准 runtime 字段）；视频成本高暂不开放"
     }
   ],
   "verifications": [

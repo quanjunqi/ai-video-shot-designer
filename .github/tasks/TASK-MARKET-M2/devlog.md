@@ -77,3 +77,9 @@
 - **动作**：本地全量门禁 + 浏览器走查（Owner/Viewer）。
 - **证据/结果**：gate 0/0；node --test 196/196（含 M2 新增 6）；vitest 50/50；ui:generate→ui:check 绿；visual:check 差异 0.00%；台账 RC=0。走查（本地栈存活）：Owner 打开 MiniMax-Text-01 详情 → 「试跑」区渲染 → 点「发起试跑」→ 真实调用 execution → 如实展示 error「catalog: upstream 403: missing actor role」（execution→catalog 本地 dev 链路 actor 传递问题，非前端 bug；前端不伪造成功）；Viewer 详情无试跑入口、详情字段正常；已恢复 Owner。
 - **决策**：D-002 试跑 error 如实展示为正确行为；execution→catalog 的 actor 403 属本地 dev 链路配置，不在本卡范围（可后续单独立项）。
+
+
+### 2026-10-17 20:00 增量（Owner 决策）
+- **动作**：按 Owner「图片可以测试，视频先不测试」调整试跑范围：text+image 开放，video 禁用。
+- **发现/证据**：execution engine api_connector 协议模板参数 Role:"runtime"（api_connector_test 证实 prompt 是 image 标准 runtime 字段）→ image runtime={prompt:…}，text={messages:…}。
+- **决策**：D-003 试跑范围=文本+图片（图片 runtime 用协议模板标准 prompt）；视频保持禁用（成本高，走创作流异步）。

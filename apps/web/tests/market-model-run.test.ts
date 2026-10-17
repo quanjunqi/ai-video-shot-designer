@@ -34,9 +34,16 @@ test('结果展示：真实字段（ok / 上游 HTTP status / 耗时 / 响应摘
   assert.match(page, /上游失败/, 'ok=false 必须如实显示为失败而非假装成功');
 });
 
-test('图片/视频：同步试跑禁用并说明（execution 语义：异步任务不在同步试跑范围）', () => {
-  assert.match(page, /同步试跑仅支持文本/, 'image/video 按钮必须禁用并说明');
-  assert.match(page, /图片\/视频走异步生成任务/, '必须解释为什么不支持同步试跑');
+test('视频：禁用同步试跑并说明（成本高，走创作流异步生成）', () => {
+  assert.match(page, /视频暂不开放试跑/, 'video 按钮必须禁用并说明');
+  assert.match(page, /视频生成成本较高，暂不开放同步试跑/, '必须解释为什么不支持视频试跑');
+  assert.match(page, /m\.type !== 'video'/, '试跑按钮条件必须按视频排除（文本+图片可跑）');
+});
+
+test('图片：开放同步试跑，runtime 用协议模板标准 prompt 字段', () => {
+  assert.match(page, /m\.type === 'image'/, '必须有图片分支');
+  assert.match(page, /prompt: '一张简单的测试图/, '图片 runtime 必须用 prompt 字段（execution engine api_connector 标准）');
+  assert.match(page, /图片试跑为真实生成调用/, '图片试跑必须提示真实成本');
 });
 
 test('三态：running 有加载态与真实文案，error 展示真实错误', () => {
