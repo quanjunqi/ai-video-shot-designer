@@ -53,6 +53,8 @@ var matrix = []rule{
 	{prefix: "/api/v1/workspace/credentials", read: roleAdmin, write: roleAdmin},
 	// 成员列表（设置 > 工作区与成员）：admin（TASK-SETTINGS-P3A；Viewer 成员区隐藏 + 后端 403 纵深防御）
 	{prefix: "/api/v1/workspace/members", read: roleAdmin, write: roleAdmin},
+	// workspace 信息（名称/创建时间/标识，信息卡全员可见）：读全员；写 admin（改名预留，TASK-SETTINGS-P3B）
+	{prefix: "/api/v1/workspace", read: roleMember, write: roleAdmin},
 	// 模型目录 / 逻辑模型 / 规则模板：读全角色；写 admin
 	{prefix: "/api/v1/catalog", read: roleViewer, write: roleAdmin},
 	{prefix: "/api/v1/logical-models", read: roleViewer, write: roleAdmin},

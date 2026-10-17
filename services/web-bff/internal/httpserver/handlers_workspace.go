@@ -318,6 +318,51 @@ func (s *server) ready(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// workspaceInfo forwards the workspace profile to the workspace service, rewriting
+// /api/v1/workspace onto /internal/v1/workspaces/{workspace_id} (TASK-SETTINGS-P3B).
+// 权限由 authz matrix 守卫（read=roleMember：信息卡全员可见；write=roleAdmin 预留改名）。
+func (s *server) workspaceInfo(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/v1/workspace") || strings.HasPrefix(r.URL.Path, "/api/v1/workspace/") {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed")
+		return
+	}
+	role, err := s.authorize(r)
+	if err != nil {
+		if errors.Is(err, errAuthorizationDenied) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "workspace authorization failed")
+		} else {
+			writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace authorization unavailable")
+		}
+		return
+	}
+	r = r.WithContext(withRole(r.Context(), role))
+	upstreamPath := "/internal/v1/workspaces/" + s.devWorkspace
+	if r.URL.RawQuery != "" {
+		upstreamPath += "?" + r.URL.RawQuery
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, s.workspaceURL+upstreamPath, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "REQUEST_FAILED", "request failed")
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+s.workspaceToken)
+	req.Header.Set("X-Workspace-Id", s.devWorkspace)
+	req.Header.Set("X-Actor-Id", s.devActor)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "UPSTREAM_UNAVAILABLE", "workspace service unavailable")
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	copyHeaders(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
 // workspaceMembers forwards the workspace member list to the workspace service,
 // rewriting /api/v1/workspace/members onto
 // /internal/v1/workspaces/{workspace_id}/members (TASK-SETTINGS-P3A).

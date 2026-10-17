@@ -540,6 +540,16 @@
       "priority": "P2",
       "pr": 176,
       "file": "[TASK-UI-004-dead-code-triage.md](TASK-UI-004-dead-code-triage.md)"
+    },
+    {
+      "id": "TASK-SETTINGS-P3B",
+      "title": "工作区信息真实化（信息卡名称/标识/创建时间；P3 第二刀）",
+      "status": "进行中",
+      "priority": "P3（v14 §五；真实账号体系第二步）",
+      "pr": null,
+      "file": "[TASK-SETTINGS-P3B/task.md](TASK-SETTINGS-P3B/task.md)",
+      "criteria": 6,
+      "criteriaPassed": 0
     }
   ]
 }

@@ -3702,7 +3702,7 @@ export const UI_CATALOG: UiCatalog = {
     ]
   },
   "scales": {
-    "scannedFiles": 196,
+    "scannedFiles": 197,
     "text": [
       {
         "value": "xs",

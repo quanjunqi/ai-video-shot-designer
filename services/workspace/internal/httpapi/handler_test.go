@@ -13,6 +13,8 @@ import (
 )
 
 type fakeStore struct {
+	workspace     store.WorkspaceInfo
+	workspaceErr  error
 	members       []store.Member
 	memberErr     error
 	authorized    store.Member
@@ -78,6 +80,11 @@ func (s *fakeStore) UpsertUserChannel(_ context.Context, workspaceID string, c s
 func (s *fakeStore) DeleteUserChannel(_ context.Context, workspaceID, channelID string) error {
 	s.lastWorkspace, s.lastChannel = workspaceID, channelID
 	return s.deleteChErr
+}
+
+func (s *fakeStore) Workspace(_ context.Context, workspaceID string) (store.WorkspaceInfo, error) {
+	s.lastWorkspace = workspaceID
+	return s.workspace, s.workspaceErr
 }
 
 func (s *fakeStore) Members(_ context.Context, workspaceID string) ([]store.Member, error) {
