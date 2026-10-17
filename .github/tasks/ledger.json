@@ -672,6 +672,19 @@
       "criteriaPassed": 15,
       "criteriaTotal": 15,
       "file": "TASK-MARKET-M9/task.md"
+    },
+    {
+      "id": "TASK-MARKET-M10",
+      "title": "试跑结果图片渲染（output. 前缀抽取修复）",
+      "status": "待验收",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-MARKET-M9"
+      ],
+      "pr": 250,
+      "criteriaPassed": 15,
+      "criteriaTotal": 15,
+      "file": "TASK-MARKET-M10/task.md"
     }
   ]
 }
