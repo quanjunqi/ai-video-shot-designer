@@ -90,6 +90,8 @@ func (s *server) Routes() http.Handler {
 	// T3 预算规则（TASK-MODEL-005）：透传 workspace /internal/v1/workspaces/{ws}/budget/rules
 	mux.HandleFunc("/api/v1/workspace/budget", s.workspaceBudget)
 	mux.HandleFunc("/api/v1/workspace/budget/", s.workspaceBudget)
+	// TASK-SETTINGS-P3A：成员列表（admin+ 可读，矩阵守卫；前端设置 > 工作区与成员）
+	mux.HandleFunc("GET /api/v1/workspace/members", s.workspaceMembers)
 	// TASK-AUTH-001：当前身份（workspace/actor/role），前端启动拉取以驱动角色控制
 	mux.HandleFunc("GET /api/v1/me", s.me)
 	return withTimeout(mux)

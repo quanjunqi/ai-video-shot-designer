@@ -1,0 +1,62 @@
+{
+  "taskId": "TASK-SETTINGS-P3A",
+  "events": [
+    {
+      "ts": "2026-10-17T14:30:00+08:00",
+      "phase": "recon",
+      "action": "摸底后端成员能力：workspace_members 表 + Store.Members/Authorize + /members 与 /authorize 端点；BFF /api/v1/me 已存在",
+      "evidence": [
+        "services/workspace/internal/store/store.go Member struct + Members/Authorize",
+        "services/workspace/internal/httpapi/handler.go Routes()",
+        "services/web-bff/internal/httpserver/server.go /api/v1/me",
+        "services/workspace/migrations/001_workspaces.sql + 020_dev_role_seeds.sql"
+      ]
+    },
+    {
+      "ts": "2026-10-17T14:35:00+08:00",
+      "phase": "decision",
+      "action": "锁定范围：P3-A 成员列表真实化；BFF Admin+ 守卫（纵深防御）；前端降级演示态",
+      "evidence": [
+        ".github/tasks/TASK-SETTINGS-P3A/task.md 范围与边界"
+      ]
+    },
+    {
+      "ts": "2026-10-17T14:40:00+08:00",
+      "phase": "setup",
+      "action": "立卡四件套 + README/ledger 同步",
+      "evidence": [
+        ".github/tasks/TASK-SETTINGS-P3A/{task,acceptance,devlog,devlog.events}"
+      ],
+      "gate": {
+        "ledger": "check-task-ledger.sh 待开发后复跑"
+      }
+    }
+  ],
+  "verifications": [
+    {
+      "ts": "2026-10-17T15:00:00+08:00",
+      "item": "BFF 门禁：go build/vet/test 全绿（handlers_members_test 3 条：转发/403/503）",
+      "result": "pass",
+      "evidence": [
+        "services/web-bff/internal/httpserver/handlers_members_test.go"
+      ]
+    },
+    {
+      "ts": "2026-10-17T15:05:00+08:00",
+      "item": "前端门禁：gate 0/0 · node --test 181/181 · vitest 50/50 · ui/visual 绿（settings-p3a-members 4 条）",
+      "result": "pass",
+      "evidence": [
+        "tests/settings-p3a-members.test.ts"
+      ]
+    },
+    {
+      "ts": "2026-10-17T15:10:00+08:00",
+      "item": "浏览器走查：Owner 成员区渲染 + 降级演示态标注（workspace 服务不可达）",
+      "result": "pass",
+      "evidence": [
+        "mac_computer_use_tool 走查记录"
+      ]
+    }
+  ],
+  "updatedAt": "2026-10-17T15:10:00+08:00"
+}
