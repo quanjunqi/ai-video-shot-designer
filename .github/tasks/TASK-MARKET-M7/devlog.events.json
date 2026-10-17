@@ -1,0 +1,62 @@
+{
+  "taskId": "TASK-MARKET-M7",
+  "updatedAt": "2026-10-18T03:40:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-18T03:05:00+08:00",
+      "phase": "开工/探查",
+      "action": "探查价格链路全貌：PearAPI 拉价不可行；录入链路与后端返回已带价；断点唯一在前端展示映射",
+      "evidence": [
+        "curl /v1/models 83 项无 pricing；/v1/pricing 偶发 JSON 后 HTML",
+        "CurationPanel.tsx:290 priceAmount 录入",
+        "curation.go:191 PriceAmount 落库",
+        "postgres.go:81 PriceSource 返回",
+        "client.ts:214 priceAmount",
+        "modelPrice.ts 仅读 capability.billing"
+      ],
+      "decisionRef": "D-001"
+    },
+    {
+      "ts": "2026-10-18T03:20:00+08:00",
+      "phase": "开发",
+      "action": "前端三处改动 + modelPrice 单测 5 pass",
+      "evidence": [
+        "model-catalog.ts/useSettingsStore.ts/modelPrice.ts/ModelDetailSheet.tsx",
+        "tests/model-price.test.ts"
+      ]
+    },
+    {
+      "ts": "2026-10-18T03:30:00+08:00",
+      "phase": "开发",
+      "action": "发现并修复后端漏列：postgres.go 目录查询补 price_amount/price_unit SELECT + model.go Model 补字段",
+      "evidence": [
+        "BFF 直查返回 1.5/百万Token/manual",
+        "services/production build+vet+test ok"
+      ]
+    },
+    {
+      "ts": "2026-10-18T03:35:00+08:00",
+      "phase": "验证",
+      "action": "textBilling 优先独立价格列（修「计费明细 —」与「人工录入」矛盾）",
+      "evidence": [
+        "ModelDetailSheet.tsx"
+      ],
+      "decisionRef": "D-002"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "ts": "2026-10-18T03:05:00+08:00",
+      "decision": "M7 只做前端三处：CatalogModel 补价格字段 / serverModelToLocal 映射 / modelPrice 优先独立价格列（回退 billing）+ price_source 溯源；后端与录入不动",
+      "rationale": "录入（CurationPanel→curation.go）与返回（postgres.go→client.ts）已完整，唯一断点是前端类型+映射+展示"
+    },
+    {
+      "id": "D-002",
+      "ts": "2026-10-18T03:35:00+08:00",
+      "decision": "文本计费明细行优先独立价格列，回退 M6 双价逻辑",
+      "rationale": "独立价格列有值却显示「—」且溯源行显示「人工录入」——语义矛盾"
+    }
+  ],
+  "blocks": []
+}

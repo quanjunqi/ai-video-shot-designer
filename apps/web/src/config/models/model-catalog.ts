@@ -294,6 +294,11 @@ export interface CatalogModel {
    */
   logicalModelId?: string;
   routePriority?: number;
+  /** 独立价格列（来自目录投影，可溯源）。priceAmount 有值时优先于 capability.billing 展示。
+   *  priceSource：manual=人工录入 / synced=上游同步。内置示例模型无此字段（用 billing 示例价）。 */
+  priceAmount?: number;
+  priceUnit?: string;
+  priceSource?: 'manual' | 'synced';
 }
 
 // ---- L1 渠道（六渠道全内置）----

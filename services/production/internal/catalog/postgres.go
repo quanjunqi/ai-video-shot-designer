@@ -46,7 +46,7 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 	}
 
 	models, err := store.Pool.Query(ctx, `SELECT id, channel_id, family, name, provider_model, type, status, sort, note, COALESCE(protocol_template_id,''), request_path, method, params, response_params, capability, version, COALESCE(logical_model_id,''), route_priority,
-		cost_amount, COALESCE(cost_unit,''), COALESCE(price_source,'manual'), price_synced_at,
+		cost_amount, COALESCE(cost_unit,''), price_amount, COALESCE(price_unit,''), COALESCE(price_source,'manual'), price_synced_at,
 		workspace_id
 		FROM model_catalog
 		WHERE workspace_id = '' OR workspace_id = $1
@@ -67,10 +67,12 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 		var ws string
 		var costAmt sql.NullFloat64
 		var costUnit sql.NullString
+		var priceAmt sql.NullFloat64
+		var priceUnit sql.NullString
 		var priceSource sql.NullString
 		var priceSyncedAt sql.NullTime
 		if err := models.Scan(&m.ID, &m.ChannelID, &m.Family, &m.Name, &m.ProviderModel, &m.Type, &m.Status, &m.Sort, &m.Note, &m.ProtocolTemplateID, &m.RequestPath, &m.Method, &m.Params, &m.ResponseParams, &m.Capability, &m.Version, &m.LogicalModelID, &m.RoutePriority,
-			&costAmt, &costUnit, &priceSource, &priceSyncedAt,
+			&costAmt, &costUnit, &priceAmt, &priceUnit, &priceSource, &priceSyncedAt,
 			&ws); err != nil {
 			return dir, err
 		}
@@ -78,6 +80,10 @@ func (store PostgresStore) Directory(ctx context.Context, workspaceID string) (D
 			m.CostAmount = &costAmt.Float64
 		}
 		m.CostUnit = costUnit.String
+		if priceAmt.Valid {
+			m.PriceAmount = &priceAmt.Float64
+		}
+		m.PriceUnit = priceUnit.String
 		m.PriceSource = priceSource.String
 		if priceSyncedAt.Valid {
 			m.PriceSyncedAt = &priceSyncedAt.Time

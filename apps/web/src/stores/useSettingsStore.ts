@@ -101,6 +101,12 @@ function serverModelToLocal(m: ServerCatalogDirectory['models'][number]): Catalo
     params: (m as { params?: { key: string; value: string }[] }).params ?? [],
     responseParams: (m as { responseParams?: { key: string; value: string }[] }).responseParams ?? [],
     capability: m.capability as unknown as CatalogModel['capability'],
+    // ★ 价格必须随目录投影携带（M7）：price_amount/price_unit/price_source 是 model_catalog
+    //   独立列（curation 录入或上游同步），与 capability.billing（能力示例价）是两套口径。
+    //   漏映射 = 录了价也显示「—」（M7 前正是如此）。
+    priceAmount: (m as { priceAmount?: number }).priceAmount,
+    priceUnit: (m as { priceUnit?: string }).priceUnit,
+    priceSource: (m as { priceSource?: 'manual' | 'synced' }).priceSource,
   };
 }
 
