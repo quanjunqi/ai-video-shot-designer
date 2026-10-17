@@ -81,13 +81,15 @@ export function useCreateControls(kind: CreateKind): UseCreateControls {
   const initialDraft = useMemo(() => useCreateDraftStore.getState().readRawDraft(kind), [kind]);
 
   // 首选模型：用户显式选择 → 设置中心的默认模型 → 目录首个可运行模型
+  // M9：偏好语义为模型名（广场「设为默认」写 name、StageModelPicker/ProjectParams 均按 name），
+  // 这里 id 优先、name 兜底，兼容历史偏好值与 id 形态。
   const [selectedId, setSelectedId] = useState(() => initialDraft?.modelId ?? '');
   const preferred =
     kind === 'image' ? preferences.defaultImageModel : kind === 'video' ? preferences.defaultVideoModel : '';
   const model = useMemo(() => {
     const explicit = available.find((m) => m.id === selectedId);
     if (explicit) return explicit;
-    const byPreference = available.find((m) => m.id === preferred);
+    const byPreference = available.find((m) => m.id === preferred || m.name === preferred);
     return byPreference ?? available[0];
   }, [available, selectedId, preferred]);
 
