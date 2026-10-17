@@ -3834,7 +3834,7 @@ export const UI_CATALOG: UiCatalog = {
     "radius": [
       {
         "value": "lg",
-        "count": 196
+        "count": 197
       },
       {
         "value": "xl",

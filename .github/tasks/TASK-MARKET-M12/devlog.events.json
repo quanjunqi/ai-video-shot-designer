@@ -1,0 +1,115 @@
+{
+  "taskId": "TASK-XXX",
+  "updatedAt": "2026-10-18T01:00:00+08:00",
+  "events": [
+    {
+      "ts": "YYYY-MM-DDTHH:MM:SS+08:00",
+      "phase": "开工/探查 | 开发 | 验证 | 提交 | PR | 验收",
+      "action": "做了什么（一句可核验的动作）",
+      "evidence": [
+        "命令/文件路径/commit sha/PR 号（可复核的引用，不塞原始大输出）"
+      ],
+      "decisionRef": "D-001 或省略",
+      "blockRef": "B-001 或省略"
+    },
+    {
+      "ts": "2026-10-18T00:55:00+08:00",
+      "phase": "探查",
+      "action": "任务列表行无产物缩略图（详情抽屉已有 resultUrl）",
+      "evidence": [
+        "Tasks.tsx",
+        "TaskDetailSheet.tsx"
+      ]
+    },
+    {
+      "ts": "2026-10-18T01:00:00+08:00",
+      "phase": "开发",
+      "action": "列表行成功态渲染缩略图，复用 result-utils 单一实现",
+      "evidence": [
+        "Tasks.tsx",
+        "market-task-artifact.test.ts"
+      ]
+    },
+    {
+      "ts": "2026-10-18T01:05:00+08:00",
+      "phase": "验证",
+      "action": "门禁全绿（node 213+50）",
+      "evidence": [
+        "npm test"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "决策主题",
+      "options": [
+        "A",
+        "B"
+      ],
+      "choice": "B",
+      "reason": "一句理由（审计据此判断拍板成立性）",
+      "timing": "开工 | 开发中 | 收尾"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "V-001",
+      "criterion": "对应验收判据/验收标准 N",
+      "command": "验证命令或方式",
+      "result": "PASS | FAIL | SKIP+原因",
+      "evidence": "证据位置（文件/CI/PR body）"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B-001",
+      "block": "阻塞描述",
+      "rootCause": "根因",
+      "resolution": "解法",
+      "lesson": "复用教训"
+    }
+  ],
+  "disciplineSelfCheck": [
+    {
+      "item": "先本地测试/验证再 commit",
+      "result": "✓ | ✗",
+      "evidence": "V-xxx"
+    },
+    {
+      "item": "按路径 add（禁 git add -A）",
+      "result": "✓ | ✗",
+      "evidence": "commit 明细"
+    },
+    {
+      "item": "只改点名范围（未越界）",
+      "result": "✓ | ✗",
+      "evidence": "diff 清单"
+    },
+    {
+      "item": "验收清单逐项勾对（AC-004/005）",
+      "result": "✓ | ✗",
+      "evidence": "acceptance.md"
+    },
+    {
+      "item": "GATE / 后端门禁全绿",
+      "result": "✓ | ✗",
+      "evidence": "CI 结论"
+    },
+    {
+      "item": "台账同步（状态/PR 号）",
+      "result": "✓ | ✗",
+      "evidence": "ledger.json / README"
+    },
+    {
+      "item": "迁移只增不改 / 号段合规（如涉）",
+      "result": "✓ | ✗",
+      "evidence": "迁移 diff"
+    }
+  ],
+  "retrospective": {
+    "good": "做得好的（1-3 句）",
+    "improve": "可改进的（1-3 句）",
+    "followups": "遗留/后续（含转交其他卡的事项）"
+  }
+}
