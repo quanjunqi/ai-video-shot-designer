@@ -2,13 +2,13 @@
   "tasks": [
     {
       "id": "TASK-MARKET-M1",
-      "title": "模型广场真实化：供给池→添加真实模型闭环（归属后补；P1 核心体验）",
-      "status": "进行中",
+      "title": "模型广场真实化：三态来源标注与演示态引导（demo/server/offline）",
+      "status": "待验收",
       "priority": "P1（v14 §2.2/2.3）",
-      "pr": null,
+      "pr": 229,
       "file": "[TASK-MARKET-M1/task.md](TASK-MARKET-M1/task.md)",
       "criteria": 6,
-      "criteriaPassed": 0
+      "criteriaPassed": 6
     },
     {
       "id": "PLAN-a-and-adr008-2026-10-10",

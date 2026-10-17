@@ -12,9 +12,9 @@
 | 任务卡 | [task.md](task.md) |
 | 验收清单 | [acceptance.md](acceptance.md) |
 | 分支 | `feature/market-source-label-2026-10-17` |
-| PR | #（待开） |
+| PR | #229（合并 sha：fec72d7） |
 | 开工 | 2026-10-17 17:30（本地） |
-| 完成 | （待） |
+| 完成 | 2026-10-17 18:30（本地，CI 全绿合并） |
 
 > **范围修正（2026-10-17 17:40）**：初版立卡判据为「ModelCatalog 补供给池添加 UI」；继续开发前发现策展闭环已在 ModelChannels 渠道页完整实现（CurationPanel + curation.ts，curation-ui.test.ts 钉死），ModelCatalog 造供给区=重复实现（已还原）。真实缺口=广场 catalogSource 三态中 demo 无标注，用户会把演示目录当真实可调模型。卡已重写为「来源标注与演示态引导」。
 | 开发者 | AI Agent（MainAgent） |
