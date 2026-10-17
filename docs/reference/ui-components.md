@@ -238,15 +238,15 @@
 | `--tw-prose-invert-pre-bg` | `var(--accent)` |
 | `--tw-prose-invert-th-borders` | `var(--border)` |
 | `--tw-prose-invert-td-borders` | `var(--border)` |
-### 3.2 尺度实际用法（从源码统计 200 个文件）
+### 3.2 尺度实际用法（从源码统计 199 个文件）
 
 > 回答的是「**实际在用哪几档**」，不是「有哪些档位」；统计按源码文本匹配，可能含少量非样式字符串。
 
 | 类别 | 常用档位（次数） | 离散步长（建议收敛） |
 |---|---|---|
-| 字号 | `xs`(382) · `sm`(205) · `lg`(16) · `base`(10) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
-| 间距 | `2`(746) · `3`(460) · `1`(455) · `1.5`(337) · `4`(262) · `0.5`(120) | `-0.45rem`(2) · `-0.35rem`(2) |
-| 圆角 | `lg`(196) · `xl`(170) · `DEFAULT`(106) · `md`(93) · `full`(69) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
+| 字号 | `xs`(378) · `sm`(204) · `lg`(16) · `base`(10) · `xl`(3) · `2xl`(1) | `0.8rem`(2) |
+| 间距 | `2`(730) · `1`(453) · `3`(448) · `1.5`(335) · `4`(260) · `0.5`(120) | `-0.45rem`(2) · `-0.35rem`(2) |
+| 圆角 | `lg`(196) · `xl`(168) · `DEFAULT`(106) · `md`(93) · `full`(69) · `2xl`(27) | `2px`(3) · `calc(var(--radius)-5px)`(3) · `4px`(1) · `inherit`(1) |
 | 阴影 | `DEFAULT`(61) · `md`(30) · `lg`(27) · `sm`(13) · `xs`(5) · `2xl`(5) | `0_0_0_1px_hsl(var(--sidebar-border))`(1) · `0_0_0_1px_hsl(var(--sidebar-accent))`(1) |
 | 行高 / 字距 | `relaxed`(63) · `none`(8) · `5`(7) · `snug`(4) · `wider`(7) · `wide`(7) · `tight`(5) · `widest`(4) | — |
 
@@ -262,9 +262,9 @@
 | `alert` | 反馈 | 72 | default/destructive/success/warning | — | 0 | ⚠️ | `src/components/ui/alert.tsx` |
 | `alert-dialog` | 反馈 | 158 | — | — | 9 |  | `src/components/ui/alert-dialog.tsx` |
 | `avatar` | 基础 | 54 | — | — | 1 |  | `src/components/ui/avatar.tsx` |
-| `badge` | 基础 | 43 | default/secondary/destructive/outline | — | 45 |  | `src/components/ui/badge.tsx` |
+| `badge` | 基础 | 43 | default/secondary/destructive/outline | — | 44 |  | `src/components/ui/badge.tsx` |
 | `breadcrumb` | 导航 | 110 | — | — | 0 | ⚠️ | `src/components/ui/breadcrumb.tsx` |
-| `button` | 基础 | 70 | default/destructive/outline/secondary/ghost | default/sm/lg/icon | 52 |  | `src/components/ui/button.tsx` |
+| `button` | 基础 | 70 | default/destructive/outline/secondary/ghost | default/sm/lg/icon | 51 |  | `src/components/ui/button.tsx` |
 | `calendar` | 数据录入 | 214 | — | — | 0 | ⚠️ | `src/components/ui/calendar.tsx` |
 | `card` | 基础 | 83 | — | — | 3 |  | `src/components/ui/card.tsx` |
 | `chart` | 数据展示 | 358 | — | — | 0 | ⚠️ | `src/components/ui/chart.tsx` |
@@ -277,19 +277,19 @@
 | `field` | 数据录入 | 249 | — | — | 0 | ⚠️ | `src/components/ui/field.tsx` |
 | `form` | 数据录入 | 168 | — | — | 0 | ⚠️ | `src/components/ui/form.tsx` |
 | `image` | 基础 | 184 | — | — | 0 | ⚠️ | `src/components/ui/image.tsx` |
-| `input` | 数据录入 | 22 | — | — | 27 |  | `src/components/ui/input.tsx` |
+| `input` | 数据录入 | 22 | — | — | 26 |  | `src/components/ui/input.tsx` |
 | `input-group` | 数据录入 | 167 | — | — | 0 | ⚠️ | `src/components/ui/input-group.tsx` |
 | `item` | 布局 | 194 | default/outline/muted | default/sm | 0 | ⚠️ | `src/components/ui/item.tsx` |
-| `label` | 数据录入 | 25 | — | — | 21 |  | `src/components/ui/label.tsx` |
+| `label` | 数据录入 | 25 | — | — | 20 |  | `src/components/ui/label.tsx` |
 | `native-select` | 数据录入 | 49 | — | — | 0 | ⚠️ | `src/components/ui/native-select.tsx` |
 | `pagination` | 导航 | 128 | — | — | 0 | ⚠️ | `src/components/ui/pagination.tsx` |
 | `popover` | 反馈 | 49 | — | — | 0 | ⚠️ | `src/components/ui/popover.tsx` |
 | `progress` | 反馈 | 32 | — | — | 4 |  | `src/components/ui/progress.tsx` |
 | `radio-group` | 数据录入 | 46 | — | — | 0 | ⚠️ | `src/components/ui/radio-group.tsx` |
 | `scroll-area` | 布局 | 59 | — | — | 0 | ⚠️ | `src/components/ui/scroll-area.tsx` |
-| `select` | 数据录入 | 244 | — | — | 23 |  | `src/components/ui/select.tsx` |
+| `select` | 数据录入 | 244 | — | — | 22 |  | `src/components/ui/select.tsx` |
 | `separator` | 基础 | 29 | — | — | 3 |  | `src/components/ui/separator.tsx` |
-| `sheet` | 反馈 | 140 | — | — | 5 |  | `src/components/ui/sheet.tsx` |
+| `sheet` | 反馈 | 140 | — | — | 4 |  | `src/components/ui/sheet.tsx` |
 | `sidebar` | 布局 | 728 | default/outline | default/sm/lg | 0 | ⚠️ | `src/components/ui/sidebar.tsx` |
 | `skeleton` | 基础 | 14 | — | — | 1 |  | `src/components/ui/skeleton.tsx` |
 | `slider` | 数据录入 | 88 | — | — | 0 | ⚠️ | `src/components/ui/slider.tsx` |
