@@ -1,0 +1,13 @@
+{
+  "taskId": "TASK-MARKET-M3",
+  "updatedAt": "2026-10-17T23:30:00+08:00",
+  "events": [
+    {
+      "ts": "2026-10-17T23:30:00+08:00",
+      "phase": "探查",
+      "action": "立卡前探查前端数据源",
+      "evidence": ["BFF GET /api/v1/catalog 返回 7 真实模型", "store 已有 server 分支骨架", "UI 停在 demo 态"],
+      "decisionRef": "D-001"
+    }
+  ]
+}
