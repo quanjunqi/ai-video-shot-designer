@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M11
 title: 创作流真实消费修复（payload modelId 字段失配）
-status: 待验收
+status: 已验收
 priority: P1
 depends_on:
   - TASK-MARKET-M10

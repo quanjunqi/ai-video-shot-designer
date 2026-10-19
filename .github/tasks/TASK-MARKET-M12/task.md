@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M12
 title: 任务中心产物回显（成功任务直接展示生成图）
-status: 待验收
+status: 已验收
 priority: P1
 depends_on:
   - TASK-MARKET-M11

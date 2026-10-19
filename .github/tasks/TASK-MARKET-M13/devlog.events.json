@@ -1,0 +1,8 @@
+[
+  {"ts": "2026-10-19T22:30:00+08:00", "stage": "discover", "action": "M1-M12 集中验收（L3 浏览器 + API 实证）", "evidence": "/api/v1/tasks 逐条对比 intent/result_payload；DOM img 日期分布 {10-10:3,10-09:19,10-08:10}"},
+  {"ts": "2026-10-19T22:31:00+08:00", "stage": "root-cause", "action": "定位 resolveTaskResult explicit 分支少取一层 .result", "evidence": "result-utils.ts 源码 + job_258c6d61 result_payload 三层结构实证"},
+  {"ts": "2026-10-19T22:32:00+08:00", "stage": "implement", "action": "修复 resolveTaskResult：explicit 分支优先取 explicit.result 嵌套层，无嵌套回退 explicit", "evidence": "apps/web/src/features/genworkbench/result-utils.ts 单函数改动"},
+  {"ts": "2026-10-19T22:33:00+08:00", "stage": "test", "action": "补单测钉死三形态（新格式/旧格式/平铺）", "evidence": "market-task-artifact.test.ts"},
+  {"ts": "2026-10-19T22:35:00+08:00", "stage": "verify", "action": "gate + ui:check + npm test + L3 刷新 /tasks 验证缩略图", "evidence": "GATE=0 + npm test 215/0 + DOM img 分布 {10-19:2,10-18:2,旧图保持 35,hidden=0}"},
+  {"ts": "2026-10-19T22:40:00+08:00", "stage": "ledger", "action": "台账更新 README/ledger.json + check-task-ledger.sh", "evidence": "exit=0"}
+]

@@ -20,3 +20,16 @@ test('M12: 无产物/非图片保持原 kind icon，不破坏既有行结构', (
   assert.match(page, /<span className=\{cn\('rounded-lg bg-accent\/60 p-2', km\.tone\)\}>/, '无产物行保留原 kind icon');
   assert.match(page, /task\.context_path && 'cursor-pointer hover/, '行点击跳转行为不回归');
 });
+
+// TASK-MARKET-M13：resolveTaskResult 必须取 result_payload.result 嵌套层（10-18/10-19 新任务缩略图不显示的根因）。
+const utils = readFileSync(new URL('../src/features/genworkbench/result-utils.ts', import.meta.url), 'utf8');
+
+test('M13: resolveTaskResult 对 result_payload 必须优先取 .result 嵌套层（新格式任务产物回显）', () => {
+  assert.match(utils, /const nested = explicit\.result;/, '必须读取 result_payload.result 嵌套层');
+  assert.match(utils, /typeof nested === 'object'/, '嵌套 result 必须是对象才返回该层');
+  assert.match(utils, /return explicit;/, '无嵌套时回退整个 explicit（兼容平铺形态）');
+});
+
+test('M13: legacy（intent_payload.result）回退分支不被破坏', () => {
+  assert.match(utils, /parseJsonObject\(task\.intent_payload\)\?\.result/, '旧格式任务仍走 intent_payload.result 回退');
+});

@@ -689,7 +689,7 @@
     {
       "id": "TASK-MARKET-M11",
       "title": "创作流真实消费修复（payload modelId/runtime 失配）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M10"
@@ -702,7 +702,7 @@
     {
       "id": "TASK-MARKET-M12",
       "title": "任务中心产物回显（成功任务直接展示生成图）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M11"
@@ -711,6 +711,19 @@
       "criteriaPassed": 4,
       "criteriaTotal": 4,
       "file": "TASK-MARKET-M12/task.md"
+    },
+    {
+      "id": "TASK-MARKET-M13",
+      "title": "修复任务中心新格式任务产物缩略图不显示（result_payload 嵌套层）",
+      "status": "进行中",
+      "priority": "P1",
+      "depends_on": [
+        "TASK-MARKET-M12"
+      ],
+      "pr": null,
+      "criteriaPassed": 6,
+      "criteriaTotal": 6,
+      "file": "TASK-MARKET-M13/task.md"
     }
   ]
 }
