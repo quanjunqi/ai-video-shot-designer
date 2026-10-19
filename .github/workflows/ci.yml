@@ -187,7 +187,7 @@ jobs:
       # 避免自定义配置与 action 安装的 golangci-lint 版本产生 schema 冲突。
       - name: Run golangci-lint (new issues only)
         if: steps.rel.outputs.run == 'true'
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           working-directory: services/${{ matrix.service }}
           only-new-issues: true
