@@ -54,8 +54,18 @@ function parseJsonObject(raw: unknown): Record<string, unknown> | undefined {
 export function resolveTaskResult(
   task: Pick<ServerTask, 'intent_payload' | 'result_payload'>,
 ): Record<string, unknown> {
+  // 新格式（execution 010+）：result_payload = {result: {...URL_KEYS}, modelId, runtime}
+  // 产物在 `result_payload.result` 嵌套层 —— 必须取这一层，否则 extractResultUrl 在顶层
+  // 遍历 URL_KEYS 全部 miss（TASK-MARKET-M13：10-18/10-19 新任务缩略图不显示的根因）。
+  // 兼容：result_payload 直接平铺 URL_KEYS（无 result 嵌套）时回退整个 explicit。
   const explicit = parseJsonObject(task.result_payload);
-  if (explicit) return explicit;
+  if (explicit) {
+    const nested = explicit.result;
+    if (nested !== null && typeof nested === 'object') {
+      return nested as Record<string, unknown>;
+    }
+    return explicit;
+  }
   const legacy = parseJsonObject(task.intent_payload)?.result;
   return legacy !== null && typeof legacy === 'object' ? (legacy as Record<string, unknown>) : {};
 }
