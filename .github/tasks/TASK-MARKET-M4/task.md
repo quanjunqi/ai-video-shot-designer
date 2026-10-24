@@ -1,5 +1,5 @@
 ---
-status: 待验收
+status: 已验收
 priority: P1
 depends_on: [TASK-MARKET-M3]
 ---

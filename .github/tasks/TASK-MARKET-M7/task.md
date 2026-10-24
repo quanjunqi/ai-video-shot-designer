@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M7
 title: 模型价格展示链路打通（独立价格列映射）
-status: 待验收
+status: 已验收
 priority: P1
 depends_on:
   - TASK-MARKET-M6

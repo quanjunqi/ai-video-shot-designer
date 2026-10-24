@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M6
 title: 模型广场真实详情专业化
-status: 待验收
+status: 已验收
 priority: P1
 depends_on:
   - TASK-MARKET-M5

@@ -43,8 +43,8 @@
 | TASK-IA-001 | 模型中心/设置中心信息架构收敛重建（v14 P1：6 项导航实装+设置 6 区+用量唯一入口；Owner 2026-10-17 确认 2 决策） | P1（排期 v2 §3.3 第 2 波首位） | 待验收（设计稿 v14 评审通过；开发阶段） | ✅ | [TASK-IA-001/task.md](TASK-IA-001/task.md) |
 | TASK-SETTINGS-P2 | 设置中心 P2 骨架：账号/工作区/数据 3 区实装+外观·创作密度+通知开关（v14 P2 分期；本地演示态，P3 显式禁用） | P2（v14 §五） | 待验收（设计稿 v15 评审通过；开发阶段） | ☐ | [TASK-SETTINGS-P2/task.md](TASK-SETTINGS-P2/task.md) |（PR [#222](https://github.com/quanjunqi/ai-video-shot-designer/pull/222)）
 | TASK-SETTINGS-P3A | 工作区成员真实接入（BFF 代理+前端替换+演示态降级；P3 第一刀） | P3（v14 §五；真实账号体系第一步） | 待验收 | ☐ | [TASK-SETTINGS-P3A/task.md](TASK-SETTINGS-P3A/task.md) |
-| TASK-MARKET-M2 | 模型中心「模型试跑」入口（真实 runModelTest，Admin+） | P1（v14 §2.2） | 待验收 | ✅ | [TASK-MARKET-M2/task.md](TASK-MARKET-M2/task.md) |
-| TASK-MARKET-M1 | 模型广场真实化：三态来源标注与演示态引导（demo/server/offline） | P1（v14 §2.2/2.3） | 待验收 | ✅ | [TASK-MARKET-M1/task.md](TASK-MARKET-M1/task.md) |
+| TASK-MARKET-M2 | 模型中心「模型试跑」入口（真实 runModelTest，Admin+） | P1（v14 §2.2） | 已验收 | ✅ | [TASK-MARKET-M2/task.md](TASK-MARKET-M2/task.md) |
+| TASK-MARKET-M1 | 模型广场真实化：三态来源标注与演示态引导（demo/server/offline） | P1（v14 §2.2/2.3） | 已验收 | ✅ | [TASK-MARKET-M1/task.md](TASK-MARKET-M1/task.md) |
 | TASK-SETTINGS-P3B | 工作区信息真实化（信息卡名称/标识/创建时间；P3 第二刀） | P3（v14 §五；真实账号体系第二步） | 待验收 | ☐ | [TASK-SETTINGS-P3B/task.md](TASK-SETTINGS-P3B/task.md) |
 | TASK-INFRA-001 | 迁移执行器引入版本跟踪与校验和 | P0（基建） | 已验收（d612122 已合并；Docker 8 类场景验证 2026-10-15） | ✅ | [TASK-INFRA-001-migration-runner.md](TASK-INFRA-001-migration-runner.md) |
 | TASK-INFRA-002 | CI 按改动范围执行 | — | 待验收（✅ 判据 3/4/5/6 已实测；「8 条路径单测」实为手工命令） | — | [TASK-INFRA-002-ci-path-filtering.md](TASK-INFRA-002-ci-path-filtering.md) |
@@ -114,14 +114,14 @@
 - 开发日志：**12 个任务**（24 个文件，AC-010/AC-011 启用后新开卡；存量平铺卡待迁移）。
 - 台账一致性由 `.github/scripts/check-task-ledger.sh` 机器校验（CI Documentation Check + 本地 preflight 门 0b），`--self-test` 可验证门禁有效性。
 - 验收留痕机制自 `TASK-UI-001` 起启用。
-| TASK-MARKET-M3 | 模型中心数据源真实化（广场/目录接 server） | P1 | 待验收 | ✅ | [TASK-MARKET-M3/task.md](TASK-MARKET-M3/task.md) |
-| TASK-MARKET-M4 | 图片试跑 async 支持（试跑分流 RunAsync） | P1 | 待验收 | [#237](https://github.com/quanjunqi/ai-video-shot-designer/pull/237) | [TASK-MARKET-M4/task.md](TASK-MARKET-M4/task.md) |
-| TASK-MARKET-M5 | 模型目录能力归属服务端化 | P1 | 待验收 | [#239](https://github.com/quanjunqi/ai-video-shot-designer/pull/239) | [TASK-MARKET-M5/task.md](TASK-MARKET-M5/task.md) |
-| TASK-MARKET-M6 | 模型广场真实详情专业化 | P1 | 待验收 | [#241](https://github.com/quanjunqi/ai-video-shot-designer/pull/241) | [TASK-MARKET-M6/task.md](TASK-MARKET-M6/task.md) |
-| TASK-MARKET-M7 | 模型价格展示链路打通（独立价格列映射） | P1 | 待验收 | [#244](https://github.com/quanjunqi/ai-video-shot-designer/pull/244) | [TASK-MARKET-M7/task.md](TASK-MARKET-M7/task.md) |
-| TASK-MARKET-M9 | 创作流默认模型消费修复（广场设默认生效） | P1 | 待验收 | [#248](https://github.com/quanjunqi/ai-video-shot-designer/pull/248) | [TASK-MARKET-M9/task.md](TASK-MARKET-M9/task.md) |
-| TASK-MARKET-M8 | 撤销模型目录页，启停归位模型广场 | P1 | 待验收 | [#246](https://github.com/quanjunqi/ai-video-shot-designer/pull/246) | [TASK-MARKET-M8/task.md](TASK-MARKET-M8/task.md) |
-| TASK-MARKET-M10 | 试跑结果图片渲染（output. 前缀抽取修复） | P1 | 待验收 | [#250](https://github.com/quanjunqi/ai-video-shot-designer/pull/250) | [TASK-MARKET-M10/task.md](TASK-MARKET-M10/task.md) |
+| TASK-MARKET-M3 | 模型中心数据源真实化（广场/目录接 server） | P1 | 已验收 | ✅ | [TASK-MARKET-M3/task.md](TASK-MARKET-M3/task.md) |
+| TASK-MARKET-M4 | 图片试跑 async 支持（试跑分流 RunAsync） | P1 | 已验收 | [#237](https://github.com/quanjunqi/ai-video-shot-designer/pull/237) | [TASK-MARKET-M4/task.md](TASK-MARKET-M4/task.md) |
+| TASK-MARKET-M5 | 模型目录能力归属服务端化 | P1 | 已验收 | [#239](https://github.com/quanjunqi/ai-video-shot-designer/pull/239) | [TASK-MARKET-M5/task.md](TASK-MARKET-M5/task.md) |
+| TASK-MARKET-M6 | 模型广场真实详情专业化 | P1 | 已验收 | [#241](https://github.com/quanjunqi/ai-video-shot-designer/pull/241) | [TASK-MARKET-M6/task.md](TASK-MARKET-M6/task.md) |
+| TASK-MARKET-M7 | 模型价格展示链路打通（独立价格列映射） | P1 | 已验收 | [#244](https://github.com/quanjunqi/ai-video-shot-designer/pull/244) | [TASK-MARKET-M7/task.md](TASK-MARKET-M7/task.md) |
+| TASK-MARKET-M9 | 创作流默认模型消费修复（广场设默认生效） | P1 | 已验收 | [#248](https://github.com/quanjunqi/ai-video-shot-designer/pull/248) | [TASK-MARKET-M9/task.md](TASK-MARKET-M9/task.md) |
+| TASK-MARKET-M8 | 撤销模型目录页，启停归位模型广场 | P1 | 已验收 | [#246](https://github.com/quanjunqi/ai-video-shot-designer/pull/246) | [TASK-MARKET-M8/task.md](TASK-MARKET-M8/task.md) |
+| TASK-MARKET-M10 | 试跑结果图片渲染（output. 前缀抽取修复） | P1 | 已验收 | [#250](https://github.com/quanjunqi/ai-video-shot-designer/pull/250) | [TASK-MARKET-M10/task.md](TASK-MARKET-M10/task.md) |
 | TASK-MARKET-M11 | 创作流真实消费修复（payload modelId/runtime 失配） | P1 | 已验收 | [#252](https://github.com/quanjunqi/ai-video-shot-designer/pull/252) | [TASK-MARKET-M11/task.md](TASK-MARKET-M11/task.md) |
 | TASK-MARKET-M12 | 任务中心产物回显（成功任务直接展示生成图） | P1 | 已验收 | [#254](https://github.com/quanjunqi/ai-video-shot-designer/pull/254) | [TASK-MARKET-M12/task.md](TASK-MARKET-M12/task.md) |
 | TASK-MARKET-M13 | 修复任务中心新格式任务产物缩略图不显示（result_payload 嵌套层） | P1 | 已验收 | [#265](https://github.com/quanjunqi/ai-video-shot-designer/pull/265) | [TASK-MARKET-M13/task.md](TASK-MARKET-M13/task.md) |

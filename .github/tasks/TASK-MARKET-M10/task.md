@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M10
 title: 试跑结果图片渲染（output. 前缀抽取修复）
-status: 待验收
+status: 已验收
 priority: P1
 depends_on:
   - TASK-MARKET-M9
