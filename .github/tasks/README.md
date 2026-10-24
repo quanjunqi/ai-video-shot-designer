@@ -124,4 +124,4 @@
 | TASK-MARKET-M10 | 试跑结果图片渲染（output. 前缀抽取修复） | P1 | 待验收 | [#250](https://github.com/quanjunqi/ai-video-shot-designer/pull/250) | [TASK-MARKET-M10/task.md](TASK-MARKET-M10/task.md) |
 | TASK-MARKET-M11 | 创作流真实消费修复（payload modelId/runtime 失配） | P1 | 已验收 | [#252](https://github.com/quanjunqi/ai-video-shot-designer/pull/252) | [TASK-MARKET-M11/task.md](TASK-MARKET-M11/task.md) |
 | TASK-MARKET-M12 | 任务中心产物回显（成功任务直接展示生成图） | P1 | 已验收 | [#254](https://github.com/quanjunqi/ai-video-shot-designer/pull/254) | [TASK-MARKET-M12/task.md](TASK-MARKET-M12/task.md) |
-| TASK-MARKET-M13 | 修复任务中心新格式任务产物缩略图不显示（result_payload 嵌套层） | P1 | 进行中 | — | [TASK-MARKET-M13/task.md](TASK-MARKET-M13/task.md) |
+| TASK-MARKET-M13 | 修复任务中心新格式任务产物缩略图不显示（result_payload 嵌套层） | P1 | 已验收 | [#265](https://github.com/quanjunqi/ai-video-shot-designer/pull/265) | [TASK-MARKET-M13/task.md](TASK-MARKET-M13/task.md) |

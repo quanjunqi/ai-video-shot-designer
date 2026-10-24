@@ -1,7 +1,7 @@
 ---
 id: TASK-MARKET-M13
 title: 修复任务中心新格式任务产物缩略图不显示（result_payload 嵌套层）
-status: 进行中
+status: 已验收
 priority: P1
 depends_on:
   - TASK-MARKET-M12
