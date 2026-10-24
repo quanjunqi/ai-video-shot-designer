@@ -1,6 +1,6 @@
 ---
 taskId: TASK-MARKET-M1
-status: 待验收
+status: 已验收
 priority: P1（模型中心核心体验；模型广场真实化）
 pr: 229
 criteria: 6

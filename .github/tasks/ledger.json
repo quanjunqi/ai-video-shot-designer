@@ -3,7 +3,7 @@
     {
       "id": "TASK-MARKET-M2",
       "title": "模型中心「模型试跑」入口（真实 runModelTest，Admin+）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1（v14 §2.2）",
       "pr": 231,
       "file": "[TASK-MARKET-M2/task.md](TASK-MARKET-M2/task.md)",
@@ -13,7 +13,7 @@
     {
       "id": "TASK-MARKET-M1",
       "title": "模型广场真实化：三态来源标注与演示态引导（demo/server/offline）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1（v14 §2.2/2.3）",
       "pr": 229,
       "file": "[TASK-MARKET-M1/task.md](TASK-MARKET-M1/task.md)",
@@ -585,7 +585,7 @@
     {
       "id": "TASK-MARKET-M3",
       "title": "模型中心数据源真实化（广场/目录接 server）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-EXEC-001"
@@ -598,7 +598,7 @@
     {
       "id": "TASK-MARKET-M4",
       "title": "图片试跑 async 支持（试跑分流 RunAsync）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M3"
@@ -611,7 +611,7 @@
     {
       "id": "TASK-MARKET-M5",
       "title": "模型目录能力归属服务端化",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M4"
@@ -624,7 +624,7 @@
     {
       "id": "TASK-MARKET-M6",
       "title": "模型广场真实详情专业化",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M5"
@@ -637,7 +637,7 @@
     {
       "id": "TASK-MARKET-M7",
       "title": "模型价格展示链路打通（独立价格列映射）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M6"
@@ -650,7 +650,7 @@
     {
       "id": "TASK-MARKET-M8",
       "title": "撤销模型目录页，启停归位模型广场",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M7"
@@ -663,7 +663,7 @@
     {
       "id": "TASK-MARKET-M9",
       "title": "创作流默认模型消费修复（广场设默认生效）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M8"
@@ -676,7 +676,7 @@
     {
       "id": "TASK-MARKET-M10",
       "title": "试跑结果图片渲染（output. 前缀抽取修复）",
-      "status": "待验收",
+      "status": "已验收",
       "priority": "P1",
       "depends_on": [
         "TASK-MARKET-M9"

@@ -1,6 +1,6 @@
 ---
 taskId: TASK-MARKET-M2
-status: 待验收
+status: 已验收
 priority: P1（模型中心核心体验；真实调用验证）
 pr: 231
 criteria: 6
