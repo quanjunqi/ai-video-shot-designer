@@ -11,7 +11,7 @@
 | 发布产物 | `/opt/shotdesigner/releases/<UTC时间>-<短SHA>/`，`current` 软链指向最新 |
 | 运行时 | 6 个 systemd 实例 `shotdesigner@{workspace,production,asset,execution,outbox-relay,web-bff}` |
 | 静态根 | `/usr/share/nginx/html` → `/opt/shotdesigner/current/web`（软链，切版本不用改 nginx） |
-| 中间件 | docker compose：`shotdesigner-postgres-1`、`shotdesigner-redis-1`、`shotdesigner-minio-1` |
+| 中间件 | docker compose：`shotdesigner-postgres-1`、`shotdesigner-redis-1`、`shotdesigner-minio-1`（生产 MinIO，`127.0.0.1:19000`） |
 | 密钥 | `/etc/shotdesigner/env`（0600，**不入 git**） |
 
 ---
@@ -172,9 +172,14 @@ git -c http.proxy=http://127.0.0.1:7897 push origin <branch>
 `WORKSPACE_CRED_KEY` 一旦库里有凭据数据就**不能改**（改了历史凭据解不开）。
 
 **Q：asset 上传 500 / web-bff `/ready` 503？**
-asset 依赖 MinIO。先确认 `curl -sf http://127.0.0.1:9000/minio/health/live`，
-再 `docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml --profile platform up -d minio`。
+asset 依赖 MinIO。生产 MinIO 在 **`127.0.0.1:19000`**（`deploy/local/.env` 的 `MINIO_PORT`），
+先确认 `curl -sf http://127.0.0.1:19000/minio/health/live`，再
+`docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml --profile platform up -d minio`。
 部署脚本每次都会做这个检查。
+
+> **9000 端口不是生产 MinIO**：那台机器上还跑着一个**公开的 CI 专用 MinIO**（容器名 `minio`，
+> `0.0.0.0:9000`），供 GitHub Actions 的 asset 集成测试直连（见 `ci.yml` 的
+> `ASSET_TEST_S3_ENDPOINT`）。两者是不同容器、不同数据卷，别停错。
 
 **Q：为什么不直接在服务器上 `git pull` 后 `pm2/nohup` 重启？**
 旧做法的三个问题：没有版本目录（回滚只能靠重新构建）、`pkill -f` 可能误杀、重启靠手工脚本且开机不自启。

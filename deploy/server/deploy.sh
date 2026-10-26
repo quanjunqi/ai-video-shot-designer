@@ -217,15 +217,20 @@ fi
 
 # --- 6. 确保中间件在跑 ----------------------------------------------------
 step "检查中间件"
-if ! curl -sf -o /dev/null --max-time 2 http://127.0.0.1:9000/minio/health/live; then
+# 端口以 compose .env 为准（9000 留给 CI 专用的公开 MinIO，生产 MinIO 用 19000）
+MINIO_PORT="$(grep -m1 '^MINIO_PORT=' "$COMPOSE_ENV" 2>/dev/null | cut -d= -f2)"
+MINIO_PORT="${MINIO_PORT:-19000}"
+MINIO_HEALTH="http://127.0.0.1:${MINIO_PORT}/minio/health/live"
+log "  minio 健康检查: ${MINIO_HEALTH}"
+if ! curl -sf -o /dev/null --max-time 2 "$MINIO_HEALTH"; then
   log "  minio 未就绪，尝试启动…"
   docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" --profile platform up -d minio >/dev/null 2>&1 || true
   for _ in $(seq 1 15); do
-    curl -sf -o /dev/null --max-time 2 http://127.0.0.1:9000/minio/health/live && break
+    curl -sf -o /dev/null --max-time 2 "$MINIO_HEALTH" && break
     sleep 1
   done
 fi
-curl -sf -o /dev/null --max-time 2 http://127.0.0.1:9000/minio/health/live \
+curl -sf -o /dev/null --max-time 2 "$MINIO_HEALTH" \
   && ok "minio 就绪" || log "  ⚠️  minio 仍未就绪，asset 健康检查可能失败"
 
 # --- 7. 切换 + 重启 -------------------------------------------------------
