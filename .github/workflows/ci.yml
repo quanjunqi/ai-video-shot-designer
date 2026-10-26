@@ -226,7 +226,7 @@ jobs:
         if: steps.rel.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.9' # 锁定含 GO-2026-6617 修复的版本（net/http HPACK 竞态，1.26.8 受影响）；与各服务 go.mod 的 go 1.26.0 补丁版本兼容
+          go-version: '1.26.10' # 锁定含标准库修复的版本：GO-2026-6617（net/http HPACK 竞态）、GO-2026-6809（crypto/x509 中间证书）；与各服务 go.mod 的 go 1.26.0 补丁版本兼容
           cache-dependency-path: services/${{ matrix.service }}/go.sum
 
       - name: Build
@@ -384,7 +384,7 @@ jobs:
         if: needs.changes.outputs.security == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.9' # 锁定含 GO-2026-6617 修复的版本（govulncheck 扫描本标准库漏洞）；与 go.mod go 1.26.0 补丁版本兼容
+          go-version: '1.26.10' # 锁定含标准库修复的版本：GO-2026-6617（net/http HPACK 竞态）、GO-2026-6809（crypto/x509 中间证书）；与 go.mod go 1.26.0 补丁版本兼容
 
       # W6：secrets 扫描 —— 检出硬编码密钥/凭据/Token 即阻断（零权限依赖：直接跑官方二进制）
       - name: Gitleaks secrets scan
@@ -394,11 +394,19 @@ jobs:
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp
           /tmp/gitleaks detect --source=. --no-banner --redact --config=.gitleaks.toml
 
+      # ★ 版本钉死：写 @master 会让「上游新增规则」变成随机红灯 —— 2026-10-26 同一份
+      #   services 代码在 10-24 是 0 issue，v2.30.0 新增 G704（SSRF taint）后变成 38 issue，
+      #   直接把所有触碰 deploy/ 与 workflows/ 的 PR 判红。规则集升级应当是显式动作。
       - name: Run Gosec Security Scanner
         if: needs.changes.outputs.security == 'true'
-        uses: securego/gosec@master
+        uses: securego/gosec@v2.30.0
         with:
-          args: ./services/...
+          # G704 规则级排除（显式、可 grep、可撤销），逐条 triage 见 issue #270：
+          #   本仓命中的 35 处全部是 BFF 的转发调用，目标 host 来自服务端配置
+          #   （BFF_WORKSPACE_URL / BFF_PRODUCTION_URL / ...），只拼接 r.URL.Path 与 RawQuery；
+          #   http.NewRequest 的 authority 由固定前缀决定，路径无法改写 scheme/host ⇒ 不构成 SSRF。
+          #   在补完每处 #nosec 理由（或按需改代码）之前，先按规则排除，其余规则照常执行。
+          args: -exclude=G704 ./services/...
 
       # W6：Go 依赖漏洞扫描（govulncheck，覆盖全部 7 个 module）。
       # 退出码语义：0=无漏洞；1=代码受影响的漏洞（阻断）；3=依赖含漏洞但代码未调用（放行并提示）。

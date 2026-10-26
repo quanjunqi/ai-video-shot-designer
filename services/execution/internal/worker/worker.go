@@ -405,6 +405,8 @@ func executeJob(ctx context.Context, s job.Store, cat *catalog.Client, cred *cre
 // statusCode（T11）：引擎失败的上游 HTTP 状态码（错误码分布数据源）；重试中不使用，终态写入。
 func failOrRetry(ctx context.Context, s job.Store, j job.Job, msg string, as *audit.Store, channelID, providerModel string, holds budget.HoldsStore, holdID string, statusCode int) {
 	cfg := job.DefaultRetryConfig()
+	// #nosec G404 -- math/rand 此处只用于重试退避的抖动（避免惊群），
+	// 不参与令牌、密钥、会话 ID 等任何安全用途；用 crypto/rand 反而会给重试路径加系统调用开销。
 	backoff := cfg.Backoff(j.Attempt, rand.New(rand.NewSource(time.Now().UnixNano())))
 	retried, err := s.FailOrRetry(ctx, j.ID, msg, backoff.Seconds())
 	switch {
