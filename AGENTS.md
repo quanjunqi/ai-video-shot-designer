@@ -58,6 +58,20 @@ docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml --profi
 cd services/<service> && go build -o /tmp/mdp-bin/<service> ./cmd/server
 ```
 
+### 部署到生产服务器
+
+生产机 `120.25.150.72`（`https://qjqhs.fun`）跑的是**单机 systemd + 不可变 release**：
+
+```powershell
+scripts\deploy-remote.cmd -Push         # push 分支 → 服务器拉取构建 → 校验部署 SHA
+ssh root@120.25.150.72 'shotdesigner-deploy origin/develop'   # 等价的裸命令
+```
+
+- 产物在 `/opt/shotdesigner/releases/<UTC时间>-<短SHA>/`，`current` 软链切换；静态根 `/usr/share/nginx/html → current/web`
+- 6 个服务由 `shotdesigner@<name>.service` 托管（`journalctl -u shotdesigner@asset -f`），密钥在 `/etc/shotdesigner/env`（0600，不入 git）
+- 健康检查失败自动回滚到上一个 release；手动回滚/排障见 `docs/how-to/deploy-server.md`
+- 服务器**直连 GitHub 不稳定**：部署用 `git fetch --depth 1`，拉不到就直接失败退出，绝不部署「半截代码」
+
 ## 分支与提交
 
 - 从 `origin/develop` 拉分支：`feature/`｜`fix/`｜`docs/`｜`chore/` + `<简述>-<日期>`；一条线一个 worktree（见 `.agents/skills/parallel-worktree/SKILL.md`）
