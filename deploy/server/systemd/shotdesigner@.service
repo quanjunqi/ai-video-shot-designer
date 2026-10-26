@@ -1,0 +1,34 @@
+[Unit]
+Description=Shotdesigner %i service
+Documentation=https://github.com/quanjunqi/ai-video-shot-designer
+# 依赖 docker：postgres / redis / minio 都是容器
+After=network-online.target docker.service
+Wants=network-online.target
+# 崩溃重启的上限，避免坏二进制无限重启刷日志
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/shotdesigner
+EnvironmentFile=/etc/shotdesigner/env
+SyslogIdentifier=shotdesigner-%i
+# 关键：走 current 软链，部署时切换软链 + 重启即切换版本
+ExecStart=/opt/shotdesigner/current/bin/%i
+
+Restart=always
+RestartSec=2
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+# 最小权限
+NoNewPrivileges=yes
+PrivateTmp=yes
+LimitNOFILE=65535
+
+# 日志进 journald：journalctl -u shotdesigner@%i -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

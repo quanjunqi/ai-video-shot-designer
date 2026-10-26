@@ -113,6 +113,61 @@ flowchart TB
 
 ---
 
+## 当前生产部署（2026-10-26 起，已交付）
+
+单机 `120.25.150.72`（`https://qjqhs.fun`）跑的是**无编排器**的形态，决策记录见
+[ADR-010](../adr/single-machine-release-pipeline.md)，操作手册见
+[deploy-server.md](../how-to/deploy-server.md)。
+
+```mermaid
+flowchart TB
+    GH["GitHub（origin）"]
+    subgraph HOST["生产机 120.25.150.72（2C / 1.8G，无 swap）"]
+        direction TB
+        NG["nginx :443<br/>静态根 → /opt/shotdesigner/current/web"]
+        SRC["/root/ai-video-shot-designer<br/>git 工作副本（分支 deployed）"]
+        REL["/opt/shotdesigner/releases/&lt;UTC&gt;-&lt;sha&gt;/"]
+        CUR["/opt/shotdesigner/current → 最新 release"]
+        subgraph SYSTEMD["systemd 实例（Restart=always）"]
+            WS["workspace :8082"]
+            PR["production :8081"]
+            EX["execution :8085"]
+            AS["asset :8084"]
+            BF["web-bff :8080"]
+            OB["outbox-relay"]
+        end
+        subgraph DOCKER["docker compose"]
+            PG[("PostgreSQL :5432")]
+            RD[("Redis :6379")]
+            MI[("MinIO :9000")]
+        end
+    end
+    GH -->|"git fetch --depth 1"| SRC
+    SRC -->|"构建"| REL --> CUR
+    NG -->|"/api/ 反代"| BF
+    BF --> WS & PR & EX & AS
+    OB --> EX
+    SRC -.-> PG
+    WS & PR & EX & AS --> PG
+    AS --> MI
+```
+
+关键事实（可复现）：
+
+| 项 | 值 |
+|---|---|
+| 版本切换 | `current` 软链 + `systemctl restart shotdesigner@*`，8–13s |
+| 回滚 | 健康检查失败自动回滚；手动 = 软链指回上一个 release |
+| 监听 | 5 个服务全部 `127.0.0.1`，外部仅经 nginx 443 |
+| 密钥 | `/etc/shotdesigner/env`（0600），systemd `EnvironmentFile` |
+| 日志 | journald（`journalctl -u shotdesigner@<svc>`） |
+| 前端产物 | 妙搭协议 `dist/output` + `dist/output_resource/assets` 合并进 release 的 `web/` |
+
+> 仍属单机：无副本、无滚动升级、数据库无 HA；构建与运行共用同一台 1.8G 机器。
+> 生产化的下一站仍是下文的目标形态。
+
+---
+
 ## 目标生产形态（规划中，尚未交付）
 
 ```mermaid
@@ -145,7 +200,8 @@ flowchart TB
 ```
 
 `docs/architecture/technical-architecture.md` §17 与 `deploy/local/README.md` 均已声明**当前仅交付 web 与 production
-的镜像构建文件，不能据此宣称生产容器化或高可用已完成**。目标态要求补齐：
+的镜像构建文件，不能据此宣称生产容器化或高可用已完成**。当前生产（见上节）是**宿主机 systemd 托管的进程**，
+不满足目标态的「可版本化镜像 + 容器部署」要求，属**已知差距**而非已完成项。目标态要求补齐：
 Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间件或服务必须同时提供可版本化镜像、
 健康检查、迁移与容器部署描述，不能依赖宿主机常驻进程。
 
@@ -153,7 +209,7 @@ Secret 管理、备份恢复、滚动升级、跨可用区验收；新增中间�
 
 | 项 | 当前 | 目标 |
 |---|---|---|
-| 部署 | 本地 Compose（单机） | K8s/Helm，多副本 |
+| 部署 | 单机 systemd + 不可变 release（[ADR-010](../adr/single-machine-release-pipeline.md)） | K8s/Helm，多副本 |
 | 中间件 | 单节点容器 | 托管/HA 集群 |
 | 密钥 | 环境变量注入 | KMS / Secret Manager |
 | 身份 | 固定开发身份 | OIDC + 短期凭证 |
