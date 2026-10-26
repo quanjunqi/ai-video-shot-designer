@@ -359,7 +359,8 @@ func RunAsync(ctx context.Context, creds Credentials, req RunRequest, client *ht
 			continue
 		}
 		pollBodyBytes, _ := io.ReadAll(io.LimitReader(pollResp.Body, 4*1024*1024))
-		pollResp.Body.Close()
+		// 读完即可关闭；Close 的错误对后续判定没有意义（gosec G104：显式丢弃）
+		_ = pollResp.Body.Close()
 		if pollResp.StatusCode >= 400 {
 			continue
 		}

@@ -81,16 +81,28 @@ func New(cfg Config) (*relay, error) {
 	return &relay{pool: cfg.Pool, client: cfg.Client, executionURL: cfg.ExecutionURL, token: cfg.Token, workerID: cfg.WorkerID, batch: cfg.Batch, lease: cfg.Lease, maxAttempts: cfg.MaxAttempts}, nil
 }
 
-// Run 是 relay 的主循环：轮询 outbox → 投递 → ack/fail，永不返回。
+// Run 是 relay 的主循环：轮询 outbox → 投递 → ack/fail，直到 ctx 取消。
+// 每次轮询用独立的超时 ctx（不超过 interval），轮询之间等待可被 ctx 取消
+// —— 旧实现对 ctx 完全不设防（gosec G118）：SIGTERM 后仍会跑完当前轮再空转等
+// interval，停机被拖长到一整轮间隔。
 func (r *relay) Run(ctx context.Context, interval time.Duration) {
 	Logger.Info("outbox relay started", "worker_id", r.workerID, "execution_url", r.executionURL)
 	for {
-		ctx, cancel := context.WithTimeout(ctx, interval)
-		if err := r.runOnce(ctx); err != nil {
+		runCtx, cancel := context.WithTimeout(ctx, interval)
+		if err := r.runOnce(runCtx); err != nil {
 			Logger.Warn("relay poll failed", slog.Any("err", err))
 		}
 		cancel()
-		time.Sleep(interval)
+
+		// 轮询与轮询之间的等待：ctx 取消立即返回，不必等满 interval
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			Logger.Info("outbox relay stopped", "worker_id", r.workerID)
+			return
+		case <-timer.C:
+		}
 	}
 }
 
