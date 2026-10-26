@@ -168,11 +168,14 @@ jobs:
       # 口令是 CI 一次性凭据，不是任何真实密钥。
       # ★ MinIO 开源版 2025-10 归档后全部分发通道关闭（逐一实测）：
       #   dl.min.io 410 Gone；GitHub Releases 二进制 assets 清空；Docker Hub
-      #   minio/minio 仓库移除（pull access denied）。故在公网服务器
-      #   (120.25.150.72:9000) 部署真实 MinIO 容器供 CI 直连：
-      #   - 保持被测对象是真实 MinIO，不改中间件；
-      #   - 凭据通过 repo secrets 注入（仓库 public，禁止明文写密码）；
-      #   - 测试数据无敏感，端点走 HTTP（Secure=false）。
+      #   minio/minio 仓库移除（pull access denied）⇒ CI 无法从任何 registry 拉镜像。
+      # ★ 曾用方案（已于本片废弃）：让 CI 直连公网服务器 120.25.150.72:9000 上的 MinIO。
+      #   代价是真实发生过的故障 —— 该容器一停，全仓 PR 的 asset 测试立刻全红；
+      #   且为了能被 runner 访问，生产机必须对公网长期开放对象存储端口。
+      # ★ 现方案：本仓库 release 资产 `minio-RELEASE.2022-01-04/minio-linux-amd64.gz`
+      #   （从其官方镜像 minio/minio@sha256:d786220f… 提取的官方二进制，33MB），
+      #   在 job 内下载后直接运行（见下方 "Start MinIO" 步骤）。
+      #   优点：不依赖 registry、不依赖生产机，端点收敛到 127.0.0.1。
     env:
       # 各服务的集成测试各自读取自己的变量（判据：源码里 os.Getenv 的实际取值）。
       # 它们都自建【随机 schema】并在结束时清理 ⇒ 共用同一个库是安全的。
@@ -182,10 +185,12 @@ jobs:
       ASSET_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
       # outbox-relay 的 claim/ack/fail/runOnce 集成测试（表在 production 迁移里）
       OUTBOX_TEST_DATABASE_URL: postgres://shotdesigner:shotdesigner@127.0.0.1:5432/postgres?sslmode=disable
-      # asset MinIO 集成测试：直连公网真实 MinIO（120.25.150.72:9000，安全组已放行）
-      ASSET_TEST_S3_ENDPOINT: 120.25.150.72:9000
-      ASSET_TEST_S3_ACCESS_KEY: ${{ secrets.ASSET_TEST_S3_ACCESS_KEY }}
-      ASSET_TEST_S3_SECRET_KEY: ${{ secrets.ASSET_TEST_S3_SECRET_KEY }}
+      # asset MinIO 集成测试：job 内自起的 MinIO（见 "Start MinIO" 步骤）
+      ASSET_TEST_S3_ENDPOINT: 127.0.0.1:9000
+      ASSET_TEST_S3_ACCESS_KEY: ${{ secrets.ASSET_TEST_S3_ACCESS_KEY || 'ci-minio-user' }}
+      ASSET_TEST_S3_SECRET_KEY: ${{ secrets.ASSET_TEST_S3_SECRET_KEY || 'ci-minio-password' }}
+      # 从官方镜像提取的 MinIO 二进制（本仓库 release 资产，见 docs/how-to/run-tests.md）
+      MINIO_BINARY_URL: https://github.com/quanjunqi/ai-video-shot-designer/releases/download/minio-RELEASE.2022-01-04/minio-linux-amd64.gz
     strategy:
       # fail-fast: false —— 一个服务失败不应取消其余服务的检查，
       # 否则日志只显示 cancelled，会掩盖其它服务的真实结果。
@@ -261,8 +266,32 @@ jobs:
           only-new-issues: true
           args: --timeout=5m
 
-      # asset 的 S3 集成测试直连公网真实 MinIO（120.25.150.72:9000），
-      # 凭据走 repo secrets（见上方 env 注释）。无需在本机再启动 S3 服务。
+      # asset 的 S3 集成测试需要真实 MinIO：下载本仓库 release 里归档的官方二进制就地启动。
+      # 只对 asset 执行（其它服务的测试不需要对象存储）；端点与上方 ASSET_TEST_S3_* 对应。
+      - name: Start MinIO
+        if: steps.rel.outputs.run == 'true' && matrix.service == 'asset'
+        env:
+          MINIO_ROOT_USER: ${{ secrets.ASSET_TEST_S3_ACCESS_KEY || 'ci-minio-user' }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.ASSET_TEST_S3_SECRET_KEY || 'ci-minio-password' }}
+        run: |
+          set -euo pipefail
+          curl -sSL --retry 3 --retry-delay 2 -o "$RUNNER_TEMP/minio.gz" "$MINIO_BINARY_URL"
+          gunzip -c "$RUNNER_TEMP/minio.gz" > "$RUNNER_TEMP/minio"
+          chmod +x "$RUNNER_TEMP/minio"
+          "$RUNNER_TEMP/minio" --version | head -1
+          mkdir -p "$RUNNER_TEMP/minio-data"
+          nohup "$RUNNER_TEMP/minio" server "$RUNNER_TEMP/minio-data" --address 127.0.0.1:9000 \
+            > "$RUNNER_TEMP/minio.log" 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:9000/minio/health/live; then
+              echo "MinIO 已就绪（127.0.0.1:9000）"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::MinIO 启动失败"
+          tail -40 "$RUNNER_TEMP/minio.log"
+          exit 1
 
       - name: Test
         if: steps.rel.outputs.run == 'true'
