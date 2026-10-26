@@ -16,6 +16,7 @@
 | 007 | [protocol-registry.md](./protocol-registry.md) | 协议注册表 | 2026-10-10 | 提议（部分被 008 修订） |
 | 008 | [protocol-docs-alignment.md](./protocol-docs-alignment.md) | 协议配置保留为上游文档镜像 + 契约核对基准 | 2026-10-10 | 已接受 |
 | 009 | [workspace-scoped-supply-pool.md](./workspace-scoped-supply-pool.md) | 租户级供给池 | 2026-10-10 | 提议 |
+| 010 | [single-machine-release-pipeline.md](./single-machine-release-pipeline.md) | 单机生产部署：systemd + 不可变 release + 软链切换 | 2026-10-26 | 已接受 |
 
 > 状态含义：**已接受** = 决策生效且已落地；**已确认** = Owner 确认但落地中；
 > **提议** = 待 Owner 确认，不作为实现依据。

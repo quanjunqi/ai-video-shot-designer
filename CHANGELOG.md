@@ -14,6 +14,21 @@
 ## [Unreleased]
 
 ### Added
+#### 部署与运维
+
+- **生产部署改为「systemd + 不可变 release」**（ADR-010）：生产机此前用 `nohup` 裸跑 6 个二进制、
+  `pkill -f` 重启、产物覆盖在仓库 `bin/` 内，**没有历史版本 ⇒ 无法秒级回滚**，且开机不自启。
+  现每次部署产出 `/opt/shotdesigner/releases/<UTC>-<短SHA>/`，`current` 软链原子切换，6 个
+  `shotdesigner@*` systemd 实例托管（`Restart=always`、journald 日志），健康检查失败自动回滚。
+  实测：增量部署 8–13s（前端未变更时复用产物），首次 71s+26s；同一 commit 重跑幂等退出。
+  入口 `scripts/deploy-remote.cmd`（push + 部署 + 校验部署 SHA），细节见
+  [`docs/how-to/deploy-server.md`](docs/how-to/deploy-server.md)。
+- **服务端口收敛到回环**：`workspace/production/execution/asset/web-bff` 原先分别监听
+  `*:8080`/`*:8085` 等全接口地址，现全部绑 `127.0.0.1`，外部只能经 nginx 443 进入。
+- **修复 asset 未运行导致的 503**：生产上 `asset` 进程缺失（`:8084` 无监听），`web-bff` 的
+  `/ready` 因此恒为 503（上传链路实际不可用）；同时拉起 MinIO 容器（`restart=unless-stopped`），
+  两者恢复后 `/ready` 由 503 → 204。
+
 #### 审计能力（④ 合规留痕 / 成本归因 / 故障定位 / 质量评估）
 
 - **审计覆盖率：失败分支不再留痕缺失**（PR #84 / #88）：审计骨架原先在 `generate()` 的
