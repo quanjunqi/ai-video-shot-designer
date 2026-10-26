@@ -217,9 +217,9 @@ fi
 
 # --- 6. 确保中间件在跑 ----------------------------------------------------
 step "检查中间件"
-# 端口以 compose .env 为准（9000 留给 CI 专用的公开 MinIO，生产 MinIO 用 19000）
+# 端口以 compose .env 为准（9000 是 MinIO 默认端口）
 MINIO_PORT="$(grep -m1 '^MINIO_PORT=' "$COMPOSE_ENV" 2>/dev/null | cut -d= -f2)"
-MINIO_PORT="${MINIO_PORT:-19000}"
+MINIO_PORT="${MINIO_PORT:-9000}"
 MINIO_HEALTH="http://127.0.0.1:${MINIO_PORT}/minio/health/live"
 log "  minio 健康检查: ${MINIO_HEALTH}"
 if ! curl -sf -o /dev/null --max-time 2 "$MINIO_HEALTH"; then

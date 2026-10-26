@@ -265,14 +265,17 @@
 - `RunResult` 新增 `ProviderTaskID`；`engine.Run` / `RunAsync` 标记 `Deprecated`（向后兼容）。
 
 ### Fixed
-- **asset 集成测试在 CI 上必然失败（CI 依赖的 MinIO 被停 + 端口冲突）**：`ci.yml` 的
-  `ASSET_TEST_S3_ENDPOINT` 直连 `120.25.150.72:9000` 上的 CI 专用 MinIO（`ci_minio_admin`），
-  该容器停止后测试报 `connection refused`（`TestPutAndCommitHappyPath` 等 14 个用例）。
-  同时生产 MinIO 若占用 9000 会与该容器**抢同一端口**。现固定分工：**9000 归 CI 专用 MinIO
-  （`0.0.0.0`，`restart=unless-stopped`），生产 MinIO 挪到 `127.0.0.1:19000`**，
-  `deploy.sh` 的健康检查与 `env.example` 的 `ASSET_S3_ENDPOINT` 均按 `MINIO_PORT` 取值。
-  > 已知技术债：CI 依赖公网服务器上的对象存储是脆弱的耦合，长期应改为 CI 自起的
-  > 服务容器（镜像可托管到 GHCR），而不必为 CI 开放公网端口。
+- **asset 集成测试不再依赖生产机上的公网 MinIO**：此前 `ci.yml` 的
+  `ASSET_TEST_S3_ENDPOINT` 直连 `120.25.150.72:9000` 上的 CI 专用 MinIO（`ci_minio_admin`）——
+  该容器 2026-10-26 13:50 被停止后，`TestPutAndCommitHappyPath` 等 14 个用例全部
+  `connection refused`，**任何 PR 的 asset 检查都会红**；且为了被 GitHub runner 访问，
+  生产机必须对公网长期开放对象存储端口，与「生产端口只绑回环」的方向冲突。
+  根因是 MinIO 开源版归档后 CI 无法从任何 registry 拉镜像（Docker Hub 仓库下线、dl.min.io 410、
+  GitHub Releases 资产清空）。现改为：把官方镜像
+  （`minio/minio@sha256:d786220f…`，`RELEASE.2022-01-04T07-41-07Z`）里的 linux/amd64 二进制
+  归档为**本仓库 release 资产**（`minio-RELEASE.2022-01-04/minio-linux-amd64.gz`，33MB），
+  CI 在 job 内下载并自起 MinIO（`127.0.0.1:9000`），**不依赖 registry、不依赖生产机**；
+  生产 MinIO 端口回归默认 `127.0.0.1:9000`，机器上只保留一个 MinIO，公开的 9000 容器已移除。
 - **异步任务的成功从未计入「成功 / 成功率」，也不被「成功」筛选显示**（PR #132）：审计表里存在**两套成功词汇**
   —— 同步路径写 `success`，worker 写 `succeeded`，而聚合与前端只认 `success`；失败态两条路径同名（`failed`）
   ⇒ **成功率被系统性低估**。现写侧归一为 `success`，读侧**兼容历史行**（筛选与计数都把 `succeeded` 算作成功），
