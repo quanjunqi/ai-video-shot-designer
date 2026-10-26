@@ -1,0 +1,15 @@
+# 跨平台行尾约定
+#
+# 背景：Windows 上 `core.autocrlf=true` 会把工作区检出为 CRLF；只要有人用
+# 「保留行尾」的方式把文件写回仓库（编辑器另存、某些工具直接落盘），CRLF 就会进索引。
+#
+# 为什么只钉这两类：
+#   *.sh / *.service 会在 Linux 上被**直接执行**（bash / systemd），
+#   CRLF 入库后表现为 `bad interpreter: /bin/bash^M` 或 unit 解析失败，
+#   而作者在 Windows 上完全复现不出来 —— 排查成本远高于加这两行。
+#
+# 其余文件保持 Git 默认处理，避免一次性重规范化整个仓库造成巨大 diff。
+# .gitattributes 自身也必须是 LF：CRLF 会让末尾的 \r 混进模式串。
+.gitattributes text eol=lf
+*.sh      text eol=lf
+*.service text eol=lf
